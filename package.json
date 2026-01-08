@@ -111,7 +111,8 @@
           "command": "simpleScp.importFromSshConfig"
         },
         {
-          "command": "simpleScp.uploadFile"
+          "command": "simpleScp.uploadFile",
+          "when": "false"
         },
         {
           "command": "simpleScp.editHost",
