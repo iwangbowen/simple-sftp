@@ -755,11 +755,18 @@ export class CommandHandler {
           logger.debug(`Found ${directories.length} directories in ${currentPath}: ${directories.join(', ')}`);
 
           const items: vscode.QuickPickItem[] = [
-            { label: '..', description: path.dirname(currentPath), alwaysShow: true },
+            {
+              label: '..',
+              description: 'Parent directory: ' + path.dirname(currentPath),
+              alwaysShow: true,
+              // Store the actual path in detail for easier access
+              detail: path.dirname(currentPath)
+            },
             { label: '$(check) Use this path', description: currentPath, alwaysShow: true },
             ...directories.map(dir => ({
-              label: dir,
+              label: '$(folder) ' + dir,
               description: path.join(currentPath, dir).replace(/\\/g, '/'),
+              detail: path.join(currentPath, dir).replace(/\\/g, '/')
             })),
           ];
 
@@ -805,14 +812,16 @@ export class CommandHandler {
           quickPick.hide();
           resolve(currentPath);
         } else if (selected.label === '..') {
-          // Navigate to parent directory
-          loadDirectory(selected.description!);
+          // Navigate to parent directory, use detail field
+          const parentPath = selected.detail || path.dirname(currentPath);
+          loadDirectory(parentPath);
         } else if (selected.label.includes('Go to:')) {
           // User selected custom path option
           loadDirectory(selected.description!);
         } else {
-          // Navigate into subdirectory
-          loadDirectory(selected.description!);
+          // Navigate into subdirectory, use detail field
+          const targetPath = selected.detail || selected.description!;
+          loadDirectory(targetPath);
         }
       });
 
