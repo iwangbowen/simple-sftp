@@ -22,7 +22,10 @@ export class HostTreeItem extends vscode.TreeItem {
     if (type === 'host') {
       const host = data as HostConfig;
       this.contextValue = 'host';
-      this.iconPath = new vscode.ThemeIcon('server');
+      this.iconPath = new vscode.ThemeIcon(
+        'server',
+        host.color ? new vscode.ThemeColor(`charts.${host.color}`) : undefined
+      );
       this.description = `${host.username}@${host.host}:${host.port}`;
       this.tooltip = this.generateTooltip(host);
       this.command = {

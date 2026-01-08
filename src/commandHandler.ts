@@ -40,37 +40,71 @@ export class CommandHandler {
   }
 
   private async addHost(): Promise<void> {
+    // Step 1/8: Host name
     const name = await vscode.window.showInputBox({
-      prompt: 'Enter host name',
+      prompt: 'Step 1/8: Enter host name',
       placeHolder: 'e.g., My Server',
+      validateInput: (value) => {
+        if (!value || !value.trim()) {
+          return 'Host name is required';
+        }
+        return undefined;
+      },
     });
-    if (!name) {return;}
+    if (name === undefined) {return;}
 
+    // Step 2/8: Host address
     const host = await vscode.window.showInputBox({
-      prompt: 'Enter host address',
+      prompt: 'Step 2/8: Enter host address',
       placeHolder: 'e.g., 192.168.1.100 or example.com',
+      validateInput: (value) => {
+        if (!value || !value.trim()) {
+          return 'Host address is required';
+        }
+        return undefined;
+      },
     });
-    if (!host) {return;}
+    if (host === undefined) {return;}
 
+    // Step 3/8: Port number
     const portStr = await vscode.window.showInputBox({
-      prompt: 'Enter port number',
+      prompt: 'Step 3/8: Enter port number (optional, default: 22)',
       value: '22',
+      validateInput: (value) => {
+        if (!value || !value.trim()) {
+          return undefined; // Empty is allowed, will use default
+        }
+        const port = parseInt(value);
+        if (isNaN(port) || port < 1 || port > 65535) {
+          return 'Port must be a number between 1 and 65535';
+        }
+        return undefined;
+      },
     });
-    const port = parseInt(portStr || '22');
+    if (portStr === undefined) {return;}
+    const port = portStr.trim() ? parseInt(portStr) : 22;
 
+    // Step 4/8: Username
     const username = await vscode.window.showInputBox({
-      prompt: 'Enter username',
+      prompt: 'Step 4/8: Enter username',
       value: 'root',
+      validateInput: (value) => {
+        if (!value || !value.trim()) {
+          return 'Username is required';
+        }
+        return undefined;
+      },
     });
-    if (!username) {return;}
+    if (username === undefined) {return;}
 
+    // Step 5/8: Authentication method
     const authType = await vscode.window.showQuickPick(
       [
         { label: 'Password', value: 'password' },
         { label: 'Private Key', value: 'privateKey' },
         { label: 'SSH Agent', value: 'agent' },
       ],
-      { placeHolder: 'Select authentication method' }
+      { placeHolder: 'Step 5/8: Select authentication method' }
     );
     if (!authType) {return;}
 
@@ -80,14 +114,28 @@ export class CommandHandler {
 
     if (authType.value === 'password') {
       password = await vscode.window.showInputBox({
-        prompt: 'Enter password',
+        prompt: 'Step 6/8: Enter password',
         password: true,
+        validateInput: (value) => {
+          if (!value || !value.trim()) {
+            return 'Password is required';
+          }
+          return undefined;
+        },
       });
+      if (password === undefined) {return;}
     } else if (authType.value === 'privateKey') {
       privateKeyPath = await vscode.window.showInputBox({
-        prompt: 'Enter private key path',
+        prompt: 'Step 6/8: Enter private key path',
         value: '~/.ssh/id_rsa',
+        validateInput: (value) => {
+          if (!value || !value.trim()) {
+            return 'Private key path is required';
+          }
+          return undefined;
+        },
       });
+      if (privateKeyPath === undefined) {return;}
 
       const needPassphrase = await vscode.window.showQuickPick(['Yes', 'No'], {
         placeHolder: 'Does the private key have a passphrase?',
@@ -97,32 +145,72 @@ export class CommandHandler {
         passphrase = await vscode.window.showInputBox({
           prompt: 'Enter passphrase',
           password: true,
+          validateInput: (value) => {
+            if (!value || !value.trim()) {
+              return 'Passphrase is required';
+            }
+            return undefined;
+          },
         });
+        if (passphrase === undefined) {return;}
       }
     }
 
+    // Step 7/8: Select group
     const groups = await this.hostManager.getGroups();
     let group: string | undefined;
 
     if (groups.length > 0) {
       const groupChoice = await vscode.window.showQuickPick(
-        [{ label: 'No Group', value: undefined }, ...groups.map(g => ({ label: g.name, value: g.id }))],
-        { placeHolder: 'Select group (optional)' }
+        [
+          { label: 'No Group', value: undefined },
+          ...groups.map(g => ({ label: g.name, value: g.id })),
+        ],
+        {
+          placeHolder:
+            authType.value === 'agent'
+              ? 'Step 6/8: Select group (optional)'
+              : 'Step 7/8: Select group (optional)',
+        }
       );
-      group = groupChoice?.value;
+      if (groupChoice === undefined) {return;}
+      group = groupChoice.value;
     }
+
+    // Step 8/8: Select color
+    const colorChoice = await vscode.window.showQuickPick(
+      [
+        { label: 'No Color', value: undefined, description: 'Use default color' },
+        { label: 'Red', value: 'red', description: '🔴' },
+        { label: 'Green', value: 'green', description: '🟢' },
+        { label: 'Blue', value: 'blue', description: '🔵' },
+        { label: 'Yellow', value: 'yellow', description: '🟡' },
+        { label: 'Purple', value: 'purple', description: '🟣' },
+        { label: 'Orange', value: 'orange', description: '🟠' },
+      ],
+      {
+        placeHolder:
+          authType.value === 'agent'
+            ? groups.length > 0
+              ? 'Step 7/8: Select color (optional)'
+              : 'Step 6/8: Select color (optional)'
+            : 'Step 8/8: Select color (optional)',
+      }
+    );
+    if (colorChoice === undefined) {return;}
 
     try {
       await this.hostManager.addHost({
-        name,
-        host,
+        name: name.trim(),
+        host: host.trim(),
         port,
-        username,
+        username: username.trim(),
         authType: authType.value as any,
         password,
         privateKeyPath,
         passphrase,
         group,
+        color: colorChoice.value,
       });
 
       this.treeProvider.refresh();
@@ -137,22 +225,62 @@ export class CommandHandler {
 
     const config = item.data as HostConfig;
 
-    const name = await vscode.window.showInputBox({
-      prompt: 'Modify host name',
-      value: config.name,
-    });
-    if (!name) {return;}
+    const options = [
+      { label: 'Edit Name', value: 'name' },
+      { label: 'Edit Default Remote Path', value: 'remotePath' },
+      { label: 'Edit Color', value: 'color' },
+    ];
 
-    const defaultRemotePath = await vscode.window.showInputBox({
-      prompt: 'Set default remote path (optional)',
-      value: config.defaultRemotePath || '/root',
+    const choice = await vscode.window.showQuickPick(options, {
+      placeHolder: `Edit ${config.name}`,
     });
+
+    if (!choice) {return;}
 
     try {
-      await this.hostManager.updateHost(config.id, {
-        name,
-        defaultRemotePath,
-      });
+      if (choice.value === 'name') {
+        const name = await vscode.window.showInputBox({
+          prompt: 'Modify host name',
+          value: config.name,
+          validateInput: (value) => {
+            if (!value || !value.trim()) {
+              return 'Host name is required';
+            }
+            return undefined;
+          },
+        });
+        if (name === undefined) {return;}
+
+        await this.hostManager.updateHost(config.id, { name: name.trim() });
+      } else if (choice.value === 'remotePath') {
+        const defaultRemotePath = await vscode.window.showInputBox({
+          prompt: 'Set default remote path (optional)',
+          value: config.defaultRemotePath || '/root',
+        });
+        if (defaultRemotePath === undefined) {return;}
+
+        await this.hostManager.updateHost(config.id, {
+          defaultRemotePath: defaultRemotePath.trim() || undefined,
+        });
+      } else if (choice.value === 'color') {
+        const colorChoice = await vscode.window.showQuickPick(
+          [
+            { label: 'No Color', value: undefined, description: 'Use default color' },
+            { label: 'Red', value: 'red', description: '🔴' },
+            { label: 'Green', value: 'green', description: '🟢' },
+            { label: 'Blue', value: 'blue', description: '🔵' },
+            { label: 'Yellow', value: 'yellow', description: '🟡' },
+            { label: 'Purple', value: 'purple', description: '🟣' },
+            { label: 'Orange', value: 'orange', description: '🟠' },
+          ],
+          { placeHolder: 'Select color' }
+        );
+        if (colorChoice === undefined) {return;}
+
+        await this.hostManager.updateHost(config.id, {
+          color: colorChoice.value,
+        });
+      }
 
       this.treeProvider.refresh();
       vscode.window.showInformationMessage('Host updated successfully');
@@ -188,12 +316,22 @@ export class CommandHandler {
     const name = await vscode.window.showInputBox({
       prompt: 'Enter group name',
       placeHolder: 'e.g., Production',
+      validateInput: async (value) => {
+        if (!value || !value.trim()) {
+          return 'Group name is required';
+        }
+        const groups = await this.hostManager.getGroups();
+        if (groups.some(g => g.name === value.trim())) {
+          return 'A group with this name already exists';
+        }
+        return undefined;
+      },
     });
 
     if (!name) {return;}
 
     try {
-      await this.hostManager.addGroup(name);
+      await this.hostManager.addGroup(name.trim());
       this.treeProvider.refresh();
       vscode.window.showInformationMessage(`Group "${name}" created successfully`);
     } catch (error) {

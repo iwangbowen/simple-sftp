@@ -19,6 +19,8 @@ export interface HostConfig {
   group?: string;
   /** 默认远程路径 */
   defaultRemotePath?: string;
+  /** 主机颜色，用于视觉识别 */
+  color?: string;
 }
 
 /**
