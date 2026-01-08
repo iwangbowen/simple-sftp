@@ -127,17 +127,13 @@ export class HostManager {
         continue;
       }
 
-      // If IdentityFile is specified, use privateKey auth
-      // Otherwise, try agent first (most common for existing SSH configs)
-      const authType = entry.IdentityFile ? 'privateKey' : 'agent';
-
+      // Import only basic info, no authentication
+      // User needs to configure authentication separately
       hosts.push({
         name: entry.Host,
         host: entry.HostName,
         port: entry.Port ? parseInt(entry.Port) : 22,
         username: entry.User || 'root',
-        authType,
-        privateKeyPath: entry.IdentityFile,
       });
     }
 
@@ -170,18 +166,13 @@ export class HostManager {
       );
 
       if (!exists) {
-        // If IdentityFile is specified, use privateKey auth
-        // Otherwise, try agent first (most common for existing SSH configs)
-        const authType = entry.IdentityFile ? 'privateKey' : 'agent';
-
+        // Only import basic host information, authentication will be configured separately
         const newHost: HostConfig = {
           id: this.generateId(),
           name: entry.Host,
           host: entry.HostName,
           port: entry.Port ? parseInt(entry.Port) : 22,
           username: entry.User || 'root',
-          authType,
-          privateKeyPath: entry.IdentityFile,
         };
         data.hosts.push(newHost);
         importedHosts.push(newHost);

@@ -3,14 +3,16 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import { HostManager } from './hostManager';
+import { AuthManager } from './authManager';
 import { HostTreeProvider, HostTreeItem } from './hostTreeProvider';
 import { SshConnectionManager } from './sshConnectionManager';
-import { HostConfig } from './types';
+import { HostConfig, HostAuthConfig, FullHostConfig } from './types';
 import { logger } from './logger';
 
 export class CommandHandler {
   constructor(
     private hostManager: HostManager,
+    private authManager: AuthManager,
     private treeProvider: HostTreeProvider
   ) {}
 
@@ -35,6 +37,9 @@ export class CommandHandler {
       ),
       vscode.commands.registerCommand('simpleScp.testConnection', (item: HostTreeItem) =>
         this.testConnection(item)
+      ),
+      vscode.commands.registerCommand('simpleScp.configureAuth', (item: HostTreeItem) =>
+        this.configureAuth(item)
       ),
       vscode.commands.registerCommand('simpleScp.refresh', () => this.refresh())
     );
@@ -98,66 +103,7 @@ export class CommandHandler {
     });
     if (username === undefined) {return;}
 
-    // Step 5/7: Authentication method
-    const authType = await vscode.window.showQuickPick(
-      [
-        { label: 'Password', value: 'password' },
-        { label: 'Private Key', value: 'privateKey' },
-        { label: 'SSH Agent', value: 'agent' },
-      ],
-      { placeHolder: 'Step 5/7: Select authentication method' }
-    );
-    if (!authType) {return;}
-
-    let password: string | undefined;
-    let privateKeyPath: string | undefined;
-    let passphrase: string | undefined;
-
-    if (authType.value === 'password') {
-      password = await vscode.window.showInputBox({
-        prompt: 'Step 6/7: Enter password',
-        password: true,
-        validateInput: (value) => {
-          if (!value || !value.trim()) {
-            return 'Password is required';
-          }
-          return undefined;
-        },
-      });
-      if (password === undefined) {return;}
-    } else if (authType.value === 'privateKey') {
-      privateKeyPath = await vscode.window.showInputBox({
-        prompt: 'Step 6/7: Enter private key path',
-        value: '~/.ssh/id_rsa',
-        validateInput: (value) => {
-          if (!value || !value.trim()) {
-            return 'Private key path is required';
-          }
-          return undefined;
-        },
-      });
-      if (privateKeyPath === undefined) {return;}
-
-      const needPassphrase = await vscode.window.showQuickPick(['Yes', 'No'], {
-        placeHolder: 'Does the private key have a passphrase?',
-      });
-
-      if (needPassphrase === 'Yes') {
-        passphrase = await vscode.window.showInputBox({
-          prompt: 'Enter passphrase',
-          password: true,
-          validateInput: (value) => {
-            if (!value || !value.trim()) {
-              return 'Passphrase is required';
-            }
-            return undefined;
-          },
-        });
-        if (passphrase === undefined) {return;}
-      }
-    }
-
-    // Step 7/7: Select group
+    // Step 5/7: Select group
     const groups = await this.hostManager.getGroups();
     let group: string | undefined;
 
@@ -167,34 +113,159 @@ export class CommandHandler {
           { label: 'No Group', value: undefined },
           ...groups.map(g => ({ label: g.name, value: g.id })),
         ],
-        {
-          placeHolder:
-            authType.value === 'agent'
-              ? 'Step 6/7: Select group (optional)'
-              : 'Step 7/7: Select group (optional)',
-        }
+        { placeHolder: 'Step 5/7: Select group (optional)' }
       );
       if (groupChoice === undefined) {return;}
       group = groupChoice.value;
     }
 
+    // Step 6/7: Save basic host info first
+    let newHost: HostConfig;
     try {
-      await this.hostManager.addHost({
+      newHost = await this.hostManager.addHost({
         name: name.trim(),
         host: host.trim(),
         port,
         username: username.trim(),
+        group,
+      });
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to add host: ${error}`);
+      return;
+    }
+
+    // Step 7/7: Configure authentication
+    const configureNow = await vscode.window.showQuickPick(
+      [
+        { label: 'Yes', value: true },
+        { label: 'No, configure later', value: false },
+      ],
+      { placeHolder: 'Step 7/7: Configure authentication now?' }
+    );
+
+    if (configureNow === undefined) {
+      // User cancelled, but host is already created
+      this.treeProvider.refresh();
+      vscode.window.showWarningMessage(`Host "${name}" added without authentication. Configure it later.`);
+      return;
+    }
+
+    if (configureNow.value) {
+      // Configure authentication immediately
+      const authConfigured = await this.configureAuthForHost(newHost.id);
+
+      if (authConfigured) {
+        this.treeProvider.refresh();
+        vscode.window.showInformationMessage(`Host "${name}" added successfully with authentication`);
+      } else {
+        this.treeProvider.refresh();
+        vscode.window.showWarningMessage(`Host "${name}" added without authentication`);
+      }
+    } else {
+      this.treeProvider.refresh();
+      vscode.window.showInformationMessage(`Host "${name}" added. Remember to configure authentication.`);
+    }
+  }
+
+  /**
+   * Configure authentication for a host (helper method)
+   * Returns true if authentication was configured successfully
+   */
+  private async configureAuthForHost(hostId: string): Promise<boolean> {
+    // Step 1: Select authentication method
+    const authType = await vscode.window.showQuickPick(
+      [
+        { label: 'SSH Agent', value: 'agent', description: 'Use SSH agent (recommended if available)' },
+        { label: 'Private Key', value: 'privateKey', description: 'Use SSH private key file' },
+        { label: 'Password', value: 'password', description: 'Use password authentication' },
+      ],
+      { placeHolder: 'Select authentication method' }
+    );
+
+    if (!authType) {
+      return false;
+    }
+
+    let password: string | undefined;
+    let privateKeyPath: string | undefined;
+    let passphrase: string | undefined;
+
+    if (authType.value === 'password') {
+      password = await vscode.window.showInputBox({
+        prompt: 'Enter password',
+        password: true,
+        validateInput: (value) => {
+          if (!value || !value.trim()) {
+            return 'Password is required';
+          }
+          return undefined;
+        },
+      });
+      if (!password) {
+        return false;
+      }
+    } else if (authType.value === 'privateKey') {
+      privateKeyPath = await vscode.window.showInputBox({
+        prompt: 'Enter private key path',
+        value: '~/.ssh/id_rsa',
+        validateInput: (value) => {
+          if (!value || !value.trim()) {
+            return 'Private key path is required';
+          }
+          return undefined;
+        },
+      });
+      if (!privateKeyPath) {
+        return false;
+      }
+
+      const needPassphrase = await vscode.window.showQuickPick(
+        [{ label: 'Yes', value: true }, { label: 'No', value: false }],
+        { placeHolder: 'Does the private key have a passphrase?' }
+      );
+
+      if (needPassphrase === undefined) {
+        return false;
+      }
+
+      if (needPassphrase.value) {
+        passphrase = await vscode.window.showInputBox({
+          prompt: 'Enter passphrase',
+          password: true,
+        });
+      }
+    }
+
+    // Save authentication config
+    try {
+      await this.authManager.saveAuth({
+        hostId,
         authType: authType.value as any,
         password,
         privateKeyPath,
         passphrase,
-        group,
       });
-
-      this.treeProvider.refresh();
-      vscode.window.showInformationMessage(`Host "${name}" added successfully`);
+      return true;
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to add host: ${error}`);
+      vscode.window.showErrorMessage(`Failed to save authentication: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Configure authentication for a host (command)
+   */
+  private async configureAuth(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {
+      return;
+    }
+
+    const config = item.data as HostConfig;
+    const success = await this.configureAuthForHost(config.id);
+
+    if (success) {
+      this.treeProvider.refresh();
+      vscode.window.showInformationMessage(`Authentication configured for ${config.name}`);
     }
   }
 
@@ -208,6 +279,7 @@ export class CommandHandler {
       { label: 'Edit Default Remote Path', value: 'remotePath' },
       { label: 'Change Group', value: 'group' },
       { label: 'Edit Color', value: 'color' },
+      { label: 'Configure Authentication', value: 'auth' },
     ];
 
     const choice = await vscode.window.showQuickPick(options, {
@@ -278,6 +350,14 @@ export class CommandHandler {
         await this.hostManager.updateHost(config.id, {
           color: colorChoice.value,
         });
+      } else if (choice.value === 'auth') {
+        // Configure authentication
+        const success = await this.configureAuthForHost(config.id);
+        if (success) {
+          vscode.window.showInformationMessage('Authentication updated successfully');
+        }
+        this.treeProvider.refresh();
+        return; // Early return after auth config
       }
 
       this.treeProvider.refresh();
@@ -367,7 +447,7 @@ export class CommandHandler {
       const items = newHosts.map(host => ({
         label: host.name,
         description: `${host.username}@${host.host}:${host.port}`,
-        detail: host.privateKeyPath ? `Key: ${host.privateKeyPath}` : 'Password auth',
+        detail: 'No authentication configured (configure after import)',
         picked: true, // Default to selected
         host,
       }));
@@ -381,15 +461,46 @@ export class CommandHandler {
         return;
       }
 
-      // Import selected hosts
+      // Import selected hosts (without authentication)
       let imported = 0;
+      const importedHostIds: string[] = [];
       for (const item of selected) {
-        await this.hostManager.addHost(item.host);
+        const newHost = await this.hostManager.addHost(item.host);
+        importedHostIds.push(newHost.id);
         imported++;
       }
 
       this.treeProvider.refresh();
-      vscode.window.showInformationMessage(`Successfully imported ${imported} host(s)`);
+
+      // Prompt to configure authentication
+      const configureNow = 'Configure Now';
+      const later = 'Later';
+      const choice = await vscode.window.showInformationMessage(
+        `Successfully imported ${imported} host(s). Configure authentication now?`,
+        configureNow,
+        later
+      );
+
+      if (choice === configureNow) {
+        // Get the full host configs to show labels
+        const allHosts = await this.hostManager.getHosts();
+        const importedHosts = allHosts.filter(h => importedHostIds.includes(h.id));
+
+        // Show list of imported hosts to configure
+        const hostToConfig = await vscode.window.showQuickPick(
+          importedHosts.map(h => ({
+            label: h.name,
+            description: `${h.username}@${h.host}:${h.port}`,
+            hostId: h.id,
+          })),
+          { placeHolder: 'Select host to configure authentication' }
+        );
+
+        if (hostToConfig) {
+          await this.configureAuthForHost(hostToConfig.hostId);
+          this.treeProvider.refresh();
+        }
+      }
     } catch (error) {
       vscode.window.showErrorMessage(`Import failed: ${error}`);
     }
@@ -417,7 +528,30 @@ export class CommandHandler {
     if (!selectedHost) {return;}
 
     const config = selectedHost.host;
-    const remotePath = await this.selectRemotePath(config);
+
+    // Check authentication
+    const authConfig = await this.authManager.getAuth(config.id);
+    if (!authConfig) {
+      const configure = 'Configure Authentication';
+      const cancel = 'Cancel';
+      const choice = await vscode.window.showWarningMessage(
+        `No authentication configured for ${config.name}. Configure now?`,
+        configure,
+        cancel
+      );
+
+      if (choice === configure) {
+        const success = await this.configureAuthForHost(config.id);
+        if (!success) {
+          return;
+        }
+        // Recursively call uploadFile after configuring auth
+        return this.uploadFile(uri);
+      }
+      return;
+    }
+
+    const remotePath = await this.selectRemotePath(config, authConfig);
     if (!remotePath) {return;}
 
     const fileName = path.basename(localPath);
@@ -439,6 +573,7 @@ export class CommandHandler {
             logger.info(`Uploading directory: ${localPath}`);
             await SshConnectionManager.uploadDirectory(
               config,
+              authConfig,
               localPath,
               finalRemotePath,
               (currentFile, percentage) => {
@@ -453,6 +588,7 @@ export class CommandHandler {
             logger.info(`Uploading file: ${localPath}`);
             await SshConnectionManager.uploadFile(
               config,
+              authConfig,
               localPath,
               finalRemotePath,
               (transferred, total) => {
@@ -484,14 +620,14 @@ export class CommandHandler {
     );
   }
 
-  private async selectRemotePath(config: HostConfig): Promise<string | undefined> {
+  private async selectRemotePath(config: HostConfig, authConfig: HostAuthConfig): Promise<string | undefined> {
     let currentPath = config.defaultRemotePath || '/root';
     logger.info(`Browsing remote path on ${config.name}, starting at: ${currentPath}`);
 
     while (true) {
       try {
         logger.debug(`Listing directory: ${currentPath}`);
-        const directories = await SshConnectionManager.listRemoteDirectory(config, currentPath);
+        const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
 
         const items = [
           { label: '$(check) Use current path', path: currentPath },
@@ -541,11 +677,16 @@ export class CommandHandler {
 
     logger.info(`Checking passwordless login for ${config.name}`);
 
-    const hasPasswordless = await SshConnectionManager.checkPasswordlessLogin(config);
-    if (hasPasswordless) {
-      logger.info(`Passwordless login already configured for ${config.name}`);
-      vscode.window.showInformationMessage('Passwordless login is already configured for this host');
-      return;
+    // Check if we already have private key authentication configured
+    const authConfig = await this.authManager.getAuth(config.id);
+    if (authConfig && authConfig.authType === 'privateKey') {
+      // Test if the key works
+      const hasPasswordless = await SshConnectionManager.checkPasswordlessLogin(config, authConfig);
+      if (hasPasswordless) {
+        logger.info(`Passwordless login already configured for ${config.name}`);
+        vscode.window.showInformationMessage('Passwordless login is already configured for this host');
+        return;
+      }
     }
 
     const sshDir = path.join(os.homedir(), '.ssh');
@@ -568,7 +709,9 @@ export class CommandHandler {
       return;
     }
 
-    if (config.authType !== 'password' || !config.password) {
+    // Need password authentication to setup passwordless login
+    let tempAuthConfig = authConfig;
+    if (!tempAuthConfig || tempAuthConfig.authType !== 'password') {
       const password = await vscode.window.showInputBox({
         prompt: 'Enter password to configure passwordless login',
         password: true,
@@ -576,8 +719,11 @@ export class CommandHandler {
 
       if (!password) {return;}
 
-      config.password = password;
-      config.authType = 'password';
+      tempAuthConfig = {
+        hostId: config.id,
+        authType: 'password',
+        password,
+      };
     }
 
     logger.info(`Setting up passwordless login for ${config.name} using key ${publicKeyPath}`);
@@ -589,15 +735,16 @@ export class CommandHandler {
           title: 'Configuring passwordless login...',
         },
         async () => {
-          await SshConnectionManager.setupPasswordlessLogin(config, publicKeyPath);
+          await SshConnectionManager.setupPasswordlessLogin(config, tempAuthConfig!, publicKeyPath!);
         }
       );
 
+      // Update authentication to use private key
       const privateKeyPath = publicKeyPath.replace('.pub', '');
-      await this.hostManager.updateHost(config.id, {
+      await this.authManager.saveAuth({
+        hostId: config.id,
         authType: 'privateKey',
         privateKeyPath,
-        password: undefined,
       });
 
       this.treeProvider.refresh();
@@ -623,8 +770,32 @@ export class CommandHandler {
 
     const config = item.data as HostConfig;
 
+    // Check if authentication is configured
+    const authConfig = await this.authManager.getAuth(config.id);
+
+    if (!authConfig) {
+      logger.warn(`No authentication configured for ${config.name}`);
+      const configure = 'Configure Authentication';
+      const cancel = 'Cancel';
+      const choice = await vscode.window.showWarningMessage(
+        `No authentication configured for ${config.name}. Configure now?`,
+        configure,
+        cancel
+      );
+
+      if (choice === configure) {
+        const success = await this.configureAuthForHost(config.id);
+        if (!success) {
+          return;
+        }
+        // Recursively call testConnection after configuring auth
+        return this.testConnection(item);
+      }
+      return;
+    }
+
     logger.info(`Testing connection to ${config.name} (${config.username}@${config.host}:${config.port})`);
-    logger.info(`Authentication type: ${config.authType}`);
+    logger.info(`Authentication type: ${authConfig.authType}`);
 
     try {
       await vscode.window.withProgress(
@@ -633,7 +804,7 @@ export class CommandHandler {
           title: `Testing connection to ${config.name}...`,
         },
         async () => {
-          await SshConnectionManager.testConnection(config);
+          await SshConnectionManager.testConnection(config, authConfig);
         }
       );
 
@@ -643,13 +814,22 @@ export class CommandHandler {
       logger.error(`✗ Connection to ${config.name} failed`, error as Error);
 
       const openLogs = 'View Logs';
+      const retryAuth = 'Retry Authentication';
       const choice = await vscode.window.showErrorMessage(
         `Connection to ${config.name} failed: ${error}`,
+        retryAuth,
         openLogs
       );
 
       if (choice === openLogs) {
         logger.show();
+      } else if (choice === retryAuth) {
+        // Allow user to reconfigure authentication
+        const success = await this.configureAuthForHost(config.id);
+        if (success) {
+          // Retry connection
+          return this.testConnection(item);
+        }
       }
     }
   }

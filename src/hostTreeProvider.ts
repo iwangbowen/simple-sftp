@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { HostConfig, GroupConfig } from './types';
 import { HostManager } from './hostManager';
+import { AuthManager } from './authManager';
 
 /**
  * TreeView 项类型
@@ -15,19 +16,30 @@ export class HostTreeItem extends vscode.TreeItem {
     public readonly label: string,
     public readonly type: TreeItemType,
     public readonly data: HostConfig | GroupConfig,
-    public readonly collapsibleState: vscode.TreeItemCollapsibleState
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+    public readonly hasAuth: boolean = true // Whether authentication is configured
   ) {
     super(label, collapsibleState);
 
     if (type === 'host') {
       const host = data as HostConfig;
       this.contextValue = 'host';
-      this.iconPath = new vscode.ThemeIcon(
-        'server',
-        host.color ? new vscode.ThemeColor(`charts.${host.color}`) : undefined
-      );
+
+      // Show different icon based on auth status
+      if (!hasAuth) {
+        this.iconPath = new vscode.ThemeIcon(
+          'server',
+          new vscode.ThemeColor('errorForeground') // Red color for unconfigured
+        );
+      } else {
+        this.iconPath = new vscode.ThemeIcon(
+          'server',
+          host.color ? new vscode.ThemeColor(`charts.${host.color}`) : undefined
+        );
+      }
+
       this.description = `${host.username}@${host.host}:${host.port}`;
-      this.tooltip = this.generateTooltip(host);
+      this.tooltip = this.generateTooltip(host, hasAuth);
       // Remove command so clicking host doesn't open edit dialog
       // User can still edit via context menu
     } else {
@@ -36,21 +48,14 @@ export class HostTreeItem extends vscode.TreeItem {
     }
   }
 
-  private generateTooltip(host: HostConfig): string {
-    let authType: string;
-    if (host.authType === 'password') {
-      authType = 'Password';
-    } else if (host.authType === 'privateKey') {
-      authType = 'Private Key';
-    } else {
-      authType = 'SSH Agent';
-    }
+  private generateTooltip(host: HostConfig, hasAuth: boolean): string {
+    const authStatus = hasAuth ? 'Configured' : 'Not configured';
 
     return [
       `Name: ${host.name}`,
       `Address: ${host.host}:${host.port}`,
       `User: ${host.username}`,
-      `Auth: ${authType}`,
+      `Auth: ${authStatus}`,
       host.defaultRemotePath ? `Default Path: ${host.defaultRemotePath}` : '',
     ]
       .filter(Boolean)
@@ -65,7 +70,10 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<HostTreeItem | undefined | null | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  constructor(private readonly hostManager: HostManager) {}
+  constructor(
+    private readonly hostManager: HostManager,
+    private readonly authManager: AuthManager
+  ) {}
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
@@ -106,12 +114,14 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
     // Add ungrouped hosts
     const ungroupedHosts = hosts.filter((h: HostConfig) => !h.group);
     for (const host of ungroupedHosts) {
+      const hasAuth = await this.authManager.hasAuth(host.id);
       items.push(
         new HostTreeItem(
           host.name,
           'host',
           host,
-          vscode.TreeItemCollapsibleState.None
+          vscode.TreeItemCollapsibleState.None,
+          hasAuth
         )
       );
     }
@@ -121,16 +131,22 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
 
   private async getHostsInGroup(groupId: string): Promise<HostTreeItem[]> {
     const hosts = await this.hostManager.getHosts();
-    return hosts
-      .filter((h: HostConfig) => h.group === groupId)
-      .map(
-        (host: HostConfig) =>
-          new HostTreeItem(
-            host.name,
-            'host',
-            host,
-            vscode.TreeItemCollapsibleState.None
-          )
+    const groupHosts = hosts.filter((h: HostConfig) => h.group === groupId);
+
+    const items: HostTreeItem[] = [];
+    for (const host of groupHosts) {
+      const hasAuth = await this.authManager.hasAuth(host.id);
+      items.push(
+        new HostTreeItem(
+          host.name,
+          'host',
+          host,
+          vscode.TreeItemCollapsibleState.None,
+          hasAuth
+        )
       );
+    }
+
+    return items;
   }
 }

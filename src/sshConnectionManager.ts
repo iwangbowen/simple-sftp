@@ -4,7 +4,7 @@ import * as path from 'path';
 import { Client, ConnectConfig } from 'ssh2';
 // @ts-ignore
 import SftpClient from 'ssh2-sftp-client';
-import { HostConfig } from './types';
+import { HostConfig, HostAuthConfig } from './types';
 
 /**
  * SSH 连接管理器
@@ -13,10 +13,10 @@ export class SshConnectionManager {
   /**
    * 测试连接
    */
-  static async testConnection(config: HostConfig): Promise<boolean> {
+  static async testConnection(config: HostConfig, authConfig: HostAuthConfig): Promise<boolean> {
     return new Promise((resolve, reject) => {
       const conn = new Client();
-      const connectConfig = this.buildConnectConfig(config);
+      const connectConfig = this.buildConnectConfig(config, authConfig);
 
       conn
         .on('ready', () => {
@@ -39,15 +39,15 @@ export class SshConnectionManager {
   /**
    * 检查是否配置了免密登录
    */
-  static async checkPasswordlessLogin(config: HostConfig): Promise<boolean> {
+  static async checkPasswordlessLogin(config: HostConfig, authConfig: HostAuthConfig): Promise<boolean> {
     // 如果使用密码认证，肯定不是免密登录
-    if (config.authType === 'password') {
+    if (authConfig.authType === 'password') {
       return false;
     }
 
     try {
       // 尝试使用私钥连接
-      await this.testConnection(config);
+      await this.testConnection(config, authConfig);
       return true;
     } catch (error) {
       return false;
@@ -57,10 +57,10 @@ export class SshConnectionManager {
   /**
    * 列出远程目录
    */
-  static async listRemoteDirectory(config: HostConfig, remotePath: string): Promise<string[]> {
+  static async listRemoteDirectory(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<string[]> {
     const sftp = new SftpClient();
     try {
-      const connectConfig = this.buildConnectConfig(config);
+      const connectConfig = this.buildConnectConfig(config, authConfig);
       await sftp.connect(connectConfig);
 
       const list = await sftp.list(remotePath);
@@ -79,13 +79,14 @@ export class SshConnectionManager {
    */
   static async uploadFile(
     config: HostConfig,
+    authConfig: HostAuthConfig,
     localPath: string,
     remotePath: string,
     onProgress?: (transferred: number, total: number) => void
   ): Promise<void> {
     const sftp = new SftpClient();
     try {
-      const connectConfig = this.buildConnectConfig(config);
+      const connectConfig = this.buildConnectConfig(config, authConfig);
       await sftp.connect(connectConfig);
 
       // 确保远程目录存在
@@ -110,13 +111,14 @@ export class SshConnectionManager {
    */
   static async uploadDirectory(
     config: HostConfig,
+    authConfig: HostAuthConfig,
     localPath: string,
     remotePath: string,
     onProgress?: (currentFile: string, progress: number) => void
   ): Promise<void> {
     const sftp = new SftpClient();
     try {
-      const connectConfig = this.buildConnectConfig(config);
+      const connectConfig = this.buildConnectConfig(config, authConfig);
       await sftp.connect(connectConfig);
 
       // 获取所有文件
@@ -151,6 +153,7 @@ export class SshConnectionManager {
    */
   static async setupPasswordlessLogin(
     config: HostConfig,
+    authConfig: HostAuthConfig,
     publicKeyPath: string
   ): Promise<void> {
     if (!fs.existsSync(publicKeyPath)) {
@@ -160,12 +163,7 @@ export class SshConnectionManager {
     const publicKey = fs.readFileSync(publicKeyPath, 'utf-8').trim();
 
     // 需要使用密码连接来上传公钥
-    const tempConfig: HostConfig = {
-      ...config,
-      authType: 'password',
-    };
-
-    if (!tempConfig.password) {
+    if (authConfig.authType !== 'password' || !authConfig.password) {
       throw new Error('需要密码才能配置免密登录');
     }
 
@@ -199,31 +197,31 @@ export class SshConnectionManager {
         .on('error', err => {
           reject(err);
         })
-        .connect(this.buildConnectConfig(tempConfig));
+        .connect(this.buildConnectConfig(config, authConfig));
     });
   }
 
   /**
    * 构建连接配置
    */
-  private static buildConnectConfig(config: HostConfig): ConnectConfig {
+  private static buildConnectConfig(config: HostConfig, authConfig: HostAuthConfig): ConnectConfig {
     const connectConfig: ConnectConfig = {
       host: config.host,
       port: config.port,
       username: config.username,
     };
 
-    if (config.authType === 'password' && config.password) {
-      connectConfig.password = config.password;
-    } else if (config.authType === 'privateKey' && config.privateKeyPath) {
-      const privateKeyPath = config.privateKeyPath.replace('~', require('os').homedir());
+    if (authConfig.authType === 'password' && authConfig.password) {
+      connectConfig.password = authConfig.password;
+    } else if (authConfig.authType === 'privateKey' && authConfig.privateKeyPath) {
+      const privateKeyPath = authConfig.privateKeyPath.replace('~', require('os').homedir());
       if (fs.existsSync(privateKeyPath)) {
         connectConfig.privateKey = fs.readFileSync(privateKeyPath);
-        if (config.passphrase) {
-          connectConfig.passphrase = config.passphrase;
+        if (authConfig.passphrase) {
+          connectConfig.passphrase = authConfig.passphrase;
         }
       }
-    } else if (config.authType === 'agent') {
+    } else if (authConfig.authType === 'agent') {
       connectConfig.agent = process.env.SSH_AUTH_SOCK;
     }
 

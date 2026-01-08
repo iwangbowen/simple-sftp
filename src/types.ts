@@ -1,5 +1,5 @@
 /**
- * 主机配置接口
+ * 主机配置接口 (同步信息)
  */
 export interface HostConfig {
   id: string;
@@ -7,6 +7,20 @@ export interface HostConfig {
   host: string;
   port: number;
   username: string;
+  /** 所属分组 */
+  group?: string;
+  /** 默认远程路径 */
+  defaultRemotePath?: string;
+  /** 主机颜色，用于视觉识别 */
+  color?: string;
+}
+
+/**
+ * 主机认证配置 (本地存储,不同步)
+ */
+export interface HostAuthConfig {
+  /** 主机 ID */
+  hostId: string;
   /** 认证方式 */
   authType: 'password' | 'privateKey' | 'agent';
   /** 密码（仅当 authType 为 password 时使用） */
@@ -15,12 +29,16 @@ export interface HostConfig {
   privateKeyPath?: string;
   /** 私钥密码 */
   passphrase?: string;
-  /** 所属分组 */
-  group?: string;
-  /** 默认远程路径 */
-  defaultRemotePath?: string;
-  /** 主机颜色，用于视觉识别 */
-  color?: string;
+}
+
+/**
+ * 完整的主机配置 (包含同步和本地信息)
+ */
+export interface FullHostConfig extends HostConfig {
+  authType?: 'password' | 'privateKey' | 'agent';
+  password?: string;
+  privateKeyPath?: string;
+  passphrase?: string;
 }
 
 /**
