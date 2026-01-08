@@ -530,11 +530,32 @@ export class CommandHandler {
         return;
       }
 
+      // Ask user to select group (optional)
+      const groups = await this.hostManager.getGroups();
+      const groupChoice = await vscode.window.showQuickPick(
+        [
+          { label: 'No Group', description: 'Import without grouping', value: undefined },
+          ...groups.map(g => ({
+            label: g.name,
+            description: `Import to ${g.name} group`,
+            value: g.id,
+          })),
+        ],
+        { placeHolder: 'Select group for imported hosts (optional)' }
+      );
+
+      if (groupChoice === undefined) {
+        return; // User cancelled
+      }
+
       // Import selected hosts (without authentication)
       let imported = 0;
       const importedHostIds: string[] = [];
       for (const item of selected) {
-        const newHost = await this.hostManager.addHost(item.host);
+        const hostToAdd = groupChoice.value
+          ? { ...item.host, group: groupChoice.value }
+          : item.host;
+        const newHost = await this.hostManager.addHost(hostToAdd);
         importedHostIds.push(newHost.id);
         imported++;
       }
@@ -545,7 +566,7 @@ export class CommandHandler {
       const configureNow = 'Configure Now';
       const later = 'Later';
       const choice = await vscode.window.showInformationMessage(
-        `Successfully imported ${imported} host(s). Configure authentication now?`,
+        `Successfully imported ${imported} host(s)${groupChoice.value ? ` to ${groupChoice.label}` : ''}. Configure authentication now?`,
         configureNow,
         later
       );
