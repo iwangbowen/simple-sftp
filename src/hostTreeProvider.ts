@@ -28,11 +28,8 @@ export class HostTreeItem extends vscode.TreeItem {
       );
       this.description = `${host.username}@${host.host}:${host.port}`;
       this.tooltip = this.generateTooltip(host);
-      this.command = {
-        command: 'simpleScp.editHost',
-        title: 'Edit Host',
-        arguments: [this],
-      };
+      // Remove command so clicking host doesn't open edit dialog
+      // User can still edit via context menu
     } else {
       this.contextValue = 'group';
       this.iconPath = new vscode.ThemeIcon('folder');
