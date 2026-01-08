@@ -276,6 +276,8 @@ export class CommandHandler {
 
     const options = [
       { label: 'Edit Name', value: 'name' },
+      { label: 'Edit Host Address', value: 'host' },
+      { label: 'Edit Port', value: 'port' },
       { label: 'Edit Default Remote Path', value: 'remotePath' },
       { label: 'Change Group', value: 'group' },
       { label: 'Edit Color', value: 'color' },
@@ -303,6 +305,40 @@ export class CommandHandler {
         if (name === undefined) {return;}
 
         await this.hostManager.updateHost(config.id, { name: name.trim() });
+      } else if (choice.value === 'host') {
+        const host = await vscode.window.showInputBox({
+          prompt: 'Enter host address (IP or domain)',
+          value: config.host,
+          placeHolder: 'e.g., 192.168.1.100 or example.com',
+          validateInput: (value) => {
+            if (!value || !value.trim()) {
+              return 'Host address is required';
+            }
+            return undefined;
+          },
+        });
+        if (host === undefined) {return;}
+
+        await this.hostManager.updateHost(config.id, { host: host.trim() });
+      } else if (choice.value === 'port') {
+        const portStr = await vscode.window.showInputBox({
+          prompt: 'Enter SSH port',
+          value: config.port.toString(),
+          placeHolder: 'Default: 22',
+          validateInput: (value) => {
+            if (!value || !value.trim()) {
+              return 'Port is required';
+            }
+            const port = parseInt(value);
+            if (isNaN(port) || port < 1 || port > 65535) {
+              return 'Port must be between 1 and 65535';
+            }
+            return undefined;
+          },
+        });
+        if (portStr === undefined) {return;}
+
+        await this.hostManager.updateHost(config.id, { port: parseInt(portStr) });
       } else if (choice.value === 'remotePath') {
         const defaultRemotePath = await vscode.window.showInputBox({
           prompt: 'Set default remote path (optional)',
@@ -419,15 +455,49 @@ export class CommandHandler {
 
   private async importFromSshConfig(): Promise<void> {
     try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Parsing SSH config...',
+          cancellable: false,
+        },
+        async (progress) => {
+          progress.report({ message: 'Reading SSH config file' });
+
+          const existingHosts = await this.hostManager.getHosts();
+          const sshConfigHosts = await this.hostManager.parseSshConfigFile();
+
+          if (sshConfigHosts.length === 0) {
+            vscode.window.showInformationMessage('No hosts found in SSH config file');
+            return;
+          }
+
+          progress.report({ message: 'Filtering hosts' });
+
+          // Filter out hosts that already exist
+          const newHosts = sshConfigHosts.filter(
+            sshHost =>
+              !existingHosts.some(
+                h =>
+                  h.host === sshHost.host &&
+                  h.username === sshHost.username &&
+                  h.port === sshHost.port
+              )
+          );
+
+          if (newHosts.length === 0) {
+            vscode.window.showInformationMessage('All hosts from SSH config are already imported');
+            return;
+          }
+
+          progress.report({ message: `Found ${newHosts.length} new hosts` });
+        }
+      );
+
+      // After progress completes, show the QuickPick
       const existingHosts = await this.hostManager.getHosts();
       const sshConfigHosts = await this.hostManager.parseSshConfigFile();
 
-      if (sshConfigHosts.length === 0) {
-        vscode.window.showInformationMessage('No hosts found in SSH config file');
-        return;
-      }
-
-      // Filter out hosts that already exist
       const newHosts = sshConfigHosts.filter(
         sshHost =>
           !existingHosts.some(
@@ -439,8 +509,7 @@ export class CommandHandler {
       );
 
       if (newHosts.length === 0) {
-        vscode.window.showInformationMessage('All hosts from SSH config are already imported');
-        return;
+        return; // Already shown message in progress
       }
 
       // Create QuickPick items for multi-selection
