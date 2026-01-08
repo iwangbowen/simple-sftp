@@ -222,7 +222,15 @@ export class SshConnectionManager {
         }
       }
     } else if (authConfig.authType === 'agent') {
-      connectConfig.agent = process.env.SSH_AUTH_SOCK;
+      // SSH Agent support
+      // On Windows, try named pipe first, then environment variable
+      // On Unix, use SSH_AUTH_SOCK environment variable
+      if (process.platform === 'win32') {
+        // Windows uses named pipe for SSH Agent (OpenSSH for Windows)
+        connectConfig.agent = String.raw`\\.\pipe\openssh-ssh-agent`;
+      } else {
+        connectConfig.agent = process.env.SSH_AUTH_SOCK;
+      }
     }
 
     return connectConfig;
