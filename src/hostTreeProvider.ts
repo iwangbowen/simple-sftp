@@ -91,22 +91,19 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
     const hosts = await this.hostManager.getHosts();
     const items: HostTreeItem[] = [];
 
-    // 添加分组
+    // Add all groups (including empty ones)
     for (const group of groups) {
-      const groupHosts = hosts.filter((h: HostConfig) => h.group === group.id);
-      if (groupHosts.length > 0) {
-        items.push(
-          new HostTreeItem(
-            group.name,
-            'group',
-            group,
-            vscode.TreeItemCollapsibleState.Collapsed
-          )
-        );
-      }
+      items.push(
+        new HostTreeItem(
+          group.name,
+          'group',
+          group,
+          vscode.TreeItemCollapsibleState.Collapsed
+        )
+      );
     }
 
-    // 添加未分组的主机
+    // Add ungrouped hosts
     const ungroupedHosts = hosts.filter((h: HostConfig) => !h.group);
     for (const host of ungroupedHosts) {
       items.push(

@@ -3,16 +3,11 @@
  */
 export class TimeUtils {
     /**
-     * Get current ISO time string in local timezone
-     * @returns ISO format time string with local timezone offset
+     * Get current time string in format: YYYY-MM-DD HH:mm:ss.SSS
+     * @returns Formatted time string
      */
     static getCurrentISOTime(): string {
         const now = new Date();
-        const offset = -now.getTimezoneOffset();
-        const offsetHours = Math.floor(Math.abs(offset) / 60).toString().padStart(2, '0');
-        const offsetMinutes = (Math.abs(offset) % 60).toString().padStart(2, '0');
-        const offsetSign = offset >= 0 ? '+' : '-';
-
         const year = now.getFullYear();
         const month = (now.getMonth() + 1).toString().padStart(2, '0');
         const day = now.getDate().toString().padStart(2, '0');
@@ -21,21 +16,16 @@ export class TimeUtils {
         const seconds = now.getSeconds().toString().padStart(2, '0');
         const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
 
-        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
     }
 
     /**
-     * Format a timestamp to ISO time string in local timezone
+     * Format a timestamp to time string in format: YYYY-MM-DD HH:mm:ss.SSS
      * @param timestamp - Unix timestamp in milliseconds
-     * @returns ISO format time string with local timezone offset
+     * @returns Formatted time string
      */
     static formatISOTime(timestamp: number): string {
         const date = new Date(timestamp);
-        const offset = -date.getTimezoneOffset();
-        const offsetHours = Math.floor(Math.abs(offset) / 60).toString().padStart(2, '0');
-        const offsetMinutes = (Math.abs(offset) % 60).toString().padStart(2, '0');
-        const offsetSign = offset >= 0 ? '+' : '-';
-
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
@@ -44,6 +34,6 @@ export class TimeUtils {
         const seconds = date.getSeconds().toString().padStart(2, '0');
         const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
 
-        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
     }
 }
