@@ -27,11 +27,13 @@ export class HostTreeItem extends vscode.TreeItem {
 
       // Show different icon based on auth status
       if (!hasAuth) {
+        // Warning icon for hosts without authentication
         this.iconPath = new vscode.ThemeIcon(
-          'server',
-          new vscode.ThemeColor('errorForeground') // Red color for unconfigured
+          'warning',
+          new vscode.ThemeColor('errorForeground') // Red warning icon
         );
       } else {
+        // Server icon, with optional user color
         this.iconPath = new vscode.ThemeIcon(
           'server',
           host.color ? new vscode.ThemeColor(`charts.${host.color}`) : undefined
