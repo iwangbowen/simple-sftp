@@ -6,6 +6,7 @@ import { HostManager } from './hostManager';
 import { HostTreeProvider, HostTreeItem } from './hostTreeProvider';
 import { SshConnectionManager } from './sshConnectionManager';
 import { HostConfig } from './types';
+import { logger } from './logger';
 
 export class CommandHandler {
   constructor(
@@ -40,9 +41,9 @@ export class CommandHandler {
   }
 
   private async addHost(): Promise<void> {
-    // Step 1/8: Host name
+    // Step 1/7: Host name
     const name = await vscode.window.showInputBox({
-      prompt: 'Step 1/8: Enter host name',
+      prompt: 'Step 1/7: Enter host name',
       placeHolder: 'e.g., My Server',
       validateInput: (value) => {
         if (!value || !value.trim()) {
@@ -53,9 +54,9 @@ export class CommandHandler {
     });
     if (name === undefined) {return;}
 
-    // Step 2/8: Host address
+    // Step 2/7: Host address
     const host = await vscode.window.showInputBox({
-      prompt: 'Step 2/8: Enter host address',
+      prompt: 'Step 2/7: Enter host address',
       placeHolder: 'e.g., 192.168.1.100 or example.com',
       validateInput: (value) => {
         if (!value || !value.trim()) {
@@ -66,9 +67,9 @@ export class CommandHandler {
     });
     if (host === undefined) {return;}
 
-    // Step 3/8: Port number
+    // Step 3/7: Port number
     const portStr = await vscode.window.showInputBox({
-      prompt: 'Step 3/8: Enter port number (optional, default: 22)',
+      prompt: 'Step 3/7: Enter port number (optional, default: 22)',
       value: '22',
       validateInput: (value) => {
         if (!value || !value.trim()) {
@@ -84,9 +85,9 @@ export class CommandHandler {
     if (portStr === undefined) {return;}
     const port = portStr.trim() ? parseInt(portStr) : 22;
 
-    // Step 4/8: Username
+    // Step 4/7: Username
     const username = await vscode.window.showInputBox({
-      prompt: 'Step 4/8: Enter username',
+      prompt: 'Step 4/7: Enter username',
       value: 'root',
       validateInput: (value) => {
         if (!value || !value.trim()) {
@@ -97,14 +98,14 @@ export class CommandHandler {
     });
     if (username === undefined) {return;}
 
-    // Step 5/8: Authentication method
+    // Step 5/7: Authentication method
     const authType = await vscode.window.showQuickPick(
       [
         { label: 'Password', value: 'password' },
         { label: 'Private Key', value: 'privateKey' },
         { label: 'SSH Agent', value: 'agent' },
       ],
-      { placeHolder: 'Step 5/8: Select authentication method' }
+      { placeHolder: 'Step 5/7: Select authentication method' }
     );
     if (!authType) {return;}
 
@@ -114,7 +115,7 @@ export class CommandHandler {
 
     if (authType.value === 'password') {
       password = await vscode.window.showInputBox({
-        prompt: 'Step 6/8: Enter password',
+        prompt: 'Step 6/7: Enter password',
         password: true,
         validateInput: (value) => {
           if (!value || !value.trim()) {
@@ -126,7 +127,7 @@ export class CommandHandler {
       if (password === undefined) {return;}
     } else if (authType.value === 'privateKey') {
       privateKeyPath = await vscode.window.showInputBox({
-        prompt: 'Step 6/8: Enter private key path',
+        prompt: 'Step 6/7: Enter private key path',
         value: '~/.ssh/id_rsa',
         validateInput: (value) => {
           if (!value || !value.trim()) {
@@ -156,7 +157,7 @@ export class CommandHandler {
       }
     }
 
-    // Step 7/8: Select group
+    // Step 7/7: Select group
     const groups = await this.hostManager.getGroups();
     let group: string | undefined;
 
@@ -169,35 +170,13 @@ export class CommandHandler {
         {
           placeHolder:
             authType.value === 'agent'
-              ? 'Step 6/8: Select group (optional)'
-              : 'Step 7/8: Select group (optional)',
+              ? 'Step 6/7: Select group (optional)'
+              : 'Step 7/7: Select group (optional)',
         }
       );
       if (groupChoice === undefined) {return;}
       group = groupChoice.value;
     }
-
-    // Step 8/8: Select color
-    const colorChoice = await vscode.window.showQuickPick(
-      [
-        { label: 'No Color', value: undefined, description: 'Use default color' },
-        { label: 'Red', value: 'red', description: '🔴' },
-        { label: 'Green', value: 'green', description: '🟢' },
-        { label: 'Blue', value: 'blue', description: '🔵' },
-        { label: 'Yellow', value: 'yellow', description: '🟡' },
-        { label: 'Purple', value: 'purple', description: '🟣' },
-        { label: 'Orange', value: 'orange', description: '🟠' },
-      ],
-      {
-        placeHolder:
-          authType.value === 'agent'
-            ? groups.length > 0
-              ? 'Step 7/8: Select color (optional)'
-              : 'Step 6/8: Select color (optional)'
-            : 'Step 8/8: Select color (optional)',
-      }
-    );
-    if (colorChoice === undefined) {return;}
 
     try {
       await this.hostManager.addHost({
@@ -210,7 +189,6 @@ export class CommandHandler {
         privateKeyPath,
         passphrase,
         group,
-        color: colorChoice.value,
       });
 
       this.treeProvider.refresh();
@@ -228,6 +206,7 @@ export class CommandHandler {
     const options = [
       { label: 'Edit Name', value: 'name' },
       { label: 'Edit Default Remote Path', value: 'remotePath' },
+      { label: 'Change Group', value: 'group' },
       { label: 'Edit Color', value: 'color' },
     ];
 
@@ -261,6 +240,25 @@ export class CommandHandler {
 
         await this.hostManager.updateHost(config.id, {
           defaultRemotePath: defaultRemotePath.trim() || undefined,
+        });
+      } else if (choice.value === 'group') {
+        const groups = await this.hostManager.getGroups();
+
+        const groupChoice = await vscode.window.showQuickPick(
+          [
+            { label: 'No Group', value: undefined },
+            ...groups.map(g => ({
+              label: g.name,
+              value: g.id,
+              description: config.group === g.id ? '(Current)' : undefined,
+            })),
+          ],
+          { placeHolder: 'Select group' }
+        );
+        if (groupChoice === undefined) {return;}
+
+        await this.hostManager.updateHost(config.id, {
+          group: groupChoice.value,
         });
       } else if (choice.value === 'color') {
         const colorChoice = await vscode.window.showQuickPick(
@@ -425,6 +423,10 @@ export class CommandHandler {
     const fileName = path.basename(localPath);
     const finalRemotePath = `${remotePath}/${fileName}`.replace(/\\/g, '/');
 
+    logger.info(
+      `Starting upload: ${localPath} → ${config.username}@${config.host}:${finalRemotePath}`
+    );
+
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -434,11 +436,13 @@ export class CommandHandler {
       async progress => {
         try {
           if (stat.isDirectory()) {
+            logger.info(`Uploading directory: ${localPath}`);
             await SshConnectionManager.uploadDirectory(
               config,
               localPath,
               finalRemotePath,
               (currentFile, percentage) => {
+                logger.debug(`Uploading ${currentFile} (${percentage}%)`);
                 progress.report({
                   message: `${currentFile} (${percentage}%)`,
                   increment: 1,
@@ -446,6 +450,7 @@ export class CommandHandler {
               }
             );
           } else {
+            logger.info(`Uploading file: ${localPath}`);
             await SshConnectionManager.uploadFile(
               config,
               localPath,
@@ -460,11 +465,20 @@ export class CommandHandler {
             );
           }
 
-          vscode.window.showInformationMessage(
-            `Upload successful: ${finalRemotePath}`
-          );
+          logger.info(`✓ Upload successful: ${finalRemotePath}`);
+          vscode.window.showInformationMessage(`Upload successful: ${finalRemotePath}`);
         } catch (error) {
-          vscode.window.showErrorMessage(`Upload failed: ${error}`);
+          logger.error(`✗ Upload failed: ${localPath}`, error as Error);
+
+          const openLogs = 'View Logs';
+          const choice = await vscode.window.showErrorMessage(
+            `Upload failed: ${error}`,
+            openLogs
+          );
+
+          if (choice === openLogs) {
+            logger.show();
+          }
         }
       }
     );
@@ -472,9 +486,11 @@ export class CommandHandler {
 
   private async selectRemotePath(config: HostConfig): Promise<string | undefined> {
     let currentPath = config.defaultRemotePath || '/root';
+    logger.info(`Browsing remote path on ${config.name}, starting at: ${currentPath}`);
 
     while (true) {
       try {
+        logger.debug(`Listing directory: ${currentPath}`);
         const directories = await SshConnectionManager.listRemoteDirectory(config, currentPath);
 
         const items = [
@@ -491,16 +507,28 @@ export class CommandHandler {
         });
 
         if (!selected) {
+          logger.info('User cancelled path selection');
           return undefined;
         }
 
         if (selected.label.includes('Use current path')) {
+          logger.info(`Selected remote path: ${currentPath}`);
           return currentPath;
         }
 
         currentPath = selected.path;
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to read directory: ${error}`);
+        logger.error(`Failed to list directory: ${currentPath}`, error as Error);
+
+        const openLogs = 'View Logs';
+        const choice = await vscode.window.showErrorMessage(
+          `Failed to read directory: ${error}`,
+          openLogs
+        );
+
+        if (choice === openLogs) {
+          logger.show();
+        }
         return undefined;
       }
     }
@@ -510,8 +538,12 @@ export class CommandHandler {
     if (item.type !== 'host') {return;}
 
     const config = item.data as HostConfig;
+
+    logger.info(`Checking passwordless login for ${config.name}`);
+
     const hasPasswordless = await SshConnectionManager.checkPasswordlessLogin(config);
     if (hasPasswordless) {
+      logger.info(`Passwordless login already configured for ${config.name}`);
       vscode.window.showInformationMessage('Passwordless login is already configured for this host');
       return;
     }
@@ -524,12 +556,15 @@ export class CommandHandler {
       const keyPath = path.join(sshDir, key);
       if (fs.existsSync(keyPath)) {
         publicKeyPath = keyPath;
+        logger.info(`Found public key: ${keyPath}`);
         break;
       }
     }
 
     if (!publicKeyPath) {
-      vscode.window.showErrorMessage('No public key found. Please generate SSH key pair first');
+      const message = 'No public key found. Please generate SSH key pair first';
+      logger.error(message);
+      vscode.window.showErrorMessage(message);
       return;
     }
 
@@ -545,6 +580,8 @@ export class CommandHandler {
       config.authType = 'password';
     }
 
+    logger.info(`Setting up passwordless login for ${config.name} using key ${publicKeyPath}`);
+
     try {
       await vscode.window.withProgress(
         {
@@ -552,7 +589,7 @@ export class CommandHandler {
           title: 'Configuring passwordless login...',
         },
         async () => {
-          await SshConnectionManager.setupPasswordlessLogin(config, publicKeyPath!);
+          await SshConnectionManager.setupPasswordlessLogin(config, publicKeyPath);
         }
       );
 
@@ -564,9 +601,20 @@ export class CommandHandler {
       });
 
       this.treeProvider.refresh();
+      logger.info(`✓ Passwordless login configured successfully for ${config.name}`);
       vscode.window.showInformationMessage('Passwordless login configured successfully');
     } catch (error) {
-      vscode.window.showErrorMessage(`Configuration failed: ${error}`);
+      logger.error(`✗ Failed to configure passwordless login for ${config.name}`, error as Error);
+
+      const openLogs = 'View Logs';
+      const choice = await vscode.window.showErrorMessage(
+        `Configuration failed: ${error}`,
+        openLogs
+      );
+
+      if (choice === openLogs) {
+        logger.show();
+      }
     }
   }
 
@@ -574,6 +622,9 @@ export class CommandHandler {
     if (item.type !== 'host') {return;}
 
     const config = item.data as HostConfig;
+
+    logger.info(`Testing connection to ${config.name} (${config.username}@${config.host}:${config.port})`);
+    logger.info(`Authentication type: ${config.authType}`);
 
     try {
       await vscode.window.withProgress(
@@ -586,9 +637,20 @@ export class CommandHandler {
         }
       );
 
+      logger.info(`✓ Successfully connected to ${config.name}`);
       vscode.window.showInformationMessage(`Connected to ${config.name} successfully`);
     } catch (error) {
-      vscode.window.showErrorMessage(`Connection failed: ${error}`);
+      logger.error(`✗ Connection to ${config.name} failed`, error as Error);
+
+      const openLogs = 'View Logs';
+      const choice = await vscode.window.showErrorMessage(
+        `Connection to ${config.name} failed: ${error}`,
+        openLogs
+      );
+
+      if (choice === openLogs) {
+        logger.show();
+      }
     }
   }
 
