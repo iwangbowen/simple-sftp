@@ -226,8 +226,22 @@ export class SshConnectionManager {
       // On Windows, try named pipe first, then environment variable
       // On Unix, use SSH_AUTH_SOCK environment variable
       if (process.platform === 'win32') {
-        // Windows uses named pipe for SSH Agent (OpenSSH for Windows)
-        connectConfig.agent = String.raw`\\.\pipe\openssh-ssh-agent`;
+        // Windows: Try named pipe for SSH Agent
+        const agentPath = String.raw`\\.\pipe\openssh-ssh-agent`;
+        connectConfig.agent = agentPath;
+
+        // Fallback: If agent fails, try to use default private key
+        // This will be handled by ssh2 automatically if agent connection fails
+        const os = require('os');
+        const defaultKeyPath = path.join(os.homedir(), '.ssh', 'id_rsa');
+        const ed25519KeyPath = path.join(os.homedir(), '.ssh', 'id_ed25519');
+
+        // Try to find a default key as fallback
+        if (fs.existsSync(ed25519KeyPath)) {
+          connectConfig.privateKey = fs.readFileSync(ed25519KeyPath);
+        } else if (fs.existsSync(defaultKeyPath)) {
+          connectConfig.privateKey = fs.readFileSync(defaultKeyPath);
+        }
       } else {
         connectConfig.agent = process.env.SSH_AUTH_SOCK;
       }

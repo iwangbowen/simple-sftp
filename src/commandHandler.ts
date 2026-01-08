@@ -903,10 +903,18 @@ export class CommandHandler {
     } catch (error) {
       logger.error(`✗ Connection to ${config.name} failed`, error as Error);
 
+      const errorMsg = (error as Error).message;
+      let message = `Connection to ${config.name} failed: ${errorMsg}`;
+
+      // Special handling for SSH Agent failures
+      if (authConfig.authType === 'agent' && errorMsg.includes('agent')) {
+        message = `SSH Agent connection failed. This might be because:\n1. OpenSSH Authentication Agent service is not running\n2. No keys are loaded in the agent\n\nYou can:\n- Start the agent service, or\n- Reconfigure to use private key authentication`;
+      }
+
       const openLogs = 'View Logs';
-      const retryAuth = 'Retry Authentication';
+      const retryAuth = 'Reconfigure Auth';
       const choice = await vscode.window.showErrorMessage(
-        `Connection to ${config.name} failed: ${error}`,
+        message,
         retryAuth,
         openLogs
       );
