@@ -41,6 +41,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.configureAuth', (item: HostTreeItem) =>
         this.configureAuth(item)
       ),
+      vscode.commands.registerCommand('simpleScp.copySshCommand', (item: HostTreeItem) =>
+        this.copySshCommand(item)
+      ),
       vscode.commands.registerCommand('simpleScp.refresh', () => this.refresh())
     );
   }
@@ -748,10 +751,10 @@ export class CommandHandler {
           const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
 
           const items: vscode.QuickPickItem[] = [
+            { label: '..', description: path.dirname(currentPath), alwaysShow: true },
             { label: '$(check) Use this path', description: currentPath, alwaysShow: true },
-            { label: '$(arrow-up) Parent directory', description: path.dirname(currentPath), alwaysShow: true },
             ...directories.map(dir => ({
-              label: `$(folder) ${dir}`,
+              label: dir,
               description: path.join(currentPath, dir).replace(/\\/g, '/'),
             })),
           ];
@@ -796,7 +799,8 @@ export class CommandHandler {
           logger.info(`Selected remote path: ${currentPath}`);
           quickPick.hide();
           resolve(currentPath);
-        } else if (selected.label.includes('Parent directory')) {
+        } else if (selected.label === '..') {
+          // Navigate to parent directory
           loadDirectory(selected.description!);
         } else if (selected.label.includes('Go to:')) {
           // User selected custom path option
@@ -1012,6 +1016,17 @@ export class CommandHandler {
         }
       }
     }
+  }
+
+  private async copySshCommand(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {return;}
+
+    const config = item.data as HostConfig;
+    const sshCommand = `ssh ${config.username}@${config.host} -p ${config.port}`;
+
+    await vscode.env.clipboard.writeText(sshCommand);
+    vscode.window.showInformationMessage(`Copied: ${sshCommand}`);
+    logger.info(`Copied SSH command: ${sshCommand}`);
   }
 
   private refresh(): void {

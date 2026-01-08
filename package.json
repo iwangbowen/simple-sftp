@@ -35,47 +35,68 @@
     "commands": [
       {
         "command": "simpleScp.addHost",
-        "title": "Add Host",
+        "title": "Simple SCP: Add Host",
+        "category": "Simple SCP",
         "icon": "$(add)"
       },
       {
         "command": "simpleScp.editHost",
         "title": "Edit Host",
-        "icon": "$(edit)"
+        "icon": "$(edit)",
+        "enablement": "false"
       },
       {
         "command": "simpleScp.deleteHost",
-        "title": "Delete Host",
-        "icon": "$(trash)"
+        "title": "Delete",
+        "icon": "$(trash)",
+        "enablement": "false"
       },
       {
         "command": "simpleScp.addGroup",
-        "title": "Add Group",
+        "title": "Simple SCP: Add Group",
+        "category": "Simple SCP",
         "icon": "$(new-folder)"
       },
       {
         "command": "simpleScp.importFromSshConfig",
-        "title": "Import from SSH Config",
+        "title": "Simple SCP: Import from SSH Config",
+        "category": "Simple SCP",
         "icon": "$(cloud-download)"
       },
       {
         "command": "simpleScp.uploadFile",
-        "title": "Upload to Remote Host"
+        "title": "Simple SCP: Upload to Remote Host",
+        "category": "Simple SCP"
       },
       {
         "command": "simpleScp.setupPasswordlessLogin",
         "title": "Setup Passwordless Login",
-        "icon": "$(key)"
+        "icon": "$(key)",
+        "enablement": "false"
       },
       {
         "command": "simpleScp.testConnection",
         "title": "Test Connection",
-        "icon": "$(plug)"
+        "icon": "$(plug)",
+        "enablement": "false"
       },
       {
         "command": "simpleScp.refresh",
         "title": "Refresh",
-        "icon": "$(refresh)"
+        "icon": "$(refresh)",
+        "enablement": "false"
+      },
+      {
+        "command": "simpleScp.configureAuth",
+        "title": "Configure Authentication",
+        "icon": "$(lock)",
+        "enablement": "false"
+      },
+      {
+        "command": "simpleScp.copySshCommand",
+        "title": "Copy SSH Command",
+        "icon": "$(copy)",
+        "enablement": "false"
       }
     ],
     "menus": {
@@ -113,9 +134,19 @@
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.setupPasswordlessLogin",
+          "command": "simpleScp.copySshCommand",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "1_actions@1"
+        },
+        {
+          "command": "simpleScp.configureAuth",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "simpleScp.setupPasswordlessLogin",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "1_actions@3"
         },
         {
           "command": "simpleScp.deleteHost",
