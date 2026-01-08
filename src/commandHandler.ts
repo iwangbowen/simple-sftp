@@ -606,12 +606,29 @@ export class CommandHandler {
       return;
     }
 
+    // Check authentication status for each host
+    const hostItems = await Promise.all(
+      hosts.map(async h => {
+        const hasAuth = await this.authManager.hasAuth(h.id);
+        return {
+          label: `$(${hasAuth ? 'server' : 'warning'}) ${h.name}`,
+          description: `${h.username}@${h.host}:${h.port}`,
+          detail: hasAuth ? undefined : 'Authentication not configured',
+          host: h,
+          hasAuth, // For sorting
+        };
+      })
+    );
+
+    // Sort: hosts with auth first
+    hostItems.sort((a, b) => {
+      if (a.hasAuth && !b.hasAuth) {return -1;}
+      if (!a.hasAuth && b.hasAuth) {return 1;}
+      return 0;
+    });
+
     const selectedHost = await vscode.window.showQuickPick(
-      hosts.map(h => ({
-        label: h.name,
-        description: `${h.username}@${h.host}:${h.port}`,
-        host: h,
-      })),
+      hostItems,
       { placeHolder: 'Select target host' }
     );
 
@@ -714,50 +731,103 @@ export class CommandHandler {
     let currentPath = config.defaultRemotePath || '/root';
     logger.info(`Browsing remote path on ${config.name}, starting at: ${currentPath}`);
 
-    while (true) {
-      try {
-        logger.debug(`Listing directory: ${currentPath}`);
-        const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
+    return new Promise(async (resolve) => {
+      const quickPick = vscode.window.createQuickPick();
+      quickPick.placeholder = `Current path: ${currentPath} (Type to filter or enter path)`;
+      quickPick.canSelectMany = false;
 
-        const items = [
-          { label: '$(check) Use current path', path: currentPath },
-          { label: '$(arrow-up) Parent directory', path: path.dirname(currentPath) },
-          ...directories.map(dir => ({
-            label: `$(folder) ${dir}`,
-            path: path.join(currentPath, dir).replace(/\\/g, '/'),
-          })),
-        ];
+      // Function to load and display directories
+      const loadDirectory = async (pathToLoad: string) => {
+        currentPath = pathToLoad;
+        quickPick.value = currentPath; // Update input box to show current path
+        quickPick.placeholder = `Navigate or press Enter to use: ${currentPath}`;
+        quickPick.busy = true;
 
-        const selected = await vscode.window.showQuickPick(items, {
-          placeHolder: `Current path: ${currentPath}`,
-        });
+        try {
+          logger.debug(`Listing directory: ${currentPath}`);
+          const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
+
+          const items: vscode.QuickPickItem[] = [
+            { label: '$(check) Use this path', description: currentPath, alwaysShow: true },
+            { label: '$(arrow-up) Parent directory', description: path.dirname(currentPath), alwaysShow: true },
+            ...directories.map(dir => ({
+              label: `$(folder) ${dir}`,
+              description: path.join(currentPath, dir).replace(/\\/g, '/'),
+            })),
+          ];
+
+          quickPick.items = items;
+          quickPick.busy = false;
+        } catch (error) {
+          quickPick.busy = false;
+          logger.error(`Failed to list directory: ${currentPath}`, error as Error);
+
+          const openLogs = 'View Logs';
+          const choice = await vscode.window.showErrorMessage(
+            `Failed to read directory: ${error}`,
+            openLogs
+          );
+
+          if (choice === openLogs) {
+            logger.show();
+          }
+          quickPick.hide();
+          resolve(undefined);
+        }
+      };
+
+      // Handle selection
+      quickPick.onDidAccept(() => {
+        const selected = quickPick.selectedItems[0];
+
+        // If user presses Enter with custom path in input box
+        if (!selected && quickPick.value && quickPick.value.startsWith('/')) {
+          logger.info(`Selected remote path (custom input): ${quickPick.value}`);
+          quickPick.hide();
+          resolve(quickPick.value);
+          return;
+        }
 
         if (!selected) {
-          logger.info('User cancelled path selection');
-          return undefined;
+          return;
         }
 
-        if (selected.label.includes('Use current path')) {
+        if (selected.label.includes('Use this path')) {
           logger.info(`Selected remote path: ${currentPath}`);
-          return currentPath;
+          quickPick.hide();
+          resolve(currentPath);
+        } else if (selected.label.includes('Parent directory')) {
+          loadDirectory(selected.description!);
+        } else if (selected.label.includes('Go to:')) {
+          // User selected custom path option
+          loadDirectory(selected.description!);
+        } else {
+          // Navigate into subdirectory
+          loadDirectory(selected.description!);
         }
+      });
 
-        currentPath = selected.path;
-      } catch (error) {
-        logger.error(`Failed to list directory: ${currentPath}`, error as Error);
+      // Handle manual path input
+      quickPick.onDidChangeValue((value) => {
+        // Only show "Go to" option if user types a different path than current
+        if (value && value.startsWith('/') && value !== currentPath) {
+          // User is typing an absolute path
+          const customPathItem: vscode.QuickPickItem = {
+            label: `$(arrow-right) Go to: ${value}`,
+            description: value,
+            alwaysShow: true,
+          };
 
-        const openLogs = 'View Logs';
-        const choice = await vscode.window.showErrorMessage(
-          `Failed to read directory: ${error}`,
-          openLogs
-        );
-
-        if (choice === openLogs) {
-          logger.show();
-        }
-        return undefined;
-      }
-    }
+          // Insert custom path option at the beginning
+          const existingItems = quickPick.items.filter(item =>
+            !item.label.includes('Go to:')
+          );
+          quickPick.items = [customPathItem, ...existingItems];
+        } else if (value === currentPath) {
+          // User cleared the custom input, restore original items
+          quickPick.items = quickPick.items.filter(item =>
+            !item.label.includes('Go to:')
+          );
   }
 
   private async setupPasswordlessLogin(item: HostTreeItem): Promise<void> {
