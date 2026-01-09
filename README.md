@@ -112,10 +112,11 @@ Additional commands are available via context menus in the TreeView and file exp
 
 ## Security Notes
 
-- Host configurations (names, addresses, ports) are synced via VS Code Settings Sync
-- Authentication credentials (passwords, private keys) are stored locally only using VS Code's SecretStorage
-- Credentials are never synced across devices for security
+- **Host configurations** (names, addresses, ports, groups) are synced across devices via VS Code Settings Sync
+- **Authentication credentials** (passwords, private keys, passphrases) are stored locally only using VS Code's SecretStorage
+- Credentials are **never** synced across devices for security
 - Each device requires separate authentication configuration
+- Sync is handled automatically by VS Code when Settings Sync is enabled
 
 ## Known Limitations
 

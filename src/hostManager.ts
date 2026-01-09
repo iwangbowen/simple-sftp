@@ -6,25 +6,22 @@ import { HostConfig, GroupConfig, StorageData, SshConfigEntry } from './types';
 
 /**
  * Host configuration manager
- * Uses globalStorage for cross-device sync
+ * Uses globalState with setKeysForSync for cross-device sync
  */
 export class HostManager {
   private static readonly STORAGE_KEY = 'hostConfigs';
   private context: vscode.ExtensionContext;
-  private storageUri: vscode.Uri;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    this.storageUri = context.globalStorageUri;
   }
 
   /**
-   * Initialize storage
+   * Initialize storage and enable sync
    */
   async initialize(): Promise<void> {
-    if (!fs.existsSync(this.storageUri.fsPath)) {
-      await vscode.workspace.fs.createDirectory(this.storageUri);
-    }
+    // Register the storage key for Settings Sync
+    this.context.globalState.setKeysForSync([HostManager.STORAGE_KEY]);
   }
 
   /**
@@ -228,27 +225,15 @@ export class HostManager {
    * Load data
    */
   private async loadData(): Promise<StorageData> {
-    const filePath = path.join(this.storageUri.fsPath, 'hosts.json');
-
-    if (!fs.existsSync(filePath)) {
-      return { hosts: [], groups: [] };
-    }
-
-    try {
-      const content = fs.readFileSync(filePath, 'utf-8');
-      return JSON.parse(content);
-    } catch (error) {
-      console.error('Failed to load configuration:', error);
-      return { hosts: [], groups: [] };
-    }
+    const data = this.context.globalState.get<StorageData>(HostManager.STORAGE_KEY);
+    return data || { hosts: [], groups: [] };
   }
 
   /**
    * Save data
    */
   private async saveData(data: StorageData): Promise<void> {
-    const filePath = path.join(this.storageUri.fsPath, 'hosts.json');
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    await this.context.globalState.update(HostManager.STORAGE_KEY, data);
   }
 
   /**
