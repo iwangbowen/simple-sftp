@@ -229,29 +229,29 @@
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.copySshCommand",
-          "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "1_actions@1"
-        },
-        {
           "command": "simpleScp.downloadFile",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "1_actions@2"
+          "group": "1_download@1"
+        },
+        {
+          "command": "simpleScp.copySshCommand",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_actions@1"
         },
         {
           "command": "simpleScp.configureAuth",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "1_actions@3"
+          "group": "2_actions@2"
         },
         {
           "command": "simpleScp.setupPasswordlessLogin",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "1_actions@4"
+          "group": "2_actions@3"
         },
         {
           "command": "simpleScp.deleteHost",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_danger@1"
+          "group": "9_danger@1"
         },
         {
           "command": "simpleScp.addHostToGroup",
