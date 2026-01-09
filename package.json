@@ -281,6 +281,16 @@
           "group": "7_modification"
         }
       ]
+    },
+    "configuration": {
+      "title": "Simple SCP",
+      "properties": {
+        "simpleScp.showDotFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show hidden files and directories (dot files) when browsing remote files"
+        }
+      }
     }
   },
   "scripts": {

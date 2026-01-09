@@ -789,7 +789,8 @@ export class CommandHandler {
     title: string
   ): Promise<string | { path: string; isDirectory: boolean } | undefined> {
     let currentPath = config.defaultRemotePath || '/root';
-    let showDotFiles = false;
+    // Read showDotFiles setting from configuration
+    let showDotFiles = vscode.workspace.getConfiguration('simpleScp').get<boolean>('showDotFiles', true);
     logger.info(`Browsing remote on ${config.name}, starting at: ${currentPath}`);
 
     return new Promise(async (resolve) => {
@@ -804,7 +805,7 @@ export class CommandHandler {
         if (mode === 'browseFiles') {
           quickPick.buttons = [
             {
-              iconPath: new vscode.ThemeIcon(showDotFiles ? 'eye-closed' : 'eye'),
+              iconPath: new vscode.ThemeIcon(showDotFiles ? 'eye' : 'eye-closed'),
               tooltip: showDotFiles ? 'Hide dot files' : 'Show dot files'
             }
           ];
@@ -960,7 +961,7 @@ export class CommandHandler {
 
       // Handle QuickPick button click (toggle dot files)
       if (mode === 'browseFiles') {
-        quickPick.onDidTriggerButton(() => {
+        quickPick.onDidTriggerButton(async () => {
           showDotFiles = !showDotFiles;
           updateButtons();
           loadDirectory(currentPath, false);
