@@ -35,7 +35,19 @@ async function main() {
     outfile: 'out/extension.js',
     external: ['vscode'],
     logLevel: 'silent',
-    plugins: [esbuildProblemMatcherPlugin],
+    plugins: [
+      esbuildProblemMatcherPlugin,
+      {
+        name: 'native-node-modules',
+        setup(build) {
+          // Mark .node files as external to avoid bundling them
+          build.onResolve({ filter: /\.node$/ }, args => ({
+            path: args.path,
+            external: true,
+          }));
+        },
+      },
+    ],
   });
   if (watch) {
     await ctx.watch();
