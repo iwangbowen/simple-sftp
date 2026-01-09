@@ -1,19 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <!-- Circle background for visual balance -->
-  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Simplified folder - closer to edges -->
+  <path d="M 2 20 L 2 98 L 98 98 L 98 20 L 48 20 L 40 12 L 2 12 Z"
+        stroke="currentColor" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
 
-  <!-- Upload arrow (bottom to top) -->
-  <path d="M 8 12 L 8 6 M 6 8 L 8 6 L 10 8"
-        stroke="currentColor" stroke-width="2.2" fill="none"
+  <!-- Right arrow - moved down, thicker -->
+  <path d="M 20 46 L 80 46 M 72 38 L 80 46 L 72 54"
+        stroke="currentColor" stroke-width="5.5" fill="none"
         stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Download arrow (top to bottom) -->
-  <path d="M 16 12 L 16 18 M 14 16 L 16 18 L 18 16"
-        stroke="currentColor" stroke-width="2.2" fill="none"
+  <!-- Left arrow - moved down, more gap, thicker -->
+  <path d="M 80 68 L 20 68 M 28 60 L 20 68 L 28 76"
+        stroke="currentColor" stroke-width="5.5" fill="none"
         stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Connecting line -->
-  <line x1="8" y1="12" x2="16" y2="12"
-        stroke="currentColor" stroke-width="1.8"
-        stroke-linecap="round"/>
 </svg>
