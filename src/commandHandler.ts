@@ -1221,9 +1221,13 @@ export class CommandHandler {
 
           logger.debug(`Found ${items.length} items in ${currentPath}`);
 
-          // Sort items: directories first, then files
-          const directories = items.filter(item => item.type === 'directory');
-          const files = items.filter(item => item.type === 'file');
+          // Sort items: directories first (alphabetically), then files (alphabetically)
+          const directories = items
+            .filter(item => item.type === 'directory')
+            .sort((a, b) => a.name.localeCompare(b.name));
+          const files = items
+            .filter(item => item.type === 'file')
+            .sort((a, b) => a.name.localeCompare(b.name));
           const sortedItems = [...directories, ...files];
 
           const quickPickItems: vscode.QuickPickItem[] = [
