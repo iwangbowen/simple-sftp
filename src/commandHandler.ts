@@ -1221,13 +1221,18 @@ export class CommandHandler {
 
           logger.debug(`Found ${items.length} items in ${currentPath}`);
 
+          // Sort items: directories first, then files
+          const directories = items.filter(item => item.type === 'directory');
+          const files = items.filter(item => item.type === 'file');
+          const sortedItems = [...directories, ...files];
+
           const quickPickItems: vscode.QuickPickItem[] = [
             {
               label: '..',
               description: '',
               alwaysShow: true
             },
-            ...items.map(item => ({
+            ...sortedItems.map(item => ({
               label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
               description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
               alwaysShow: true, // Always show to prevent filtering
