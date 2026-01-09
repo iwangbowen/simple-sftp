@@ -774,51 +774,115 @@ export class CommandHandler {
     );
   }
 
-  private async selectRemotePath(config: HostConfig, authConfig: HostAuthConfig): Promise<string | undefined> {
+  /**
+   * Generic remote file browser with path input navigation
+   * @param config Host configuration
+   * @param authConfig Authentication configuration
+   * @param mode 'selectPath' for selecting a directory, 'browseFiles' for downloading files
+   * @param title Title for the QuickPick
+   * @returns Promise resolving to selected path string or object with path and isDirectory
+   */
+  private async browseRemoteFilesGeneric(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    mode: 'selectPath' | 'browseFiles',
+    title: string
+  ): Promise<string | { path: string; isDirectory: boolean } | undefined> {
     let currentPath = config.defaultRemotePath || '/root';
-    logger.info(`Browsing remote path on ${config.name}, starting at: ${currentPath}`);
+    logger.info(`Browsing remote on ${config.name}, starting at: ${currentPath}`);
 
     return new Promise(async (resolve) => {
       const quickPick = vscode.window.createQuickPick();
-      quickPick.placeholder = `Loading... ${currentPath}`;
+      quickPick.placeholder = '';
       quickPick.canSelectMany = false;
-      quickPick.busy = true; // Start with busy state
+      quickPick.busy = true;
+      quickPick.title = title;
 
-      // Function to load and display directories
-      const loadDirectory = async (pathToLoad: string) => {
+      let isLoadingPath = false;
+
+      // Function to load and display files/directories
+      const loadDirectory = async (pathToLoad: string, updateValue: boolean = true) => {
         currentPath = pathToLoad;
-        quickPick.value = ''; // Clear for filtering
-        quickPick.placeholder = currentPath; // Show current path in placeholder
-        quickPick.title = `Select remote directory`; // Use title to show navigation hint
         quickPick.busy = true;
+        isLoadingPath = true;
 
         try {
-          logger.debug(`Listing directory: ${currentPath}`);
-          const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
+          logger.debug(`Listing: ${currentPath}`);
 
-          logger.debug(`Found ${directories.length} directories in ${currentPath}: ${directories.join(', ')}`);
+          let quickPickItems: vscode.QuickPickItem[];
 
-          const items: vscode.QuickPickItem[] = [
-            {
-              label: '..',
-              alwaysShow: true
-            },
-            {
-              label: '$(check) Use this path',
-              description: currentPath,
-              alwaysShow: true
-            },
-            ...directories.map(dir => ({
-              label: dir,
-              iconPath: new vscode.ThemeIcon('folder')
-            })),
-          ];
+          if (mode === 'selectPath') {
+            // For path selection, only show directories
+            const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
+            logger.debug(`Found ${directories.length} directories in ${currentPath}`);
 
-          quickPick.items = items;
+            // Sort directories alphabetically
+            const sortedDirs = [...directories].sort((a, b) => a.localeCompare(b));
+
+            quickPickItems = [
+              {
+                label: '..',
+                description: '',
+                alwaysShow: true
+              },
+              {
+                label: '$(check) Use this path',
+                description: currentPath,
+                alwaysShow: true
+              },
+              ...sortedDirs.map(dir => ({
+                label: `$(folder) ${dir}`,
+                description: '',
+                alwaysShow: true
+              })),
+            ];
+          } else {
+            // For file browsing, show files and directories
+            const items = await SshConnectionManager.listRemoteFiles(config, authConfig, currentPath);
+            logger.debug(`Found ${items.length} items in ${currentPath}`);
+
+            // Sort: directories first (alphabetically), then files (alphabetically)
+            const directories = items
+              .filter(item => item.type === 'directory')
+              .sort((a, b) => a.name.localeCompare(b.name));
+            const files = items
+              .filter(item => item.type === 'file')
+              .sort((a, b) => a.name.localeCompare(b.name));
+            const sortedItems = [...directories, ...files];
+
+            quickPickItems = [
+              {
+                label: '..',
+                description: '',
+                alwaysShow: true
+              },
+              ...sortedItems.map(item => ({
+                label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
+                description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
+                alwaysShow: true,
+                buttons: [
+                  {
+                    iconPath: new vscode.ThemeIcon('cloud-download'),
+                    tooltip: 'Download'
+                  }
+                ],
+                item: item
+              } as any)),
+            ];
+          }
+
+          quickPick.items = quickPickItems;
           quickPick.busy = false;
+
+          // Update value with trailing slash after loading
+          if (updateValue) {
+            quickPick.value = currentPath + '/';
+          }
+          isLoadingPath = false;
         } catch (error) {
           quickPick.busy = false;
-          logger.error(`Failed to list directory: ${currentPath}`, error as Error);
+          isLoadingPath = false;
+          logger.error(`Failed to list: ${currentPath}`, error as Error);
 
           const openLogs = 'View Logs';
           const choice = await vscode.window.showErrorMessage(
@@ -834,77 +898,115 @@ export class CommandHandler {
         }
       };
 
-      // Handle selection
-      quickPick.onDidAccept(() => {
-        const selected = quickPick.selectedItems[0];
-        const customPath = quickPick.value.trim();
+      // Handle input value change - dynamic path navigation
+      let inputTimeout: NodeJS.Timeout | undefined;
+      quickPick.onDidChangeValue(async (value) => {
+        if (inputTimeout) {
+          clearTimeout(inputTimeout);
+        }
 
-        // If user typed a custom path
-        if (!selected && customPath && customPath.startsWith('/')) {
-          logger.info(`Selected remote path (custom input): ${customPath}`);
-          quickPick.hide();
-          resolve(customPath);
+        if (isLoadingPath) {
           return;
         }
+
+        inputTimeout = setTimeout(async () => {
+          if (!value) {
+            return;
+          }
+
+          if (value.endsWith('/')) {
+            const targetPath = value.slice(0, -1) || '/';
+            if (targetPath !== currentPath) {
+              await loadDirectory(targetPath);
+            }
+          } else {
+            const lastSlashIndex = value.lastIndexOf('/');
+            if (lastSlashIndex >= 0) {
+              const parentPath = value.substring(0, lastSlashIndex) || '/';
+              if (parentPath !== currentPath) {
+                await loadDirectory(parentPath, false);
+              }
+            }
+          }
+        }, 300);
+      });
+
+      // Handle button click (for file browsing mode only)
+      if (mode === 'browseFiles') {
+        quickPick.onDidTriggerItemButton(async (event) => {
+          const selected = event.item as any;
+          if (!selected || selected.label === '..') {
+            return;
+          }
+
+          const item = selected.item;
+          const itemPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
+          logger.info(`Selected for download via button: ${itemPath} (${item.type})`);
+          quickPick.hide();
+          resolve({
+            path: itemPath,
+            isDirectory: item.type === 'directory'
+          });
+        });
+      }
+
+      // Handle selection
+      quickPick.onDidAccept(() => {
+        const selected = quickPick.selectedItems[0] as any;
 
         if (!selected) {
           return;
         }
 
-        if (selected.label.includes('Use this path')) {
+        if (selected.label === '..') {
+          const parentPath = path.dirname(currentPath);
+          loadDirectory(parentPath);
+        } else if (selected.label === '$(check) Use this path') {
           logger.info(`Selected remote path: ${currentPath}`);
           quickPick.hide();
           resolve(currentPath);
-        } else if (selected.label === '..') {
-          // Navigate to parent directory
-          const parentPath = path.dirname(currentPath);
-          loadDirectory(parentPath);
-        } else if (selected.label.includes('Go to:')) {
-          // User selected custom path option - extract path from label
-          const path = selected.label.replace(/^.*Go to:\s*/, '');
-          loadDirectory(path);
-        } else {
-          // Navigate into subdirectory
-          // eslint-disable-next-line unicorn/prefer-string-replace-all
-          const targetPath = path.join(currentPath, selected.label).replace(/\\/g, '/');
+        } else if (mode === 'browseFiles' && selected.item) {
+          if (selected.item.type === 'directory') {
+            const targetPath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
+            loadDirectory(targetPath);
+          } else {
+            const filePath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
+            logger.info(`Selected file for download: ${filePath}`);
+            quickPick.hide();
+            resolve({
+              path: filePath,
+              isDirectory: false
+            });
+          }
+        } else if (mode === 'selectPath') {
+          // Extract directory name (remove icon prefix)
+          const dirName = selected.label.replace(/^\$\([^)]+\)\s*/, '');
+          const targetPath = path.join(currentPath, dirName).replace(/\\/g, '/');
           loadDirectory(targetPath);
         }
       });
 
-      // Handle manual path input - show "Go to" option
-      quickPick.onDidChangeValue((value) => {
-        const trimmedValue = value.trim();
-
-        // Only show "Go to" option if user types a different path than current
-        if (trimmedValue && trimmedValue.startsWith('/') && trimmedValue !== currentPath) {
-          // User is typing an absolute path
-          const customPathItem: vscode.QuickPickItem = {
-            label: `$(arrow-right) Go to: ${trimmedValue}`,
-            alwaysShow: true,
-          };
-
-          // Insert custom path option at the beginning
-          const existingItems = quickPick.items.filter(item =>
-            !item.label.includes('Go to:')
-          );
-          quickPick.items = [customPathItem, ...existingItems];
-        } else {
-          // Remove "Go to" option if path matches current or is not absolute
-          quickPick.items = quickPick.items.filter(item =>
-            !item.label.includes('Go to:')
-          );
-        }
-      });
-
       quickPick.onDidHide(() => {
+        if (inputTimeout) {
+          clearTimeout(inputTimeout);
+        }
         quickPick.dispose();
         resolve(undefined);
       });
 
-      // Show quickPick first, then load initial directory
       quickPick.show();
       await loadDirectory(currentPath);
     });
+  }
+
+  private async selectRemotePath(config: HostConfig, authConfig: HostAuthConfig): Promise<string | undefined> {
+    const result = await this.browseRemoteFilesGeneric(
+      config,
+      authConfig,
+      'selectPath',
+      'Select remote directory'
+    );
+    return typeof result === 'string' ? result : undefined;
   }
 
   private async setupPasswordlessLogin(item: HostTreeItem): Promise<void> {
@@ -1197,183 +1299,13 @@ export class CommandHandler {
   }
 
   private async selectRemoteFileOrDirectory(config: HostConfig, authConfig: HostAuthConfig): Promise<{path: string, isDirectory: boolean} | undefined> {
-    let currentPath = config.defaultRemotePath || '/root';
-    logger.info(`Browsing remote files on ${config.name}, starting at: ${currentPath}`);
-
-    return new Promise(async (resolve) => {
-      const quickPick = vscode.window.createQuickPick();
-      quickPick.placeholder = '';
-      quickPick.canSelectMany = false;
-      quickPick.busy = true;
-      quickPick.title = `Browse Remote Files`;
-
-      let isLoadingPath = false;
-
-      // Function to load and display files and directories
-      const loadDirectory = async (pathToLoad: string, updateValue: boolean = true) => {
-        currentPath = pathToLoad;
-        quickPick.busy = true;
-        isLoadingPath = true;
-
-        try {
-          logger.debug(`Listing files: ${currentPath}`);
-          const items = await SshConnectionManager.listRemoteFiles(config, authConfig, currentPath);
-
-          logger.debug(`Found ${items.length} items in ${currentPath}`);
-
-          // Sort items: directories first (alphabetically), then files (alphabetically)
-          const directories = items
-            .filter(item => item.type === 'directory')
-            .sort((a, b) => a.name.localeCompare(b.name));
-          const files = items
-            .filter(item => item.type === 'file')
-            .sort((a, b) => a.name.localeCompare(b.name));
-          const sortedItems = [...directories, ...files];
-
-          const quickPickItems: vscode.QuickPickItem[] = [
-            {
-              label: '..',
-              description: '',
-              alwaysShow: true
-            },
-            ...sortedItems.map(item => ({
-              label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
-              description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
-              alwaysShow: true, // Always show to prevent filtering
-              // Add download button for each item
-              buttons: [
-                {
-                  iconPath: new vscode.ThemeIcon('cloud-download'),
-                  tooltip: 'Download'
-                }
-              ],
-              // Store metadata in the item
-              item: item
-            } as any)),
-          ];
-
-          quickPick.items = quickPickItems;
-          quickPick.busy = false;
-          // Only update value if requested (for user-initiated navigation)
-          if (updateValue) {
-            quickPick.value = currentPath + '/';
-          }
-          isLoadingPath = false;
-        } catch (error) {
-          quickPick.busy = false;
-          isLoadingPath = false;
-          logger.error(`Failed to list files: ${currentPath}`, error as Error);
-
-          const openLogs = 'View Logs';
-          const choice = await vscode.window.showErrorMessage(
-            `Failed to read directory: ${error}`,
-            openLogs
-          );
-
-          if (choice === openLogs) {
-            logger.show();
-          }
-          quickPick.hide();
-          resolve(undefined);
-        }
-      };
-
-      // Handle input value change - dynamic path navigation
-      let inputTimeout: NodeJS.Timeout | undefined;
-      quickPick.onDidChangeValue(async (value) => {
-        // Clear previous timeout
-        if (inputTimeout) {
-          clearTimeout(inputTimeout);
-        }
-
-        // Don't process if we're currently loading a path
-        if (isLoadingPath) {
-          return;
-        }
-
-        // Debounce input processing
-        inputTimeout = setTimeout(async () => {
-          if (!value) {
-            return;
-          }
-
-          // If user is typing a path (ends with /), navigate to that directory
-          if (value.endsWith('/')) {
-            const targetPath = value.slice(0, -1) || '/'; // Remove trailing slash but keep root
-            if (targetPath !== currentPath) {
-              await loadDirectory(targetPath);
-            }
-          } else {
-            // If user deleted the trailing slash, show parent directory
-            // but keep the input value unchanged for user editing
-            const lastSlashIndex = value.lastIndexOf('/');
-            if (lastSlashIndex >= 0) {
-              const parentPath = value.substring(0, lastSlashIndex) || '/';
-              if (parentPath !== currentPath) {
-                await loadDirectory(parentPath, false); // Don't update input value
-              }
-            }
-          }
-        }, 300);
-      });
-
-      // Handle button click (download button)
-      quickPick.onDidTriggerItemButton(async (event) => {
-        const selected = event.item as any;
-        if (!selected || selected.label === '..') {
-          return;
-        }
-
-        const item = selected.item;
-        const itemPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
-        logger.info(`Selected for download via button: ${itemPath} (${item.type})`);
-        quickPick.hide();
-        resolve({
-          path: itemPath,
-          isDirectory: item.type === 'directory'
-        });
-      });
-
-      // Handle selection (navigate into directories)
-      quickPick.onDidAccept(() => {
-        const selected = quickPick.selectedItems[0] as any;
-
-        if (!selected) {
-          return;
-        }
-
-        if (selected.label === '..') {
-          // Navigate to parent directory
-          const parentPath = path.dirname(currentPath);
-          loadDirectory(parentPath);
-        } else if (selected.item && selected.item.type === 'directory') {
-          // Navigate into subdirectory
-          const targetPath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
-          loadDirectory(targetPath);
-        } else if (selected.item && selected.item.type === 'file') {
-          // Select file for download
-          const filePath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
-          logger.info(`Selected file for download: ${filePath}`);
-          quickPick.hide();
-          resolve({
-            path: filePath,
-            isDirectory: false
-          });
-        }
-      });
-
-      quickPick.onDidHide(() => {
-        if (inputTimeout) {
-          clearTimeout(inputTimeout);
-        }
-        quickPick.dispose();
-        resolve(undefined);
-      });
-
-      // Show quickPick first, then load initial directory
-      quickPick.show();
-      await loadDirectory(currentPath);
-    });
+    const result = await this.browseRemoteFilesGeneric(
+      config,
+      authConfig,
+      'browseFiles',
+      'Browse Remote Files'
+    );
+    return typeof result === 'object' ? result : undefined;
   }
 
   private refresh(): void {
