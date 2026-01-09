@@ -29,6 +29,9 @@ export class CommandHandler {
         this.deleteHost(item)
       ),
       vscode.commands.registerCommand('simpleScp.addGroup', () => this.addGroup()),
+      vscode.commands.registerCommand('simpleScp.editGroup', (item: HostTreeItem) =>
+        this.editGroup(item)
+      ),
       vscode.commands.registerCommand('simpleScp.importFromSshConfig', () =>
         this.importFromSshConfig()
       ),
@@ -456,6 +459,44 @@ export class CommandHandler {
       vscode.window.showInformationMessage(`Group "${name}" created successfully`);
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to create group: ${error}`);
+    }
+  }
+
+  private async editGroup(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'group') {
+      return;
+    }
+
+    const groupConfig = item.data as import('./types').GroupConfig;
+
+    const newName = await vscode.window.showInputBox({
+      prompt: 'Enter new group name',
+      value: groupConfig.name,
+      validateInput: async (value) => {
+        if (!value || !value.trim()) {
+          return 'Group name is required';
+        }
+        // Check for duplicate names (excluding current group)
+        const groups = await this.hostManager.getGroups();
+        if (groups.some(g => g.id !== groupConfig.id && g.name === value.trim())) {
+          return 'A group with this name already exists';
+        }
+        return undefined;
+      },
+    });
+
+    if (!newName || newName.trim() === groupConfig.name) {
+      return; // User cancelled or name unchanged
+    }
+
+    try {
+      await this.hostManager.updateGroup(groupConfig.id, newName.trim());
+      this.treeProvider.refresh();
+      vscode.window.showInformationMessage(`Group renamed to "${newName}"`);
+      logger.info(`Group ${groupConfig.name} renamed to ${newName}`);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to rename group: ${error}`);
+      logger.error(`Failed to rename group ${groupConfig.name}`, error as Error);
     }
   }
 

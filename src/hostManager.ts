@@ -91,6 +91,19 @@ export class HostManager {
   }
 
   /**
+   * Update group
+   */
+  async updateGroup(id: string, name: string): Promise<void> {
+    const data = await this.loadData();
+    const index = data.groups.findIndex(g => g.id === id);
+    if (index === -1) {
+      throw new Error('Group not found');
+    }
+    data.groups[index].name = name;
+    await this.saveData(data);
+  }
+
+  /**
    * Delete group
    */
   async deleteGroup(id: string): Promise<void> {
