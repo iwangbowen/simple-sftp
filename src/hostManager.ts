@@ -111,7 +111,7 @@ export class HostManager {
     const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
 
     if (!fs.existsSync(sshConfigPath)) {
-      throw new Error('SSH config file not found');
+      throw new Error(`SSH config file not found at: ${sshConfigPath}\n\nCreate one to use the import feature, or add hosts manually.`);
     }
 
     const configContent = fs.readFileSync(sshConfigPath, 'utf-8');
@@ -144,7 +144,7 @@ export class HostManager {
     const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
 
     if (!fs.existsSync(sshConfigPath)) {
-      throw new Error('SSH config file not found');
+      throw new Error(`SSH config file not found at: ${sshConfigPath}\n\nCreate one to use the import feature, or add hosts manually.`);
     }
 
     const configContent = fs.readFileSync(sshConfigPath, 'utf-8');
