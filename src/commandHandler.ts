@@ -1210,7 +1210,7 @@ export class CommandHandler {
       const loadDirectory = async (pathToLoad: string) => {
         currentPath = pathToLoad;
         quickPick.value = '';
-        quickPick.placeholder = `${currentPath} (Double-click folders to enter, click ☁↓ to download)`;
+        quickPick.placeholder = `${currentPath} (Click folder to enter, click ☁↓ to download)`;
         quickPick.title = `Browse Remote Files`;
         quickPick.busy = true;
 
@@ -1223,12 +1223,12 @@ export class CommandHandler {
           const quickPickItems: vscode.QuickPickItem[] = [
             {
               label: '..',
-              description: 'Go to parent directory',
+              description: '',
               alwaysShow: true
             },
             ...items.map(item => ({
               label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
-              description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : 'Double-click to enter',
+              description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
               // Add download button for each item
               buttons: [
                 {
