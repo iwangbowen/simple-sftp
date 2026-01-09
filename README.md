@@ -2,6 +2,12 @@
 
 A lightweight VS Code extension for uploading files to remote hosts via SCP/SFTP with cross-device host configuration synchronization.
 
+## Support This Project
+
+If you find this extension helpful, consider buying me a coffee!
+
+<img src="resources/wechat-pay.jpg" alt="WeChat Pay" width="200"/>
+
 ## Features
 
 ### Core Functionality
