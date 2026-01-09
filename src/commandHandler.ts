@@ -1202,17 +1202,18 @@ export class CommandHandler {
 
     return new Promise(async (resolve) => {
       const quickPick = vscode.window.createQuickPick();
-      quickPick.placeholder = `Loading... ${currentPath}`;
+      quickPick.placeholder = '';
       quickPick.canSelectMany = false;
       quickPick.busy = true;
+      quickPick.title = `Browse Remote Files`;
+
+      let isLoadingPath = false;
 
       // Function to load and display files and directories
-      const loadDirectory = async (pathToLoad: string) => {
+      const loadDirectory = async (pathToLoad: string, updateValue: boolean = true) => {
         currentPath = pathToLoad;
-        quickPick.value = '';
-        quickPick.placeholder = currentPath;
-        quickPick.title = `Browse Remote Files`;
         quickPick.busy = true;
+        isLoadingPath = true;
 
         try {
           logger.debug(`Listing files: ${currentPath}`);
@@ -1229,6 +1230,7 @@ export class CommandHandler {
             ...items.map(item => ({
               label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
               description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
+              alwaysShow: true, // Always show to prevent filtering
               // Add download button for each item
               buttons: [
                 {
@@ -1243,8 +1245,14 @@ export class CommandHandler {
 
           quickPick.items = quickPickItems;
           quickPick.busy = false;
+          // Only update value if requested (for user-initiated navigation)
+          if (updateValue) {
+            quickPick.value = currentPath + '/';
+          }
+          isLoadingPath = false;
         } catch (error) {
           quickPick.busy = false;
+          isLoadingPath = false;
           logger.error(`Failed to list files: ${currentPath}`, error as Error);
 
           const openLogs = 'View Logs';
@@ -1260,6 +1268,45 @@ export class CommandHandler {
           resolve(undefined);
         }
       };
+
+      // Handle input value change - dynamic path navigation
+      let inputTimeout: NodeJS.Timeout | undefined;
+      quickPick.onDidChangeValue(async (value) => {
+        // Clear previous timeout
+        if (inputTimeout) {
+          clearTimeout(inputTimeout);
+        }
+
+        // Don't process if we're currently loading a path
+        if (isLoadingPath) {
+          return;
+        }
+
+        // Debounce input processing
+        inputTimeout = setTimeout(async () => {
+          if (!value) {
+            return;
+          }
+
+          // If user is typing a path (ends with /), navigate to that directory
+          if (value.endsWith('/')) {
+            const targetPath = value.slice(0, -1) || '/'; // Remove trailing slash but keep root
+            if (targetPath !== currentPath) {
+              await loadDirectory(targetPath);
+            }
+          } else {
+            // If user deleted the trailing slash, show parent directory
+            // but keep the input value unchanged for user editing
+            const lastSlashIndex = value.lastIndexOf('/');
+            if (lastSlashIndex >= 0) {
+              const parentPath = value.substring(0, lastSlashIndex) || '/';
+              if (parentPath !== currentPath) {
+                await loadDirectory(parentPath, false); // Don't update input value
+              }
+            }
+          }
+        }, 300);
+      });
 
       // Handle button click (download button)
       quickPick.onDidTriggerItemButton(async (event) => {
@@ -1307,6 +1354,9 @@ export class CommandHandler {
       });
 
       quickPick.onDidHide(() => {
+        if (inputTimeout) {
+          clearTimeout(inputTimeout);
+        }
         quickPick.dispose();
         resolve(undefined);
       });
