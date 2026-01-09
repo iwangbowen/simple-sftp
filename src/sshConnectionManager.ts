@@ -55,7 +55,7 @@ export class SshConnectionManager {
   }
 
   /**
-   * 列出远程目录
+   * 列出远程目录（仅目录）
    */
   static async listRemoteDirectory(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<string[]> {
     const sftp = new SftpClient();
@@ -69,6 +69,30 @@ export class SshConnectionManager {
         .map((item: any) => item.name);
 
       return directories;
+    } finally {
+      await sftp.end();
+    }
+  }
+
+  /**
+   * 列出远程目录（包含文件和文件夹）
+   */
+  static async listRemoteFiles(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<Array<{name: string, type: 'file' | 'directory', size: number}>> {
+    const sftp = new SftpClient();
+    try {
+      const connectConfig = this.buildConnectConfig(config, authConfig);
+      await sftp.connect(connectConfig);
+
+      const list = await sftp.list(remotePath);
+      const items = list
+        .filter((item: any) => item.name !== '.' && item.name !== '..')
+        .map((item: any) => ({
+          name: item.name,
+          type: item.type === 'd' ? 'directory' as const : 'file' as const,
+          size: item.size || 0
+        }));
+
+      return items;
     } finally {
       await sftp.end();
     }
@@ -140,6 +164,84 @@ export class SshConnectionManager {
 
         if (onProgress) {
           const progress = Math.round((uploadedFiles / totalFiles) * 100);
+          onProgress(relativePath, progress);
+        }
+      }
+    } finally {
+      await sftp.end();
+    }
+  }
+
+  /**
+   * 下载文件
+   */
+  static async downloadFile(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string,
+    localPath: string,
+    onProgress?: (transferred: number, total: number) => void
+  ): Promise<void> {
+    const sftp = new SftpClient();
+    try {
+      const connectConfig = this.buildConnectConfig(config, authConfig);
+      await sftp.connect(connectConfig);
+
+      // 确保本地目录存在
+      const localDir = path.dirname(localPath);
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+
+      // 下载文件
+      await sftp.fastGet(remotePath, localPath, {
+        step: (transferred: number, _chunk: any, total: number) => {
+          if (onProgress) {
+            onProgress(transferred, total);
+          }
+        },
+      });
+    } finally {
+      await sftp.end();
+    }
+  }
+
+  /**
+   * 下载文件夹
+   */
+  static async downloadDirectory(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string,
+    localPath: string,
+    onProgress?: (currentFile: string, progress: number) => void
+  ): Promise<void> {
+    const sftp = new SftpClient();
+    try {
+      const connectConfig = this.buildConnectConfig(config, authConfig);
+      await sftp.connect(connectConfig);
+
+      // 获取所有远程文件
+      const files = await this.getAllRemoteFiles(sftp, remotePath);
+      const totalFiles = files.length;
+      let downloadedFiles = 0;
+
+      for (const file of files) {
+        const relativePath = file.replace(remotePath, '').replace(/^\//, '');
+        const localFilePath = path.join(localPath, relativePath);
+        const localFileDir = path.dirname(localFilePath);
+
+        // 确保本地目录存在
+        if (!fs.existsSync(localFileDir)) {
+          fs.mkdirSync(localFileDir, { recursive: true });
+        }
+
+        // 下载文件
+        await sftp.fastGet(file, localFilePath);
+        downloadedFiles++;
+
+        if (onProgress) {
+          const progress = Math.round((downloadedFiles / totalFiles) * 100);
           onProgress(relativePath, progress);
         }
       }
@@ -259,6 +361,32 @@ export class SshConnectionManager {
 
       if (stat.isDirectory()) {
         files.push(...this.getAllFiles(fullPath));
+      } else {
+        files.push(fullPath);
+      }
+    }
+
+    return files;
+  }
+
+  /**
+   * 递归获取远程目录下所有文件
+   */
+  private static async getAllRemoteFiles(sftp: any, remotePath: string): Promise<string[]> {
+    const files: string[] = [];
+    const list = await sftp.list(remotePath);
+
+    for (const item of list) {
+      if (item.name === '.' || item.name === '..') {
+        continue;
+      }
+
+      const fullPath = `${remotePath}/${item.name}`.replace(/\/\//g, '/');
+
+      if (item.type === 'd') {
+        // 递归获取子目录文件
+        const subFiles = await this.getAllRemoteFiles(sftp, fullPath);
+        files.push(...subFiles);
       } else {
         files.push(fullPath);
       }

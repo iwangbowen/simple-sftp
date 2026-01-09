@@ -38,6 +38,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.uploadFile', (uri: vscode.Uri) =>
         this.uploadFile(uri)
       ),
+      vscode.commands.registerCommand('simpleScp.downloadFile', (item: HostTreeItem) =>
+        this.downloadFile(item)
+      ),
       vscode.commands.registerCommand('simpleScp.setupPasswordlessLogin', (item: HostTreeItem) =>
         this.setupPasswordlessLogin(item)
       ),
@@ -1085,6 +1088,235 @@ export class CommandHandler {
     await vscode.env.clipboard.writeText(sshCommand);
     vscode.window.showInformationMessage(`Copied: ${sshCommand}`);
     logger.info(`Copied SSH command: ${sshCommand}`);
+  }
+
+  private async downloadFile(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {return;}
+
+    const config = item.data as HostConfig;
+
+    // Check authentication
+    const authConfig = await this.authManager.getAuth(config.id);
+    if (!authConfig) {
+      const configure = 'Configure Authentication';
+      const cancel = 'Cancel';
+      const choice = await vscode.window.showWarningMessage(
+        `No authentication configured for ${config.name}. Configure now?`,
+        configure,
+        cancel
+      );
+
+      if (choice === configure) {
+        const success = await this.configureAuthForHost(config.id);
+        if (!success) {
+          return;
+        }
+        // Recursively call downloadFile after configuring auth
+        return this.downloadFile(item);
+      }
+      return;
+    }
+
+    // Select remote file or directory to download
+    const remotePath = await this.selectRemoteFileOrDirectory(config, authConfig);
+    if (!remotePath) {return;}
+
+    // Select local save path
+    const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri,
+      title: 'Select download location',
+      saveLabel: 'Download Here'
+    });
+
+    if (!saveUri) {return;}
+
+    const localPath = saveUri.fsPath;
+
+    logger.info(
+      `Starting download: ${config.username}@${config.host}:${remotePath.path} → ${localPath}`
+    );
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: remotePath.isDirectory ? 'Downloading folder' : 'Downloading file',
+        cancellable: false,
+      },
+      async progress => {
+        try {
+          if (remotePath.isDirectory) {
+            logger.info(`Downloading directory: ${remotePath.path}`);
+            await SshConnectionManager.downloadDirectory(
+              config,
+              authConfig,
+              remotePath.path,
+              localPath,
+              (currentFile, percentage) => {
+                logger.debug(`Downloading ${currentFile} (${percentage}%)`);
+                progress.report({
+                  message: `${currentFile} (${percentage}%)`,
+                  increment: 1,
+                });
+              }
+            );
+          } else {
+            logger.info(`Downloading file: ${remotePath.path}`);
+            await SshConnectionManager.downloadFile(
+              config,
+              authConfig,
+              remotePath.path,
+              localPath,
+              (transferred, total) => {
+                const percentage = Math.round((transferred / total) * 100);
+                progress.report({
+                  message: `${percentage}%`,
+                  increment: percentage,
+                });
+              }
+            );
+          }
+
+          logger.info(`✓ Download successful: ${localPath}`);
+          vscode.window.showInformationMessage(`Download successful: ${localPath}`);
+        } catch (error) {
+          logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
+
+          const openLogs = 'View Logs';
+          const choice = await vscode.window.showErrorMessage(
+            `Download failed: ${error}`,
+            openLogs
+          );
+
+          if (choice === openLogs) {
+            logger.show();
+          }
+        }
+      }
+    );
+  }
+
+  private async selectRemoteFileOrDirectory(config: HostConfig, authConfig: HostAuthConfig): Promise<{path: string, isDirectory: boolean} | undefined> {
+    let currentPath = config.defaultRemotePath || '/root';
+    logger.info(`Browsing remote files on ${config.name}, starting at: ${currentPath}`);
+
+    return new Promise(async (resolve) => {
+      const quickPick = vscode.window.createQuickPick();
+      quickPick.placeholder = `Loading... ${currentPath}`;
+      quickPick.canSelectMany = false;
+      quickPick.busy = true;
+
+      // Add download button
+      quickPick.buttons = [
+        {
+          iconPath: new vscode.ThemeIcon('cloud-download'),
+          tooltip: 'Download selected item'
+        }
+      ];
+
+      // Function to load and display files and directories
+      const loadDirectory = async (pathToLoad: string) => {
+        currentPath = pathToLoad;
+        quickPick.value = '';
+        quickPick.placeholder = currentPath;
+        quickPick.title = `Select file or folder to download`;
+        quickPick.busy = true;
+
+        try {
+          logger.debug(`Listing files: ${currentPath}`);
+          const items = await SshConnectionManager.listRemoteFiles(config, authConfig, currentPath);
+
+          logger.debug(`Found ${items.length} items in ${currentPath}`);
+
+          const quickPickItems: vscode.QuickPickItem[] = [
+            {
+              label: '..',
+              alwaysShow: true
+            },
+            ...items.map(item => ({
+              label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
+              description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
+              detail: item.type === 'directory' ? 'Directory' : 'File',
+              // Store metadata in the item
+              item: item
+            } as any)),
+          ];
+
+          quickPick.items = quickPickItems;
+          quickPick.busy = false;
+        } catch (error) {
+          quickPick.busy = false;
+          logger.error(`Failed to list files: ${currentPath}`, error as Error);
+
+          const openLogs = 'View Logs';
+          const choice = await vscode.window.showErrorMessage(
+            `Failed to read directory: ${error}`,
+            openLogs
+          );
+
+          if (choice === openLogs) {
+            logger.show();
+          }
+          quickPick.hide();
+          resolve(undefined);
+        }
+      };
+
+      // Handle button click (download button)
+      quickPick.onDidTriggerButton(async (button) => {
+        const selected = quickPick.selectedItems[0] as any;
+        if (!selected || selected.label === '..') {
+          vscode.window.showWarningMessage('Please select a file or folder to download');
+          return;
+        }
+
+        const item = selected.item;
+        const itemPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
+        logger.info(`Selected for download: ${itemPath} (${item.type})`);
+        quickPick.hide();
+        resolve({
+          path: itemPath,
+          isDirectory: item.type === 'directory'
+        });
+      });
+
+      // Handle selection (navigate into directories)
+      quickPick.onDidAccept(() => {
+        const selected = quickPick.selectedItems[0] as any;
+
+        if (!selected) {
+          return;
+        }
+
+        if (selected.label === '..') {
+          // Navigate to parent directory
+          const parentPath = path.dirname(currentPath);
+          loadDirectory(parentPath);
+        } else if (selected.item && selected.item.type === 'directory') {
+          // Navigate into subdirectory
+          const targetPath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
+          loadDirectory(targetPath);
+        } else if (selected.item && selected.item.type === 'file') {
+          // Select file for download
+          const filePath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
+          logger.info(`Selected file for download: ${filePath}`);
+          quickPick.hide();
+          resolve({
+            path: filePath,
+            isDirectory: false
+          });
+        }
+      });
+
+      quickPick.onDidHide(() => {
+        quickPick.dispose();
+        resolve(undefined);
+      });
+
+      // Show quickPick first, then load initial directory
+      quickPick.show();
+      await loadDirectory(currentPath);
+    });
   }
 
   private refresh(): void {
