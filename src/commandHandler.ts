@@ -797,36 +797,81 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       return;
     }
 
+    const groups = await this.hostManager.getGroups();
+    const recentUploadIds = await this.hostManager.getRecentUploads();
+
+    // Build group map for quick lookup
+    const groupMap = new Map(groups.map(g => [g.id, g.name]));
+
     // Check authentication status for each host
-    const hostItems = await Promise.all(
+    const allHostItems = await Promise.all(
       hosts.map(async h => {
         const hasAuth = await this.authManager.hasAuth(h.id);
+        const groupName = h.group ? groupMap.get(h.group) : undefined;
+        const isRecent = recentUploadIds.includes(h.id);
+
         return {
           label: `$(${hasAuth ? 'server' : 'warning'}) ${h.name}`,
           description: `${h.username}@${h.host}:${h.port}`,
-          detail: hasAuth ? undefined : 'Authentication not configured',
+          detail: groupName ? `Group: ${groupName}` : undefined,
           host: h,
-          hasAuth, // For sorting
+          hasAuth,
+          isRecent,
         };
       })
     );
 
-    // Sort: hosts with auth first
-    hostItems.sort((a, b) => {
-      if (a.hasAuth && !b.hasAuth) {return -1;}
-      if (!a.hasAuth && b.hasAuth) {return 1;}
-      return 0;
-    });
+    // Split into recent and other hosts
+    const recentItems = allHostItems
+      .filter(item => item.isRecent)
+      .sort((a, b) => {
+        const aIndex = recentUploadIds.indexOf(a.host.id);
+        const bIndex = recentUploadIds.indexOf(b.host.id);
+        return aIndex - bIndex;
+      });
+
+    const otherItems = allHostItems
+      .filter(item => !item.isRecent)
+      .sort((a, b) => {
+        // Sort by auth status first, then by name
+        if (a.hasAuth && !b.hasAuth) return -1;
+        if (!a.hasAuth && b.hasAuth) return 1;
+        return a.host.name.localeCompare(b.host.name);
+      });
+
+    // Build QuickPick items with separator
+    const quickPickItems: any[] = [];
+
+    if (recentItems.length > 0) {
+      quickPickItems.push(
+        {
+          label: 'Recently Uploaded',
+          kind: vscode.QuickPickItemKind.Separator
+        } as vscode.QuickPickItem,
+        ...recentItems
+      );
+    }
+
+    if (otherItems.length > 0) {
+      if (recentItems.length > 0) {
+        quickPickItems.push({
+          label: 'All Hosts',
+          kind: vscode.QuickPickItemKind.Separator
+        } as vscode.QuickPickItem);
+      }
+      quickPickItems.push(...otherItems);
+    }
 
     const selectedHost = await vscode.window.showQuickPick(
-      hostItems,
+      quickPickItems,
       { placeHolder: 'Select target host' }
     );
 
-    if (!selectedHost) {return;}
+    if (!selectedHost || selectedHost.kind === vscode.QuickPickItemKind.Separator) {
+      return;
+    }
 
     const config = selectedHost.host;
-
     // Check authentication
     const authConfig = await this.authManager.getAuth(config.id);
     if (!authConfig) {
@@ -901,6 +946,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
           logger.info(`✓ Upload successful: ${finalRemotePath}`);
           vscode.window.showInformationMessage(`Upload successful: ${finalRemotePath}`);
+
+          // Record this host as recently uploaded to
+          await this.hostManager.recordRecentUpload(config.id);
         } catch (error) {
           logger.error(`✗ Upload failed: ${localPath}`, error as Error);
 

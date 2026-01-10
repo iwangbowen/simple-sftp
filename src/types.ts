@@ -55,6 +55,8 @@ export interface GroupConfig {
 export interface StorageData {
   hosts: HostConfig[];
   groups: GroupConfig[];
+  /** 最近上传的主机ID列表 (最多保留5个) */
+  recentUploads?: string[];
 }
 
 /**

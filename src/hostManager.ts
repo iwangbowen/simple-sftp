@@ -239,7 +239,7 @@ export class HostManager {
    */
   private async loadData(): Promise<StorageData> {
     const data = this.context.globalState.get<StorageData>(HostManager.STORAGE_KEY);
-    return data || { hosts: [], groups: [] };
+    return data || { hosts: [], groups: [], recentUploads: [] };
   }
 
   /**
@@ -247,6 +247,37 @@ export class HostManager {
    */
   private async saveData(data: StorageData): Promise<void> {
     await this.context.globalState.update(HostManager.STORAGE_KEY, data);
+  }
+
+  /**
+   * Record a host as recently uploaded to
+   */
+  async recordRecentUpload(hostId: string): Promise<void> {
+    const data = await this.loadData();
+    if (!data.recentUploads) {
+      data.recentUploads = [];
+    }
+
+    // Remove if already exists
+    data.recentUploads = data.recentUploads.filter(id => id !== hostId);
+
+    // Add to front
+    data.recentUploads.unshift(hostId);
+
+    // Keep only last 5
+    if (data.recentUploads.length > 5) {
+      data.recentUploads = data.recentUploads.slice(0, 5);
+    }
+
+    await this.saveData(data);
+  }
+
+  /**
+   * Get recent upload host IDs
+   */
+  async getRecentUploads(): Promise<string[]> {
+    const data = await this.loadData();
+    return data.recentUploads || [];
   }
 
   /**
