@@ -421,23 +421,62 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       return;
     }
 
-    // Show confirmation dialog
-    const confirm = await vscode.window.showWarningMessage(
-      itemsToDelete.length === 1
-        ? `Are you sure you want to delete "${itemsToDelete[0].label}"?`
-        : `Are you sure you want to delete ${itemsToDelete.length} item(s)?`,
-      'Confirm',
-      'Cancel'
-    );
+    // Separate hosts and groups
+    const hostsToDelete = itemsToDelete.filter(i => i.type === 'host');
+    const groupsToDelete = itemsToDelete.filter(i => i.type === 'group');
 
-    if (confirm !== 'Confirm') {
-      return;
+    // Check if any groups have hosts inside
+    const allHosts = await this.hostManager.getHosts();
+    let totalHostsInGroups = 0;
+    const groupsWithHosts = groupsToDelete.filter(group => {
+      const hostsInGroup = allHosts.filter(h => h.group === group.data.id);
+      totalHostsInGroups += hostsInGroup.length;
+      return hostsInGroup.length > 0;
+    });
+
+    // Ask user what to do with groups that have hosts
+    let deleteHostsInGroups = false;
+    if (groupsWithHosts.length > 0) {
+      const choice = await vscode.window.showWarningMessage(
+        groupsWithHosts.length === 1
+          ? `The group "${groupsWithHosts[0].label}" contains ${totalHostsInGroups} host(s). What would you like to do?`
+          : `${groupsWithHosts.length} group(s) contain a total of ${totalHostsInGroups} host(s). What would you like to do?`,
+        { modal: true },
+        'Delete groups and hosts',
+        'Delete groups only (keep hosts)',
+        'Cancel'
+      );
+
+      if (choice === 'Cancel' || !choice) {
+        return;
+      }
+      deleteHostsInGroups = choice === 'Delete groups and hosts';
+    } else {
+      // No hosts in groups, just confirm deletion
+      const confirm = await vscode.window.showWarningMessage(
+        itemsToDelete.length === 1
+          ? `Are you sure you want to delete "${itemsToDelete[0].label}"?`
+          : `Are you sure you want to delete ${itemsToDelete.length} item(s)?`,
+        'Confirm',
+        'Cancel'
+      );
+
+      if (confirm !== 'Confirm') {
+        return;
+      }
     }
 
     try {
-      // Separate hosts and groups
-      const hostsToDelete = itemsToDelete.filter(i => i.type === 'host');
-      const groupsToDelete = itemsToDelete.filter(i => i.type === 'group');
+      // Delete hosts in groups if user chose to
+      if (deleteHostsInGroups) {
+        for (const groupItem of groupsToDelete) {
+          const hostsInGroup = allHosts.filter(h => h.group === groupItem.data.id);
+          for (const host of hostsInGroup) {
+            await this.hostManager.deleteHost(host.id);
+            logger.info(`Deleted host in group: ${host.name}`);
+          }
+        }
+      }
 
       // Delete all selected hosts
       for (const hostItem of hostsToDelete) {
