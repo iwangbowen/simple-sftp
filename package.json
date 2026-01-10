@@ -207,14 +207,14 @@
           "group": "navigation@2"
         },
         {
-          "command": "simpleScp.importFromSshConfig",
+          "command": "simpleScp.refresh",
           "when": "view == simpleScp.hosts",
           "group": "navigation@3"
         },
         {
-          "command": "simpleScp.refresh",
+          "command": "simpleScp.importFromSshConfig",
           "when": "view == simpleScp.hosts",
-          "group": "navigation@4"
+          "group": "1_import@1"
         }
       ],
       "view/item/context": [
