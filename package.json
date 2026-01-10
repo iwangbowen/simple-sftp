@@ -134,6 +134,12 @@
         "title": "Show Output Logs",
         "category": "Simple SCP",
         "icon": "$(output)"
+      },
+      {
+        "command": "simpleScp.moveHostToGroup",
+        "title": "Move to Group",
+        "category": "Simple SCP",
+        "icon": "$(folder)"
       }
     ],
     "menus": {
@@ -193,6 +199,10 @@
         {
           "command": "simpleScp.editGroup",
           "when": "false"
+        },
+        {
+          "command": "simpleScp.moveHostToGroup",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -247,6 +257,11 @@
           "command": "simpleScp.setupPasswordlessLogin",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "2_actions@3"
+        },
+        {
+          "command": "simpleScp.moveHostToGroup",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_actions@4"
         },
         {
           "command": "simpleScp.deleteHost",

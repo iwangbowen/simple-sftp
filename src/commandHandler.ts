@@ -28,6 +28,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.deleteHost', (item: HostTreeItem, items?: HostTreeItem[]) =>
         this.deleteHost(item, items)
       ),
+      vscode.commands.registerCommand('simpleScp.moveHostToGroup', (item: HostTreeItem) =>
+        this.moveHostToGroup(item)
+      ),
       vscode.commands.registerCommand('simpleScp.addGroup', () => this.addGroup()),
       vscode.commands.registerCommand('simpleScp.editGroup', (item: HostTreeItem) =>
         this.editGroup(item)
@@ -535,6 +538,54 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       vscode.window.showInformationMessage(`Group "${name}" created successfully`);
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to create group: ${error}`);
+    }
+  }
+
+  /**
+   * Move host to a different group
+   */
+  private async moveHostToGroup(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {
+      return;
+    }
+
+    const config = item.data as HostConfig;
+    const groups = await this.hostManager.getGroups();
+
+    const groupChoice = await vscode.window.showQuickPick(
+      [
+        { label: 'No Group', value: undefined, description: config.group === undefined ? '(Current)' : undefined },
+        ...groups.map(g => ({
+          label: g.name,
+          value: g.id,
+          description: config.group === g.id ? '(Current)' : undefined,
+        })),
+      ],
+      { placeHolder: `Move "${config.name}" to group` }
+    );
+
+    if (groupChoice === undefined) {
+      return; // User cancelled
+    }
+
+    // Don't update if same group
+    if (groupChoice.value === config.group) {
+      return;
+    }
+
+    try {
+      await this.hostManager.updateHost(config.id, {
+        group: groupChoice.value,
+      });
+
+      this.treeProvider.refresh();
+
+      const targetGroup = groupChoice.value ? groupChoice.label : 'ungrouped';
+      vscode.window.showInformationMessage(`Moved "${config.name}" to ${targetGroup}`);
+      logger.info(`Moved host ${config.name} to ${targetGroup}`);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to move host: ${error}`);
+      logger.error(`Failed to move host ${config.name}`, error as Error);
     }
   }
 
