@@ -45,6 +45,13 @@
         }
       ]
     },
+    "submenus": [
+      {
+        "id": "simpleScp.addMenu",
+        "label": "Add",
+        "icon": "$(add)"
+      }
+    ],
     "commands": [
       {
         "command": "simpleScp.addHost",
@@ -74,7 +81,7 @@
         "command": "simpleScp.addGroup",
         "title": "Add Group",
         "category": "Simple SCP",
-        "icon": "$(new-folder)"
+        "icon": "$(add)"
       },
       {
         "command": "simpleScp.editGroup",
@@ -143,6 +150,14 @@
       }
     ],
     "menus": {
+      "simpleScp.addMenu": [
+        {
+          "command": "simpleScp.addHost"
+        },
+        {
+          "command": "simpleScp.addGroup"
+        }
+      ],
       "commandPalette": [
         {
           "command": "simpleScp.addHost"
@@ -207,19 +222,14 @@
       ],
       "view/title": [
         {
-          "command": "simpleScp.addHost",
+          "submenu": "simpleScp.addMenu",
           "when": "view == simpleScp.hosts",
           "group": "navigation@1"
         },
         {
-          "command": "simpleScp.addGroup",
-          "when": "view == simpleScp.hosts",
-          "group": "navigation@2"
-        },
-        {
           "command": "simpleScp.refresh",
           "when": "view == simpleScp.hosts",
-          "group": "navigation@3"
+          "group": "navigation@2"
         },
         {
           "command": "simpleScp.importFromSshConfig",
