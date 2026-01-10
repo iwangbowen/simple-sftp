@@ -28,8 +28,8 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.deleteHost', (item: HostTreeItem, items?: HostTreeItem[]) =>
         this.deleteHost(item, items)
       ),
-      vscode.commands.registerCommand('simpleScp.moveHostToGroup', (item: HostTreeItem) =>
-        this.moveHostToGroup(item)
+      vscode.commands.registerCommand('simpleScp.moveHostToGroup', (item: HostTreeItem, items?: HostTreeItem[]) =>
+        this.moveHostToGroup(item, items)
       ),
       vscode.commands.registerCommand('simpleScp.addGroup', () => this.addGroup()),
       vscode.commands.registerCommand('simpleScp.editGroup', (item: HostTreeItem) =>
@@ -542,50 +542,67 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
   }
 
   /**
-   * Move host to a different group
+   * Move host(s) to a different group
    */
-  private async moveHostToGroup(item: HostTreeItem): Promise<void> {
-    if (item.type !== 'host') {
+  private async moveHostToGroup(item: HostTreeItem, items?: HostTreeItem[]): Promise<void> {
+    // Get all selected hosts (filter out groups)
+    const selectedItems = items && items.length > 0 ? items : [item];
+    const hostsToMove = selectedItems.filter(i => i.type === 'host');
+
+    if (hostsToMove.length === 0) {
+      vscode.window.showWarningMessage('Please select one or more hosts to move');
       return;
     }
 
-    const config = item.data as HostConfig;
     const groups = await this.hostManager.getGroups();
 
     const groupChoice = await vscode.window.showQuickPick(
       [
-        { label: 'No Group', value: undefined, description: config.group === undefined ? '(Current)' : undefined },
+        { label: 'No Group', value: undefined },
         ...groups.map(g => ({
           label: g.name,
           value: g.id,
-          description: config.group === g.id ? '(Current)' : undefined,
         })),
       ],
-      { placeHolder: `Move "${config.name}" to group` }
+      {
+        placeHolder: hostsToMove.length === 1
+          ? `Move "${hostsToMove[0].label}" to group`
+          : `Move ${hostsToMove.length} host(s) to group`
+      }
     );
 
     if (groupChoice === undefined) {
       return; // User cancelled
     }
 
-    // Don't update if same group
-    if (groupChoice.value === config.group) {
-      return;
-    }
-
     try {
-      await this.hostManager.updateHost(config.id, {
-        group: groupChoice.value,
-      });
+      // Move all selected hosts
+      for (const hostItem of hostsToMove) {
+        const config = hostItem.data as HostConfig;
+
+        // Skip if already in target group
+        if (groupChoice.value === config.group) {
+          continue;
+        }
+
+        await this.hostManager.updateHost(config.id, {
+          group: groupChoice.value,
+        });
+
+        logger.info(`Moved host ${config.name} to ${groupChoice.value ? groupChoice.label : 'ungrouped'}`);
+      }
 
       this.treeProvider.refresh();
 
       const targetGroup = groupChoice.value ? groupChoice.label : 'ungrouped';
-      vscode.window.showInformationMessage(`Moved "${config.name}" to ${targetGroup}`);
-      logger.info(`Moved host ${config.name} to ${targetGroup}`);
+      if (hostsToMove.length === 1) {
+        vscode.window.showInformationMessage(`Moved "${hostsToMove[0].label}" to ${targetGroup}`);
+      } else {
+        vscode.window.showInformationMessage(`Moved ${hostsToMove.length} host(s) to ${targetGroup}`);
+      }
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to move host: ${error}`);
-      logger.error(`Failed to move host ${config.name}`, error as Error);
+      vscode.window.showErrorMessage(`Failed to move host(s): ${error}`);
+      logger.error('Failed to move host(s)', error as Error);
     }
   }
 
