@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.7.1] - 2026-01-10
+
+### Changed
+
+- Updated extension description to accurately reflect support for both upload and download functionality
+- Removed SFTP references (extension uses SCP protocol only)
+
 ## [0.7.0] - 2026-01-10
 
 ### Added
