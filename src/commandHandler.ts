@@ -10,31 +10,6 @@ import { HostConfig, HostAuthConfig, FullHostConfig } from './types';
 import { logger } from './logger';
 
 export class CommandHandler {
-  // 全局缓存：resourceUri 特性检测结果，整个扩展生命周期只检测一次
-  private static supportsResourceUri: boolean | null = null;
-
-  /**
-   * 检测 VS Code 是否支持 QuickPickItem.resourceUri (VS Code 1.108+)
-   * 通过检查 VS Code 版本号来判断
-   */
-  private static checkResourceUriSupport(): boolean {
-    if (CommandHandler.supportsResourceUri === null) {
-      const vscodeVersion = vscode.version;
-      // Parse version string like "1.108.3" and check if >= 1.108
-      const match = vscodeVersion.match(/^(\d+)\.(\d+)/);
-      if (match) {
-        const major = Number.parseInt(match[1], 10);
-        const minor = Number.parseInt(match[2], 10);
-        CommandHandler.supportsResourceUri = major > 1 || (major === 1 && minor >= 108);
-      } else {
-        // Fallback: assume newer version if we can't parse
-        CommandHandler.supportsResourceUri = true;
-      }
-      logger.debug(`VS Code version: ${vscodeVersion}, resourceUri support: ${CommandHandler.supportsResourceUri}`);
-    }
-    return CommandHandler.supportsResourceUri;
-  }
-
   constructor(
     private hostManager: HostManager,
     private authManager: AuthManager,
@@ -1073,9 +1048,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
       let isLoadingPath = false;
 
-      // 使用全局缓存的 resourceUri 检测结果（整个扩展生命周期只检测一次）
-      const supportsResourceUri = CommandHandler.checkResourceUriSupport();
-
       // Function to load and display files/directories
       const loadDirectory = async (pathToLoad: string, updateValue: boolean = true) => {
         currentPath = pathToLoad;
@@ -1108,9 +1080,11 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               ...sortedDirs.map(dir => {
                 const fullPath = `${currentPath}/${dir}`.replace(/\/\//g, '/');
 
-                const item: any = {
-                  label: supportsResourceUri ? '' : dir,
-                  description: supportsResourceUri ? undefined : '',
+                return {
+                  label: dir,
+                  description: '',
+                  resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用，旧版本自动忽略
+                  iconPath: vscode.ThemeIcon.Folder,  // 新版本触发主题图标，旧版本显示标准图标
                   alwaysShow: true,
                   buttons: [
                     {
@@ -1119,18 +1093,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
                     }
                   ],
                   dirName: dir
-                };
-
-                if (supportsResourceUri) {
-                  // 新版本：同时设置 resourceUri 和 ThemeIcon.Folder，触发文件图标主题
-                  item.resourceUri = vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`);
-                  item.iconPath = vscode.ThemeIcon.Folder;
-                } else {
-                  // 旧版本：手动设置 iconPath
-                  item.iconPath = new vscode.ThemeIcon('folder');
-                }
-
-                return item;
+                } as any;
               }),
             ];
           } else {
@@ -1162,9 +1125,11 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
                 const isDirectory = item.type === 'directory';
                 const fileSize = item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '';
 
-                const quickPickItem: any = {
-                  label: supportsResourceUri ? '' : item.name,
-                  description: fileSize,  // 显示文件大小（文件夹为空字符串）
+                return {
+                  label: item.name,
+                  description: fileSize,  // 显示文件大小
+                  resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用，旧版本自动忽略
+                  iconPath: isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File,  // 新版本触发主题图标，旧版本显示标准图标
                   alwaysShow: true,
                   buttons: [
                     {
@@ -1173,18 +1138,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
                     }
                   ],
                   item: item
-                };
-
-                if (supportsResourceUri) {
-                  // 新版本：同时设置 resourceUri 和 ThemeIcon.File/Folder，触发文件图标主题
-                  quickPickItem.resourceUri = vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`);
-                  quickPickItem.iconPath = isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File;
-                } else {
-                  // 旧版本：手动设置 iconPath
-                  quickPickItem.iconPath = isDirectory ? new vscode.ThemeIcon('folder') : new vscode.ThemeIcon('file');
-                }
-
-                return quickPickItem;
+                } as any;
               }),
             ];
           }
