@@ -1139,13 +1139,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               ...sortedItems.map(item => {
                 const fullPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
                 const isDirectory = item.type === 'directory';
-                const fileSize = item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '';
+                const fileSize = item.type === 'file' ? this.formatFileSize(item.size) : '';
 
                 return {
                   label: item.name,
                   description: fileSize,  // 显示文件大小
-                  resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用，旧版本自动忽略
-                  iconPath: isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File,  // 新版本触发主题图标，旧版本显示标准图标
+                  resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用,旧版本自动忽略
+                  iconPath: isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File,  // 新版本触发主题图标,旧版本显示标准图标
                   alwaysShow: true,
                   buttons: [
                     {
@@ -1601,8 +1601,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
               // Update status bar with speed
               this.downloadStatusBar.text = `$(cloud-download) ${percentage}% - ${formattedSpeed}`;
-              // Detailed info in tooltip
-              this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nProgress: ${percentage}%\nSpeed: ${formattedSpeed}\nRemaining: ${formattedTime}`;
+              // Detailed info in tooltip with file size
+              this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})\nSpeed: ${formattedSpeed}\nRemaining: ${formattedTime}`;
 
               lastTransferred = transferred;
               lastTime = currentTime;
@@ -1822,7 +1822,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
               // Update status bar
               this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
-              this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nProgress: ${percentage}%\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
+              this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
 
               lastTransferred = transferred;
               lastTime = currentTime;
@@ -1879,6 +1879,20 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
   private showLogs(): void {
     logger.show();
+  }
+
+  /**
+   * Format file size in human-readable format (auto-select unit)
+   */
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) {return '0 B';}
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const unitIndex = Math.min(i, units.length - 1);
+
+    return `${(bytes / Math.pow(k, unitIndex)).toFixed(2)} ${units[unitIndex]}`;
   }
 
   /**
