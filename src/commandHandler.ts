@@ -10,11 +10,19 @@ import { HostConfig, HostAuthConfig, FullHostConfig } from './types';
 import { logger } from './logger';
 
 export class CommandHandler {
+  private downloadStatusBar: vscode.StatusBarItem;
+
   constructor(
     private hostManager: HostManager,
     private authManager: AuthManager,
     private treeProvider: HostTreeProvider
-  ) {}
+  ) {
+    // Create status bar item for download progress
+    this.downloadStatusBar = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      100
+    );
+  }
 
   registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
@@ -1544,98 +1552,93 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       `Starting download: ${config.username}@${config.host}:${remotePath.path} → ${localPath}`
     );
 
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: remotePath.isDirectory ? 'Downloading folder' : 'Downloading file',
-        cancellable: false,
-      },
-      async progress => {
-        try {
-          if (remotePath.isDirectory) {
-            logger.info(`Downloading directory: ${remotePath.path}`);
-            await SshConnectionManager.downloadDirectory(
-              config,
-              authConfig,
-              remotePath.path,
-              localPath,
-              (currentFile, percentage) => {
-                logger.debug(`Downloading ${currentFile} (${percentage}%)`);
-                progress.report({
-                  message: `${currentFile} (${percentage}%)`,
-                  increment: 1,
-                });
-              }
-            );
-          } else {
-            logger.info(`Downloading file: ${remotePath.path}`);
+    // Show status bar and prepare for download
+    this.downloadStatusBar.text = `$(sync~spin) Downloading...`;
+    this.downloadStatusBar.show();
 
-            // Track download speed
-            let startTime = Date.now();
-            let lastTransferred = 0;
-            let lastTime = startTime;
-
-            await SshConnectionManager.downloadFile(
-              config,
-              authConfig,
-              remotePath.path,
-              localPath,
-              (transferred, total) => {
-                const percentage = Math.round((transferred / total) * 100);
-                const currentTime = Date.now();
-                const elapsed = (currentTime - lastTime) / 1000; // seconds
-
-                // Calculate speed (bytes per second)
-                if (elapsed > 0.5) { // Update speed every 0.5 seconds
-                  const bytesTransferred = transferred - lastTransferred;
-                  const speed = bytesTransferred / elapsed;
-                  const formattedSpeed = this.formatSpeed(speed);
-
-                  // Calculate remaining time
-                  const remaining = total - transferred;
-                  const remainingTime = remaining / speed;
-                  const formattedTime = this.formatRemainingTime(remainingTime);
-
-                  progress.report({
-                    message: `${percentage}% - ${formattedSpeed} - ETA: ${formattedTime}`,
-                    increment: percentage,
-                  });
-
-                  lastTransferred = transferred;
-                  lastTime = currentTime;
-                } else {
-                  progress.report({
-                    message: `${percentage}%`,
-                    increment: percentage,
-                  });
-                }
-              }
-            );
+    try {
+      if (remotePath.isDirectory) {
+        logger.info(`Downloading directory: ${remotePath.path}`);
+        await SshConnectionManager.downloadDirectory(
+          config,
+          authConfig,
+          remotePath.path,
+          localPath,
+          (currentFile, percentage) => {
+            logger.debug(`Downloading ${currentFile} (${percentage}%)`);
+            this.downloadStatusBar.text = `$(cloud-download) ${percentage}% - ${currentFile}`;
+            this.downloadStatusBar.tooltip = `Downloading: ${currentFile}`;
           }
+        );
+      } else {
+        logger.info(`Downloading file: ${remotePath.path}`);
 
-          logger.info(`✓ Download successful: ${localPath}`);
-          vscode.window.showInformationMessage(`Download successful: ${localPath}`);
+        // Track download speed
+        const startTime = Date.now();
+        let lastTransferred = 0;
+        let lastTime = startTime;
 
-          // Record this host as recently used
-          await this.hostManager.recordRecentUsed(config.id);
-          // Record the remote directory path as recently used
-          const remoteDir = remotePath.isDirectory ? remotePath.path : path.dirname(remotePath.path);
-          await this.hostManager.recordRecentPath(config.id, remoteDir);
-        } catch (error) {
-          logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
+        await SshConnectionManager.downloadFile(
+          config,
+          authConfig,
+          remotePath.path,
+          localPath,
+          (transferred, total) => {
+            const percentage = Math.round((transferred / total) * 100);
+            const currentTime = Date.now();
+            const elapsed = (currentTime - lastTime) / 1000; // seconds
 
-          const openLogs = 'View Logs';
-          const choice = await vscode.window.showErrorMessage(
-            `Download failed: ${error}`,
-            openLogs
-          );
+            // Calculate speed (bytes per second)
+            if (elapsed > 0.3) { // Update speed every 0.3 seconds
+              const bytesTransferred = transferred - lastTransferred;
+              const speed = bytesTransferred / elapsed;
+              const formattedSpeed = this.formatSpeed(speed);
 
-          if (choice === openLogs) {
-            logger.show();
+              // Calculate remaining time
+              const remaining = total - transferred;
+              const remainingTime = remaining / speed;
+              const formattedTime = this.formatRemainingTime(remainingTime);
+
+              // Update status bar with speed
+              this.downloadStatusBar.text = `$(cloud-download) ${percentage}% - ${formattedSpeed}`;
+              // Detailed info in tooltip
+              this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nProgress: ${percentage}%\nSpeed: ${formattedSpeed}\nRemaining: ${formattedTime}`;
+
+              lastTransferred = transferred;
+              lastTime = currentTime;
+            }
           }
-        }
+        );
       }
-    );
+
+      logger.info(`✓ Download successful: ${localPath}`);
+      logger.info(`✓ Download successful: ${localPath}`);
+      vscode.window.showInformationMessage(`Download successful: ${localPath}`);
+
+      // Record this host as recently used
+      await this.hostManager.recordRecentUsed(config.id);
+      // Record the remote directory path as recently used
+      const remoteDir = remotePath.isDirectory ? remotePath.path : path.dirname(remotePath.path);
+      await this.hostManager.recordRecentPath(config.id, remoteDir);
+
+      // Hide status bar after successful download
+      this.downloadStatusBar.hide();
+    } catch (error) {
+      logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
+
+      // Hide status bar on error
+      this.downloadStatusBar.hide();
+
+      const openLogs = 'View Logs';
+      const choice = await vscode.window.showErrorMessage(
+        `Download failed: ${error}`,
+        openLogs
+      );
+
+      if (choice === openLogs) {
+        logger.show();
+      }
+    }
   }
 
   /**
@@ -1763,98 +1766,101 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       `Starting download: ${config.username}@${config.host}:${remotePath.path} → ${localPath}`
     );
 
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: remotePath.isDirectory ? 'Downloading folder' : 'Downloading file',
-        cancellable: false,
-      },
-      async progress => {
-        try {
-          if (remotePath.isDirectory) {
-            logger.info(`Downloading directory: ${remotePath.path}`);
-            await SshConnectionManager.downloadDirectory(
-              config,
-              authConfig,
-              remotePath.path,
-              localPath,
-              (currentFile, percentage) => {
-                logger.debug(`Downloading ${currentFile} (${percentage}%)`);
-                progress.report({
-                  message: `${currentFile} (${percentage}%)`,
-                  increment: 1,
-                });
-              }
-            );
-          } else {
-            logger.info(`Downloading file: ${remotePath.path}`);
+    try {
+      if (remotePath.isDirectory) {
+        logger.info(`Downloading directory: ${remotePath.path}`);
 
-            // Track download speed
-            let startTime = Date.now();
-            let lastTransferred = 0;
-            let lastTime = startTime;
+        // Show status bar for directory download
+        this.downloadStatusBar.text = `$(sync~spin) Downloading folder...`;
+        this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}`;
+        this.downloadStatusBar.show();
 
-            await SshConnectionManager.downloadFile(
-              config,
-              authConfig,
-              remotePath.path,
-              localPath,
-              (transferred, total) => {
-                const percentage = Math.round((transferred / total) * 100);
-                const currentTime = Date.now();
-                const elapsed = (currentTime - lastTime) / 1000; // seconds
-
-                // Calculate speed (bytes per second)
-                if (elapsed > 0.5) { // Update speed every 0.5 seconds
-                  const bytesTransferred = transferred - lastTransferred;
-                  const speed = bytesTransferred / elapsed;
-                  const formattedSpeed = this.formatSpeed(speed);
-
-                  // Calculate remaining time
-                  const remaining = total - transferred;
-                  const remainingTime = remaining / speed;
-                  const formattedTime = this.formatRemainingTime(remainingTime);
-
-                  progress.report({
-                    message: `${percentage}% - ${formattedSpeed} - ETA: ${formattedTime}`,
-                    increment: percentage,
-                  });
-
-                  lastTransferred = transferred;
-                  lastTime = currentTime;
-                } else {
-                  progress.report({
-                    message: `${percentage}%`,
-                    increment: percentage,
-                  });
-                }
-              }
-            );
+        await SshConnectionManager.downloadDirectory(
+          config,
+          authConfig,
+          remotePath.path,
+          localPath,
+          (currentFile, percentage) => {
+            logger.debug(`Downloading ${currentFile} (${percentage}%)`);
+            this.downloadStatusBar.text = `$(sync~spin) Downloading folder: ${percentage}%`;
+            this.downloadStatusBar.tooltip = `Downloading: ${currentFile}\nProgress: ${percentage}%`;
           }
+        );
+      } else {
+        logger.info(`Downloading file: ${remotePath.path}`);
 
-          logger.info(`✓ Download successful: ${localPath}`);
-          vscode.window.showInformationMessage(`Download successful: ${localPath}`);
+        // Track download speed
+        let startTime = Date.now();
+        let lastTransferred = 0;
+        let lastTime = startTime;
 
-          // Record this host as recently used
-          await this.hostManager.recordRecentUsed(config.id);
-          // Record the remote directory path as recently used
-          const remoteDir = remotePath.isDirectory ? remotePath.path : path.dirname(remotePath.path);
-          await this.hostManager.recordRecentPath(config.id, remoteDir);
-        } catch (error) {
-          logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
+        // Show initial status bar
+        this.downloadStatusBar.text = `$(sync~spin) Downloading...`;
+        this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}`;
+        this.downloadStatusBar.show();
 
-          const openLogs = 'View Logs';
-          const choice = await vscode.window.showErrorMessage(
-            `Download failed: ${error}`,
-            openLogs
-          );
+        await SshConnectionManager.downloadFile(
+          config,
+          authConfig,
+          remotePath.path,
+          localPath,
+          (transferred, total) => {
+            const percentage = Math.round((transferred / total) * 100);
+            const currentTime = Date.now();
+            const elapsed = (currentTime - lastTime) / 1000; // seconds
 
-          if (choice === openLogs) {
-            logger.show();
+            // Calculate speed (bytes per second)
+            if (elapsed > 0.5) { // Update speed every 0.5 seconds
+              const bytesTransferred = transferred - lastTransferred;
+              const speed = bytesTransferred / elapsed;
+              const formattedSpeed = this.formatSpeed(speed);
+
+              // Calculate remaining time
+              const remaining = total - transferred;
+              const remainingTime = remaining / speed;
+              const formattedTime = this.formatRemainingTime(remainingTime);
+
+              // Update status bar
+              this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
+              this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nProgress: ${percentage}%\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
+
+              lastTransferred = transferred;
+              lastTime = currentTime;
+            } else {
+              this.downloadStatusBar.text = `$(sync~spin) ${percentage}%`;
+              this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nProgress: ${percentage}%`;
+            }
           }
-        }
+        );
       }
-    );
+
+      logger.info(`✓ Download successful: ${localPath}`);
+      vscode.window.showInformationMessage(`Download successful: ${localPath}`);
+
+      // Record this host as recently used
+      await this.hostManager.recordRecentUsed(config.id);
+      // Record the remote directory path as recently used
+      const remoteDir = remotePath.isDirectory ? remotePath.path : path.dirname(remotePath.path);
+      await this.hostManager.recordRecentPath(config.id, remoteDir);
+
+      // Hide status bar after successful download
+      this.downloadStatusBar.hide();
+    } catch (error) {
+      logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
+
+      // Hide status bar on error
+      this.downloadStatusBar.hide();
+
+      const openLogs = 'View Logs';
+      const choice = await vscode.window.showErrorMessage(
+        `Download failed: ${error}`,
+        openLogs
+      );
+
+      if (choice === openLogs) {
+        logger.show();
+      }
+    }
   }
 
   private async selectRemoteFileOrDirectory(config: HostConfig, authConfig: HostAuthConfig): Promise<{path: string, isDirectory: boolean} | undefined> {
