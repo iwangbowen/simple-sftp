@@ -279,6 +279,42 @@ export class HostManager {
   }
 
   /**
+   * Record a recently used path for a specific host
+   */
+  async recordRecentPath(hostId: string, remotePath: string): Promise<void> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+
+    if (!host) {
+      return;
+    }
+
+    host.recentPaths ??= [];
+
+    // Remove if already exists
+    host.recentPaths = host.recentPaths.filter(p => p !== remotePath);
+
+    // Add to front
+    host.recentPaths.unshift(remotePath);
+
+    // Keep only last 10 paths
+    if (host.recentPaths.length > 10) {
+      host.recentPaths = host.recentPaths.slice(0, 10);
+    }
+
+    await this.saveData(data);
+  }
+
+  /**
+   * Get recent paths for a specific host
+   */
+  async getRecentPaths(hostId: string): Promise<string[]> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+    return host?.recentPaths || [];
+  }
+
+  /**
    * Generate unique ID
    */
   private generateId(): string {

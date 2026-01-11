@@ -15,6 +15,8 @@ export interface HostConfig {
   color?: string;
   /** 是否星标 */
   starred?: boolean;
+  /** 最近使用的远程路径列表 (最多保留10条) */
+  recentPaths?: string[];
 }
 
 /**

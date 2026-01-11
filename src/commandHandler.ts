@@ -981,6 +981,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
           // Record this host as recently used
           await this.hostManager.recordRecentUsed(config.id);
+          // Record the remote path as recently used
+          await this.hostManager.recordRecentPath(config.id, remotePath);
         } catch (error) {
           logger.error(`✗ Upload failed: ${localPath}`, error as Error);
 
@@ -1012,7 +1014,10 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     mode: 'selectPath' | 'browseFiles',
     title: string
   ): Promise<string | { path: string; isDirectory: boolean } | undefined> {
-    let currentPath = config.defaultRemotePath || '/root';
+    // Get recent paths for this host
+    const recentPaths = await this.hostManager.getRecentPaths(config.id);
+    // Use most recent path, or default remote path, or /root as fallback
+    let currentPath = recentPaths[0] || config.defaultRemotePath || '/root';
     // Read showDotFiles setting from configuration
     let showDotFiles = vscode.workspace.getConfiguration('simpleScp').get<boolean>('showDotFiles', true);
     logger.info(`Browsing remote on ${config.name}, starting at: ${currentPath}`);
@@ -1584,6 +1589,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
           // Record this host as recently used
           await this.hostManager.recordRecentUsed(config.id);
+          // Record the remote directory path as recently used
+          const remoteDir = remotePath.isDirectory ? remotePath.path : path.dirname(remotePath.path);
+          await this.hostManager.recordRecentPath(config.id, remoteDir);
         } catch (error) {
           logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
 
@@ -1771,6 +1779,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
           // Record this host as recently used
           await this.hostManager.recordRecentUsed(config.id);
+          // Record the remote directory path as recently used
+          const remoteDir = remotePath.isDirectory ? remotePath.path : path.dirname(remotePath.path);
+          await this.hostManager.recordRecentPath(config.id, remoteDir);
         } catch (error) {
           logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
 
