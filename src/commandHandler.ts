@@ -1589,7 +1589,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
             const elapsed = (currentTime - lastTime) / 1000; // seconds
 
             // Calculate speed (bytes per second)
-            if (elapsed > 0.3) { // Update speed every 0.3 seconds
+            if (elapsed > 5.0) { // Update speed every 5 seconds to reduce flickering
               const bytesTransferred = transferred - lastTransferred;
               const speed = bytesTransferred / elapsed;
               const formattedSpeed = this.formatSpeed(speed);
@@ -1810,7 +1810,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
             const elapsed = (currentTime - lastTime) / 1000; // seconds
 
             // Calculate speed (bytes per second)
-            if (elapsed > 0.5) { // Update speed every 0.5 seconds
+            if (elapsed > 5.0) { // Update speed every 5 seconds to reduce flickering
               const bytesTransferred = transferred - lastTransferred;
               const speed = bytesTransferred / elapsed;
               const formattedSpeed = this.formatSpeed(speed);
