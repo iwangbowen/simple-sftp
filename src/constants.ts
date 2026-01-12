@@ -27,7 +27,13 @@ export const PROMPTS = {
   hostAuthNow: 'Step 6/6: Configure authentication now?',
 
   // Edit Host
-  editField: 'Select field to edit',
+  editHost: (name: string) => `Edit ${name}`,
+  editHostName: 'Modify host name',
+  editHostAddress: 'Enter host address (IP or domain)',
+  editPort: 'Enter SSH port',
+  editRemotePath: 'Set default remote path (optional)',
+  selectGroup: 'Select a group',
+  selectColor: 'Select color',
 
   // Authentication
   authType: 'Select authentication type',
@@ -37,7 +43,6 @@ export const PROMPTS = {
 
   // Groups
   groupName: 'Enter group name',
-  selectGroup: 'Select a group',
 
   // Paths
   selectLocalFiles: 'Select files or folders to upload',
@@ -58,7 +63,8 @@ export const MESSAGES = {
   // Success messages
   hostAdded: (name: string) => `Host "${name}" added successfully with authentication`,
   hostAddedNoAuth: (name: string) => `Host "${name}" added without authentication. Configure it later.`,
-  hostUpdated: (name: string) => `Host "${name}" updated successfully`,
+  hostUpdated: 'Host updated successfully',
+  authUpdated: 'Authentication updated successfully',
   hostDeleted: (name: string) => `Host "${name}" deleted successfully`,
   groupCreated: (name: string) => `Group "${name}" created successfully`,
   groupUpdated: (name: string) => `Group "${name}" updated successfully`,
@@ -78,7 +84,7 @@ export const MESSAGES = {
 
   // Error messages
   hostAddFailed: 'Failed to add host',
-  hostUpdateFailed: 'Failed to update host',
+  updateFailed: (error: unknown) => `Update failed: ${error}`,
   hostDeleteFailed: 'Failed to delete host',
   groupCreateFailed: 'Failed to create group',
   groupUpdateFailed: 'Failed to update group',
@@ -90,6 +96,14 @@ export const MESSAGES = {
   passwordlessSetupFailed: 'Failed to set up passwordless login',
   sshConfigParseFailed: 'Failed to parse SSH config',
   noHostsInSshConfig: 'No hosts found in SSH config file',
+
+  // Validation errors
+  hostNameRequired: 'Host name is required',
+  hostAddressRequired: 'Host address is required',
+  usernameRequired: 'Username is required',
+  portRequired: 'Port is required',
+  portInvalid: 'Port must be between 1 and 65535',
+  portRange: (min: number, max: number) => `Port must be a number between ${min} and ${max}`,
 
   // Confirmation prompts
   deleteHostConfirm: (name: string) => `Delete host '${name}'?`,
@@ -130,4 +144,28 @@ export const TOOLTIPS = {
   download: 'Download',
   downloading: (name: string) => `Downloading: ${name}`,
   downloadingFolder: (name: string) => `Downloading folder: ${name}`,
+} as const;
+
+export const LABELS = {
+  // Edit Host options
+  editName: 'Edit Name',
+  editHostAddress: 'Edit Host Address',
+  editPort: 'Edit Port',
+  editRemotePath: 'Edit Default Remote Path',
+  changeGroup: 'Change Group',
+  editColor: 'Edit Color',
+  configureAuth: 'Configure Authentication',
+
+  // Group options
+  noGroup: 'No Group',
+  current: '(Current)',
+
+  // Color options
+  noColor: 'No Color',
+  useDefaultColor: 'Use default color',
+  red: 'Red',
+  green: 'Green',
+  blue: 'Blue',
+  yellow: 'Yellow',
+  purple: 'Purple',
 } as const;

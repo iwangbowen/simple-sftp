@@ -12,7 +12,7 @@ import { SshConnectionPool } from './sshConnectionPool';
 import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/formatUtils';
 import { BookmarkService } from './services/bookmarkService';
 import { RemoteBrowserService } from './services/remoteBrowserService';
-import { DEFAULTS, LIMITS, TIMING, PROMPTS, PLACEHOLDERS, MESSAGES, INSTRUCTIONS, TOOLTIPS } from './constants';
+import { DEFAULTS, LIMITS, TIMING, PROMPTS, PLACEHOLDERS, MESSAGES, INSTRUCTIONS, TOOLTIPS, LABELS } from './constants';
 
 export class CommandHandler {
   private downloadStatusBar: vscode.StatusBarItem;
@@ -114,7 +114,7 @@ export class CommandHandler {
       placeHolder: PLACEHOLDERS.hostName,
       validateInput: (value) => {
         if (!value || !value.trim()) {
-          return 'Host name is required';
+          return MESSAGES.hostNameRequired;
         }
         return undefined;
       },
@@ -127,7 +127,7 @@ export class CommandHandler {
       placeHolder: PLACEHOLDERS.hostAddress,
       validateInput: (value) => {
         if (!value || !value.trim()) {
-          return 'Host address is required';
+          return MESSAGES.hostAddressRequired;
         }
         return undefined;
       },
@@ -144,7 +144,7 @@ export class CommandHandler {
         }
         const port = parseInt(value);
         if (isNaN(port) || port < LIMITS.MIN_PORT || port > LIMITS.MAX_PORT) {
-          return `Port must be a number between ${LIMITS.MIN_PORT} and ${LIMITS.MAX_PORT}`;
+          return MESSAGES.portRange(LIMITS.MIN_PORT, LIMITS.MAX_PORT);
         }
         return undefined;
       },
@@ -158,7 +158,7 @@ export class CommandHandler {
       value: PLACEHOLDERS.username,
       validateInput: (value) => {
         if (!value || !value.trim()) {
-          return 'Username is required';
+          return MESSAGES.usernameRequired;
         }
         return undefined;
       },
@@ -176,7 +176,7 @@ export class CommandHandler {
         group: groupId, // Use the provided groupId or undefined
       });
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to add host: ${error}`);
+      vscode.window.showErrorMessage(MESSAGES.hostAddFailed + `: ${error}`);
       return;
     }
 
@@ -334,17 +334,17 @@ export class CommandHandler {
     const config = item.data as HostConfig;
 
     const options = [
-      { label: 'Edit Name', value: 'name' },
-      { label: 'Edit Host Address', value: 'host' },
-      { label: 'Edit Port', value: 'port' },
-      { label: 'Edit Default Remote Path', value: 'remotePath' },
-      { label: 'Change Group', value: 'group' },
-      { label: 'Edit Color', value: 'color' },
-      { label: 'Configure Authentication', value: 'auth' },
+      { label: LABELS.editName, value: 'name' },
+      { label: LABELS.editHostAddress, value: 'host' },
+      { label: LABELS.editPort, value: 'port' },
+      { label: LABELS.editRemotePath, value: 'remotePath' },
+      { label: LABELS.changeGroup, value: 'group' },
+      { label: LABELS.editColor, value: 'color' },
+      { label: LABELS.configureAuth, value: 'auth' },
     ];
 
     const choice = await vscode.window.showQuickPick(options, {
-      placeHolder: `Edit ${config.name}`,
+      placeHolder: PROMPTS.editHost(config.name),
     });
 
     if (!choice) {return;}
@@ -352,11 +352,11 @@ export class CommandHandler {
     try {
       if (choice.value === 'name') {
         const name = await vscode.window.showInputBox({
-          prompt: 'Modify host name',
+          prompt: PROMPTS.editHostName,
           value: config.name,
           validateInput: (value) => {
             if (!value || !value.trim()) {
-              return 'Host name is required';
+              return MESSAGES.hostNameRequired;
             }
             return undefined;
           },
@@ -366,12 +366,12 @@ export class CommandHandler {
         await this.hostManager.updateHost(config.id, { name: name.trim() });
       } else if (choice.value === 'host') {
         const host = await vscode.window.showInputBox({
-          prompt: 'Enter host address (IP or domain)',
+          prompt: PROMPTS.editHostAddress,
           value: config.host,
-          placeHolder: 'e.g., 192.168.1.100 or example.com',
+          placeHolder: PLACEHOLDERS.hostAddress,
           validateInput: (value) => {
             if (!value || !value.trim()) {
-              return 'Host address is required';
+              return MESSAGES.hostAddressRequired;
             }
             return undefined;
           },
@@ -381,16 +381,16 @@ export class CommandHandler {
         await this.hostManager.updateHost(config.id, { host: host.trim() });
       } else if (choice.value === 'port') {
         const portStr = await vscode.window.showInputBox({
-          prompt: 'Enter SSH port',
+          prompt: PROMPTS.editPort,
           value: config.port.toString(),
-          placeHolder: 'Default: 22',
+          placeHolder: PLACEHOLDERS.port,
           validateInput: (value) => {
             if (!value || !value.trim()) {
-              return 'Port is required';
+              return MESSAGES.portRequired;
             }
             const port = parseInt(value);
-            if (isNaN(port) || port < 1 || port > 65535) {
-              return 'Port must be between 1 and 65535';
+            if (isNaN(port) || port < LIMITS.MIN_PORT || port > LIMITS.MAX_PORT) {
+              return MESSAGES.portInvalid;
             }
             return undefined;
           },
@@ -400,8 +400,8 @@ export class CommandHandler {
         await this.hostManager.updateHost(config.id, { port: parseInt(portStr) });
       } else if (choice.value === 'remotePath') {
         const defaultRemotePath = await vscode.window.showInputBox({
-          prompt: 'Set default remote path (optional)',
-          value: config.defaultRemotePath || '/root',
+          prompt: PROMPTS.editRemotePath,
+          value: config.defaultRemotePath || DEFAULTS.REMOTE_PATH,
         });
         if (defaultRemotePath === undefined) {return;}
 
@@ -413,14 +413,14 @@ export class CommandHandler {
 
         const groupChoice = await vscode.window.showQuickPick(
           [
-            { label: 'No Group', value: undefined },
+            { label: LABELS.noGroup, value: undefined },
             ...groups.map(g => ({
               label: g.name,
               value: g.id,
-              description: config.group === g.id ? '(Current)' : undefined,
+              description: config.group === g.id ? LABELS.current : undefined,
             })),
           ],
-          { placeHolder: 'Select group' }
+          { placeHolder: PROMPTS.selectGroup }
         );
         if (groupChoice === undefined) {return;}
 
@@ -430,14 +430,14 @@ export class CommandHandler {
       } else if (choice.value === 'color') {
         const colorChoice = await vscode.window.showQuickPick(
           [
-            { label: 'No Color', value: undefined, description: 'Use default color' },
-            { label: 'Red', value: 'red', description: '🔴' },
-            { label: 'Green', value: 'green', description: '🟢' },
-            { label: 'Blue', value: 'blue', description: '🔵' },
-            { label: 'Yellow', value: 'yellow', description: '🟡' },
-            { label: 'Purple', value: 'purple', description: '🟣' },
+            { label: LABELS.noColor, value: undefined, description: LABELS.useDefaultColor },
+            { label: LABELS.red, value: 'red', description: '🔴' },
+            { label: LABELS.green, value: 'green', description: '🟢' },
+            { label: LABELS.blue, value: 'blue', description: '🔵' },
+            { label: LABELS.yellow, value: 'yellow', description: '🟡' },
+            { label: LABELS.purple, value: 'purple', description: '🟣' },
           ],
-          { placeHolder: 'Select color' }
+          { placeHolder: PROMPTS.selectColor }
         );
         if (colorChoice === undefined) {return;}
 
@@ -448,16 +448,16 @@ export class CommandHandler {
         // Configure authentication
         const success = await this.configureAuthForHost(config.id);
         if (success) {
-          vscode.window.showInformationMessage('Authentication updated successfully');
+          vscode.window.showInformationMessage(MESSAGES.authUpdated);
         }
         this.treeProvider.refresh();
         return; // Early return after auth config
       }
 
       this.treeProvider.refresh();
-      vscode.window.showInformationMessage('Host updated successfully');
+      vscode.window.showInformationMessage(MESSAGES.hostUpdated);
     } catch (error) {
-      vscode.window.showErrorMessage(`Update failed: ${error}`);
+      vscode.window.showErrorMessage(MESSAGES.updateFailed(error));
     }
   }
 
