@@ -16,6 +16,12 @@
   - Only network operations (upload/download/connection test) show success notifications
   - Cleaner user experience with fewer interruptions
 
+- **Enhanced Authentication Prompts**: Important authentication configuration prompts now use modal dialogs
+  - Upload/download/sync/test connection without authentication now show centered modal dialogs
+  - Prevents users from missing critical authentication setup steps
+  - Ensures users must make a clear decision before continuing
+  - Improves first-time user experience and reduces configuration errors
+
 ## [0.9.7] - 2026-01-12
 
 ### Added
