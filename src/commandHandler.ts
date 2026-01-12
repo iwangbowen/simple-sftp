@@ -530,14 +530,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       }
 
       this.treeProvider.refresh();
-
-      if (itemsToDelete.length === 1) {
-        vscode.window.showInformationMessage('Deleted successfully');
-      } else {
-        const message = `Successfully deleted ${itemsToDelete.length} item(s)`;
-        vscode.window.showInformationMessage(message);
-        logger.info(message);
-      }
     } catch (error) {
       vscode.window.showErrorMessage(`Delete failed: ${error}`);
       logger.error('Delete operation failed', error as Error);
@@ -2368,7 +2360,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
 
     await this.hostManager.removeBookmark(hostId, bookmark.name);
-    vscode.window.showInformationMessage(`Bookmark '${bookmark.name}' deleted`);
     this.treeProvider.refresh();
   }
 
