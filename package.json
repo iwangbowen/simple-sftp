@@ -24,6 +24,12 @@
   "categories": [
     "Other"
   ],
+  "capabilities": {
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "This extension requires access to the local file system for SSH/SCP operations and cannot run in virtual workspaces."
+    }
+  },
   "activationEvents": [
     "onView:simpleScp.hosts"
   ],
