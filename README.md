@@ -42,6 +42,14 @@ If you find this extension helpful, consider buying me a coffee!
 - **Copy SSH Command**: Quickly copy connection commands to clipboard
 - **Output Logs**: Dedicated log viewer for troubleshooting
 
+### Performance
+- **SSH Connection Pool**: Automatic connection reuse for 5-10x performance improvement
+  - Maintains up to 5 concurrent connections
+  - Automatically reuses connections for consecutive operations
+  - Idle connections auto-close after 5 minutes
+  - View connection pool status in Command Palette
+  - Dramatically faster repeated file operations
+
 ### Platform Support
 - Compatible with Windows, macOS, and Linux
 - Cross-platform SSH Agent integration

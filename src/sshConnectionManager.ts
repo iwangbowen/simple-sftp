@@ -123,11 +123,7 @@ export class SshConnectionManager {
     remotePath: string,
     onProgress?: (transferred: number, total: number) => void
   ): Promise<void> {
-    const sftp = new SftpClient();
-    try {
-      const connectConfig = this.buildConnectConfig(config, authConfig);
-      await sftp.connect(connectConfig);
-
+    return this.withConnection(config, authConfig, async (sftp) => {
       // 确保远程目录存在
       const remoteDir = path.dirname(remotePath).replace(/\\/g, '/');
       await sftp.mkdir(remoteDir, true);
@@ -140,9 +136,7 @@ export class SshConnectionManager {
           }
         },
       });
-    } finally {
-      await sftp.end();
-    }
+    });
   }
 
   /**
@@ -155,11 +149,7 @@ export class SshConnectionManager {
     remotePath: string,
     onProgress?: (currentFile: string, progress: number) => void
   ): Promise<void> {
-    const sftp = new SftpClient();
-    try {
-      const connectConfig = this.buildConnectConfig(config, authConfig);
-      await sftp.connect(connectConfig);
-
+    return this.withConnection(config, authConfig, async (sftp) => {
       // 获取所有文件
       const files = this.getAllFiles(localPath);
       const totalFiles = files.length;
@@ -182,9 +172,7 @@ export class SshConnectionManager {
           onProgress(relativePath, progress);
         }
       }
-    } finally {
-      await sftp.end();
-    }
+    });
   }
 
   /**
@@ -197,11 +185,7 @@ export class SshConnectionManager {
     localPath: string,
     onProgress?: (transferred: number, total: number) => void
   ): Promise<void> {
-    const sftp = new SftpClient();
-    try {
-      const connectConfig = this.buildConnectConfig(config, authConfig);
-      await sftp.connect(connectConfig);
-
+    return this.withConnection(config, authConfig, async (sftp) => {
       // 确保本地目录存在
       const localDir = path.dirname(localPath);
       if (!fs.existsSync(localDir)) {
@@ -216,9 +200,7 @@ export class SshConnectionManager {
           }
         },
       });
-    } finally {
-      await sftp.end();
-    }
+    });
   }
 
   /**
@@ -231,11 +213,7 @@ export class SshConnectionManager {
     localPath: string,
     onProgress?: (currentFile: string, progress: number) => void
   ): Promise<void> {
-    const sftp = new SftpClient();
-    try {
-      const connectConfig = this.buildConnectConfig(config, authConfig);
-      await sftp.connect(connectConfig);
-
+    return this.withConnection(config, authConfig, async (sftp) => {
       // 获取所有远程文件
       const files = await this.getAllRemoteFiles(sftp, remotePath);
       const totalFiles = files.length;
@@ -260,9 +238,7 @@ export class SshConnectionManager {
           onProgress(relativePath, progress);
         }
       }
-    } finally {
-      await sftp.end();
-    }
+    });
   }
 
   /**
