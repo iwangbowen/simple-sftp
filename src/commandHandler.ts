@@ -9,6 +9,7 @@ import { SshConnectionManager } from './sshConnectionManager';
 import { HostConfig, HostAuthConfig, FullHostConfig, GroupConfig } from './types';
 import { logger } from './logger';
 import { SshConnectionPool } from './sshConnectionPool';
+import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/formatUtils';
 
 export class CommandHandler {
   private downloadStatusBar: vscode.StatusBarItem;
@@ -1167,7 +1168,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               ...sortedItems.map(item => {
                 const fullPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
                 const isDirectory = item.type === 'directory';
-                const fileSize = item.type === 'file' ? this.formatFileSize(item.size) : '';
+                const fileSize = item.type === 'file' ? formatFileSize(item.size) : '';
 
                 // Determine which buttons to show based on mode
                 const itemButtons = mode === 'sync' ? [
@@ -1773,19 +1774,19 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               this.downloadStatusBar.text = `$(sync~spin) ${percentage}%`;
 
               if (speed > 0 && Number.isFinite(speed)) {
-                const formattedSpeed = this.formatSpeed(speed);
+                const formattedSpeed = formatSpeed(speed);
 
                 // Calculate remaining time
                 const remaining = total - transferred;
                 const remainingTime = remaining / speed;
-                const formattedTime = this.formatRemainingTime(remainingTime);
+                const formattedTime = formatRemainingTime(remainingTime);
 
                 // Update status bar
                 this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
-                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
+                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
               } else {
                 // No speed info available, just show basic tooltip
-                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})`;
+                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
               }
 
               lastTransferred = transferred;
@@ -2038,20 +2039,20 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               this.downloadStatusBar.text = `$(cloud-download) ${percentage}%`;
 
               if (speed > 0 && Number.isFinite(speed)) {
-                const formattedSpeed = this.formatSpeed(speed);
+                const formattedSpeed = formatSpeed(speed);
 
                 // Calculate remaining time
                 const remaining = total - transferred;
                 const remainingTime = remaining / speed;
-                const formattedTime = this.formatRemainingTime(remainingTime);
+                const formattedTime = formatRemainingTime(remainingTime);
 
                 // Update status bar with speed
                 this.downloadStatusBar.text = `$(cloud-download) ${percentage}% - ${formattedSpeed}`;
                 // Detailed info in tooltip with file size (only update every 5 seconds to avoid flickering)
-                this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})\nSpeed: ${formattedSpeed}\nRemaining: ${formattedTime}`;
+                this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nRemaining: ${formattedTime}`;
               } else {
                 // No speed info available, just show basic tooltip
-                this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})`;
+                this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
               }
 
               lastTransferred = transferred;
@@ -2267,19 +2268,19 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               this.downloadStatusBar.text = `$(sync~spin) ${percentage}%`;
 
               if (speed > 0 && Number.isFinite(speed)) {
-                const formattedSpeed = this.formatSpeed(speed);
+                const formattedSpeed = formatSpeed(speed);
 
                 // Calculate remaining time
                 const remaining = total - transferred;
                 const remainingTime = remaining / speed;
-                const formattedTime = this.formatRemainingTime(remainingTime);
+                const formattedTime = formatRemainingTime(remainingTime);
 
                 // Update status bar
                 this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
-                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
+                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
               } else {
                 // No speed info available, just show basic tooltip
-                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})`;
+                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
               }
 
               lastTransferred = transferred;
@@ -2489,57 +2490,5 @@ Idle connections will be automatically closed after 5 minutes of inactivity.`;
       'browseFiles',
       `Browse: ${bookmark.name}`
     );
-  }
-
-  /**
-   * Format file size in human-readable format (auto-select unit)
-   */
-  private formatFileSize(bytes: number): string {
-    if (bytes === 0) {return '0 B';}
-
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const k = 1024;
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    const unitIndex = Math.min(i, units.length - 1);
-
-    return `${(bytes / Math.pow(k, unitIndex)).toFixed(2)} ${units[unitIndex]}`;
-  }
-
-  /**
-   * Format transfer speed based on configuration
-   */
-  private formatSpeed(bytesPerSecond: number): string {
-    const config = vscode.workspace.getConfiguration('simpleScp');
-    const speedUnit = config.get<string>('speedUnit', 'auto');
-
-    if (speedUnit === 'KB') {
-      return `${(bytesPerSecond / 1024).toFixed(2)} KB/s`;
-    } else if (speedUnit === 'MB') {
-      return `${(bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`;
-    } else {
-      // auto mode
-      if (bytesPerSecond >= 1024 * 1024) {
-        return `${(bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`;
-      } else {
-        return `${(bytesPerSecond / 1024).toFixed(2)} KB/s`;
-      }
-    }
-  }
-
-  /**
-   * Format remaining time
-   */
-  private formatRemainingTime(seconds: number): string {
-    if (seconds < 60) {
-      return `${Math.round(seconds)}s`;
-    } else if (seconds < 3600) {
-      const minutes = Math.floor(seconds / 60);
-      const secs = Math.round(seconds % 60);
-      return `${minutes}m ${secs}s`;
-    } else {
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      return `${hours}h ${minutes}m`;
-    }
   }
 }
