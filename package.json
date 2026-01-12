@@ -299,11 +299,6 @@
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.testConnection",
-          "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "inline@3"
-        },
-        {
           "command": "simpleScp.downloadFile",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "1_download@1"
@@ -314,19 +309,24 @@
           "group": "2_actions@1"
         },
         {
-          "command": "simpleScp.configureAuth",
+          "command": "simpleScp.testConnection",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "2_actions@2"
         },
         {
-          "command": "simpleScp.setupPasswordlessLogin",
+          "command": "simpleScp.configureAuth",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "2_actions@3"
         },
         {
-          "command": "simpleScp.moveHostToGroup",
+          "command": "simpleScp.setupPasswordlessLogin",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "2_actions@4"
+        },
+        {
+          "command": "simpleScp.moveHostToGroup",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_actions@5"
         },
         {
           "command": "simpleScp.addBookmark",
