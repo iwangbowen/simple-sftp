@@ -62,3 +62,19 @@ export function formatRemainingTime(seconds: number): string {
     return `${hours}h ${minutes}m`;
   }
 }
+
+/**
+ * Format bytes - alias for formatFileSize
+ */
+export function formatBytes(bytes: number): string {
+  return formatFileSize(bytes);
+}
+
+/**
+ * Format duration in milliseconds to human-readable format
+ * @param ms - Duration in milliseconds
+ * @returns Formatted string like "5m 30s", "2h 15m", or "45s"
+ */
+export function formatDuration(ms: number): string {
+  return formatRemainingTime(ms / 1000);
+}

@@ -3,6 +3,10 @@ import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
 import { HostTreeProvider } from './hostTreeProvider';
 import { CommandHandler } from './commandHandler';
+import { TransferQueueService } from './services/transferQueueService';
+import { TransferHistoryService } from './services/transferHistoryService';
+import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
+import { TransferQueueCommands } from './integrations/transferQueueCommands';
 import { logger } from './logger';
 
 /**
@@ -19,6 +23,23 @@ export async function activate(context: vscode.ExtensionContext) {
   const authManager = new AuthManager(context);
   logger.info('Auth manager initialized (local storage, not synced)');
 
+  // Initialize transfer queue services
+  const transferQueueService = TransferQueueService.getInstance();
+  transferQueueService.initialize(hostManager, authManager); // Initialize with managers
+  const transferHistoryService = TransferHistoryService.initialize(context);
+  logger.info('Transfer queue services initialized with host and auth managers');
+
+  // Apply transfer queue configuration
+  const transferConfig = vscode.workspace.getConfiguration('simpleScp.transferQueue');
+  transferQueueService.setMaxConcurrent(transferConfig.get('maxConcurrent', 2));
+  transferQueueService.setRetryPolicy({
+    enabled: transferConfig.get('autoRetry', true),
+    maxRetries: transferConfig.get('maxRetries', 3),
+    retryDelay: transferConfig.get('retryDelay', 2000),
+    backoffMultiplier: 2
+  });
+  logger.info('Transfer queue configuration applied');
+
   // Create TreeView provider
   const treeProvider = new HostTreeProvider(hostManager, authManager, context.extensionPath);
   const treeView = vscode.window.createTreeView('simpleScp.hosts', {
@@ -29,9 +50,137 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(treeView);
 
-  // Register command handler
-  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider);
+  // Create transfer queue TreeView provider
+  const transferQueueTreeProvider = new TransferQueueTreeProvider();
+  transferQueueTreeProvider.setHistoryService(transferHistoryService);
+  const transferQueueView = vscode.window.createTreeView('simpleScp.transferQueue', {
+    treeDataProvider: transferQueueTreeProvider,
+    showCollapseAll: true
+  });
+  context.subscriptions.push(transferQueueView);
+  logger.info('Transfer queue tree view registered');
+
+  // Register command handler with transfer queue service
+  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider, transferQueueService);
   commandHandler.registerCommands(context);
+
+  // Register transfer queue commands
+  const transferQueueCommands = new TransferQueueCommands();
+
+  context.subscriptions.push(
+    // Queue control commands
+    vscode.commands.registerCommand('simpleScp.pauseQueue', () =>
+      transferQueueCommands.pauseQueue()
+    ),
+    vscode.commands.registerCommand('simpleScp.resumeQueue', () =>
+      transferQueueCommands.resumeQueue()
+    ),
+
+    // Task control commands
+    vscode.commands.registerCommand('simpleScp.pauseTask', (task) =>
+      transferQueueCommands.pauseTask(task)
+    ),
+    vscode.commands.registerCommand('simpleScp.resumeTask', (task) =>
+      transferQueueCommands.resumeTask(task)
+    ),
+    vscode.commands.registerCommand('simpleScp.cancelTask', (task) =>
+      transferQueueCommands.cancelTask(task)
+    ),
+    vscode.commands.registerCommand('simpleScp.retryTask', (task) =>
+      transferQueueCommands.retryTask(task)
+    ),
+    vscode.commands.registerCommand('simpleScp.removeTask', (task) =>
+      transferQueueCommands.removeTask(task)
+    ),
+
+    // Queue management commands
+    vscode.commands.registerCommand('simpleScp.clearCompleted', () =>
+      transferQueueCommands.clearCompleted()
+    ),
+    vscode.commands.registerCommand('simpleScp.clearAll', () =>
+      transferQueueCommands.clearAll()
+    ),
+
+    // Info commands
+    vscode.commands.registerCommand('simpleScp.showTaskDetails', (task) =>
+      transferQueueCommands.showTaskDetails(task)
+    ),
+    vscode.commands.registerCommand('simpleScp.showQueueStats', () =>
+      transferQueueCommands.showQueueStats()
+    ),
+
+    // History commands
+    vscode.commands.registerCommand('simpleScp.viewTransferHistory', () =>
+      transferQueueCommands.viewHistory()
+    ),
+    vscode.commands.registerCommand('simpleScp.clearHistory', () =>
+      transferQueueCommands.clearHistory()
+    )
+  );
+  logger.info('Transfer queue commands registered');
+
+  // Listen to configuration changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('simpleScp.transferQueue')) {
+        const config = vscode.workspace.getConfiguration('simpleScp.transferQueue');
+
+        if (e.affectsConfiguration('simpleScp.transferQueue.maxConcurrent')) {
+          transferQueueService.setMaxConcurrent(config.get('maxConcurrent', 2));
+          logger.info('Transfer queue max concurrent updated');
+        }
+
+        if (e.affectsConfiguration('simpleScp.transferQueue.autoRetry') ||
+            e.affectsConfiguration('simpleScp.transferQueue.maxRetries') ||
+            e.affectsConfiguration('simpleScp.transferQueue.retryDelay')) {
+          transferQueueService.setRetryPolicy({
+            enabled: config.get('autoRetry', true),
+            maxRetries: config.get('maxRetries', 3),
+            retryDelay: config.get('retryDelay', 2000),
+            backoffMultiplier: 2
+          });
+          logger.info('Transfer queue retry policy updated');
+        }
+      }
+    })
+  );
+
+  // Listen to task updates for notifications
+  transferQueueService.onTaskUpdated(task => {
+    const config = vscode.workspace.getConfiguration('simpleScp.transferQueue');
+    const showNotifications = config.get('showNotifications', true);
+
+    if (showNotifications) {
+      if (task.status === 'completed') {
+        vscode.window.showInformationMessage(
+          `Transfer completed: ${task.fileName}`,
+          'View Details'
+        ).then(action => {
+          if (action === 'View Details') {
+            transferQueueCommands.showTaskDetails(task);
+          }
+        });
+
+        // Add to history
+        transferHistoryService.addToHistory(task);
+      } else if (task.status === 'failed') {
+        vscode.window.showErrorMessage(
+          `Transfer failed: ${task.fileName}`,
+          'Retry', 'View Details'
+        ).then(action => {
+          if (action === 'Retry') {
+            transferQueueCommands.retryTask(task);
+          } else if (action === 'View Details') {
+            transferQueueCommands.showTaskDetails(task);
+          }
+        });
+
+        // Add to history
+        transferHistoryService.addToHistory(task);
+      }
+    }
+  });
+  logger.info('Transfer queue event listeners registered');
 
   logger.info('=== Extension Ready ===');
 }
@@ -40,5 +189,16 @@ export async function activate(context: vscode.ExtensionContext) {
  * Called when extension is deactivated
  */
 export function deactivate() {
+  logger.info('Extension deactivating...');
+
+  // Clean up transfer queue service
+  try {
+    const transferQueueService = TransferQueueService.getInstance();
+    transferQueueService.dispose();
+    logger.info('Transfer queue service disposed');
+  } catch (error) {
+    logger.error(`Error disposing transfer queue service: ${error}`);
+  }
+
   logger.info('Extension deactivated');
 }

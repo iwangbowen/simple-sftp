@@ -49,6 +49,11 @@
         {
           "id": "simpleScp.hosts",
           "name": "Hosts"
+        },
+        {
+          "id": "simpleScp.transferQueue",
+          "name": "Transfer Queue",
+          "icon": "$(cloud-upload)"
         }
       ]
     },
@@ -207,6 +212,84 @@
         "title": "Toggle Star",
         "category": "Simple SCP",
         "icon": "$(star)"
+      },
+      {
+        "command": "simpleScp.pauseQueue",
+        "title": "Pause Transfer Queue",
+        "category": "Simple SCP",
+        "icon": "$(debug-pause)"
+      },
+      {
+        "command": "simpleScp.resumeQueue",
+        "title": "Resume Transfer Queue",
+        "category": "Simple SCP",
+        "icon": "$(debug-continue)"
+      },
+      {
+        "command": "simpleScp.pauseTask",
+        "title": "Pause Transfer Task",
+        "category": "Simple SCP",
+        "icon": "$(debug-pause)"
+      },
+      {
+        "command": "simpleScp.resumeTask",
+        "title": "Resume Transfer Task",
+        "category": "Simple SCP",
+        "icon": "$(debug-continue)"
+      },
+      {
+        "command": "simpleScp.cancelTask",
+        "title": "Cancel Transfer Task",
+        "category": "Simple SCP",
+        "icon": "$(close)"
+      },
+      {
+        "command": "simpleScp.retryTask",
+        "title": "Retry Failed Task",
+        "category": "Simple SCP",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "simpleScp.removeTask",
+        "title": "Remove Task from Queue",
+        "category": "Simple SCP",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "simpleScp.clearCompleted",
+        "title": "Clear Completed Tasks",
+        "category": "Simple SCP",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "simpleScp.clearAll",
+        "title": "Clear All Tasks",
+        "category": "Simple SCP",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "simpleScp.showTaskDetails",
+        "title": "Show Task Details",
+        "category": "Simple SCP",
+        "icon": "$(info)"
+      },
+      {
+        "command": "simpleScp.showQueueStats",
+        "title": "Show Queue Statistics",
+        "category": "Simple SCP",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "simpleScp.viewTransferHistory",
+        "title": "View Transfer History",
+        "category": "Simple SCP",
+        "icon": "$(history)"
+      },
+      {
+        "command": "simpleScp.clearHistory",
+        "title": "Clear Transfer History",
+        "category": "Simple SCP",
+        "icon": "$(clear-all)"
       }
     ],
     "menus": {
@@ -326,6 +409,36 @@
           "command": "simpleScp.importFromSshConfig",
           "when": "view == simpleScp.hosts",
           "group": "1_import@1"
+        },
+        {
+          "command": "simpleScp.pauseQueue",
+          "when": "view == simpleScp.transferQueue",
+          "group": "navigation@1"
+        },
+        {
+          "command": "simpleScp.resumeQueue",
+          "when": "view == simpleScp.transferQueue",
+          "group": "navigation@2"
+        },
+        {
+          "command": "simpleScp.clearCompleted",
+          "when": "view == simpleScp.transferQueue",
+          "group": "1_queue@1"
+        },
+        {
+          "command": "simpleScp.clearAll",
+          "when": "view == simpleScp.transferQueue",
+          "group": "1_queue@2"
+        },
+        {
+          "command": "simpleScp.showQueueStats",
+          "when": "view == simpleScp.transferQueue",
+          "group": "2_stats@1"
+        },
+        {
+          "command": "simpleScp.viewTransferHistory",
+          "when": "view == simpleScp.transferQueue",
+          "group": "2_stats@2"
         }
       ],
       "view/item/context": [
@@ -413,6 +526,36 @@
           "command": "simpleScp.deleteHost",
           "when": "view == simpleScp.hosts && viewItem == group",
           "group": "2_danger@1"
+        },
+        {
+          "command": "simpleScp.pauseTask",
+          "when": "view == simpleScp.transferQueue && viewItem =~ /status-running/",
+          "group": "inline@1"
+        },
+        {
+          "command": "simpleScp.resumeTask",
+          "when": "view == simpleScp.transferQueue && viewItem =~ /status-paused/",
+          "group": "inline@1"
+        },
+        {
+          "command": "simpleScp.cancelTask",
+          "when": "view == simpleScp.transferQueue && viewItem =~ /(status-running|status-pending|status-paused)/",
+          "group": "inline@2"
+        },
+        {
+          "command": "simpleScp.retryTask",
+          "when": "view == simpleScp.transferQueue && viewItem =~ /status-failed/",
+          "group": "1_control@1"
+        },
+        {
+          "command": "simpleScp.showTaskDetails",
+          "when": "view == simpleScp.transferQueue",
+          "group": "2_info@1"
+        },
+        {
+          "command": "simpleScp.removeTask",
+          "when": "view == simpleScp.transferQueue",
+          "group": "9_danger@1"
         }
       ],
       "explorer/context": [
@@ -449,6 +592,44 @@
           "enum": ["auto", "KB", "MB"],
           "default": "auto",
           "description": "Download speed display unit. 'auto' will automatically choose between KB/s and MB/s based on speed"
+        },
+        "simpleScp.transferQueue.maxConcurrent": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum number of concurrent file transfers"
+        },
+        "simpleScp.transferQueue.autoRetry": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically retry failed transfers"
+        },
+        "simpleScp.transferQueue.maxRetries": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Maximum number of retry attempts for failed transfers"
+        },
+        "simpleScp.transferQueue.retryDelay": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 1000,
+          "maximum": 60000,
+          "description": "Delay between retry attempts (in milliseconds)"
+        },
+        "simpleScp.transferQueue.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for transfer completion"
+        },
+        "simpleScp.transferQueue.historySize": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximum number of transfer history records to keep"
         }
       }
     }

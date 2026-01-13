@@ -12,6 +12,7 @@ import { SshConnectionPool } from './sshConnectionPool';
 import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/formatUtils';
 import { BookmarkService } from './services/bookmarkService';
 import { RemoteBrowserService } from './services/remoteBrowserService';
+import { TransferQueueService } from './services/transferQueueService';
 import { DEFAULTS, LIMITS, TIMING, PROMPTS, PLACEHOLDERS, MESSAGES, INSTRUCTIONS, TOOLTIPS, LABELS } from './constants';
 
 export class CommandHandler {
@@ -22,7 +23,8 @@ export class CommandHandler {
   constructor(
     private hostManager: HostManager,
     private authManager: AuthManager,
-    private treeProvider: HostTreeProvider
+    private treeProvider: HostTreeProvider,
+    private transferQueueService?: TransferQueueService
   ) {
     // Create status bar item for download progress
     this.downloadStatusBar = vscode.window.createStatusBarItem(
@@ -948,6 +950,37 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
   }
 
+  /**
+   * Ask user whether to transfer immediately or add to queue
+   * @returns 'now' | 'queue' | undefined (cancelled)
+   */
+  private async askTransferMode(): Promise<'now' | 'queue' | undefined> {
+    // Check if queue service is available
+    if (!this.transferQueueService) {
+      return 'now'; // Fallback to immediate transfer if queue not available
+    }
+
+    const choice = await vscode.window.showQuickPick(
+      [
+        {
+          label: '$(zap) Transfer Now',
+          description: 'Start transfer immediately',
+          mode: 'now' as const
+        },
+        {
+          label: '$(list-ordered) Add to Queue',
+          description: 'Add to transfer queue for later processing',
+          mode: 'queue' as const
+        }
+      ],
+      {
+        placeHolder: 'How would you like to transfer?'
+      }
+    );
+
+    return choice?.mode;
+  }
+
   private async uploadFile(uri: vscode.Uri): Promise<void> {
     const localPath = uri.fsPath;
     const stat = fs.statSync(localPath);
@@ -1060,6 +1093,37 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     const fileName = path.basename(localPath);
     const finalRemotePath = `${remotePath}/${fileName}`.replace(/\\/g, '/');
 
+    // Ask user whether to transfer now or add to queue
+    const transferMode = await this.askTransferMode();
+    if (!transferMode) {
+      return; // User cancelled
+    }
+
+    if (transferMode === 'queue' && this.transferQueueService) {
+      // Add to queue
+      const fileSize = stat.size;
+      await this.transferQueueService.addTask({
+        hostId: config.id,
+        hostName: config.name,
+        type: 'upload',
+        localPath: localPath,
+        remotePath: finalRemotePath,
+        fileSize: fileSize,
+        isDirectory: stat.isDirectory()
+      });
+
+      vscode.window.showInformationMessage(
+        `Upload task added to queue: ${fileName}`
+      );
+
+      // Record this host as recently used
+      await this.hostManager.recordRecentUsed(config.id);
+      await this.hostManager.recordRecentPath(config.id, remotePath);
+
+      return;
+    }
+
+    // Transfer immediately
     logger.info(
       `Starting upload: ${localPath} → ${config.username}@${config.host}:${finalRemotePath}`
     );
@@ -1943,6 +2007,37 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     const remoteFileName = path.basename(remotePath.path);
     const localPath = path.join(targetDir, remoteFileName);
 
+    // Ask user whether to transfer now or add to queue
+    const transferMode = await this.askTransferMode();
+    if (!transferMode) {
+      return; // User cancelled
+    }
+
+    if (transferMode === 'queue' && this.transferQueueService) {
+      // Add to queue
+      await this.transferQueueService.addTask({
+        hostId: config.id,
+        hostName: config.name,
+        type: 'download',
+        localPath: localPath,
+        remotePath: remotePath.path,
+        fileSize: 0, // Will be determined during transfer
+        isDirectory: remotePath.isDirectory
+      });
+
+      vscode.window.showInformationMessage(
+        `Download task added to queue: ${remoteFileName}`
+      );
+
+      // Record this host as recently used
+      await this.hostManager.recordRecentUsed(config.id);
+      const remoteDir = path.dirname(remotePath.path).replace(/\\/g, '/');
+      await this.hostManager.recordRecentPath(config.id, remoteDir);
+
+      return;
+    }
+
+    // Download immediately
     logger.info(
       `Starting download: ${config.username}@${config.host}:${remotePath.path} → ${localPath}`
     );

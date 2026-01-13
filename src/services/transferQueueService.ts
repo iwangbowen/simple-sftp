@@ -1,0 +1,515 @@
+import * as vscode from 'vscode';
+import * as fs from 'fs';
+import { TransferTaskModel } from '../models/transferTask';
+import {
+  TransferTask,
+  TaskStatus,
+  CreateTransferTaskOptions,
+  TransferStats,
+  QueueStatus,
+  RetryPolicy
+} from '../types/transfer.types';import { HostConfig } from '../types';import { logger } from '../logger';
+import { EventEmitter } from 'events';
+import { SshConnectionManager } from '../sshConnectionManager';
+import { HostManager } from '../hostManager';
+import { AuthManager } from '../authManager';
+/**
+ * Transfer Queue Service
+ * Manages file transfer queue with concurrency control
+ */
+export class TransferQueueService extends EventEmitter {
+  private static instance: TransferQueueService;
+
+  private queue: TransferTaskModel[] = [];
+  private runningTasks: Set<string> = new Set();
+  private maxConcurrent: number = 2; // Maximum concurrent transfers
+  private isPaused: boolean = false;
+
+  // Managers for host/auth configuration
+  private hostManager?: HostManager;
+  private authManager?: AuthManager;
+
+  // Event emitter for UI updates
+  private _onQueueChanged = new vscode.EventEmitter<void>();
+  readonly onQueueChanged = this._onQueueChanged.event;
+
+  private _onTaskUpdated = new vscode.EventEmitter<TransferTaskModel>();
+  readonly onTaskUpdated = this._onTaskUpdated.event;
+
+  private retryPolicy: RetryPolicy = {
+    enabled: true,
+    maxRetries: 3,
+    retryDelay: 2000,
+    backoffMultiplier: 2
+  };
+
+  private constructor() {
+    super();
+  }
+
+  /**
+   * Get singleton instance
+   */
+  static getInstance(): TransferQueueService {
+    if (!TransferQueueService.instance) {
+      TransferQueueService.instance = new TransferQueueService();
+    }
+    return TransferQueueService.instance;
+  }
+
+  /**
+   * Initialize with managers
+   */
+  initialize(hostManager: HostManager, authManager: AuthManager): void {
+    this.hostManager = hostManager;
+    this.authManager = authManager;
+    logger.info('TransferQueueService initialized with host and auth managers');
+  }
+
+  /**
+   * Add task to queue
+   */
+  addTask(options: CreateTransferTaskOptions): TransferTaskModel {
+    const task = new TransferTaskModel(options);
+    this.queue.push(task);
+
+    logger.info(`Task added to queue: ${task.fileName} (${task.type})`);
+    this._onQueueChanged.fire();
+
+    // Start processing queue
+    this.processQueue();
+
+    return task;
+  }
+
+  /**
+   * Add multiple tasks to queue
+   */
+  addTasks(optionsList: CreateTransferTaskOptions[]): TransferTaskModel[] {
+    const tasks = optionsList.map(options => new TransferTaskModel(options));
+    this.queue.push(...tasks);
+
+    logger.info(`${tasks.length} tasks added to queue`);
+    this._onQueueChanged.fire();
+
+    // Start processing queue
+    this.processQueue();
+
+    return tasks;
+  }
+
+  /**
+   * Process queue - start pending tasks up to concurrency limit
+   */
+  private async processQueue(): Promise<void> {
+    if (this.isPaused) {
+      logger.debug('Queue is paused, skipping processing');
+      return;
+    }
+
+    // Find pending tasks
+    const pendingTasks = this.queue.filter(t => t.status === 'pending');
+
+    // Start tasks up to concurrency limit
+    for (const task of pendingTasks) {
+      if (this.runningTasks.size >= this.maxConcurrent) {
+        break;
+      }
+
+      if (!this.runningTasks.has(task.id)) {
+        this.executeTask(task);
+      }
+    }
+  }
+
+  /**
+   * Execute a single task
+   */
+  private async executeTask(task: TransferTaskModel): Promise<void> {
+    try {
+      this.runningTasks.add(task.id);
+      task.start();
+      this._onTaskUpdated.fire(task);
+
+      // TODO: Implement actual file transfer logic
+      // This is a placeholder that will be replaced with real SCP/SFTP transfer
+      await this.performTransfer(task);
+
+      task.complete();
+      this._onTaskUpdated.fire(task);
+
+    } catch (error: any) {
+      logger.error(`Task ${task.id} failed: ${error.message}`);
+
+      // Check if we should retry
+      if (this.retryPolicy.enabled && task.canRetry()) {
+        task.fail(error.message);
+
+        // Schedule retry with exponential backoff
+        const retryDelay = this.retryPolicy.retryDelay *
+          Math.pow(this.retryPolicy.backoffMultiplier || 1, task.retryCount - 1);
+
+        logger.info(`Retrying task ${task.id} in ${retryDelay}ms (attempt ${task.retryCount}/${task.maxRetries})`);
+
+        setTimeout(() => {
+          if (task.incrementRetry()) {
+            this._onTaskUpdated.fire(task);
+            this.processQueue();
+          }
+        }, retryDelay);
+
+      } else {
+        task.fail(error.message);
+        this._onTaskUpdated.fire(task);
+      }
+
+    } finally {
+      this.runningTasks.delete(task.id);
+      this._onQueueChanged.fire();
+
+      // Process next task in queue
+      this.processQueue();
+    }
+  }
+
+  /**
+   * Perform actual file transfer (placeholder)
+   * TODO: Integrate with existing SSH/SCP implementation
+   */
+  private async performTransfer(task: TransferTaskModel): Promise<void> {
+    if (!this.hostManager || !this.authManager) {
+      throw new Error('TransferQueueService not initialized with managers');
+    }
+
+    // Get host configuration
+    const allHosts = await this.hostManager.getHosts();
+    const host = allHosts.find((h: HostConfig) => h.id === task.hostId);
+
+    if (!host) {
+      throw new Error(`Host not found: ${task.hostId}`);
+    }
+
+    // Get auth configuration
+    const authConfig = await this.authManager.getAuth(task.hostId);
+
+    if (!authConfig) {
+      throw new Error(`Auth configuration not found for host: ${task.hostId}`);
+    }
+
+    // Check file size if not set
+    if (task.fileSize === 0 && fs.existsSync(task.localPath)) {
+      const stats = fs.statSync(task.localPath);
+      task.fileSize = stats.size;
+      task.isDirectory = stats.isDirectory();
+    }
+
+    // Perform the transfer
+    if (task.type === 'upload') {
+      if (task.isDirectory) {
+        await SshConnectionManager.uploadDirectory(
+          host,
+          authConfig,
+          task.localPath,
+          task.remotePath,
+          (currentFile: string, percentage: number) => {
+            // Update progress based on file count
+            task.updateProgress(task.fileSize * percentage / 100, task.fileSize);
+            this._onTaskUpdated.fire(task);
+
+            // Check for cancellation
+            if (task.abortController?.signal.aborted) {
+              throw new Error('Transfer cancelled');
+            }
+          }
+        );
+      } else {
+        await SshConnectionManager.uploadFile(
+          host,
+          authConfig,
+          task.localPath,
+          task.remotePath,
+          (transferred: number, total: number) => {
+            task.updateProgress(transferred, total);
+            this._onTaskUpdated.fire(task);
+
+            // Check for cancellation
+            if (task.abortController?.signal.aborted) {
+              throw new Error('Transfer cancelled');
+            }
+          }
+        );
+      }
+    } else if (task.type === 'download') {
+      // Download
+      if (task.isDirectory) {
+        await SshConnectionManager.downloadDirectory(
+          host,
+          authConfig,
+          task.remotePath,
+          task.localPath,
+          (currentFile: string, percentage: number) => {
+            // Update progress based on file count
+            task.updateProgress(task.fileSize * percentage / 100, task.fileSize);
+            this._onTaskUpdated.fire(task);
+
+            // Check for cancellation
+            if (task.abortController?.signal.aborted) {
+              throw new Error('Transfer cancelled');
+            }
+          }
+        );
+      } else {
+        await SshConnectionManager.downloadFile(
+          host,
+          authConfig,
+          task.remotePath,
+          task.localPath,
+          (transferred: number, total: number) => {
+            task.updateProgress(transferred, total);
+            this._onTaskUpdated.fire(task);
+
+            // Check for cancellation
+            if (task.abortController?.signal.aborted) {
+              throw new Error('Transfer cancelled');
+            }
+          }
+        );
+      }
+    }
+  }
+
+  /**
+   * Get task by ID
+   */
+  getTask(taskId: string): TransferTaskModel | undefined {
+    return this.queue.find(t => t.id === taskId);
+  }
+
+  /**
+   * Get all tasks
+   */
+  getAllTasks(): TransferTaskModel[] {
+    return [...this.queue];
+  }
+
+  /**
+   * Get tasks by status
+   */
+  getTasksByStatus(status: TaskStatus): TransferTaskModel[] {
+    return this.queue.filter(t => t.status === status);
+  }
+
+  /**
+   * Get running tasks
+   */
+  getRunningTasks(): TransferTaskModel[] {
+    return this.queue.filter(t => t.status === 'running');
+  }
+
+  /**
+   * Get pending tasks
+   */
+  getPendingTasks(): TransferTaskModel[] {
+    return this.queue.filter(t => t.status === 'pending');
+  }
+
+  /**
+   * Pause a specific task
+   */
+  pauseTask(taskId: string): void {
+    const task = this.getTask(taskId);
+    if (task) {
+      task.pause();
+      this._onTaskUpdated.fire(task);
+      this._onQueueChanged.fire();
+    }
+  }
+
+  /**
+   * Resume a specific task
+   */
+  resumeTask(taskId: string): void {
+    const task = this.getTask(taskId);
+    if (task) {
+      task.resume();
+      this._onTaskUpdated.fire(task);
+      this.processQueue();
+    }
+  }
+
+  /**
+   * Cancel a specific task
+   */
+  cancelTask(taskId: string): void {
+    const task = this.getTask(taskId);
+    if (task) {
+      task.cancel();
+      this._onTaskUpdated.fire(task);
+      this._onQueueChanged.fire();
+    }
+  }
+
+  /**
+   * Remove a task from queue
+   */
+  removeTask(taskId: string): void {
+    const index = this.queue.findIndex(t => t.id === taskId);
+    if (index !== -1) {
+      const task = this.queue[index];
+
+      // Cancel if running
+      if (task.status === 'running') {
+        task.cancel();
+      }
+
+      this.queue.splice(index, 1);
+      this.runningTasks.delete(taskId);
+
+      logger.info(`Task ${taskId} removed from queue`);
+      this._onQueueChanged.fire();
+    }
+  }
+
+  /**
+   * Pause entire queue
+   */
+  pauseQueue(): void {
+    this.isPaused = true;
+
+    // Pause all running tasks
+    this.getRunningTasks().forEach(task => {
+      task.pause();
+      this._onTaskUpdated.fire(task);
+    });
+
+    logger.info('Queue paused');
+    this._onQueueChanged.fire();
+  }
+
+  /**
+   * Resume entire queue
+   */
+  resumeQueue(): void {
+    this.isPaused = false;
+
+    // Resume paused tasks
+    this.getTasksByStatus('paused').forEach(task => {
+      task.resume();
+      this._onTaskUpdated.fire(task);
+    });
+
+    logger.info('Queue resumed');
+    this.processQueue();
+  }
+
+  /**
+   * Clear completed/failed/cancelled tasks
+   */
+  clearCompleted(): void {
+    const toRemove = this.queue.filter(t =>
+      t.status === 'completed' || t.status === 'failed' || t.status === 'cancelled'
+    );
+
+    toRemove.forEach(task => {
+      const index = this.queue.indexOf(task);
+      if (index !== -1) {
+        this.queue.splice(index, 1);
+      }
+    });
+
+    logger.info(`Cleared ${toRemove.length} completed tasks`);
+    this._onQueueChanged.fire();
+  }
+
+  /**
+   * Clear all tasks
+   */
+  clearAll(): void {
+    // Cancel running tasks
+    this.getRunningTasks().forEach(task => task.cancel());
+
+    this.queue = [];
+    this.runningTasks.clear();
+
+    logger.info('Queue cleared');
+    this._onQueueChanged.fire();
+  }
+
+  /**
+   * Get queue statistics
+   */
+  getStats(): TransferStats {
+    const tasks = this.queue;
+
+    const stats: TransferStats = {
+      total: tasks.length,
+      pending: 0,
+      running: 0,
+      paused: 0,
+      completed: 0,
+      failed: 0,
+      cancelled: 0,
+      totalBytes: 0,
+      transferredBytes: 0,
+      averageSpeed: 0
+    };
+
+    let totalSpeed = 0;
+    let speedCount = 0;
+
+    tasks.forEach(task => {
+      stats[task.status]++;
+      stats.totalBytes += task.fileSize;
+      stats.transferredBytes += task.transferred;
+
+      if (task.status === 'running' && task.speed > 0) {
+        totalSpeed += task.speed;
+        speedCount++;
+      }
+    });
+
+    if (speedCount > 0) {
+      stats.averageSpeed = totalSpeed / speedCount;
+    }
+
+    return stats;
+  }
+
+  /**
+   * Get queue status
+   */
+  getQueueStatus(): QueueStatus {
+    return {
+      isPaused: this.isPaused,
+      maxConcurrent: this.maxConcurrent,
+      runningCount: this.runningTasks.size,
+      stats: this.getStats()
+    };
+  }
+
+  /**
+   * Set maximum concurrent transfers
+   */
+  setMaxConcurrent(max: number): void {
+    this.maxConcurrent = Math.max(1, max);
+    logger.info(`Max concurrent transfers set to ${this.maxConcurrent}`);
+    this.processQueue();
+  }
+
+  /**
+   * Set retry policy
+   */
+  setRetryPolicy(policy: Partial<RetryPolicy>): void {
+    this.retryPolicy = { ...this.retryPolicy, ...policy };
+    logger.info('Retry policy updated');
+  }
+
+  /**
+   * Dispose resources
+   */
+  dispose(): void {
+    this.clearAll();
+    this._onQueueChanged.dispose();
+    this._onTaskUpdated.dispose();
+  }
+}
