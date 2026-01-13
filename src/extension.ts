@@ -78,20 +78,20 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
 
     // Task control commands
-    vscode.commands.registerCommand('simpleScp.pauseTask', (task) =>
-      transferQueueCommands.pauseTask(task)
+    vscode.commands.registerCommand('simpleScp.pauseTask', (treeItem) =>
+      transferQueueCommands.pauseTask(treeItem?.task)
     ),
-    vscode.commands.registerCommand('simpleScp.resumeTask', (task) =>
-      transferQueueCommands.resumeTask(task)
+    vscode.commands.registerCommand('simpleScp.resumeTask', (treeItem) =>
+      transferQueueCommands.resumeTask(treeItem?.task)
     ),
-    vscode.commands.registerCommand('simpleScp.cancelTask', (task) =>
-      transferQueueCommands.cancelTask(task)
+    vscode.commands.registerCommand('simpleScp.cancelTask', (treeItem) =>
+      transferQueueCommands.cancelTask(treeItem?.task)
     ),
-    vscode.commands.registerCommand('simpleScp.retryTask', (task) =>
-      transferQueueCommands.retryTask(task)
+    vscode.commands.registerCommand('simpleScp.retryTask', (treeItem) =>
+      transferQueueCommands.retryTask(treeItem?.task)
     ),
-    vscode.commands.registerCommand('simpleScp.removeTask', (task) =>
-      transferQueueCommands.removeTask(task)
+    vscode.commands.registerCommand('simpleScp.removeTask', (treeItem) =>
+      transferQueueCommands.removeTask(treeItem?.task)
     ),
 
     // Queue management commands
@@ -154,46 +154,63 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(transferStatusBar);
 
   let statusBarUpdateTimer: NodeJS.Timeout | undefined;
-  const statusBarThrottleMs = 2000; // Update every 2 seconds to avoid flickering
+  const statusBarThrottleMs = 1000; // Throttle to 1 second for subsequent updates
+  let lastUpdateTime = 0;
 
   // Update status bar with queue info
   const updateStatusBar = () => {
-    // Clear existing timer
-    if (statusBarUpdateTimer) {
-      clearTimeout(statusBarUpdateTimer);
-    }
+    const now = Date.now();
+    const elapsed = now - lastUpdateTime;
 
-    // Schedule update
-    statusBarUpdateTimer = setTimeout(() => {
-      statusBarUpdateTimer = undefined;
+    // For first update or if throttle time has passed, update immediately
+    if (elapsed >= statusBarThrottleMs || lastUpdateTime === 0) {
+      doUpdateStatusBar();
+      lastUpdateTime = now;
 
-      const runningTasks = transferQueueService.getRunningTasks();
-      const pendingTasks = transferQueueService.getPendingTasks();
-
-      if (runningTasks.length > 0) {
-        const task = runningTasks[0];
-        const percentage = task.progress.toFixed(0);
-        const speed = task.speed > 0 ? ` - ${formatSpeed(task.speed)}` : '';
-
-        transferStatusBar.text = `$(sync~spin) ${task.fileName}: ${percentage}%${speed}`;
-        transferStatusBar.tooltip = `Transferring: ${task.fileName}\n${runningTasks.length} running, ${pendingTasks.length} pending`;
-        transferStatusBar.show();
-      } else if (pendingTasks.length > 0) {
-        transferStatusBar.text = `$(clock) ${pendingTasks.length} pending transfer(s)`;
-        transferStatusBar.tooltip = 'Click to view transfer queue';
-        transferStatusBar.show();
-      } else {
-        transferStatusBar.hide();
+      // Clear any pending timer
+      if (statusBarUpdateTimer) {
+        clearTimeout(statusBarUpdateTimer);
+        statusBarUpdateTimer = undefined;
       }
-    }, statusBarThrottleMs);
+    } else {
+      // Schedule an update if not already scheduled
+      if (!statusBarUpdateTimer) {
+        statusBarUpdateTimer = setTimeout(() => {
+          statusBarUpdateTimer = undefined;
+          doUpdateStatusBar();
+          lastUpdateTime = Date.now();
+        }, statusBarThrottleMs - elapsed);
+      }
+    }
   };
 
+  const doUpdateStatusBar = () => {
+    const runningTasks = transferQueueService.getRunningTasks();
+    const pendingTasks = transferQueueService.getPendingTasks();
+
+    if (runningTasks.length > 0) {
+      const task = runningTasks[0];
+      const percentage = task.progress.toFixed(0);
+      const speed = task.speed > 0 ? ` - ${formatSpeed(task.speed)}` : '';
+
+      transferStatusBar.text = `$(sync~spin) ${task.fileName}: ${percentage}%${speed}`;
+      transferStatusBar.tooltip = `Transferring: ${task.fileName}\n${runningTasks.length} running, ${pendingTasks.length} pending`;
+      transferStatusBar.show();
+    } else if (pendingTasks.length > 0) {
+      transferStatusBar.text = `$(clock) ${pendingTasks.length} pending transfer(s)`;
+      transferStatusBar.tooltip = 'Click to view transfer queue';
+      transferStatusBar.show();
+    } else {
+      transferStatusBar.hide();
+    }
+  };
+
+  // Listen to queue and task changes
   transferQueueService.onQueueChanged(() => {
-    // Update status bar when queue changes
     updateStatusBar();
   });
 
-  transferQueueService.onTaskUpdated(task => {
+  transferQueueService.onTaskUpdated((task) => {
     // Update status bar
     updateStatusBar();
 
