@@ -371,6 +371,13 @@ export class RemoteBrowserService {
               isDirectory: false
             });
           }
+        } else if (mode === 'sync' && selected.item) {
+          // Sync mode: enter directory if it's a directory
+          if (selected.item.type === 'directory') {
+            const targetPath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
+            loadDirectory(targetPath);
+          }
+          // For files in sync mode, do nothing (use buttons for upload/download)
         } else if ((mode === 'selectPath' || mode === 'selectBookmark') && selected.dirName) {
           const targetPath = `${currentPath}/${selected.dirName}`.replace(/\/\//g, '/');
           loadDirectory(targetPath);

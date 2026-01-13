@@ -118,7 +118,7 @@ export class TransferQueueTreeProvider implements vscode.TreeDataProvider<Transf
   private filterStatus?: TaskStatus;
 
   private refreshTimer?: NodeJS.Timeout;
-  private readonly refreshThrottleMs = 500; // Throttle refreshes to every 500ms
+  private readonly refreshThrottleMs = 1000; // Throttle refreshes to every 1 second
 
   constructor() {
     this.queueService = TransferQueueService.getInstance();

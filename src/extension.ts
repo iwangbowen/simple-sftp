@@ -153,26 +153,39 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(transferStatusBar);
 
+  let statusBarUpdateTimer: NodeJS.Timeout | undefined;
+  const statusBarThrottleMs = 2000; // Update every 2 seconds to avoid flickering
+
   // Update status bar with queue info
   const updateStatusBar = () => {
-    const runningTasks = transferQueueService.getRunningTasks();
-    const pendingTasks = transferQueueService.getPendingTasks();
-
-    if (runningTasks.length > 0) {
-      const task = runningTasks[0];
-      const percentage = task.progress.toFixed(0);
-      const speed = task.speed > 0 ? ` - ${formatSpeed(task.speed)}` : '';
-
-      transferStatusBar.text = `$(sync~spin) ${task.fileName}: ${percentage}%${speed}`;
-      transferStatusBar.tooltip = `Transferring: ${task.fileName}\n${runningTasks.length} running, ${pendingTasks.length} pending`;
-      transferStatusBar.show();
-    } else if (pendingTasks.length > 0) {
-      transferStatusBar.text = `$(clock) ${pendingTasks.length} pending transfer(s)`;
-      transferStatusBar.tooltip = 'Click to view transfer queue';
-      transferStatusBar.show();
-    } else {
-      transferStatusBar.hide();
+    // Clear existing timer
+    if (statusBarUpdateTimer) {
+      clearTimeout(statusBarUpdateTimer);
     }
+
+    // Schedule update
+    statusBarUpdateTimer = setTimeout(() => {
+      statusBarUpdateTimer = undefined;
+
+      const runningTasks = transferQueueService.getRunningTasks();
+      const pendingTasks = transferQueueService.getPendingTasks();
+
+      if (runningTasks.length > 0) {
+        const task = runningTasks[0];
+        const percentage = task.progress.toFixed(0);
+        const speed = task.speed > 0 ? ` - ${formatSpeed(task.speed)}` : '';
+
+        transferStatusBar.text = `$(sync~spin) ${task.fileName}: ${percentage}%${speed}`;
+        transferStatusBar.tooltip = `Transferring: ${task.fileName}\n${runningTasks.length} running, ${pendingTasks.length} pending`;
+        transferStatusBar.show();
+      } else if (pendingTasks.length > 0) {
+        transferStatusBar.text = `$(clock) ${pendingTasks.length} pending transfer(s)`;
+        transferStatusBar.tooltip = 'Click to view transfer queue';
+        transferStatusBar.show();
+      } else {
+        transferStatusBar.hide();
+      }
+    }, statusBarThrottleMs);
   };
 
   transferQueueService.onQueueChanged(() => {
