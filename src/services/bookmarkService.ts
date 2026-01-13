@@ -17,7 +17,8 @@ export class BookmarkService {
       host: HostConfig,
       authConfig: HostAuthConfig,
       mode: 'selectPath' | 'browseFiles' | 'selectBookmark' | 'sync',
-      title: string
+      title: string,
+      initialPath?: string
     ) => Promise<string | { path: string; isDirectory: boolean } | undefined>
   ) {}
 
@@ -184,14 +185,13 @@ export class BookmarkService {
     }
 
     // Browse from bookmark path using sync mode (allows both upload and download)
-    // First, update the recent path to the bookmark path
-    await this.hostManager.recordRecentPath(host.id, bookmark.path);
-
+    // Pass bookmark path as initial path, do not record it to recent paths
     await this.browseRemoteFilesCallback(
       host,
       authConfig,
       'sync',
-      `Browse: ${bookmark.name}`
+      `Browse: ${bookmark.name}`,
+      bookmark.path  // Use bookmark path as initial path
     );
   }
 }

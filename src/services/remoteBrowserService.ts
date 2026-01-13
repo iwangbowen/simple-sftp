@@ -22,18 +22,25 @@ export class RemoteBrowserService {
    * @param authConfig Authentication configuration
    * @param mode 'selectPath' for selecting a directory, 'browseFiles' for downloading files
    * @param title Title for the QuickPick
+   * @param initialPath Optional initial path to start browsing from. If not provided, uses recent paths or default
    * @returns Promise resolving to selected path string or object with path and isDirectory
    */
   async browseRemoteFilesGeneric(
     config: HostConfig,
     authConfig: HostAuthConfig,
     mode: 'selectPath' | 'browseFiles' | 'selectBookmark' | 'sync',
-    title: string
+    title: string,
+    initialPath?: string
   ): Promise<string | { path: string; isDirectory: boolean } | undefined> {
-    // Get recent paths for this host
-    const recentPaths = await this.hostManager.getRecentPaths(config.id);
-    // Use most recent path, or default remote path, or /root as fallback
-    let currentPath = recentPaths[0] || config.defaultRemotePath || '/root';
+    // Determine starting path
+    let currentPath: string;
+    if (initialPath) {
+      // Use provided initial path (e.g., for bookmark browsing)
+      currentPath = initialPath;
+    } else {
+      // Use default remote path or /root as fallback
+      currentPath = config.defaultRemotePath || '/root';
+    }
     // Read showDotFiles setting from configuration
     let showDotFiles = vscode.workspace.getConfiguration('simpleScp').get<boolean>('showDotFiles', true);
     logger.info(`Browsing remote on ${config.name}, starting at: ${currentPath}`);
