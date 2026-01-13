@@ -1,5 +1,100 @@
 # Change Log
 
+## [1.0.0] - 2026-01-13
+
+### 🎉 Major Release: Transfer Queue System
+
+#### New Features
+
+- **Transfer Queue Management**: Complete transfer queue system for all uploads and downloads
+  - All file transfers automatically added to queue for unified management
+  - Real-time progress tracking with speed and ETA display
+  - Transfer Queue TreeView with file-level visibility
+  - Status bar integration showing active transfer progress
+  - Concurrent transfer control (configurable max concurrent transfers)
+
+- **Task Control**: Full lifecycle management for transfer tasks
+  - **Pause/Resume**: Pause ongoing transfers and resume from beginning
+    - Transfer immediately stops when paused
+    - Resume restarts transfer from 0% (SFTP protocol limitation)
+    - Proper abort signal handling across all SSH operations
+  - **Cancel**: Abort transfers with automatic cleanup
+    - Incomplete local files deleted on download cancellation
+    - Incomplete remote files deleted on upload cancellation
+    - Prevents partial file accumulation
+  - **Retry**: Automatic retry for failed transfers with exponential backoff
+  - **Remove**: Clean up tasks from queue history
+
+- **Queue Operations**: Global queue control
+  - Pause entire queue to stop all transfers
+  - Resume queue to continue pending transfers
+  - Clear completed tasks
+  - Clear all tasks
+
+- **Transfer History**: Persistent history tracking
+  - Completed transfers saved to history
+  - Failed transfers logged for troubleshooting
+  - View transfer statistics
+
+- **Visual Indicators**:
+  - Status bar shows: current file, progress percentage, transfer speed
+  - TreeView displays: status icons, progress bars, file details
+  - Context menu buttons: pause/resume/cancel based on task status
+
+- **Configurable Settings**:
+  - `simpleScp.transferQueue.maxConcurrent`: Max concurrent transfers (default: 2)
+  - `simpleScp.transferQueue.autoRetry`: Enable automatic retry (default: true)
+  - `simpleScp.transferQueue.maxRetries`: Max retry attempts (default: 3)
+  - `simpleScp.transferQueue.retryDelay`: Delay between retries in ms (default: 2000)
+  - `simpleScp.transferQueue.showNotifications`: Show completion notifications (default: true)
+
+#### Technical Improvements
+
+- **SSH Connection Integration**: AbortSignal support across all transfer methods
+  - `uploadFile`, `downloadFile` now support abort signals
+  - `uploadDirectory`, `downloadDirectory` properly handle cancellation
+  - Signal checked at every progress update for immediate response
+
+- **File Cleanup**: Smart incomplete file removal
+  - New `SshConnectionManager.deleteRemoteFile` method
+  - Recursive directory deletion support
+  - Graceful error handling for cleanup failures
+
+- **Event System**: Optimized update mechanism
+  - Throttled TreeView refresh (1 second interval)
+  - Throttled status bar updates (1 second interval)
+  - Event-driven architecture: `onTaskUpdated`, `onQueueChanged`
+
+- **State Management**: Robust task lifecycle
+  - Proper running tasks tracking
+  - Force removal from running set on pause
+  - Correct status transitions: pending → running → completed/failed/paused/cancelled
+
+#### Bug Fixes
+
+- Fixed status bar visibility (immediate first update, then throttled)
+- Fixed pause command showing "undefined" (correct TreeItem parameter extraction)
+- Fixed resume not working (proper running tasks cleanup on pause)
+- Fixed transfer not stopping on pause (AbortSignal propagation)
+
+#### Breaking Changes
+
+- Removed "Add to Queue" option - all transfers now use queue automatically
+- Removed transfer mode selection dialog - streamlined workflow
+
+### Enhanced
+
+- **Browse Files**: Sync mode now properly handles directory navigation
+  - Can enter subdirectories while browsing
+  - Upload/download buttons work in sync mode
+
+#### Developer Notes
+
+- Transfer queue implemented as singleton service
+- History service persists to workspace storage
+- TreeProvider uses event-driven refresh
+- Comprehensive logging for debugging
+
 ## [0.9.9] - 2026-01-13
 
 ### Added
