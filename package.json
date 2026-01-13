@@ -320,19 +320,14 @@
       ],
       "view/item/context": [
         {
-          "command": "simpleScp.editHost",
+          "command": "simpleScp.browseFiles",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "inline@1"
         },
         {
-          "command": "simpleScp.toggleStar",
+          "command": "simpleScp.editHost",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "inline@2"
-        },
-        {
-          "command": "simpleScp.browseFiles",
-          "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "1_sync@1"
         },
         {
           "command": "simpleScp.copySshCommand",
@@ -358,6 +353,11 @@
           "command": "simpleScp.moveHostToGroup",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "2_actions@5"
+        },
+        {
+          "command": "simpleScp.toggleStar",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_actions@6"
         },
         {
           "command": "simpleScp.addBookmark",
