@@ -85,6 +85,12 @@
         "icon": "$(edit)"
       },
       {
+        "command": "simpleScp.duplicateHost",
+        "title": "Duplicate Host",
+        "category": "Simple SCP",
+        "icon": "$(copy)"
+      },
+      {
         "command": "simpleScp.deleteHost",
         "title": "Delete",
         "category": "Simple SCP",
@@ -245,6 +251,10 @@
           "when": "false"
         },
         {
+          "command": "simpleScp.duplicateHost",
+          "when": "false"
+        },
+        {
           "command": "simpleScp.deleteHost",
           "when": "false"
         },
@@ -328,6 +338,11 @@
           "command": "simpleScp.editHost",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "inline@2"
+        },
+        {
+          "command": "simpleScp.duplicateHost",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_actions@0"
         },
         {
           "command": "simpleScp.copySshCommand",

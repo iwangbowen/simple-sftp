@@ -55,6 +55,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.editHost', (item: HostTreeItem) =>
         this.editHost(item)
       ),
+      vscode.commands.registerCommand('simpleScp.duplicateHost', (item: HostTreeItem) =>
+        this.duplicateHost(item)
+      ),
       vscode.commands.registerCommand('simpleScp.deleteHost', (item: HostTreeItem, items?: HostTreeItem[]) =>
         this.deleteHost(item, items)
       ),
@@ -455,6 +458,104 @@ export class CommandHandler {
       this.treeProvider.refresh();
     } catch (error) {
       vscode.window.showErrorMessage(MESSAGES.updateFailed(error));
+    }
+  }
+
+  /**
+   * Duplicate a host configuration
+   */
+  private async duplicateHost(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {
+      return;
+    }
+
+    const sourceConfig = item.data as HostConfig;
+
+    // Create a new host name with " (Copy)" suffix
+    let newName = `${sourceConfig.name} (Copy)`;
+
+    // Check if a host with this name already exists, append number if needed
+    const existingHosts = await this.hostManager.getHosts();
+    let counter = 2;
+    while (existingHosts.some(h => h.name === newName)) {
+      newName = `${sourceConfig.name} (Copy ${counter})`;
+      counter++;
+    }
+
+    // Ask user to confirm or modify the name
+    const confirmedName = await vscode.window.showInputBox({
+      prompt: 'Enter name for duplicated host',
+      value: newName,
+      validateInput: (value) => {
+        if (!value || !value.trim()) {
+          return MESSAGES.hostNameRequired;
+        }
+        return undefined;
+      }
+    });
+
+    if (!confirmedName) {
+      return;
+    }
+
+    try {
+      // Create new host with same configuration (except name and id)
+      const newHost = await this.hostManager.addHost({
+        name: confirmedName.trim(),
+        host: sourceConfig.host,
+        port: sourceConfig.port,
+        username: sourceConfig.username,
+        defaultRemotePath: sourceConfig.defaultRemotePath,
+        group: sourceConfig.group,
+        color: sourceConfig.color,
+        starred: sourceConfig.starred,
+        // Note: bookmarks and recentPaths are not copied
+      });
+
+      // Check if source host has authentication configured
+      const sourceAuth = await this.authManager.getAuth(sourceConfig.id);
+
+      if (sourceAuth) {
+        // Copy authentication configuration
+        await this.authManager.saveAuth({
+          hostId: newHost.id,
+          authType: sourceAuth.authType,
+          password: sourceAuth.password,
+          privateKeyPath: sourceAuth.privateKeyPath,
+          passphrase: sourceAuth.passphrase
+        });
+      }
+
+      this.treeProvider.refresh();
+      logger.info(`Host duplicated: ${sourceConfig.name} → ${confirmedName}`);
+
+      // Show success message with option to edit
+      const edit = 'Edit';
+      const choice = await vscode.window.showInformationMessage(
+        `Host "${confirmedName}" created successfully`,
+        edit
+      );
+
+      if (choice === edit) {
+        // Find the new host item and open edit dialog
+        const hosts = await this.hostManager.getHosts();
+        const duplicatedHost = hosts.find(h => h.id === newHost.id);
+        if (duplicatedHost) {
+          // Check authentication for the new host
+          const newHostAuth = await this.authManager.hasAuth(duplicatedHost.id);
+          const hostItem = new HostTreeItem(
+            duplicatedHost.name,
+            'host',
+            duplicatedHost,
+            vscode.TreeItemCollapsibleState.None,
+            newHostAuth
+          );
+          await this.editHost(hostItem);
+        }
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to duplicate host: ${error}`);
+      logger.error(`Failed to duplicate host ${sourceConfig.name}`, error as Error);
     }
   }
 
