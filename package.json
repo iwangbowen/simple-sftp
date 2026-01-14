@@ -693,7 +693,11 @@
         },
         "simpleScp.speedUnit": {
           "type": "string",
-          "enum": ["auto", "KB", "MB"],
+          "enum": [
+            "auto",
+            "KB",
+            "MB"
+          ],
           "default": "auto",
           "description": "Download speed display unit. 'auto' will automatically choose between KB/s and MB/s based on speed"
         },
@@ -745,7 +749,10 @@
     "watch": "node esbuild.js --watch",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "package": "vsce package",
     "publish": "vsce publish"
   },
@@ -755,9 +762,11 @@
     "@types/vscode": "^1.108.1",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
+    "@vitest/ui": "^4.0.17",
     "esbuild": "^0.27.2",
     "eslint": "^8.54.0",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "vitest": "^4.0.17"
   },
   "dependencies": {
     "ssh2": "^1.17.0",

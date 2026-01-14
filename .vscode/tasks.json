@@ -20,6 +20,23 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "type": "npm",
+      "script": "compile",
+      "problemMatcher": "$tsc",
+      "group": "build",
+      "label": "npm: compile"
+    },
+    {
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": "$tsc",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "label": "npm: test"
     }
   ]
 }

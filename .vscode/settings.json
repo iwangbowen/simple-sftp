@@ -1,0 +1,6 @@
+{
+  "typescript.tsc.autoDetect": "on",
+  "vitest.enable": true,
+  "vitest.commandLine": "npx vitest",
+  "testing.automaticallyOpenPeekView": "failureInVisibleDocument"
+}
