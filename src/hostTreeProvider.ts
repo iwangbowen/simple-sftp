@@ -5,6 +5,14 @@ import { AuthManager } from './authManager';
 import { logger } from './logger';
 
 /**
+ * 拖放数据传输项
+ */
+interface DragDropData {
+  type: TreeItemType;
+  id: string;
+}
+
+/**
  * TreeView 项类型
  */
 export type TreeItemType = 'group' | 'host' | 'bookmark';
@@ -94,10 +102,14 @@ export class HostTreeItem extends vscode.TreeItem {
 /**
  * 主机列表 TreeView 提供程序
  */
-export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
+export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, vscode.TreeDragAndDropController<HostTreeItem> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<HostTreeItem | undefined | null | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private treeView?: vscode.TreeView<HostTreeItem>;
+
+  // Drag and drop configuration
+  dropMimeTypes = ['application/vnd.code.tree.simpleScp.hosts'];
+  dragMimeTypes = ['application/vnd.code.tree.simpleScp.hosts'];
 
   constructor(
     private readonly hostManager: HostManager,
@@ -301,5 +313,88 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
         hostId
       )
     );
+  }
+
+  /**
+   * 处理拖拽开始
+   */
+  async handleDrag(
+    source: readonly HostTreeItem[],
+    dataTransfer: vscode.DataTransfer,
+    token: vscode.CancellationToken
+  ): Promise<void> {
+    // Only allow dragging hosts
+    const hosts = source.filter(item => item.type === 'host');
+    if (hosts.length === 0) {
+      return;
+    }
+
+    const dragData: DragDropData[] = hosts.map(item => ({
+      type: item.type,
+      id: (item.data as HostConfig).id
+    }));
+
+    dataTransfer.set(
+      'application/vnd.code.tree.simpleScp.hosts',
+      new vscode.DataTransferItem(dragData)
+    );
+  }
+
+  /**
+   * 处理放置
+   */
+  async handleDrop(
+    target: HostTreeItem | undefined,
+    dataTransfer: vscode.DataTransfer,
+    token: vscode.CancellationToken
+  ): Promise<void> {
+    const transferItem = dataTransfer.get('application/vnd.code.tree.simpleScp.hosts');
+    if (!transferItem) {
+      return;
+    }
+
+    const dragData = transferItem.value as DragDropData[];
+    if (!dragData || dragData.length === 0) {
+      return;
+    }
+
+    // Determine target group ID
+    let targetGroupId: string | undefined;
+
+    if (target) {
+      if (target.type === 'group') {
+        // Dropped on a group
+        targetGroupId = (target.data as GroupConfig).id;
+      } else if (target.type === 'host') {
+        // Dropped on a host - use the host's group
+        const host = target.data as HostConfig;
+        targetGroupId = host.group;
+      } else {
+        // Cannot drop on bookmarks
+        vscode.window.showWarningMessage('Cannot move hosts to bookmarks');
+        return;
+      }
+    }
+    // If target is undefined, move to root (ungrouped)
+
+    // Move each dragged host
+    try {
+      for (const item of dragData) {
+        if (item.type === 'host') {
+          await this.hostManager.moveHostToGroup(item.id, targetGroupId);
+        }
+      }
+
+      this.refresh();
+
+      const message = targetGroupId
+        ? `Moved ${dragData.length} host(s) to group`
+        : `Moved ${dragData.length} host(s) to root`;
+      vscode.window.showInformationMessage(message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Failed to move host(s): ${errorMessage}`);
+      logger.error(`Failed to move host(s): ${errorMessage}`);
+    }
   }
 }

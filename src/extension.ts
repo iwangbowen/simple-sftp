@@ -48,6 +48,7 @@ export async function activate(context: vscode.ExtensionContext) {
     treeDataProvider: treeProvider,
     showCollapseAll: true,
     canSelectMany: true,
+    dragAndDropController: treeProvider,
   });
 
   context.subscriptions.push(treeView);

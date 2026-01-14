@@ -133,6 +133,33 @@ export class HostManager {
   }
 
   /**
+   * Move host to a different group (or remove from group)
+   */
+  async moveHostToGroup(hostId: string, targetGroupId?: string): Promise<void> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+
+    if (!host) {
+      throw new Error('Host not found');
+    }
+
+    // If targetGroupId is provided, verify the group exists
+    if (targetGroupId) {
+      const groupExists = data.groups.some(g => g.id === targetGroupId);
+      if (!groupExists) {
+        throw new Error('Target group not found');
+      }
+      host.group = targetGroupId;
+    } else {
+      // Remove from group (move to root)
+      delete host.group;
+    }
+
+    await this.saveData(data);
+    logger.info(`Moved host ${host.name} to ${targetGroupId ? 'group ' + targetGroupId : 'root'}`);
+  }
+
+  /**
    * Parse SSH config file and return host configurations (without adding to storage)
    */
   async parseSshConfigFile(): Promise<Omit<HostConfig, 'id'>[]> {
