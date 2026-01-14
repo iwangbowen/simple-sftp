@@ -323,9 +323,10 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
-    // Only allow dragging hosts
+    // Only allow dragging hosts (not groups or bookmarks)
     const hosts = source.filter(item => item.type === 'host');
     if (hosts.length === 0) {
+      // Don't set any data, which will disable dragging
       return;
     }
 
@@ -386,11 +387,6 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
       }
 
       this.refresh();
-
-      const message = targetGroupId
-        ? `Moved ${dragData.length} host(s) to group`
-        : `Moved ${dragData.length} host(s) to root`;
-      vscode.window.showInformationMessage(message);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       vscode.window.showErrorMessage(`Failed to move host(s): ${errorMessage}`);
