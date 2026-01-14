@@ -52,6 +52,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(treeView);
 
+  // Set tree view reference for expand all functionality
+  treeProvider.setTreeView(treeView);
+
   // Create transfer queue TreeView provider
   const transferQueueTreeProvider = new TransferQueueTreeProvider();
   transferQueueTreeProvider.setHistoryService(transferHistoryService);
@@ -141,6 +144,16 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('simpleScp.openGitHubRepo', () => {
       vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-scp'));
+    }),
+
+    // View control commands
+    vscode.commands.registerCommand('simpleScp.expandAll', () => {
+      // Expand all groups in the hosts tree view
+      treeProvider.expandAll();
+    }),
+    vscode.commands.registerCommand('simpleScp.collapseAll', () => {
+      // The tree view has built-in collapse all functionality
+      // This command is just for consistency
     })
   );
   logger.info('Transfer queue commands registered');

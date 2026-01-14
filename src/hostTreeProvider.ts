@@ -96,6 +96,7 @@ export class HostTreeItem extends vscode.TreeItem {
 export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<HostTreeItem | undefined | null | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  private treeView?: vscode.TreeView<HostTreeItem>;
 
   constructor(
     private readonly hostManager: HostManager,
@@ -103,8 +104,57 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
     private readonly extensionPath: string
   ) {}
 
+  setTreeView(treeView: vscode.TreeView<HostTreeItem>): void {
+    this.treeView = treeView;
+  }
+
   refresh(): void {
     this._onDidChangeTreeData.fire();
+  }
+
+  async expandAll(): Promise<void> {
+    if (!this.treeView) {
+      return;
+    }
+
+    // Get all groups
+    const groups = await this.hostManager.getGroups();
+
+    // Expand each group
+    for (const group of groups) {
+      const groupItem = new HostTreeItem(
+        group.name,
+        'group',
+        group,
+        vscode.TreeItemCollapsibleState.Collapsed
+      );
+
+      try {
+        await this.treeView.reveal(groupItem, { expand: true });
+      } catch (error) {
+        // Ignore errors if item not found in tree
+      }
+    }
+
+    // Also expand hosts with bookmarks
+    const hosts = await this.hostManager.getHosts();
+    for (const host of hosts) {
+      const bookmarks = await this.hostManager.getBookmarks(host.id);
+      if (bookmarks.length > 0) {
+        const hostItem = new HostTreeItem(
+          `${host.name} (${host.username}@${host.host})`,
+          'host',
+          host,
+          vscode.TreeItemCollapsibleState.Collapsed
+        );
+
+        try {
+          await this.treeView.reveal(hostItem, { expand: true });
+        } catch (error) {
+          // Ignore errors if item not found in tree
+        }
+      }
+    }
   }
 
   getTreeItem(element: HostTreeItem): vscode.TreeItem {

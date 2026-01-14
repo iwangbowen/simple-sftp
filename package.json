@@ -343,6 +343,18 @@
         "title": "View on GitHub",
         "category": "Simple SCP",
         "icon": "$(github)"
+      },
+      {
+        "command": "simpleScp.expandAll",
+        "title": "Expand All",
+        "category": "Simple SCP",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "simpleScp.collapseAll",
+        "title": "Collapse All",
+        "category": "Simple SCP",
+        "icon": "$(collapse-all)"
       }
     ],
     "menus": {
@@ -471,6 +483,11 @@
           "command": "simpleScp.refresh",
           "when": "view == simpleScp.hosts",
           "group": "navigation@2"
+        },
+        {
+          "command": "simpleScp.expandAll",
+          "when": "view == simpleScp.hosts",
+          "group": "navigation@3"
         },
         {
           "command": "simpleScp.importFromSshConfig",
