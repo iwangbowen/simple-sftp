@@ -757,7 +757,7 @@
     "publish": "vsce publish"
   },
   "devDependencies": {
-    "@types/node": "18.x",
+    "@types/node": "20.x",
     "@types/ssh2": "^1.15.0",
     "@types/vscode": "^1.108.1",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
