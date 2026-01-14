@@ -125,18 +125,20 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
     const rootItems = await this.getRootItems();
     logger.info(`Found ${rootItems.length} root items to expand`);
 
-    // Expand each item
-    for (const item of rootItems) {
-      try {
-        if (item.collapsibleState === vscode.TreeItemCollapsibleState.Collapsed ||
-            item.collapsibleState === vscode.TreeItemCollapsibleState.Expanded) {
-          logger.info(`Expanding item: ${item.label}`);
-          await this.treeView.reveal(item, { expand: 1, select: false, focus: false });
+    // Expand all root items with expand: 3 to expand up to 3 levels deep
+    // This will expand: group → hosts → bookmarks
+    const promises = rootItems
+      .filter(item => item.collapsibleState !== vscode.TreeItemCollapsibleState.None)
+      .map(async (item) => {
+        try {
+          await this.treeView!.reveal(item, { expand: 3, select: false, focus: false });
+          logger.info(`Expanded: ${item.label}`);
+        } catch (error: unknown) {
+          logger.error(`Failed to expand ${item.label}: ${error}`);
         }
-      } catch (error) {
-        logger.error(`Failed to expand item ${item.label}: ${error}`);
-      }
-    }
+      });
+
+    await Promise.all(promises);
 
     logger.info('Expand all completed');
   }
