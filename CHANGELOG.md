@@ -1,5 +1,22 @@
 # Change Log
 
+## [1.0.7] - 2026-01-14
+
+### Added
+
+- **Expand All Button**: New button in the Hosts view title bar to expand all groups and hosts with bookmarks
+  - Complementary to the built-in collapse all button
+  - Located in the navigation area of the Hosts view next to refresh button
+  - Expands all groups and hosts that have bookmarks for quick overview
+  - Uses optimized parallel expansion (expand: 3) for smooth performance
+  - Expands up to 3 levels: group → hosts → bookmarks
+  - Implemented TreeDataProvider.getParent() for TreeView.reveal() support
+
+### Improved
+
+- Better tree navigation with expand/collapse controls
+- Optimized tree expansion using parallel promises for responsiveness
+
 ## [1.0.6] - 2026-01-14
 
 ### Added
