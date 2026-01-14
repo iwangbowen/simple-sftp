@@ -1,5 +1,22 @@
 # Change Log
 
+## [1.0.6] - 2026-01-14
+
+### Added
+
+- **Help and Feedback View**: New dedicated view in the Simple SCP sidebar for easier access to support resources
+  - **Read Documentation**: Quick link to GitHub README documentation
+  - **Review Issues**: Browse existing issues on GitHub
+  - **Report Issue**: Launch VS Code's built-in issue reporter for this extension
+  - **View on GitHub**: Direct link to the GitHub repository
+  - Integrated as a permanent view in the Simple SCP container
+  - Uses intuitive icons for each action item
+
+### Improved
+
+- Enhanced user experience with centralized access to help resources
+- Streamlined issue reporting workflow using VS Code's native issue reporter
+
 ## [1.0.5] - 2026-01-13
 
 ### Added
