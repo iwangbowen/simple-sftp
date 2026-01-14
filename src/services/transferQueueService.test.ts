@@ -261,9 +261,6 @@ describe('TransferQueueService', () => {
     });
   });
 
-  describe('getPendingTasks', () => {
-  });
-
   describe('pauseTask', () => {
     it('should pause a task', () => {
       const task = service.addTask({
