@@ -226,13 +226,90 @@ export class TransferQueueCommands {
       details.push('', `**Error:** ${task.lastError}`);
     }
 
-    const markdown = new vscode.MarkdownString(details.join('\n'));
-    markdown.supportHtml = true;
-
-    vscode.window.showInformationMessage(
-      `Task Details: ${task.fileName}`,
-      { modal: true, detail: details.join('\n') }
+    // Create webview panel to display markdown
+    const panel = vscode.window.createWebviewPanel(
+      'taskDetails',
+      `Task: ${task.fileName}`,
+      vscode.ViewColumn.Beside,
+      {
+        enableScripts: false,
+        retainContextWhenHidden: true
+      }
     );
+
+    // Convert markdown to HTML
+    const htmlContent = this.markdownToHtml(details.join('\n\n'), task);
+    panel.webview.html = htmlContent;
+  }
+
+  /**
+   * Convert markdown to HTML for webview
+   */
+  private markdownToHtml(markdown: string, task: TransferTaskModel): string {
+    // Simple markdown to HTML conversion
+    let html = markdown
+      .replaceAll(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replaceAll('\n\n', '<br><br>')
+      .replaceAll('\n', '<br>');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Details</title>
+  <style>
+    body {
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      color: var(--vscode-foreground);
+      background-color: var(--vscode-editor-background);
+      padding: 20px;
+      line-height: 1.6;
+    }
+    strong {
+      color: var(--vscode-textLink-foreground);
+    }
+    .status-${task.status} {
+      color: ${this.getStatusColor(task.status)};
+    }
+    .header {
+      font-size: 1.2em;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <strong>Task Details: ${task.fileName}</strong>
+  </div>
+  <div>
+    ${html}
+  </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Get status color
+   */
+  private getStatusColor(status: string): string {
+    switch (status) {
+      case 'completed':
+        return '#4ec9b0';
+      case 'failed':
+        return '#f48771';
+      case 'running':
+        return '#569cd6';
+      case 'paused':
+        return '#dcdcaa';
+      case 'cancelled':
+        return '#858585';
+      default:
+        return '#d4d4d4';
+    }
   }
 
   /**
