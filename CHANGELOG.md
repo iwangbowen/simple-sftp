@@ -12,6 +12,14 @@
   - 3-5x speed improvement for large files
   - Configurable chunk size, concurrency, and threshold via constants
 
+- **File Integrity Verification (文件完整性校验)**: Optional checksum verification after file transfers
+  - Supports MD5 and SHA256 algorithms
+  - Verifies both uploads and downloads
+  - Configurable size threshold (default: ≥10MB)
+  - Cross-platform support (Linux, macOS, Windows)
+  - Friendly error messages when remote tools are unavailable
+  - Disabled by default for backward compatibility
+
 ### Performance Improvements
 
 - 100MB file uploads: ~60 seconds → ~15-20 seconds (-67%)
@@ -19,9 +27,17 @@
 - Fully utilizes available bandwidth for large transfers
 - Seamless fallback to standard transfer for small files
 
+### Configuration
+
+- New verification settings:
+  - `simpleSftp.verification.enabled` (default: `false`)
+  - `simpleSftp.verification.algorithm` (default: `"sha256"`)
+  - `simpleSftp.verification.threshold` (default: `10485760` bytes)
+
 ### Technical Details
 
 - New `ParallelChunkTransferManager` class for chunk-based parallel transfers
+- New `FileIntegrityChecker` service for checksum verification
 - Integrated into `SshConnectionManager` with automatic file size detection
 - 19 new unit tests for chunk splitting, batching, and progress tracking
 - Configuration options in `constants.ts`: `PARALLEL_TRANSFER` settings

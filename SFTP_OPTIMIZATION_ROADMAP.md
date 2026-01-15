@@ -6,7 +6,7 @@
 
 **当前版本**: v2.3.0
 **文档创建日期**: 2026-01-15
-**最后更新**: 2026-01-15
+**最后更新**: 2026-01-15 (23:03)
 **维护人**: Development Team
 
 ---
@@ -105,59 +105,48 @@ export const PARALLEL_TRANSFER = {
 
 ---
 
-## 待实现优化方案
+### ✅ 3. 文件完整性校验 (Checksum Verification)
 
-### 📝 3. 文件完整性校验 (Checksum Verification)
+**状态**: 已实现 (v2.3.0)
 
-**优先级**: 高 ⭐⭐⭐⭐
-**预计版本**: v2.2.0
+**功能描述**:
+- 传输后自动校验文件完整性
+- 支持 MD5 和 SHA256 算法
+- 可配置的校验阈值（仅大文件校验）
+- 服务器端工具自动检测
 
-**问题描述**:
-当前传输后无校验机制，无法确保文件在传输过程中未损坏。
-
-**优化方案**:
-传输前后计算文件校验和（MD5/SHA256），确保文件完整性。
-
-**实现思路**:
+**实现方式**:
 ```typescript
 class FileIntegrityChecker {
-  async uploadWithVerification(localPath, remotePath) {
-    // 1. 计算本地文件校验和
-    const localChecksum = await this.calculateChecksum(localPath, 'sha256');
-
-    // 2. 上传文件
-    await this.uploadFile(localPath, remotePath);
-
-    // 3. 计算远程文件校验和
-    const remoteChecksum = await this.getRemoteChecksum(remotePath, 'sha256');
-
-    // 4. 比对校验和
-    if (localChecksum !== remoteChecksum) {
-      throw new Error(`File integrity check failed: ${remotePath}`);
-    }
-
-    logger.info(`File verified: ${remotePath} (SHA256: ${localChecksum})`);
-  }
-
-  private async calculateChecksum(filePath, algorithm = 'sha256') {
+  // 计算本地文件校验和
+  static async calculateLocalChecksum(filePath, algorithm = 'sha256') {
     const hash = crypto.createHash(algorithm);
     const stream = fs.createReadStream(filePath);
-
-    return new Promise((resolve, reject) => {
-      stream.on('data', data => hash.update(data));
-      stream.on('end', () => resolve(hash.digest('hex')));
-      stream.on('error', reject);
-    });
+    // 流式计算，避免大文件内存溢出
+    return hash.digest('hex');
   }
 
-  private async getRemoteChecksum(remotePath, algorithm = 'sha256') {
-    // 在远程服务器执行校验和计算
+  // 计算远程文件校验和
+  static async calculateRemoteChecksum(remotePath, algorithm = 'sha256') {
+    // 执行远程命令: md5sum / sha256sum / shasum
     const command = algorithm === 'md5'
-      ? `md5sum "${remotePath}" | awk '{print $1}'`
-      : `sha256sum "${remotePath}" | awk '{print $1}'`;
+      ? `md5sum "${remotePath}"`
+      : `sha256sum "${remotePath}"`;
+    return checksum;
+  }
 
-    const result = await this.executeRemoteCommand(command);
-    return result.trim();
+  // 上传后验证
+  static async verifyUpload(localPath, remotePath, options) {
+    const localChecksum = await this.calculateLocalChecksum(localPath, options.algorithm);
+    const remoteChecksum = await this.calculateRemoteChecksum(remotePath, options.algorithm);
+
+    if (localChecksum === remoteChecksum) {
+      logger.info(`✓ Upload verified (${options.algorithm}: ${localChecksum})`);
+      return true;
+    } else {
+      logger.error(`✗ Upload verification failed!`);
+      return false;
+    }
   }
 }
 ```
@@ -165,28 +154,38 @@ class FileIntegrityChecker {
 **配置选项**:
 ```json
 {
-  "simpleSftp.transfer.verifyChecksum": true,
-  "simpleSftp.transfer.checksumAlgorithm": "sha256",  // md5 | sha256
-  "simpleSftp.transfer.verifyThreshold": 10485760     // 10MB 以上才校验
+  "simpleSftp.verification.enabled": false,      // 默认禁用
+  "simpleSftp.verification.algorithm": "sha256", // md5 | sha256
+  "simpleSftp.verification.threshold": 10485760  // 10MB 以上才校验
 }
 ```
 
-**预期效果**:
+**优势**:
 - 100% 检测文件传输错误
-- 提供可靠性保证
-- 用户可信任传输结果
+- 流式计算，低内存占用
+- 自动跳过小文件（提升性能）
+- 友好的错误提示
 
-**技术挑战**:
-- 大文件校验时间开销
-- 远程服务器可能没有 sha256sum 工具
-- Windows 服务器命令兼容性
+**技术细节**:
+- 文件: `src/services/fileIntegrityChecker.ts`
+- 类: `FileIntegrityChecker`
+- 集成点: `src/sshConnectionManager.ts` uploadFile/downloadFile 方法
+- 支持工具: md5sum, sha256sum, shasum, md5, certutil (Windows)
 
-**优化方案**:
-- 仅大文件校验（小文件风险低）
-- 提供跳过校验选项
-- 支持多种校验工具（md5sum, shasum, certutil）
+**服务器要求**:
+- Linux/Unix: 需要 `md5sum` 或 `sha256sum` 命令
+- macOS: 使用 `md5 -q` 或 `shasum -a 256`
+- Windows: 使用 `certutil -hashfile`
+- 如无工具，校验会失败并提示用户禁用或安装工具
+
+**错误处理**:
+- 校验失败会抛出异常，阻止传输完成
+- 服务器无工具时友好提示并提供禁用选项
+- 可通过配置关闭校验以兼容旧服务器
 
 ---
+
+## 待实现优化方案
 
 ### 📝 4. 增量同步 (Delta Sync)
 
@@ -790,11 +789,11 @@ await retryManager.executeWithRetry(
 
 1. ✅ 断点续传 (已完成 v2.1.0)
 2. ✅ 并发分片传输 (已完成 v2.3.0)
-3. 文件完整性校验
-4. 智能重试策略
-5. 传输优先级队列
+3. ✅ 文件完整性校验 (已完成 v2.3.0)
+4. 智能重试策略 (规划中)
+5. 传输优先级队列 (规划中)
 
-**实际开发时间**: 2 周（2 个功能完成）
+**实际开发时间**: 2 周（3 个核心功能完成）
 
 ### 第二阶段 (v2.4.0) - 同步优化
 

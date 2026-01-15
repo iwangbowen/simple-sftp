@@ -842,6 +842,26 @@
           "minimum": 10,
           "maximum": 1000,
           "description": "Maximum number of transfer history records to keep"
+        },
+        "simpleSftp.transfer.verifyChecksum": {
+          "type": "boolean",
+          "default": false,
+          "description": "Verify file integrity after transfer using checksum. Requires md5sum/sha256sum tools on the remote server. Recommended for critical file transfers."
+        },
+        "simpleSftp.transfer.checksumAlgorithm": {
+          "type": "string",
+          "enum": [
+            "md5",
+            "sha256"
+          ],
+          "default": "md5",
+          "description": "Checksum algorithm to use for file verification. MD5 is faster but less secure. SHA256 is more secure but slower."
+        },
+        "simpleSftp.transfer.checksumThreshold": {
+          "type": "number",
+          "default": 10485760,
+          "minimum": 0,
+          "description": "Minimum file size (in bytes) for checksum verification. Default: 10MB. Set to 0 to verify all files."
         }
       }
     }

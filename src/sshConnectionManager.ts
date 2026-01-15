@@ -9,6 +9,7 @@ import { SshConnectionPool } from './sshConnectionPool';
 import { logger } from './logger';
 import { ParallelChunkTransferManager } from './parallelChunkTransfer';
 import { PARALLEL_TRANSFER } from './constants';
+import { FileIntegrityChecker } from './services/fileIntegrityChecker';
 
 /**
  * SSH 连接管理器
@@ -145,7 +146,7 @@ export class SshConnectionManager {
         logger.info(`🚀 Using parallel transfer for large file: ${path.basename(localPath)} (${fileSizeMB}MB)`);
         logger.info(`Configuration - Chunk size: ${PARALLEL_TRANSFER.CHUNK_SIZE / 1024 / 1024}MB, Max concurrent: ${PARALLEL_TRANSFER.MAX_CONCURRENT}`);
 
-        return this.parallelTransferManager.uploadFileParallel(
+        await this.parallelTransferManager.uploadFileParallel(
           config,
           authConfig,
           localPath,
@@ -158,6 +159,29 @@ export class SshConnectionManager {
             threshold: PARALLEL_TRANSFER.THRESHOLD
           }
         );
+
+        // Verify file integrity if enabled
+        const checksumOptions = FileIntegrityChecker.getOptionsFromConfig();
+        if (checksumOptions.enabled) {
+          const connectConfig = this.buildConnectConfig(config, authConfig);
+          const verified = await FileIntegrityChecker.verifyUpload(
+            config,
+            authConfig,
+            localPath,
+            remotePath,
+            connectConfig,
+            checksumOptions
+          );
+
+          if (!verified) {
+            throw new Error(
+              `File integrity verification failed after parallel upload. ` +
+              `The uploaded file may be corrupted. Please try uploading again.`
+            );
+          }
+        }
+
+        return;
       } else {
         logger.info(`Using standard transfer - File size ${fileSizeMB}MB is below threshold ${thresholdMB}MB`);
       }
@@ -172,7 +196,7 @@ export class SshConnectionManager {
 
     // Use standard transfer for small files or resume
     logger.info(`Using standard upload method for ${path.basename(localPath)}`);
-    return this.withConnection(config, authConfig, async (sftp) => {
+    await this.withConnection(config, authConfig, async (sftp) => {
       // Check if already aborted
       if (signal?.aborted) {
         throw new Error('Transfer aborted');
@@ -201,6 +225,27 @@ export class SshConnectionManager {
         });
       }
     });
+
+    // Verify file integrity if enabled
+    const checksumOptions = FileIntegrityChecker.getOptionsFromConfig();
+    if (checksumOptions.enabled) {
+      const connectConfig = this.buildConnectConfig(config, authConfig);
+      const verified = await FileIntegrityChecker.verifyUpload(
+        config,
+        authConfig,
+        localPath,
+        remotePath,
+        connectConfig,
+        checksumOptions
+      );
+
+      if (!verified) {
+        throw new Error(
+          `File integrity verification failed after upload. ` +
+          `The uploaded file may be corrupted. Please try uploading again.`
+        );
+      }
+    }
   }
 
   /**
@@ -232,8 +277,9 @@ export class SshConnectionManager {
     let transferredSinceStart = 0;
 
     return new Promise((resolve, reject) => {
-      readStream.on('data', (chunk: Buffer) => {
-        transferredSinceStart += chunk.length;
+      readStream.on('data', (chunk: string | Buffer) => {
+        const chunkLength = typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.length;
+        transferredSinceStart += chunkLength;
         const totalTransferred = startOffset + transferredSinceStart;
 
         if (signal?.aborted) {
@@ -330,7 +376,7 @@ export class SshConnectionManager {
         logger.info(`🚀 Using parallel transfer for large file: ${path.basename(remotePath)} (${fileSizeMB}MB)`);
         logger.info(`Configuration - Chunk size: ${PARALLEL_TRANSFER.CHUNK_SIZE / 1024 / 1024}MB, Max concurrent: ${PARALLEL_TRANSFER.MAX_CONCURRENT}`);
 
-        return this.parallelTransferManager.downloadFileParallel(
+        await this.parallelTransferManager.downloadFileParallel(
           config,
           authConfig,
           remotePath,
@@ -343,6 +389,29 @@ export class SshConnectionManager {
             threshold: PARALLEL_TRANSFER.THRESHOLD
           }
         );
+
+        // Verify file integrity if enabled
+        const checksumOptions = FileIntegrityChecker.getOptionsFromConfig();
+        if (checksumOptions.enabled) {
+          const connectConfig = this.buildConnectConfig(config, authConfig);
+          const verified = await FileIntegrityChecker.verifyDownload(
+            config,
+            authConfig,
+            remotePath,
+            localPath,
+            connectConfig,
+            checksumOptions
+          );
+
+          if (!verified) {
+            throw new Error(
+              `File integrity verification failed after parallel download. ` +
+              `The downloaded file may be corrupted. Please try downloading again.`
+            );
+          }
+        }
+
+        return;
       } else {
         logger.info(`Using standard transfer - File size ${fileSizeMB}MB is below threshold ${thresholdMB}MB`);
       }
@@ -357,7 +426,7 @@ export class SshConnectionManager {
 
     // Use standard transfer for small files or resume
     logger.info(`Using standard download method for ${path.basename(remotePath)}`);
-    return this.withConnection(config, authConfig, async (sftp) => {
+    await this.withConnection(config, authConfig, async (sftp) => {
       // Check if already aborted
       if (signal?.aborted) {
         throw new Error('Transfer aborted');
@@ -388,6 +457,27 @@ export class SshConnectionManager {
         });
       }
     });
+
+    // Verify file integrity if enabled
+    const checksumOptions = FileIntegrityChecker.getOptionsFromConfig();
+    if (checksumOptions.enabled) {
+      const connectConfig = this.buildConnectConfig(config, authConfig);
+      const verified = await FileIntegrityChecker.verifyDownload(
+        config,
+        authConfig,
+        remotePath,
+        localPath,
+        connectConfig,
+        checksumOptions
+      );
+
+      if (!verified) {
+        throw new Error(
+          `File integrity verification failed after download. ` +
+          `The downloaded file may be corrupted. Please try downloading again.`
+        );
+      }
+    }
   }
 
   /**
@@ -419,8 +509,9 @@ export class SshConnectionManager {
     let transferredSinceStart = 0;
 
     return new Promise((resolve, reject) => {
-      readStream.on('data', (chunk: Buffer) => {
-        transferredSinceStart += chunk.length;
+      readStream.on('data', (chunk: string | Buffer) => {
+        const chunkLength = typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.length;
+        transferredSinceStart += chunkLength;
         const totalTransferred = startOffset + transferredSinceStart;
 
         if (signal?.aborted) {
