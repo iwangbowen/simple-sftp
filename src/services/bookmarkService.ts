@@ -74,8 +74,14 @@ export class BookmarkService {
       return;
     }
 
+    // Ask for bookmark description (optional)
+    const description = await vscode.window.showInputBox({
+      prompt: 'Enter bookmark description (optional)',
+      placeHolder: 'e.g., Main project source code directory',
+    });
+
     try {
-      await this.hostManager.addBookmark(host.id, name.trim(), remotePath);
+      await this.hostManager.addBookmark(host.id, name.trim(), remotePath, description?.trim());
       this.treeProvider.refresh();
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to add bookmark: ${error}`);
@@ -140,15 +146,27 @@ export class BookmarkService {
       }
     });
 
-    if (!newName || newName.trim() === bookmark.name) {
-      return; // User cancelled or name unchanged
+    if (!newName) {
+      return; // User cancelled
+    }
+
+    // Ask for new description (optional)
+    const newDescription = await vscode.window.showInputBox({
+      prompt: 'Enter bookmark description (optional)',
+      value: bookmark.description || '',
+      placeHolder: 'e.g., Main project source code directory',
+    });
+
+    // Check if anything changed
+    if (newName.trim() === bookmark.name && newDescription?.trim() === (bookmark.description || '')) {
+      return; // Nothing changed
     }
 
     try {
-      await this.hostManager.updateBookmark(hostId, bookmark.name, newName.trim(), bookmark.path);
+      await this.hostManager.updateBookmark(hostId, bookmark.name, newName.trim(), bookmark.path, newDescription?.trim());
       this.treeProvider.refresh();
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to rename bookmark: ${error}`);
+      vscode.window.showErrorMessage(`Failed to update bookmark: ${error}`);
     }
   }
 

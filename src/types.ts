@@ -6,6 +6,8 @@ export interface PathBookmark {
   name: string;
   /** 远程路径 */
   path: string;
+  /** 书签说明/备注 */
+  description?: string;
 }
 
 /**

@@ -376,7 +376,7 @@ export class HostManager {
   /**
    * Add a path bookmark for a specific host
    */
-  async addBookmark(hostId: string, name: string, path: string): Promise<void> {
+  async addBookmark(hostId: string, name: string, path: string, description?: string): Promise<void> {
     const data = await this.loadData();
     const host = data.hosts.find(h => h.id === hostId);
 
@@ -391,7 +391,7 @@ export class HostManager {
       throw new Error(`Bookmark with name '${name}' already exists`);
     }
 
-    host.bookmarks.push({ name, path });
+    host.bookmarks.push({ name, path, description });
     await this.saveData(data);
   }
 
@@ -426,7 +426,7 @@ export class HostManager {
   /**
    * Update a bookmark (rename or change path)
    */
-  async updateBookmark(hostId: string, oldName: string, newName: string, newPath: string): Promise<void> {
+  async updateBookmark(hostId: string, oldName: string, newName: string, newPath: string, newDescription?: string): Promise<void> {
     const data = await this.loadData();
     const host = data.hosts.find(h => h.id === hostId);
 
@@ -446,6 +446,7 @@ export class HostManager {
 
     bookmark.name = newName;
     bookmark.path = newPath;
+    bookmark.description = newDescription;
     await this.saveData(data);
   }
 

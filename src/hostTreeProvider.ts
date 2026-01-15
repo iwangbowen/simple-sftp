@@ -77,7 +77,12 @@ export class HostTreeItem extends vscode.TreeItem {
       this.contextValue = 'bookmark';
       this.iconPath = new vscode.ThemeIcon('bookmark');
       this.description = bookmark.path;
-      this.tooltip = `Path: ${bookmark.path}`;
+      // Build tooltip with description if available
+      const tooltipParts = [`Path: ${bookmark.path}`];
+      if (bookmark.description) {
+        tooltipParts.push(`Description: ${bookmark.description}`);
+      }
+      this.tooltip = tooltipParts.join('\n');
     } else {
       this.contextValue = 'group';
       this.iconPath = new vscode.ThemeIcon('folder');
