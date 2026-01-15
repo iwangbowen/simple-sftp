@@ -413,10 +413,10 @@ export class SshConnectionManager {
         resolve();
       })
       .on('data', (data: Buffer) => {
-        console.log('STDOUT:', data.toString());
+        logger.debug(`STDOUT: ${data.toString()}`);
       })
       .stderr.on('data', (data: Buffer) => {
-        console.error('STDERR:', data.toString());
+        logger.error(`STDERR: ${data.toString()}`);
       });
   }
 

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { HostAuthConfig } from './types';
+import { logger } from './logger';
 
 /**
  * Authentication manager using SecretStorage
@@ -66,7 +67,7 @@ export class AuthManager {
     try {
       return JSON.parse(json);
     } catch (error) {
-      console.error('Failed to parse authentication configs:', error);
+      logger.error('Failed to parse authentication configs', error as Error);
       return [];
     }
   }

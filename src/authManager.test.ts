@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuthManager } from './authManager';
 import { HostAuthConfig } from './types';
 import * as vscode from 'vscode';
+import { logger } from './logger';
 
 describe('AuthManager', () => {
   let authManager: AuthManager;
@@ -279,17 +280,17 @@ describe('AuthManager', () => {
       // 模拟损坏的 JSON
       secretsStore.set('hostAuthConfigs', 'invalid{json}');
 
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
       const result = await authManager.getAuth('host1');
 
       expect(result).toBeUndefined();
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to parse authentication configs:',
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Failed to parse authentication configs',
         expect.any(SyntaxError)
       );
 
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
 
     it('should recover from corrupted data and allow saving new auth', async () => {
