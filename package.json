@@ -555,52 +555,52 @@
         {
           "command": "simpleScp.duplicateHost",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_actions@0"
-        },
-        {
-          "command": "simpleScp.copySshCommand",
-          "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_actions@1"
-        },
-        {
-          "command": "simpleScp.openSshTerminal",
-          "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_actions@1a"
-        },
-        {
-          "command": "simpleScp.testConnection",
-          "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_actions@2"
-        },
-        {
-          "command": "simpleScp.configureAuth",
-          "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_actions@3"
-        },
-        {
-          "command": "simpleScp.setupPasswordlessLogin",
-          "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_actions@4"
+          "group": "1_host@1"
         },
         {
           "command": "simpleScp.moveHostToGroup",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_actions@5"
+          "group": "1_host@2"
         },
         {
           "command": "simpleScp.toggleStar",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "2_actions@6"
+          "group": "1_host@3"
+        },
+        {
+          "command": "simpleScp.openSshTerminal",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_connect@1"
+        },
+        {
+          "command": "simpleScp.copySshCommand",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_connect@2"
+        },
+        {
+          "command": "simpleScp.testConnection",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_connect@3"
+        },
+        {
+          "command": "simpleScp.configureAuth",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "3_auth@1"
+        },
+        {
+          "command": "simpleScp.setupPasswordlessLogin",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "3_auth@2"
         },
         {
           "command": "simpleScp.addBookmark",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "3_bookmarks@1"
+          "group": "4_bookmarks@1"
         },
         {
           "command": "simpleScp.exportHost",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "4_export@1"
+          "group": "5_export@1"
         },
         {
           "command": "simpleScp.deleteHost",
