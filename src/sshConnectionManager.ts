@@ -7,12 +7,15 @@ import SftpClient from 'ssh2-sftp-client';
 import { HostConfig, HostAuthConfig } from './types';
 import { SshConnectionPool } from './sshConnectionPool';
 import { logger } from './logger';
+import { ParallelChunkTransferManager } from './parallelChunkTransfer';
+import { PARALLEL_TRANSFER } from './constants';
 
 /**
  * SSH 连接管理器
  */
 export class SshConnectionManager {
   private static readonly connectionPool = SshConnectionPool.getInstance();
+  private static readonly parallelTransferManager = new ParallelChunkTransferManager();
 
   /**
    * 使用连接池执行操作
@@ -126,6 +129,30 @@ export class SshConnectionManager {
     signal?: AbortSignal,
     startOffset: number = 0
   ): Promise<void> {
+    // Check if we should use parallel transfer
+    if (PARALLEL_TRANSFER.ENABLED && startOffset === 0) {
+      const stat = fs.statSync(localPath);
+      if (this.parallelTransferManager.shouldUseParallelTransfer(stat.size, {
+        threshold: PARALLEL_TRANSFER.THRESHOLD
+      })) {
+        logger.info(`Using parallel transfer for large file: ${path.basename(localPath)} (${stat.size} bytes)`);
+        return this.parallelTransferManager.uploadFileParallel(
+          config,
+          authConfig,
+          localPath,
+          remotePath,
+          onProgress,
+          signal,
+          {
+            chunkSize: PARALLEL_TRANSFER.CHUNK_SIZE,
+            maxConcurrent: PARALLEL_TRANSFER.MAX_CONCURRENT,
+            threshold: PARALLEL_TRANSFER.THRESHOLD
+          }
+        );
+      }
+    }
+
+    // Use standard transfer for small files or resume
     return this.withConnection(config, authConfig, async (sftp) => {
       // Check if already aborted
       if (signal?.aborted) {
@@ -264,6 +291,34 @@ export class SshConnectionManager {
     signal?: AbortSignal,
     startOffset: number = 0
   ): Promise<void> {
+    // Check if we should use parallel transfer
+    if (PARALLEL_TRANSFER.ENABLED && startOffset === 0) {
+      // Get remote file size first
+      const stat = await this.withConnection(config, authConfig, async (sftp) => {
+        return sftp.stat(remotePath);
+      });
+
+      if (this.parallelTransferManager.shouldUseParallelTransfer(stat.size, {
+        threshold: PARALLEL_TRANSFER.THRESHOLD
+      })) {
+        logger.info(`Using parallel transfer for large file: ${path.basename(remotePath)} (${stat.size} bytes)`);
+        return this.parallelTransferManager.downloadFileParallel(
+          config,
+          authConfig,
+          remotePath,
+          localPath,
+          onProgress,
+          signal,
+          {
+            chunkSize: PARALLEL_TRANSFER.CHUNK_SIZE,
+            maxConcurrent: PARALLEL_TRANSFER.MAX_CONCURRENT,
+            threshold: PARALLEL_TRANSFER.THRESHOLD
+          }
+        );
+      }
+    }
+
+    // Use standard transfer for small files or resume
     return this.withConnection(config, authConfig, async (sftp) => {
       // Check if already aborted
       if (signal?.aborted) {

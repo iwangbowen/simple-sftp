@@ -18,6 +18,13 @@ export const TIMING = {
   PATH_INPUT_DEBOUNCE: 300, // ms - Debounce for path input
 } as const;
 
+export const PARALLEL_TRANSFER = {
+  CHUNK_SIZE: 10 * 1024 * 1024,        // 10MB per chunk
+  MAX_CONCURRENT: 5,                    // Maximum concurrent chunk transfers
+  THRESHOLD: 100 * 1024 * 1024,         // Minimum file size to use parallel transfer (100MB)
+  ENABLED: true,                        // Enable/disable parallel transfer feature
+} as const;
+
 export const PROMPTS = {
   // Add Host steps
   hostName: 'Step 1/6: Enter host name',
