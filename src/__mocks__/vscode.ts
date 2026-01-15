@@ -5,6 +5,30 @@ export const window = {
   showWarningMessage: vi.fn(),
   showQuickPick: vi.fn(),
   showInputBox: vi.fn(),
+  createQuickPick: vi.fn(() => ({
+    placeholder: '',
+    canSelectMany: false,
+    items: [],
+    activeItems: [],
+    selectedItems: [],
+    busy: false,
+    enabled: true,
+    ignoreFocusOut: false,
+    matchOnDescription: false,
+    matchOnDetail: false,
+    value: '',
+    buttons: [],
+    show: vi.fn(),
+    hide: vi.fn(),
+    dispose: vi.fn(),
+    onDidChangeValue: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidAccept: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidHide: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidChangeSelection: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidChangeActive: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidTriggerButton: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidTriggerItemButton: vi.fn(() => ({ dispose: vi.fn() })),
+  })),
   createTreeView: vi.fn(() => ({
     reveal: vi.fn(),
     dispose: vi.fn()
@@ -98,6 +122,10 @@ export class TreeItem {
   description?: string;
   tooltip?: string;
   command?: any;
+}
+
+export class ThemeIcon {
+  constructor(public id: string) {}
 }
 
 export class EventEmitter {
@@ -255,6 +283,7 @@ export default {
   Uri,
   TreeItemCollapsibleState,
   TreeItem,
+  ThemeIcon,
   EventEmitter,
   Disposable,
   ExtensionContext,
