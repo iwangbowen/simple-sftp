@@ -1,30 +1,30 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as os from 'os';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import * as fs from 'node:fs';
 import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
 import { HostTreeProvider, HostTreeItem } from './hostTreeProvider';
 import { SshConnectionManager } from './sshConnectionManager';
-import { HostConfig, HostAuthConfig, FullHostConfig, GroupConfig } from './types';
+import { HostConfig, HostAuthConfig, GroupConfig } from './types';
 import { logger } from './logger';
 import { SshConnectionPool } from './sshConnectionPool';
 import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/formatUtils';
 import { BookmarkService } from './services/bookmarkService';
 import { RemoteBrowserService } from './services/remoteBrowserService';
 import { TransferQueueService } from './services/transferQueueService';
-import { DEFAULTS, LIMITS, TIMING, PROMPTS, PLACEHOLDERS, MESSAGES, INSTRUCTIONS, TOOLTIPS, LABELS } from './constants';
+import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS } from './constants';
 
 export class CommandHandler {
-  private downloadStatusBar: vscode.StatusBarItem;
-  private bookmarkService: BookmarkService;
-  private remoteBrowserService: RemoteBrowserService;
+  private readonly downloadStatusBar: vscode.StatusBarItem;
+  private readonly bookmarkService: BookmarkService;
+  private readonly remoteBrowserService: RemoteBrowserService;
 
   constructor(
-    private hostManager: HostManager,
-    private authManager: AuthManager,
-    private treeProvider: HostTreeProvider,
-    private transferQueueService?: TransferQueueService
+    private readonly hostManager: HostManager,
+    private readonly authManager: AuthManager,
+    private readonly treeProvider: HostTreeProvider,
+    private readonly transferQueueService?: TransferQueueService
   ) {
     // Create status bar item for download progress
     this.downloadStatusBar = vscode.window.createStatusBarItem(
@@ -152,7 +152,7 @@ export class CommandHandler {
       prompt: PROMPTS.hostAddress,
       placeHolder: PLACEHOLDERS.hostAddress,
       validateInput: (value) => {
-        if (!value || !value.trim()) {
+        if (!value?.trim()) {
           return MESSAGES.hostAddressRequired;
         }
         return undefined;
@@ -165,25 +165,25 @@ export class CommandHandler {
       prompt: PROMPTS.hostPort,
       value: PLACEHOLDERS.port,
       validateInput: (value) => {
-        if (!value || !value.trim()) {
+        if (!value?.trim()) {
           return undefined; // Empty is allowed, will use default
         }
-        const port = parseInt(value);
-        if (isNaN(port) || port < LIMITS.MIN_PORT || port > LIMITS.MAX_PORT) {
+        const port = Number.parseInt(value);
+        if (Number.isNaN(port) || port < LIMITS.MIN_PORT || port > LIMITS.MAX_PORT) {
           return MESSAGES.portRange(LIMITS.MIN_PORT, LIMITS.MAX_PORT);
         }
         return undefined;
       },
     });
     if (portStr === undefined) {return;}
-    const port = portStr.trim() ? parseInt(portStr) : DEFAULTS.PORT;
+    const port = portStr.trim() ? Number.parseInt(portStr) : DEFAULTS.PORT;
 
     // Step 4/6: Username
     const username = await vscode.window.showInputBox({
       prompt: PROMPTS.hostUsername,
       value: PLACEHOLDERS.username,
       validateInput: (value) => {
-        if (!value || !value.trim()) {
+        if (!value?.trim()) {
           return MESSAGES.usernameRequired;
         }
         return undefined;
@@ -281,7 +281,7 @@ export class CommandHandler {
         prompt: 'Enter password',
         password: true,
         validateInput: (value) => {
-          if (!value || !value.trim()) {
+          if (!value?.trim()) {
             return 'Password is required';
           }
           return undefined;
@@ -295,7 +295,7 @@ export class CommandHandler {
         prompt: 'Enter private key path',
         value: '~/.ssh/id_rsa',
         validateInput: (value) => {
-          if (!value || !value.trim()) {
+          if (!value?.trim()) {
             return 'Private key path is required';
           }
           return undefined;
@@ -327,7 +327,7 @@ export class CommandHandler {
         authType: authType.value as any,
         password,
         privateKeyPath,
-        passphrase: passphrase && passphrase.trim() ? passphrase : undefined, // Only save non-empty passphrase
+        passphrase: passphrase?.trim() ? passphrase : undefined, // Only save non-empty passphrase
       });
       return true;
     } catch (error) {
@@ -379,7 +379,7 @@ export class CommandHandler {
           prompt: PROMPTS.editHostName,
           value: config.name,
           validateInput: (value) => {
-            if (!value || !value.trim()) {
+            if (!value?.trim()) {
               return MESSAGES.hostNameRequired;
             }
             return undefined;
@@ -394,7 +394,7 @@ export class CommandHandler {
           value: config.host,
           placeHolder: PLACEHOLDERS.hostAddress,
           validateInput: (value) => {
-            if (!value || !value.trim()) {
+            if (!value?.trim()) {
               return MESSAGES.hostAddressRequired;
             }
             return undefined;
@@ -409,11 +409,11 @@ export class CommandHandler {
           value: config.port.toString(),
           placeHolder: PLACEHOLDERS.port,
           validateInput: (value) => {
-            if (!value || !value.trim()) {
+            if (!value?.trim()) {
               return MESSAGES.portRequired;
             }
-            const port = parseInt(value);
-            if (isNaN(port) || port < LIMITS.MIN_PORT || port > LIMITS.MAX_PORT) {
+            const port = Number.parseInt(value);
+            if (Number.isNaN(port) || port < LIMITS.MIN_PORT || port > LIMITS.MAX_PORT) {
               return MESSAGES.portInvalid;
             }
             return undefined;
@@ -421,7 +421,7 @@ export class CommandHandler {
         });
         if (portStr === undefined) {return;}
 
-        await this.hostManager.updateHost(config.id, { port: parseInt(portStr) });
+        await this.hostManager.updateHost(config.id, { port: Number.parseInt(portStr) });
       } else if (choice.value === 'remotePath') {
         const defaultRemotePath = await vscode.window.showInputBox({
           prompt: PROMPTS.editRemotePath,
@@ -507,7 +507,7 @@ export class CommandHandler {
       prompt: 'Enter name for duplicated host',
       value: newName,
       validateInput: (value) => {
-        if (!value || !value.trim()) {
+        if (!value?.trim()) {
           return MESSAGES.hostNameRequired;
         }
         return undefined;
@@ -631,11 +631,10 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           const hostsInGroup = allHosts.filter(h => h.group === groupConfig.id);
           for (const host of hostsInGroup) {
             // Avoid duplicates - don't add if already explicitly selected
-            const hostConfig = host as HostConfig;
-            const matchedHost = hostsToDelete.find(h => (h.data as HostConfig).id === hostConfig.id);
+            const matchedHost = hostsToDelete.find(h => (h.data as HostConfig).id === host.id);
             if (!matchedHost) {
-              await this.hostManager.deleteHost(hostConfig.id);
-              logger.info(`Deleted host in group: ${hostConfig.name}`);
+              await this.hostManager.deleteHost(host.id);
+              logger.info(`Deleted host in group: ${host.name}`);
             }
           }
         }
@@ -683,7 +682,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       prompt: 'Enter group name',
       placeHolder: 'e.g., Production',
       validateInput: async (value) => {
-        if (!value || !value.trim()) {
+        if (!value?.trim()) {
           return 'Group name is required';
         }
         const groups = await this.hostManager.getGroups();
@@ -799,7 +798,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       prompt: 'Enter new group name',
       value: groupConfig.name,
       validateInput: async (value) => {
-        if (!value || !value.trim()) {
+        if (!value?.trim()) {
           return 'Group name is required';
         }
         // Check for duplicate names (excluding current group)
@@ -993,7 +992,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       const jsonData = await this.hostManager.exportGroup(groupId);
       const group = (await this.hostManager.getGroups()).find(g => g.id === groupId);
       const groupName = group?.name ?? 'group';
-      const fileName = groupName.toLowerCase().replace(/\s+/g, '-');
+      const fileName = groupName.toLowerCase().replaceAll(/\s+/g, '-');
       await this.saveExportFile(jsonData, fileName);
     } catch (error) {
       vscode.window.showErrorMessage(`Export failed: ${error}`);
@@ -1013,7 +1012,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       const jsonData = await this.hostManager.exportHost(hostId);
       const host = (await this.hostManager.getHosts()).find(h => h.id === hostId);
       const hostName = host?.name ?? 'host';
-      const fileName = hostName.toLowerCase().replace(/\s+/g, '-');
+      const fileName = hostName.toLowerCase().replaceAll(/\s+/g, '-');
       await this.saveExportFile(jsonData, fileName);
     } catch (error) {
       vscode.window.showErrorMessage(`Export failed: ${error}`);
@@ -1250,7 +1249,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     if (!remotePath) {return;}
 
     const fileName = path.basename(localPath);
-    const finalRemotePath = `${remotePath}/${fileName}`.replace(/\\/g, '/');
+    const finalRemotePath = `${remotePath}/${fileName}`.replaceAll(/\\/g, '/');
 
     // Add to transfer queue (all transfers use queue now)
     if (this.transferQueueService) {
@@ -1354,7 +1353,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     // Check if we already have private key authentication configured
     const authConfig = await this.authManager.getAuth(config.id);
-    if (authConfig && authConfig.authType === 'privateKey') {
+    if (authConfig?.authType === 'privateKey') {
       // Test if the key works
       const hasPasswordless = await SshConnectionManager.checkPasswordlessLogin(config, authConfig);
       if (hasPasswordless) {
@@ -1403,6 +1402,10 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     logger.info(`Setting up passwordless login for ${config.name} using key ${publicKeyPath}`);
 
+    // TypeScript type narrowing - these are guaranteed non-null at this point
+    const validPublicKeyPath: string = publicKeyPath;
+    const validTempAuthConfig: HostAuthConfig = tempAuthConfig;
+
     try {
       await vscode.window.withProgress(
         {
@@ -1410,12 +1413,12 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           title: 'Configuring passwordless login...',
         },
         async () => {
-          await SshConnectionManager.setupPasswordlessLogin(config, tempAuthConfig!, publicKeyPath!);
+          await SshConnectionManager.setupPasswordlessLogin(config, validTempAuthConfig, validPublicKeyPath);
         }
       );
 
       // Update authentication to use private key
-      const privateKeyPath = publicKeyPath.replace('.pub', '');
+      const privateKeyPath = validPublicKeyPath.replace('.pub', '');
       await this.authManager.saveAuth({
         hostId: config.id,
         authType: 'privateKey',
@@ -2265,7 +2268,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
       // Record this host as recently used
       await this.hostManager.recordRecentUsed(config.id);
-      const remoteDir = path.dirname(remotePath.path).replace(/\\/g, '/');
+      const remoteDir = path.dirname(remotePath.path).replaceAll(/\\/g, '/');
       await this.hostManager.recordRecentPath(config.id, remoteDir);
 
       return;
