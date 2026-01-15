@@ -1,5 +1,17 @@
 # Change Log
 
+## [2.2.0] - 2026-01-15
+
+### Changed
+
+- **New Extension Icon**: Modern green-themed icon design
+  - Reflects the new SFTP focus and v2.x major update
+  - High-resolution support for Retina displays (256x256)
+  - Improved visual clarity and brand differentiation
+  - Distinct from previous blue-themed icon
+
+---
+
 ## [2.1.0] - 2026-01-15
 
 ### Added
