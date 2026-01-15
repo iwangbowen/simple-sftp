@@ -409,6 +409,12 @@
           "command": "simpleSftp.showConnectionPool"
         },
         {
+          "command": "simpleSftp.viewTransferHistory"
+        },
+        {
+          "command": "simpleSftp.clearHistory"
+        },
+        {
           "command": "simpleSftp.uploadFile",
           "when": "false"
         },
@@ -453,11 +459,19 @@
           "when": "false"
         },
         {
+          "command": "simpleSftp.openSshTerminal",
+          "when": "false"
+        },
+        {
           "command": "simpleSftp.addBookmark",
           "when": "false"
         },
         {
           "command": "simpleSftp.renameBookmark",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.editBookmarkDescription",
           "when": "false"
         },
         {
@@ -482,6 +496,74 @@
         },
         {
           "command": "simpleSftp.toggleStar",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.pauseQueue",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.resumeQueue",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.pauseTask",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.resumeTask",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.cancelTask",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.retryTask",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.removeTask",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.clearCompleted",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.clearAll",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.showTaskDetails",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.showQueueStats",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.openGitHubReadme",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.openIssues",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.reportIssue",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.openGitHubRepo",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.expandAll",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.collapseAll",
           "when": "false"
         }
       ],
