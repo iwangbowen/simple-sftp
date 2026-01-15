@@ -1527,9 +1527,11 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     if (item.type !== 'host') {return;}
 
     const config = item.data as HostConfig;
-    const fullConfig = await this.getFullHostConfig(config);
 
-    if (!fullConfig) {
+    // Get authentication configuration
+    const authConfig = await this.authManager.getAuth(config.id);
+    if (!authConfig) {
+      vscode.window.showErrorMessage('No authentication configured for this host');
       return;
     }
 
@@ -1542,8 +1544,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
 
     // Add identity file if using private key auth
-    if (fullConfig.auth.type === 'privateKey' && fullConfig.auth.privateKeyPath) {
-      args.push('-i', fullConfig.auth.privateKeyPath);
+    if (authConfig.type === 'privateKey' && authConfig.privateKeyPath) {
+      args.push('-i', authConfig.privateKeyPath);
     }
 
     // Add the connection string
