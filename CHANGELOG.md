@@ -1,8 +1,28 @@
 # Change Log
 
+## [2.1.0] - 2026-01-15
+
+### Added
+
+- **Resume Support (断点续传)**: Paused transfers can now resume from where they stopped instead of restarting from the beginning
+  - Upload files: Resumes from last transmitted byte using SFTP streams
+  - Download files: Resumes from last transmitted byte using SFTP streams
+  - Progress and speed statistics are preserved when resuming
+  - Efficient stream-based transfer for large files with resume capability
+  - Automatic fallback to fast transfer mode for new transfers
+
+### Technical Improvements
+
+- Added `uploadFileWithResume()` and `downloadFileWithResume()` methods to SshConnectionManager
+- Enhanced TransferTaskModel to preserve progress state on resume
+- Updated TransferQueueService to automatically pass resume offset to transfer operations
+- Stream-based transfers use 64KB chunks for optimal performance
+
+---
+
 ## [2.0.0] - 2026-01-15
 
-### 🎯 Major Refactoring - SCP to SFTP
+### Major Refactoring - SCP to SFTP
 
 **Breaking Changes:**
 - Complete migration from SCP to SFTP protocol
@@ -29,6 +49,7 @@
 **Why This Change:**
 - SFTP is more reliable and feature-rich than SCP
 - Better support for directory operations and file attributes
+- Native support for resume/partial transfers
 - More consistent cross-platform behavior
 - Industry standard for secure file transfer
 
@@ -146,7 +167,7 @@
 
 ## [1.0.0] - 2026-01-13
 
-### 🎉 Major Release: Transfer Queue System
+### Major Release: Transfer Queue System
 
 #### New Features
 

@@ -262,18 +262,21 @@ describe('TransferTaskModel', () => {
         expect(task.status).toBe('pending');
       });
 
-      it('should reset progress when resuming', () => {
+      it('should keep progress when resuming (for resume support)', () => {
         const task = new TransferTaskModel(defaultOptions);
         task.start();
         task.updateProgress(512 * 1024, 1024 * 1024);
         task.pause();
 
+        const transferredBeforeResume = task.transferred;
+        const progressBeforeResume = task.progress;
+
         task.resume();
 
-        expect(task.transferred).toBe(0);
-        expect(task.progress).toBe(0);
-        expect(task.speed).toBe(0);
-        expect(task.estimatedTime).toBe(0);
+        // SFTP 支持断点续传，应该保留进度
+        expect(task.transferred).toBe(transferredBeforeResume);
+        expect(task.progress).toBe(progressBeforeResume);
+        expect(task.status).toBe('pending');
       });
 
       it('should not change status if not paused', () => {

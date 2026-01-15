@@ -138,14 +138,9 @@ createdAt!: Date;
   resume(): void {
     if (this.status === 'paused') {
       this.status = 'pending';
-      // Reset progress since we don't support resume from partial transfer
-      this.transferred = 0;
-      this.progress = 0;
-      this.speed = 0;
-      this.estimatedTime = 0;
-      this.lastTransferred = 0;
-      this.lastUpdateTime = 0;
-      logger.info(`Task ${this.id} resumed (will restart from beginning): ${this.fileName}`);
+      // SFTP supports resume - keep the current progress
+      // Don't reset transferred, progress, or speed
+      logger.info(`Task ${this.id} resuming from ${this.transferred} bytes: ${this.fileName}`);
     }
   }
 

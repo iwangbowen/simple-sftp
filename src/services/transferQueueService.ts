@@ -242,7 +242,8 @@ export class TransferQueueService extends EventEmitter {
             task.updateProgress(transferred, total);
             this._onTaskUpdated.fire(task);
           },
-          task.abortController?.signal
+          task.abortController?.signal,
+          task.transferred // 从已传输的位置开始（断点续传）
         );
       }
     } else if (task.type === 'download') {
@@ -270,7 +271,8 @@ export class TransferQueueService extends EventEmitter {
             task.updateProgress(transferred, total);
             this._onTaskUpdated.fire(task);
           },
-          task.abortController?.signal
+          task.abortController?.signal,
+          task.transferred // 从已传输的位置开始（断点续传）
         );
       }
     }

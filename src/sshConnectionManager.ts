@@ -123,7 +123,8 @@ export class SshConnectionManager {
     localPath: string,
     remotePath: string,
     onProgress?: (transferred: number, total: number) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    startOffset: number = 0
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
       // Check if already aborted
@@ -135,19 +136,77 @@ export class SshConnectionManager {
       const remoteDir = path.dirname(remotePath).replaceAll('\\', '/');
       await sftp.mkdir(remoteDir, true);
 
-      // 上传文件
-      await sftp.fastPut(localPath, remotePath, {
-        step: (transferred: number, _chunk: any, total: number) => {
-          // Check for abort signal
-          if (signal?.aborted) {
-            throw new Error('Transfer aborted');
-          }
+      // 如果支持断点续传且有起始偏移量
+      if (startOffset > 0) {
+        await this.uploadFileWithResume(sftp, localPath, remotePath, startOffset, onProgress, signal);
+      } else {
+        // 上传文件
+        await sftp.fastPut(localPath, remotePath, {
+          step: (transferred: number, _chunk: any, total: number) => {
+            // Check for abort signal
+            if (signal?.aborted) {
+              throw new Error('Transfer aborted');
+            }
 
-          if (onProgress) {
-            onProgress(transferred, total);
-          }
-        },
+            if (onProgress) {
+              onProgress(transferred, total);
+            }
+          },
+        });
+      }
+    });
+  }
+
+  /**
+   * 断点续传上传文件
+   */
+  private static async uploadFileWithResume(
+    sftp: any,
+    localPath: string,
+    remotePath: string,
+    startOffset: number,
+    onProgress?: (transferred: number, total: number) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const stat = fs.statSync(localPath);
+    const totalSize = stat.size;
+
+    // 创建读取流，从指定位置开始
+    const readStream = fs.createReadStream(localPath, {
+      start: startOffset,
+      highWaterMark: 64 * 1024 // 64KB chunks
+    });
+
+    // 创建写入流，追加模式
+    const writeStream = sftp.createWriteStream(remotePath, {
+      flags: 'a', // append mode
+      start: startOffset
+    });
+
+    let transferredSinceStart = 0;
+
+    return new Promise((resolve, reject) => {
+      readStream.on('data', (chunk: Buffer) => {
+        transferredSinceStart += chunk.length;
+        const totalTransferred = startOffset + transferredSinceStart;
+
+        if (signal?.aborted) {
+          readStream.destroy();
+          writeStream.destroy();
+          reject(new Error('Transfer aborted'));
+          return;
+        }
+
+        if (onProgress) {
+          onProgress(totalTransferred, totalSize);
+        }
       });
+
+      readStream.on('error', reject);
+      writeStream.on('error', reject);
+      writeStream.on('finish', resolve);
+
+      readStream.pipe(writeStream);
     });
   }
 
@@ -202,7 +261,8 @@ export class SshConnectionManager {
     remotePath: string,
     localPath: string,
     onProgress?: (transferred: number, total: number) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    startOffset: number = 0
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
       // Check if already aborted
@@ -216,19 +276,77 @@ export class SshConnectionManager {
         fs.mkdirSync(localDir, { recursive: true });
       }
 
-      // 下载文件
-      await sftp.fastGet(remotePath, localPath, {
-        step: (transferred: number, _chunk: any, total: number) => {
-          // Check for abort signal
-          if (signal?.aborted) {
-            throw new Error('Transfer aborted');
-          }
+      // 如果支持断点续传且有起始偏移量
+      if (startOffset > 0) {
+        await this.downloadFileWithResume(sftp, remotePath, localPath, startOffset, onProgress, signal);
+      } else {
+        // 下载文件
+        await sftp.fastGet(remotePath, localPath, {
+          step: (transferred: number, _chunk: any, total: number) => {
+            // Check for abort signal
+            if (signal?.aborted) {
+              throw new Error('Transfer aborted');
+            }
 
-          if (onProgress) {
-            onProgress(transferred, total);
-          }
-        },
+            if (onProgress) {
+              onProgress(transferred, total);
+            }
+          },
+        });
+      }
+    });
+  }
+
+  /**
+   * 断点续传下载文件
+   */
+  private static async downloadFileWithResume(
+    sftp: any,
+    remotePath: string,
+    localPath: string,
+    startOffset: number,
+    onProgress?: (transferred: number, total: number) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const stat = await sftp.stat(remotePath);
+    const totalSize = stat.size;
+
+    // 创建读取流，从指定位置开始
+    const readStream = sftp.createReadStream(remotePath, {
+      start: startOffset,
+      highWaterMark: 64 * 1024 // 64KB chunks
+    });
+
+    // 创建写入流，追加模式
+    const writeStream = fs.createWriteStream(localPath, {
+      flags: 'a', // append mode
+      start: startOffset
+    });
+
+    let transferredSinceStart = 0;
+
+    return new Promise((resolve, reject) => {
+      readStream.on('data', (chunk: Buffer) => {
+        transferredSinceStart += chunk.length;
+        const totalTransferred = startOffset + transferredSinceStart;
+
+        if (signal?.aborted) {
+          readStream.destroy();
+          writeStream.destroy();
+          reject(new Error('Transfer aborted'));
+          return;
+        }
+
+        if (onProgress) {
+          onProgress(totalTransferred, totalSize);
+        }
       });
+
+      readStream.on('error', reject);
+      writeStream.on('error', reject);
+      writeStream.on('finish', resolve);
+
+      readStream.pipe(writeStream);
     });
   }
 
