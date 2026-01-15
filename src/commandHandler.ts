@@ -50,86 +50,86 @@ export class CommandHandler {
 
   registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-      vscode.commands.registerCommand('simpleScp.addHost', () => this.addHost()),
-      vscode.commands.registerCommand('simpleScp.addHostToGroup', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.addHost', () => this.addHost()),
+      vscode.commands.registerCommand('simpleSftp.addHostToGroup', (item: HostTreeItem) =>
         this.addHostToGroup(item)
       ),
-      vscode.commands.registerCommand('simpleScp.editHost', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.editHost', (item: HostTreeItem) =>
         this.editHost(item)
       ),
-      vscode.commands.registerCommand('simpleScp.duplicateHost', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.duplicateHost', (item: HostTreeItem) =>
         this.duplicateHost(item)
       ),
-      vscode.commands.registerCommand('simpleScp.deleteHost', (item: HostTreeItem, items?: HostTreeItem[]) =>
+      vscode.commands.registerCommand('simpleSftp.deleteHost', (item: HostTreeItem, items?: HostTreeItem[]) =>
         this.deleteHost(item, items)
       ),
-      vscode.commands.registerCommand('simpleScp.moveHostToGroup', (item: HostTreeItem, items?: HostTreeItem[]) =>
+      vscode.commands.registerCommand('simpleSftp.moveHostToGroup', (item: HostTreeItem, items?: HostTreeItem[]) =>
         this.moveHostToGroup(item, items)
       ),
-      vscode.commands.registerCommand('simpleScp.toggleStar', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.toggleStar', (item: HostTreeItem) =>
         this.toggleStar(item)
       ),
-      vscode.commands.registerCommand('simpleScp.addGroup', () => this.addGroup()),
-      vscode.commands.registerCommand('simpleScp.editGroup', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.addGroup', () => this.addGroup()),
+      vscode.commands.registerCommand('simpleSftp.editGroup', (item: HostTreeItem) =>
         this.editGroup(item)
       ),
-      vscode.commands.registerCommand('simpleScp.importFromSshConfig', () =>
+      vscode.commands.registerCommand('simpleSftp.importFromSshConfig', () =>
         this.importFromSshConfig()
       ),
-      vscode.commands.registerCommand('simpleScp.exportAllHosts', () =>
+      vscode.commands.registerCommand('simpleSftp.exportAllHosts', () =>
         this.exportAllHosts()
       ),
-      vscode.commands.registerCommand('simpleScp.exportGroup', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.exportGroup', (item: HostTreeItem) =>
         this.exportGroup(item)
       ),
-      vscode.commands.registerCommand('simpleScp.exportHost', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.exportHost', (item: HostTreeItem) =>
         this.exportHost(item)
       ),
-      vscode.commands.registerCommand('simpleScp.importHosts', () =>
+      vscode.commands.registerCommand('simpleSftp.importHosts', () =>
         this.importHosts()
       ),
-      vscode.commands.registerCommand('simpleScp.uploadFile', (uri: vscode.Uri) =>
+      vscode.commands.registerCommand('simpleSftp.uploadFile', (uri: vscode.Uri) =>
         this.uploadFile(uri)
       ),
-      vscode.commands.registerCommand('simpleScp.browseFiles', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.browseFiles', (item: HostTreeItem) =>
         this.browseFiles(item)
       ),
-      vscode.commands.registerCommand('simpleScp.downloadToLocal', (uri: vscode.Uri) =>
+      vscode.commands.registerCommand('simpleSftp.downloadToLocal', (uri: vscode.Uri) =>
         this.downloadToLocal(uri)
       ),
-      vscode.commands.registerCommand('simpleScp.setupPasswordlessLogin', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.setupPasswordlessLogin', (item: HostTreeItem) =>
         this.setupPasswordlessLogin(item)
       ),
-      vscode.commands.registerCommand('simpleScp.testConnection', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.testConnection', (item: HostTreeItem) =>
         this.testConnection(item)
       ),
-      vscode.commands.registerCommand('simpleScp.configureAuth', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.configureAuth', (item: HostTreeItem) =>
         this.configureAuth(item)
       ),
-      vscode.commands.registerCommand('simpleScp.copySshCommand', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.copySshCommand', (item: HostTreeItem) =>
         this.copySshCommand(item)
       ),
-      vscode.commands.registerCommand('simpleScp.openSshTerminal', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.openSshTerminal', (item: HostTreeItem) =>
         this.openSshTerminal(item)
       ),
-      vscode.commands.registerCommand('simpleScp.addBookmark', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.addBookmark', (item: HostTreeItem) =>
         this.bookmarkService.addBookmark(item)
       ),
-      vscode.commands.registerCommand('simpleScp.renameBookmark', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.renameBookmark', (item: HostTreeItem) =>
         this.bookmarkService.renameBookmark(item)
       ),
-      vscode.commands.registerCommand('simpleScp.editBookmarkDescription', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.editBookmarkDescription', (item: HostTreeItem) =>
         this.bookmarkService.editBookmarkDescription(item)
       ),
-      vscode.commands.registerCommand('simpleScp.deleteBookmark', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.deleteBookmark', (item: HostTreeItem) =>
         this.bookmarkService.deleteBookmark(item)
       ),
-      vscode.commands.registerCommand('simpleScp.browseBookmark', (item: HostTreeItem) =>
+      vscode.commands.registerCommand('simpleSftp.browseBookmark', (item: HostTreeItem) =>
         this.bookmarkService.browseBookmark(item)
       ),
-      vscode.commands.registerCommand('simpleScp.refresh', () => this.refresh()),
-      vscode.commands.registerCommand('simpleScp.showLogs', () => this.showLogs()),
-      vscode.commands.registerCommand('simpleScp.showConnectionPool', () => this.showConnectionPoolStatus())
+      vscode.commands.registerCommand('simpleSftp.refresh', () => this.refresh()),
+      vscode.commands.registerCommand('simpleSftp.showLogs', () => this.showLogs()),
+      vscode.commands.registerCommand('simpleSftp.showConnectionPool', () => this.showConnectionPoolStatus())
     );
   }
 
@@ -1024,7 +1024,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
    */
   private async saveExportFile(jsonData: string, defaultName: string): Promise<void> {
     const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(path.join(os.homedir(), `simple-scp-${defaultName}.json`)),
+      defaultUri: vscode.Uri.file(path.join(os.homedir(), `simple-sftp-${defaultName}.json`)),
       filters: {
         'JSON Files': ['json'],
         'All Files': ['*']

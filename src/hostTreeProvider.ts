@@ -113,8 +113,8 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
   private treeView?: vscode.TreeView<HostTreeItem>;
 
   // Drag and drop configuration
-  dropMimeTypes = ['application/vnd.code.tree.simpleScp.hosts'];
-  dragMimeTypes = ['application/vnd.code.tree.simpleScp.hosts'];
+  dropMimeTypes = ['application/vnd.code.tree.simpleSftp.hosts'];
+  dragMimeTypes = ['application/vnd.code.tree.simpleSftp.hosts'];
 
   constructor(
     private readonly hostManager: HostManager,
@@ -341,7 +341,7 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
     }));
 
     dataTransfer.set(
-      'application/vnd.code.tree.simpleScp.hosts',
+      'application/vnd.code.tree.simpleSftp.hosts',
       new vscode.DataTransferItem(dragData)
     );
   }
@@ -354,7 +354,7 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
-    const transferItem = dataTransfer.get('application/vnd.code.tree.simpleScp.hosts');
+    const transferItem = dataTransfer.get('application/vnd.code.tree.simpleSftp.hosts');
     if (!transferItem) {
       return;
     }

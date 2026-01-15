@@ -23,7 +23,7 @@ class TransferQueueTreeItem extends vscode.TreeItem {
 
     // Add command for clicking on task
     this.command = {
-      command: 'simpleScp.showTaskDetails',
+      command: 'simpleSftp.showTaskDetails',
       title: 'Show Task Details',
       arguments: [task]
     };

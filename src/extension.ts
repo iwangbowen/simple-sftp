@@ -32,7 +32,7 @@ export async function activate(context: vscode.ExtensionContext) {
   logger.info('Transfer queue services initialized with host and auth managers');
 
   // Apply transfer queue configuration
-  const transferConfig = vscode.workspace.getConfiguration('simpleScp.transferQueue');
+  const transferConfig = vscode.workspace.getConfiguration('simpleSftp.transferQueue');
   transferQueueService.setMaxConcurrent(transferConfig.get('maxConcurrent', 2));
   transferQueueService.setRetryPolicy({
     enabled: transferConfig.get('autoRetry', true),
@@ -44,7 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Create TreeView provider
   const treeProvider = new HostTreeProvider(hostManager, authManager, context.extensionPath);
-  const treeView = vscode.window.createTreeView('simpleScp.hosts', {
+  const treeView = vscode.window.createTreeView('simpleSftp.hosts', {
     treeDataProvider: treeProvider,
     showCollapseAll: true,
     canSelectMany: true,
@@ -59,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Create transfer queue TreeView provider
   const transferQueueTreeProvider = new TransferQueueTreeProvider();
   transferQueueTreeProvider.setHistoryService(transferHistoryService);
-  const transferQueueView = vscode.window.createTreeView('simpleScp.transferQueue', {
+  const transferQueueView = vscode.window.createTreeView('simpleSftp.transferQueue', {
     treeDataProvider: transferQueueTreeProvider,
     showCollapseAll: true
   });
@@ -68,7 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Create help and feedback TreeView provider
   const helpFeedbackTreeProvider = new HelpFeedbackTreeProvider();
-  const helpFeedbackView = vscode.window.createTreeView('simpleScp.helpFeedback', {
+  const helpFeedbackView = vscode.window.createTreeView('simpleSftp.helpFeedback', {
     treeDataProvider: helpFeedbackTreeProvider
   });
   context.subscriptions.push(helpFeedbackView);
@@ -83,76 +83,76 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     // Queue control commands
-    vscode.commands.registerCommand('simpleScp.pauseQueue', () =>
+    vscode.commands.registerCommand('simpleSftp.pauseQueue', () =>
       transferQueueCommands.pauseQueue()
     ),
-    vscode.commands.registerCommand('simpleScp.resumeQueue', () =>
+    vscode.commands.registerCommand('simpleSftp.resumeQueue', () =>
       transferQueueCommands.resumeQueue()
     ),
 
     // Task control commands
-    vscode.commands.registerCommand('simpleScp.pauseTask', (treeItem) =>
+    vscode.commands.registerCommand('simpleSftp.pauseTask', (treeItem) =>
       transferQueueCommands.pauseTask(treeItem?.task)
     ),
-    vscode.commands.registerCommand('simpleScp.resumeTask', (treeItem) =>
+    vscode.commands.registerCommand('simpleSftp.resumeTask', (treeItem) =>
       transferQueueCommands.resumeTask(treeItem?.task)
     ),
-    vscode.commands.registerCommand('simpleScp.cancelTask', (treeItem) =>
+    vscode.commands.registerCommand('simpleSftp.cancelTask', (treeItem) =>
       transferQueueCommands.cancelTask(treeItem?.task)
     ),
-    vscode.commands.registerCommand('simpleScp.retryTask', (treeItem) =>
+    vscode.commands.registerCommand('simpleSftp.retryTask', (treeItem) =>
       transferQueueCommands.retryTask(treeItem?.task)
     ),
-    vscode.commands.registerCommand('simpleScp.removeTask', (treeItem) =>
+    vscode.commands.registerCommand('simpleSftp.removeTask', (treeItem) =>
       transferQueueCommands.removeTask(treeItem?.task)
     ),
 
     // Queue management commands
-    vscode.commands.registerCommand('simpleScp.clearCompleted', () =>
+    vscode.commands.registerCommand('simpleSftp.clearCompleted', () =>
       transferQueueCommands.clearCompleted()
     ),
-    vscode.commands.registerCommand('simpleScp.clearAll', () =>
+    vscode.commands.registerCommand('simpleSftp.clearAll', () =>
       transferQueueCommands.clearAll()
     ),
 
     // Info commands
-    vscode.commands.registerCommand('simpleScp.showTaskDetails', (task) =>
+    vscode.commands.registerCommand('simpleSftp.showTaskDetails', (task) =>
       transferQueueCommands.showTaskDetails(task)
     ),
-    vscode.commands.registerCommand('simpleScp.showQueueStats', () =>
+    vscode.commands.registerCommand('simpleSftp.showQueueStats', () =>
       transferQueueCommands.showQueueStats()
     ),
 
     // History commands
-    vscode.commands.registerCommand('simpleScp.viewTransferHistory', () =>
+    vscode.commands.registerCommand('simpleSftp.viewTransferHistory', () =>
       transferQueueCommands.viewHistory()
     ),
-    vscode.commands.registerCommand('simpleScp.clearHistory', () =>
+    vscode.commands.registerCommand('simpleSftp.clearHistory', () =>
       transferQueueCommands.clearHistory()
     ),
 
     // Help and feedback commands
-    vscode.commands.registerCommand('simpleScp.openGitHubReadme', () => {
-      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-scp#readme'));
+    vscode.commands.registerCommand('simpleSftp.openGitHubReadme', () => {
+      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-sftp#readme'));
     }),
-    vscode.commands.registerCommand('simpleScp.openIssues', () => {
-      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-scp/issues'));
+    vscode.commands.registerCommand('simpleSftp.openIssues', () => {
+      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-sftp/issues'));
     }),
-    vscode.commands.registerCommand('simpleScp.reportIssue', () => {
+    vscode.commands.registerCommand('simpleSftp.reportIssue', () => {
       vscode.commands.executeCommand('workbench.action.openIssueReporter', {
-        extensionId: 'WangBowen.simple-scp'
+        extensionId: 'WangBowen.simple-sftp'
       });
     }),
-    vscode.commands.registerCommand('simpleScp.openGitHubRepo', () => {
-      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-scp'));
+    vscode.commands.registerCommand('simpleSftp.openGitHubRepo', () => {
+      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-sftp'));
     }),
 
     // View control commands
-    vscode.commands.registerCommand('simpleScp.expandAll', () => {
+    vscode.commands.registerCommand('simpleSftp.expandAll', () => {
       // Expand all groups in the hosts tree view
       treeProvider.expandAll();
     }),
-    vscode.commands.registerCommand('simpleScp.collapseAll', () => {
+    vscode.commands.registerCommand('simpleSftp.collapseAll', () => {
       // The tree view has built-in collapse all functionality
       // This command is just for consistency
     })
@@ -162,17 +162,17 @@ export async function activate(context: vscode.ExtensionContext) {
   // Listen to configuration changes
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('simpleScp.transferQueue')) {
-        const config = vscode.workspace.getConfiguration('simpleScp.transferQueue');
+      if (e.affectsConfiguration('simpleSftp.transferQueue')) {
+        const config = vscode.workspace.getConfiguration('simpleSftp.transferQueue');
 
-        if (e.affectsConfiguration('simpleScp.transferQueue.maxConcurrent')) {
+        if (e.affectsConfiguration('simpleSftp.transferQueue.maxConcurrent')) {
           transferQueueService.setMaxConcurrent(config.get('maxConcurrent', 2));
           logger.info('Transfer queue max concurrent updated');
         }
 
-        if (e.affectsConfiguration('simpleScp.transferQueue.autoRetry') ||
-            e.affectsConfiguration('simpleScp.transferQueue.maxRetries') ||
-            e.affectsConfiguration('simpleScp.transferQueue.retryDelay')) {
+        if (e.affectsConfiguration('simpleSftp.transferQueue.autoRetry') ||
+            e.affectsConfiguration('simpleSftp.transferQueue.maxRetries') ||
+            e.affectsConfiguration('simpleSftp.transferQueue.retryDelay')) {
           transferQueueService.setRetryPolicy({
             enabled: config.get('autoRetry', true),
             maxRetries: config.get('maxRetries', 3),
@@ -253,7 +253,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Update status bar
     updateStatusBar();
 
-    const config = vscode.workspace.getConfiguration('simpleScp.transferQueue');
+    const config = vscode.workspace.getConfiguration('simpleSftp.transferQueue');
     const showNotifications = config.get('showNotifications', true);
 
     if (showNotifications) {

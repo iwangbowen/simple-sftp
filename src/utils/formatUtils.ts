@@ -22,12 +22,12 @@ export function formatFileSize(bytes: number): string {
 
 /**
  * Format transfer speed based on configuration
- * Reads 'simpleScp.speedUnit' setting to determine unit (auto/KB/MB)
+ * Reads 'simpleSftp.speedUnit' setting to determine unit (auto/KB/MB)
  * @param bytesPerSecond - Transfer speed in bytes per second
  * @returns Formatted string like "5.20 MB/s" or "120.50 KB/s"
  */
 export function formatSpeed(bytesPerSecond: number): string {
-  const config = vscode.workspace.getConfiguration('simpleScp');
+  const config = vscode.workspace.getConfiguration('simpleSftp');
   const speedUnit = config.get<string>('speedUnit', 'auto');
 
   if (speedUnit === 'KB') {

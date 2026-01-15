@@ -42,7 +42,7 @@ export class RemoteBrowserService {
       currentPath = config.defaultRemotePath || '/root';
     }
     // Read showDotFiles setting from configuration
-    let showDotFiles = vscode.workspace.getConfiguration('simpleScp').get<boolean>('showDotFiles', true);
+    let showDotFiles = vscode.workspace.getConfiguration('simpleSftp').get<boolean>('showDotFiles', true);
     logger.info(`Browsing remote on ${config.name}, starting at: ${currentPath}`);
 
     return new Promise(async (resolve) => {
@@ -131,7 +131,7 @@ export class RemoteBrowserService {
                 return {
                   label: dir,
                   description: '',
-                  resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用,旧版本自动忽略
+                  resourceUri: vscode.Uri.parse(`sftp-remote://${config.host}${fullPath}`),  // 新版本使用,旧版本自动忽略
                   iconPath: vscode.ThemeIcon.Folder,  // 新版本触发主题图标,旧版本显示标准图标
                   alwaysShow: true,
                   buttons: [
@@ -193,7 +193,7 @@ export class RemoteBrowserService {
                 return {
                   label: item.name,
                   description: fileSize,  // 显示文件大小
-                  resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用,旧版本自动忽略
+                  resourceUri: vscode.Uri.parse(`sftp-remote://${config.host}${fullPath}`),  // 新版本使用,旧版本自动忽略
                   iconPath: isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File,  // 新版本触发主题图标,旧版本显示标准图标
                   alwaysShow: true,
                   buttons: itemButtons,

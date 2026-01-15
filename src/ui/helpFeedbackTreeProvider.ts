@@ -39,7 +39,7 @@ export class HelpFeedbackTreeProvider implements vscode.TreeDataProvider<HelpFee
       new HelpFeedbackItem(
         'Read Documentation',
         {
-          command: 'simpleScp.openGitHubReadme',
+          command: 'simpleSftp.openGitHubReadme',
           title: 'Read Documentation',
           arguments: []
         },
@@ -48,7 +48,7 @@ export class HelpFeedbackTreeProvider implements vscode.TreeDataProvider<HelpFee
       new HelpFeedbackItem(
         'Review Issues',
         {
-          command: 'simpleScp.openIssues',
+          command: 'simpleSftp.openIssues',
           title: 'Review Issues',
           arguments: []
         },
@@ -57,7 +57,7 @@ export class HelpFeedbackTreeProvider implements vscode.TreeDataProvider<HelpFee
       new HelpFeedbackItem(
         'Report Issue',
         {
-          command: 'simpleScp.reportIssue',
+          command: 'simpleSftp.reportIssue',
           title: 'Report Issue',
           arguments: []
         },
@@ -66,7 +66,7 @@ export class HelpFeedbackTreeProvider implements vscode.TreeDataProvider<HelpFee
       new HelpFeedbackItem(
         'View on GitHub',
         {
-          command: 'simpleScp.openGitHubRepo',
+          command: 'simpleSftp.openGitHubRepo',
           title: 'View on GitHub',
           arguments: []
         },

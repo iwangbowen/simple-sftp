@@ -9,7 +9,7 @@ import { logger } from '../logger';
  */
 export class TransferHistoryService {
   private static instance: TransferHistoryService;
-  private readonly STORAGE_KEY = 'simple-scp.transferHistory';
+  private readonly STORAGE_KEY = 'simple-sftp.transferHistory';
   private readonly MAX_HISTORY_SIZE = 100; // Keep last 100 transfers
 
   private context: vscode.ExtensionContext;

@@ -1,5 +1,39 @@
 # Change Log
 
+## [2.0.0] - 2026-01-15
+
+### 🎯 Major Refactoring - SCP to SFTP
+
+**Breaking Changes:**
+- Complete migration from SCP to SFTP protocol
+- All commands renamed from `simpleScp.*` to `simpleSftp.*`
+- Extension name changed from "Simple SCP" to "Simple SFTP"
+- Package name changed from `simple-scp` to `simple-sftp`
+- Configuration namespace changed from `simpleScp.*` to `simpleSftp.*`
+
+**What Changed:**
+- **Protocol**: Now exclusively using SFTP protocol for all file transfers (previously mixed SCP/SFTP)
+- **Extension Identity**:
+  - Display name: Simple SCP → Simple SFTP
+  - Extension ID: WangBowen.simple-scp → WangBowen.simple-sftp
+  - Repository: iwangbowen/simple-scp → iwangbowen/simple-sftp
+- **Commands & Configuration**: All VS Code commands and settings updated to use `simpleSftp` prefix
+- **Views & UI**: All sidebar views, context menus, and welcome screens updated
+- **Documentation**: README and all documentation updated to reflect SFTP focus
+
+**Migration Notes:**
+- Existing host configurations will need to be manually migrated (export from old version, import to new version)
+- Configuration settings need to be updated from `simpleScp.*` to `simpleSftp.*`
+- Custom keybindings using old command names need to be updated
+
+**Why This Change:**
+- SFTP is more reliable and feature-rich than SCP
+- Better support for directory operations and file attributes
+- More consistent cross-platform behavior
+- Industry standard for secure file transfer
+
+---
+
 ## [1.1.0] - 2026-01-15
 
 ### Added
@@ -65,12 +99,12 @@
 
 ### Added
 
-- **Help and Feedback View**: New dedicated view in the Simple SCP sidebar for easier access to support resources
+- **Help and Feedback View**: New dedicated view in the Simple SFTP sidebar for easier access to support resources
   - **Read Documentation**: Quick link to GitHub README documentation
   - **Review Issues**: Browse existing issues on GitHub
   - **Report Issue**: Launch VS Code's built-in issue reporter for this extension
   - **View on GitHub**: Direct link to the GitHub repository
-  - Integrated as a permanent view in the Simple SCP container
+  - Integrated as a permanent view in the Simple SFTP container
   - Uses intuitive icons for each action item
 
 ### Improved
@@ -152,11 +186,11 @@
   - Context menu buttons: pause/resume/cancel based on task status
 
 - **Configurable Settings**:
-  - `simpleScp.transferQueue.maxConcurrent`: Max concurrent transfers (default: 2)
-  - `simpleScp.transferQueue.autoRetry`: Enable automatic retry (default: true)
-  - `simpleScp.transferQueue.maxRetries`: Max retry attempts (default: 3)
-  - `simpleScp.transferQueue.retryDelay`: Delay between retries in ms (default: 2000)
-  - `simpleScp.transferQueue.showNotifications`: Show completion notifications (default: true)
+  - `simpleSftp.transferQueue.maxConcurrent`: Max concurrent transfers (default: 2)
+  - `simpleSftp.transferQueue.autoRetry`: Enable automatic retry (default: true)
+  - `simpleSftp.transferQueue.maxRetries`: Max retry attempts (default: 3)
+  - `simpleSftp.transferQueue.retryDelay`: Delay between retries in ms (default: 2000)
+  - `simpleSftp.transferQueue.showNotifications`: Show completion notifications (default: true)
 
 #### Technical Improvements
 
@@ -246,7 +280,7 @@
 ### Added
 
 - **Virtual Workspaces Declaration**: Formally declared incompatibility with VS Code Virtual Workspaces
-  - Extension requires local file system access for SSH/SCP operations
+  - Extension requires local file system access for SSH/SFTP operations
   - Prevents installation in virtual workspace environments (vscode.dev, github.dev)
 
 ### Improved
@@ -324,7 +358,7 @@
 
 - **Modern File Browser with resourceUri**: Remote file browser now uses VS Code's new QuickPick API features
   - Automatic file/folder icon derivation from current file icon theme (VS Code 1.108+)
-  - Custom URI scheme (`scp-remote://`) for better integration
+  - Custom URI scheme (`sftp-remote://`) for better integration
   - Persistent instructional text with `prompt` property
   - Improved parent directory navigation with arrow-up icon
   - File size shown in `description` property
@@ -365,7 +399,7 @@
 ### Changed
 
 - Updated extension description to accurately reflect support for both upload and download functionality
-- Removed SFTP references (extension uses SCP protocol only)
+- Removed SFTP references (extension uses SFTP protocol only)
 
 ## [0.7.0] - 2026-01-10
 
@@ -397,7 +431,7 @@
 
 ### Configuration
 
-- Added: simpleScp.showDotFiles (default: true)
+- Added: simpleSftp.showDotFiles (default: true)
 
 ### Changed
 
@@ -407,7 +441,7 @@
 
 ### Features
 
-- Quick file upload via SCP/SFTP
+- Quick file upload via SFTP
 - Host management with TreeView
 - Multiple authentication methods
 - Interactive remote path selector

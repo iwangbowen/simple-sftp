@@ -1,16 +1,16 @@
-# Simple SCP
+# Simple SFTP
 
-> [English](#simple-scp---english) | [中文说明](#simple-scp---中文说明)
+> [English](#simple-sftp---english) | [中文说明](#simple-sftp---中文说明)
 
-A lightweight VS Code extension for uploading and downloading files to/from remote hosts via SCP with cross-device host configuration synchronization.
+A lightweight VS Code extension for uploading and downloading files to/from remote hosts via SFTP with cross-device host configuration synchronization.
 
 ---
 
-## Simple SCP - English
+## Simple SFTP - English
 
-> [English](#simple-scp---english) | [中文说明](#simple-scp---中文说明)
+> [English](#simple-sftp---english) | [中文说明](#simple-sftp---中文说明)
 
-A lightweight VS Code extension for uploading and downloading files to/from remote hosts via SCP with cross-device host configuration synchronization.
+A lightweight VS Code extension for uploading and downloading files to/from remote hosts via SFTP with cross-device host configuration synchronization.
 
 ### Support This Project
 
@@ -69,7 +69,7 @@ If you find this extension helpful, consider buying me a coffee!
 
 #### Add a New Host
 
-1. Open the Simple SCP panel in the Activity Bar
+1. Open the Simple SFTP panel in the Activity Bar
 2. Click the "+" icon in the toolbar
 3. Follow the prompts to enter:
    - Host name (display name)
@@ -92,7 +92,7 @@ If you find this extension helpful, consider buying me a coffee!
 
 Export your host configurations to a JSON file for backup or sharing:
 
-- **Export All Hosts**: Click the export icon in the toolbar or use Command Palette → "Simple SCP: Export All Hosts"
+- **Export All Hosts**: Click the export icon in the toolbar or use Command Palette → "Simple SFTP: Export All Hosts"
 - **Export Group**: Right-click a group → "Export Group"
 - **Export Single Host**: Right-click a host → "Export Host"
 
@@ -106,7 +106,7 @@ The exported JSON file contains:
 
 Import host configurations from a JSON file:
 
-1. Click "Import Hosts" in the toolbar or use Command Palette → "Simple SCP: Import Hosts"
+1. Click "Import Hosts" in the toolbar or use Command Palette → "Simple SFTP: Import Hosts"
 2. Select the JSON file to import
 3. Review the import preview showing new and duplicate hosts
 4. Confirm to import
@@ -198,16 +198,16 @@ Both methods support:
 
 The following commands are available in the Command Palette (Ctrl/Cmd+Shift+P):
 
-- **Simple SCP: Add Host** - Add a new remote host
-- **Simple SCP: Add Group** - Create a host group
-- **Simple SCP: Import from SSH Config** - Import from ~/.ssh/config
-- **Simple SCP: Show Output Logs** - Open the log viewer
+- **Simple SFTP: Add Host** - Add a new remote host
+- **Simple SFTP: Add Group** - Create a host group
+- **Simple SFTP: Import from SSH Config** - Import from ~/.ssh/config
+- **Simple SFTP: Show Output Logs** - Open the log viewer
 
 Additional commands are available via context menus in the TreeView and file explorers.
 
 ### Settings
 
-#### simpleScp.showDotFiles
+#### simpleSftp.showDotFiles
 
 - **Type**: boolean
 - **Default**: true
@@ -233,7 +233,7 @@ You can change this setting in VS Code Settings (Ctrl/Cmd+,) to control the defa
 
 #### Connection Issues
 1. Use "Test Connection" to verify credentials
-2. Check "Simple SCP: Show Output Logs" for detailed error messages
+2. Check "Simple SFTP: Show Output Logs" for detailed error messages
 3. Verify SSH access works from terminal: `ssh user@host -p port`
 
 #### Windows SSH Agent
@@ -277,17 +277,17 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ### Links
 
-- [GitHub Repository](https://github.com/iwangbowen/simple-scp)
-- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=WangBowen.simple-scp)
-- [Report Issues](https://github.com/iwangbowen/simple-scp/issues)
+- [GitHub Repository](https://github.com/iwangbowen/simple-sftp)
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=WangBowen.simple-sftp)
+- [Report Issues](https://github.com/iwangbowen/simple-sftp/issues)
 
 ---
 
-## Simple SCP - 中文说明
+## Simple SFTP - 中文说明
 
-> [English](#simple-scp) | [中文说明](#simple-scp---中文说明)
+> [English](#simple-sftp) | [中文说明](#simple-sftp---中文说明)
 
-一个轻量级的 VS Code 扩展，支持通过 SCP 上传/下载文件到远程主机，并支持跨设备主机配置同步。
+一个轻量级的 VS Code 扩展，支持通过 SFTP 上传/下载文件到远程主机，并支持跨设备主机配置同步。
 
 ### 支持本项目
 
@@ -351,7 +351,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 #### 添加新主机
 
-1. 在活动栏中打开 Simple SCP 面板
+1. 在活动栏中打开 Simple SFTP 面板
 2. 点击工具栏中的 "+" 图标
 3. 按提示输入：
    - 主机名称（显示名称）
@@ -374,7 +374,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 将主机配置导出为 JSON 文件，用于备份或分享：
 
-- **导出所有主机**：点击工具栏中的导出图标，或使用命令面板 → "Simple SCP: Export All Hosts"
+- **导出所有主机**：点击工具栏中的导出图标，或使用命令面板 → "Simple SFTP: Export All Hosts"
 - **导出分组**：右键点击分组 → "Export Group"
 - **导出单个主机**：右键点击主机 → "Export Host"
 
@@ -388,7 +388,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 从 JSON 文件导入主机配置：
 
-1. 点击工具栏中的"Import Hosts"，或使用命令面板 → "Simple SCP: Import Hosts"
+1. 点击工具栏中的"Import Hosts"，或使用命令面板 → "Simple SFTP: Import Hosts"
 2. 选择要导入的 JSON 文件
 3. 查看导入预览，显示新增和重复的主机
 4. 确认导入
@@ -481,16 +481,16 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 在命令面板中可用以下命令（Ctrl/Cmd+Shift+P）：
 
-- **Simple SCP: Add Host** - 添加新的远程主机
-- **Simple SCP: Add Group** - 创建主机分组
-- **Simple SCP: Import from SSH Config** - 从 ~/.ssh/config 导入
-- **Simple SCP: Show Output Logs** - 打开日志查看器
+- **Simple SFTP: Add Host** - 添加新的远程主机
+- **Simple SFTP: Add Group** - 创建主机分组
+- **Simple SFTP: Import from SSH Config** - 从 ~/.ssh/config 导入
+- **Simple SFTP: Show Output Logs** - 打开日志查看器
 
 其他命令可通过树形视图和文件资源管理器的右键菜单访问。
 
 ### 设置
 
-#### simpleScp.showDotFiles (显示隐藏文件)
+#### simpleSftp.showDotFiles (显示隐藏文件)
 
 - **类型**：boolean
 - **默认值**：true
@@ -517,7 +517,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 #### 连接问题
 
 1. 使用 "Test Connection" 验证凭据
-2. 查看 "Simple SCP: Show Output Logs" 获取详细错误信息
+2. 查看 "Simple SFTP: Show Output Logs" 获取详细错误信息
 3. 验证从终端访问 SSH：`ssh user@host -p port`
 
 #### Windows SSH Agent
@@ -563,6 +563,6 @@ npm run publish
 
 ### 链接
 
-- [GitHub 仓库](https://github.com/iwangbowen/simple-scp)
-- [VS Code 市场](https://marketplace.visualstudio.com/items?itemName=WangBowen.simple-scp)
-- [报告问题](https://github.com/iwangbowen/simple-scp/issues)
+- [GitHub 仓库](https://github.com/iwangbowen/simple-sftp)
+- [VS Code 市场](https://marketplace.visualstudio.com/items?itemName=WangBowen.simple-sftp)
+- [报告问题](https://github.com/iwangbowen/simple-sftp/issues)

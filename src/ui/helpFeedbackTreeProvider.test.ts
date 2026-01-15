@@ -45,7 +45,7 @@ describe('HelpFeedbackTreeProvider', () => {
       const docItem = children.find((item) => item.label === 'Read Documentation');
 
       expect(docItem).toBeDefined();
-      expect(docItem?.command?.command).toBe('simpleScp.openGitHubReadme');
+      expect(docItem?.command?.command).toBe('simpleSftp.openGitHubReadme');
       expect(docItem?.command?.title).toBe('Read Documentation');
     });
 
@@ -54,7 +54,7 @@ describe('HelpFeedbackTreeProvider', () => {
       const issuesItem = children.find((item) => item.label === 'Review Issues');
 
       expect(issuesItem).toBeDefined();
-      expect(issuesItem?.command?.command).toBe('simpleScp.openIssues');
+      expect(issuesItem?.command?.command).toBe('simpleSftp.openIssues');
       expect(issuesItem?.command?.title).toBe('Review Issues');
     });
 
@@ -63,7 +63,7 @@ describe('HelpFeedbackTreeProvider', () => {
       const reportItem = children.find((item) => item.label === 'Report Issue');
 
       expect(reportItem).toBeDefined();
-      expect(reportItem?.command?.command).toBe('simpleScp.reportIssue');
+      expect(reportItem?.command?.command).toBe('simpleSftp.reportIssue');
       expect(reportItem?.command?.title).toBe('Report Issue');
     });
 
@@ -72,7 +72,7 @@ describe('HelpFeedbackTreeProvider', () => {
       const githubItem = children.find((item) => item.label === 'View on GitHub');
 
       expect(githubItem).toBeDefined();
-      expect(githubItem?.command?.command).toBe('simpleScp.openGitHubRepo');
+      expect(githubItem?.command?.command).toBe('simpleSftp.openGitHubRepo');
       expect(githubItem?.command?.title).toBe('View on GitHub');
     });
 

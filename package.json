@@ -1,22 +1,22 @@
 {
-  "name": "simple-scp",
-  "displayName": "Simple SCP",
-  "description": "Lightweight SCP file upload and download tool with cross-device host configuration sync",
-  "version": "1.1.0",
+  "name": "simple-sftp",
+  "displayName": "Simple SFTP",
+  "description": "Lightweight SFTP file upload and download tool with cross-device host configuration sync",
+  "version": "2.0.0",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/iwangbowen/simple-scp.git"
+    "url": "https://github.com/iwangbowen/simple-sftp.git"
   },
   "keywords": [
-    "scp",
     "sftp",
     "ssh",
     "upload",
     "remote",
-    "deploy"
+    "deploy",
+    "file transfer"
   ],
   "engines": {
     "vscode": "^1.108.1"
@@ -27,36 +27,36 @@
   "capabilities": {
     "virtualWorkspaces": {
       "supported": false,
-      "description": "This extension requires access to the local file system for SSH/SCP operations and cannot run in virtual workspaces."
+      "description": "This extension requires access to the local file system for SSH/SFTP operations and cannot run in virtual workspaces."
     }
   },
   "activationEvents": [
-    "onView:simpleScp.hosts"
+    "onView:simpleSftp.hosts"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "simpleScp",
-          "title": "Simple SCP",
+          "id": "simpleSftp",
+          "title": "Simple SFTP",
           "icon": "resources/icon.svg"
         }
       ]
     },
     "views": {
-      "simpleScp": [
+      "simpleSftp": [
         {
-          "id": "simpleScp.hosts",
+          "id": "simpleSftp.hosts",
           "name": "Hosts"
         },
         {
-          "id": "simpleScp.transferQueue",
+          "id": "simpleSftp.transferQueue",
           "name": "Transfer Queue",
           "icon": "$(cloud-upload)"
         },
         {
-          "id": "simpleScp.helpFeedback",
+          "id": "simpleSftp.helpFeedback",
           "name": "Help and Feedback",
           "icon": "$(question)"
         }
@@ -64,656 +64,656 @@
     },
     "viewsWelcome": [
       {
-        "view": "simpleScp.hosts",
-        "contents": "Welcome to Simple SCP\n\nNo remote hosts configured yet. Get started by adding your first host to upload and download files via SCP.\n\n[$(add) Add Host](command:simpleScp.addHost)\n\n[$(cloud-download) Import from SSH Config](command:simpleScp.importFromSshConfig)\n\nNeed help? Check out the [documentation](https://github.com/iwangbowen/simple-scp#readme)."
+        "view": "simpleSftp.hosts",
+        "contents": "Welcome to Simple SFTP\n\nNo remote hosts configured yet. Get started by adding your first host to upload and download files via SFTP.\n\n[$(add) Add Host](command:simpleSftp.addHost)\n\n[$(cloud-download) Import from SSH Config](command:simpleSftp.importFromSshConfig)\n\nNeed help? Check out the [documentation](https://github.com/iwangbowen/simple-sftp#readme)."
       }
     ],
     "submenus": [
       {
-        "id": "simpleScp.addMenu",
+        "id": "simpleSftp.addMenu",
         "label": "Add",
         "icon": "$(add)"
       }
     ],
     "commands": [
       {
-        "command": "simpleScp.addHost",
+        "command": "simpleSftp.addHost",
         "title": "Add Host",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(add)"
       },
       {
-        "command": "simpleScp.addHostToGroup",
+        "command": "simpleSftp.addHostToGroup",
         "title": "Add Host to Group",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(add)"
       },
       {
-        "command": "simpleScp.editHost",
+        "command": "simpleSftp.editHost",
         "title": "Edit Host",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(edit)"
       },
       {
-        "command": "simpleScp.duplicateHost",
+        "command": "simpleSftp.duplicateHost",
         "title": "Duplicate Host",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(copy)"
       },
       {
-        "command": "simpleScp.deleteHost",
+        "command": "simpleSftp.deleteHost",
         "title": "Delete",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
-        "command": "simpleScp.addGroup",
+        "command": "simpleSftp.addGroup",
         "title": "Add Group",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(add)"
       },
       {
-        "command": "simpleScp.editGroup",
+        "command": "simpleSftp.editGroup",
         "title": "Edit Group",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(edit)"
       },
       {
-        "command": "simpleScp.importFromSshConfig",
+        "command": "simpleSftp.importFromSshConfig",
         "title": "Import from SSH Config",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "simpleScp.exportAllHosts",
+        "command": "simpleSftp.exportAllHosts",
         "title": "Export All Hosts",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(export)"
       },
       {
-        "command": "simpleScp.exportGroup",
+        "command": "simpleSftp.exportGroup",
         "title": "Export Group",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(export)"
       },
       {
-        "command": "simpleScp.exportHost",
+        "command": "simpleSftp.exportHost",
         "title": "Export Host",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(export)"
       },
       {
-        "command": "simpleScp.importHosts",
+        "command": "simpleSftp.importHosts",
         "title": "Import Hosts",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "simpleScp.uploadFile",
+        "command": "simpleSftp.uploadFile",
         "title": "Upload to Remote Host",
-        "category": "Simple SCP"
+        "category": "Simple SFTP"
       },
       {
-        "command": "simpleScp.browseFiles",
+        "command": "simpleSftp.browseFiles",
         "title": "Browse Files",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(folder-opened)"
       },
       {
-        "command": "simpleScp.downloadToLocal",
+        "command": "simpleSftp.downloadToLocal",
         "title": "Download from Remote Host to Here",
-        "category": "Simple SCP"
+        "category": "Simple SFTP"
       },
       {
-        "command": "simpleScp.setupPasswordlessLogin",
+        "command": "simpleSftp.setupPasswordlessLogin",
         "title": "Setup Passwordless Login",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(key)"
       },
       {
-        "command": "simpleScp.testConnection",
+        "command": "simpleSftp.testConnection",
         "title": "Test Connection",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(plug)"
       },
       {
-        "command": "simpleScp.refresh",
+        "command": "simpleSftp.refresh",
         "title": "Refresh",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(refresh)"
       },
       {
-        "command": "simpleScp.configureAuth",
+        "command": "simpleSftp.configureAuth",
         "title": "Configure Authentication",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(lock)"
       },
       {
-        "command": "simpleScp.copySshCommand",
+        "command": "simpleSftp.copySshCommand",
         "title": "Copy SSH Command",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(copy)"
       },
       {
-        "command": "simpleScp.openSshTerminal",
+        "command": "simpleSftp.openSshTerminal",
         "title": "Open SSH Terminal",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(terminal)"
       },
       {
-        "command": "simpleScp.addBookmark",
+        "command": "simpleSftp.addBookmark",
         "title": "Add Bookmark",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(bookmark)"
       },
       {
-        "command": "simpleScp.renameBookmark",
+        "command": "simpleSftp.renameBookmark",
         "title": "Rename Bookmark",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(edit)"
       },
       {
-        "command": "simpleScp.editBookmarkDescription",
+        "command": "simpleSftp.editBookmarkDescription",
         "title": "Edit Description",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(note)"
       },
       {
-        "command": "simpleScp.deleteBookmark",
+        "command": "simpleSftp.deleteBookmark",
         "title": "Delete Bookmark",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
-        "command": "simpleScp.browseBookmark",
+        "command": "simpleSftp.browseBookmark",
         "title": "Browse Files",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(folder-opened)"
       },
       {
-        "command": "simpleScp.showLogs",
+        "command": "simpleSftp.showLogs",
         "title": "Show Output Logs",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(output)"
       },
       {
-        "command": "simpleScp.showConnectionPool",
+        "command": "simpleSftp.showConnectionPool",
         "title": "Show Connection Pool Status",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(dashboard)"
       },
       {
-        "command": "simpleScp.moveHostToGroup",
+        "command": "simpleSftp.moveHostToGroup",
         "title": "Move to Group",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(folder)"
       },
       {
-        "command": "simpleScp.toggleStar",
+        "command": "simpleSftp.toggleStar",
         "title": "Toggle Star",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(star)"
       },
       {
-        "command": "simpleScp.pauseQueue",
+        "command": "simpleSftp.pauseQueue",
         "title": "Pause Transfer Queue",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(debug-pause)"
       },
       {
-        "command": "simpleScp.resumeQueue",
+        "command": "simpleSftp.resumeQueue",
         "title": "Resume Transfer Queue",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(debug-continue)"
       },
       {
-        "command": "simpleScp.pauseTask",
+        "command": "simpleSftp.pauseTask",
         "title": "Pause Transfer Task",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(debug-pause)"
       },
       {
-        "command": "simpleScp.resumeTask",
+        "command": "simpleSftp.resumeTask",
         "title": "Resume Transfer Task",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(debug-continue)"
       },
       {
-        "command": "simpleScp.cancelTask",
+        "command": "simpleSftp.cancelTask",
         "title": "Cancel Transfer Task",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(close)"
       },
       {
-        "command": "simpleScp.retryTask",
+        "command": "simpleSftp.retryTask",
         "title": "Retry Failed Task",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(refresh)"
       },
       {
-        "command": "simpleScp.removeTask",
+        "command": "simpleSftp.removeTask",
         "title": "Remove Task from Queue",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
-        "command": "simpleScp.clearCompleted",
+        "command": "simpleSftp.clearCompleted",
         "title": "Clear Completed Tasks",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(clear-all)"
       },
       {
-        "command": "simpleScp.clearAll",
+        "command": "simpleSftp.clearAll",
         "title": "Clear All Tasks",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
-        "command": "simpleScp.showTaskDetails",
+        "command": "simpleSftp.showTaskDetails",
         "title": "Show Task Details",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(info)"
       },
       {
-        "command": "simpleScp.showQueueStats",
+        "command": "simpleSftp.showQueueStats",
         "title": "Show Queue Statistics",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(graph)"
       },
       {
-        "command": "simpleScp.viewTransferHistory",
+        "command": "simpleSftp.viewTransferHistory",
         "title": "View Transfer History",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(history)"
       },
       {
-        "command": "simpleScp.clearHistory",
+        "command": "simpleSftp.clearHistory",
         "title": "Clear Transfer History",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(clear-all)"
       },
       {
-        "command": "simpleScp.openGitHubReadme",
+        "command": "simpleSftp.openGitHubReadme",
         "title": "Read Documentation",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(book)"
       },
       {
-        "command": "simpleScp.openIssues",
+        "command": "simpleSftp.openIssues",
         "title": "Review Issues",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(issues)"
       },
       {
-        "command": "simpleScp.reportIssue",
+        "command": "simpleSftp.reportIssue",
         "title": "Report Issue",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(comment)"
       },
       {
-        "command": "simpleScp.openGitHubRepo",
+        "command": "simpleSftp.openGitHubRepo",
         "title": "View on GitHub",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(github)"
       },
       {
-        "command": "simpleScp.expandAll",
+        "command": "simpleSftp.expandAll",
         "title": "Expand All",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(expand-all)"
       },
       {
-        "command": "simpleScp.collapseAll",
+        "command": "simpleSftp.collapseAll",
         "title": "Collapse All",
-        "category": "Simple SCP",
+        "category": "Simple SFTP",
         "icon": "$(collapse-all)"
       }
     ],
     "menus": {
-      "simpleScp.addMenu": [
+      "simpleSftp.addMenu": [
         {
-          "command": "simpleScp.addHost"
+          "command": "simpleSftp.addHost"
         },
         {
-          "command": "simpleScp.addGroup"
+          "command": "simpleSftp.addGroup"
         }
       ],
       "commandPalette": [
         {
-          "command": "simpleScp.addHost"
+          "command": "simpleSftp.addHost"
         },
         {
-          "command": "simpleScp.addGroup"
+          "command": "simpleSftp.addGroup"
         },
         {
-          "command": "simpleScp.importFromSshConfig"
+          "command": "simpleSftp.importFromSshConfig"
         },
         {
-          "command": "simpleScp.exportAllHosts"
+          "command": "simpleSftp.exportAllHosts"
         },
         {
-          "command": "simpleScp.exportGroup",
+          "command": "simpleSftp.exportGroup",
           "when": "false"
         },
         {
-          "command": "simpleScp.exportHost",
+          "command": "simpleSftp.exportHost",
           "when": "false"
         },
         {
-          "command": "simpleScp.importHosts"
+          "command": "simpleSftp.importHosts"
         },
         {
-          "command": "simpleScp.showLogs"
+          "command": "simpleSftp.showLogs"
         },
         {
-          "command": "simpleScp.showConnectionPool"
+          "command": "simpleSftp.showConnectionPool"
         },
         {
-          "command": "simpleScp.uploadFile",
+          "command": "simpleSftp.uploadFile",
           "when": "false"
         },
         {
-          "command": "simpleScp.browseFiles",
+          "command": "simpleSftp.browseFiles",
           "when": "false"
         },
         {
-          "command": "simpleScp.downloadToLocal",
+          "command": "simpleSftp.downloadToLocal",
           "when": "false"
         },
         {
-          "command": "simpleScp.editHost",
+          "command": "simpleSftp.editHost",
           "when": "false"
         },
         {
-          "command": "simpleScp.duplicateHost",
+          "command": "simpleSftp.duplicateHost",
           "when": "false"
         },
         {
-          "command": "simpleScp.deleteHost",
+          "command": "simpleSftp.deleteHost",
           "when": "false"
         },
         {
-          "command": "simpleScp.setupPasswordlessLogin",
+          "command": "simpleSftp.setupPasswordlessLogin",
           "when": "false"
         },
         {
-          "command": "simpleScp.testConnection",
+          "command": "simpleSftp.testConnection",
           "when": "false"
         },
         {
-          "command": "simpleScp.refresh",
+          "command": "simpleSftp.refresh",
           "when": "false"
         },
         {
-          "command": "simpleScp.configureAuth",
+          "command": "simpleSftp.configureAuth",
           "when": "false"
         },
         {
-          "command": "simpleScp.copySshCommand",
+          "command": "simpleSftp.copySshCommand",
           "when": "false"
         },
         {
-          "command": "simpleScp.addBookmark",
+          "command": "simpleSftp.addBookmark",
           "when": "false"
         },
         {
-          "command": "simpleScp.renameBookmark",
+          "command": "simpleSftp.renameBookmark",
           "when": "false"
         },
         {
-          "command": "simpleScp.deleteBookmark",
+          "command": "simpleSftp.deleteBookmark",
           "when": "false"
         },
         {
-          "command": "simpleScp.browseBookmark",
+          "command": "simpleSftp.browseBookmark",
           "when": "false"
         },
         {
-          "command": "simpleScp.addHostToGroup",
+          "command": "simpleSftp.addHostToGroup",
           "when": "false"
         },
         {
-          "command": "simpleScp.editGroup",
+          "command": "simpleSftp.editGroup",
           "when": "false"
         },
         {
-          "command": "simpleScp.moveHostToGroup",
+          "command": "simpleSftp.moveHostToGroup",
           "when": "false"
         },
         {
-          "command": "simpleScp.toggleStar",
+          "command": "simpleSftp.toggleStar",
           "when": "false"
         }
       ],
       "view/title": [
         {
-          "submenu": "simpleScp.addMenu",
-          "when": "view == simpleScp.hosts",
+          "submenu": "simpleSftp.addMenu",
+          "when": "view == simpleSftp.hosts",
           "group": "navigation@1"
         },
         {
-          "command": "simpleScp.refresh",
-          "when": "view == simpleScp.hosts",
+          "command": "simpleSftp.refresh",
+          "when": "view == simpleSftp.hosts",
           "group": "navigation@2"
         },
         {
-          "command": "simpleScp.expandAll",
-          "when": "view == simpleScp.hosts",
+          "command": "simpleSftp.expandAll",
+          "when": "view == simpleSftp.hosts",
           "group": "navigation@3"
         },
         {
-          "command": "simpleScp.importFromSshConfig",
-          "when": "view == simpleScp.hosts",
+          "command": "simpleSftp.importFromSshConfig",
+          "when": "view == simpleSftp.hosts",
           "group": "1_import@1"
         },
         {
-          "command": "simpleScp.exportAllHosts",
-          "when": "view == simpleScp.hosts",
+          "command": "simpleSftp.exportAllHosts",
+          "when": "view == simpleSftp.hosts",
           "group": "1_import@2"
         },
         {
-          "command": "simpleScp.importHosts",
-          "when": "view == simpleScp.hosts",
+          "command": "simpleSftp.importHosts",
+          "when": "view == simpleSftp.hosts",
           "group": "1_import@3"
         },
         {
-          "command": "simpleScp.pauseQueue",
-          "when": "view == simpleScp.transferQueue",
+          "command": "simpleSftp.pauseQueue",
+          "when": "view == simpleSftp.transferQueue",
           "group": "navigation@1"
         },
         {
-          "command": "simpleScp.resumeQueue",
-          "when": "view == simpleScp.transferQueue",
+          "command": "simpleSftp.resumeQueue",
+          "when": "view == simpleSftp.transferQueue",
           "group": "navigation@2"
         },
         {
-          "command": "simpleScp.clearCompleted",
-          "when": "view == simpleScp.transferQueue",
+          "command": "simpleSftp.clearCompleted",
+          "when": "view == simpleSftp.transferQueue",
           "group": "1_queue@1"
         },
         {
-          "command": "simpleScp.clearAll",
-          "when": "view == simpleScp.transferQueue",
+          "command": "simpleSftp.clearAll",
+          "when": "view == simpleSftp.transferQueue",
           "group": "1_queue@2"
         },
         {
-          "command": "simpleScp.showQueueStats",
-          "when": "view == simpleScp.transferQueue",
+          "command": "simpleSftp.showQueueStats",
+          "when": "view == simpleSftp.transferQueue",
           "group": "2_stats@1"
         },
         {
-          "command": "simpleScp.viewTransferHistory",
-          "when": "view == simpleScp.transferQueue",
+          "command": "simpleSftp.viewTransferHistory",
+          "when": "view == simpleSftp.transferQueue",
           "group": "2_stats@2"
         }
       ],
       "view/item/context": [
         {
-          "command": "simpleScp.browseFiles",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.browseFiles",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "inline@1"
         },
         {
-          "command": "simpleScp.editHost",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.editHost",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.duplicateHost",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.duplicateHost",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@1"
         },
         {
-          "command": "simpleScp.moveHostToGroup",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.moveHostToGroup",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@2"
         },
         {
-          "command": "simpleScp.toggleStar",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.toggleStar",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@3"
         },
         {
-          "command": "simpleScp.openSshTerminal",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.openSshTerminal",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "2_connect@1"
         },
         {
-          "command": "simpleScp.copySshCommand",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.copySshCommand",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "2_connect@2"
         },
         {
-          "command": "simpleScp.testConnection",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.testConnection",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "2_connect@3"
         },
         {
-          "command": "simpleScp.configureAuth",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.configureAuth",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "3_auth@1"
         },
         {
-          "command": "simpleScp.setupPasswordlessLogin",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.setupPasswordlessLogin",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "3_auth@2"
         },
         {
-          "command": "simpleScp.addBookmark",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.addBookmark",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "4_bookmarks@1"
         },
         {
-          "command": "simpleScp.exportHost",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.exportHost",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "5_export@1"
         },
         {
-          "command": "simpleScp.deleteHost",
-          "when": "view == simpleScp.hosts && viewItem == host",
+          "command": "simpleSftp.deleteHost",
+          "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "9_danger@1"
         },
         {
-          "command": "simpleScp.browseBookmark",
-          "when": "view == simpleScp.hosts && viewItem == bookmark",
+          "command": "simpleSftp.browseBookmark",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "inline@1"
         },
         {
-          "command": "simpleScp.renameBookmark",
-          "when": "view == simpleScp.hosts && viewItem == bookmark",
+          "command": "simpleSftp.renameBookmark",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.editBookmarkDescription",
-          "when": "view == simpleScp.hosts && viewItem == bookmark",
+          "command": "simpleSftp.editBookmarkDescription",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "1_edit@1"
         },
         {
-          "command": "simpleScp.deleteBookmark",
-          "when": "view == simpleScp.hosts && viewItem == bookmark",
+          "command": "simpleSftp.deleteBookmark",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "9_danger@1"
         },
         {
-          "command": "simpleScp.addHostToGroup",
-          "when": "view == simpleScp.hosts && viewItem == group",
+          "command": "simpleSftp.addHostToGroup",
+          "when": "view == simpleSftp.hosts && viewItem == group",
           "group": "inline@1"
         },
         {
-          "command": "simpleScp.editGroup",
-          "when": "view == simpleScp.hosts && viewItem == group",
+          "command": "simpleSftp.editGroup",
+          "when": "view == simpleSftp.hosts && viewItem == group",
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.exportGroup",
-          "when": "view == simpleScp.hosts && viewItem == group",
+          "command": "simpleSftp.exportGroup",
+          "when": "view == simpleSftp.hosts && viewItem == group",
           "group": "1_export@1"
         },
         {
-          "command": "simpleScp.deleteHost",
-          "when": "view == simpleScp.hosts && viewItem == group",
+          "command": "simpleSftp.deleteHost",
+          "when": "view == simpleSftp.hosts && viewItem == group",
           "group": "2_danger@1"
         },
         {
-          "command": "simpleScp.pauseTask",
-          "when": "view == simpleScp.transferQueue && viewItem =~ /status-running/",
+          "command": "simpleSftp.pauseTask",
+          "when": "view == simpleSftp.transferQueue && viewItem =~ /status-running/",
           "group": "inline@1"
         },
         {
-          "command": "simpleScp.resumeTask",
-          "when": "view == simpleScp.transferQueue && viewItem =~ /status-paused/",
+          "command": "simpleSftp.resumeTask",
+          "when": "view == simpleSftp.transferQueue && viewItem =~ /status-paused/",
           "group": "inline@1"
         },
         {
-          "command": "simpleScp.cancelTask",
-          "when": "view == simpleScp.transferQueue && viewItem =~ /(status-running|status-pending|status-paused)/",
+          "command": "simpleSftp.cancelTask",
+          "when": "view == simpleSftp.transferQueue && viewItem =~ /(status-running|status-pending|status-paused)/",
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.retryTask",
-          "when": "view == simpleScp.transferQueue && viewItem =~ /status-failed/",
+          "command": "simpleSftp.retryTask",
+          "when": "view == simpleSftp.transferQueue && viewItem =~ /status-failed/",
           "group": "1_control@1"
         },
         {
-          "command": "simpleScp.showTaskDetails",
-          "when": "view == simpleScp.transferQueue",
+          "command": "simpleSftp.showTaskDetails",
+          "when": "view == simpleSftp.transferQueue",
           "group": "2_info@1"
         },
         {
-          "command": "simpleScp.removeTask",
-          "when": "view == simpleScp.transferQueue",
+          "command": "simpleSftp.removeTask",
+          "when": "view == simpleSftp.transferQueue",
           "group": "9_danger@1"
         }
       ],
       "explorer/context": [
         {
-          "command": "simpleScp.uploadFile",
+          "command": "simpleSftp.uploadFile",
           "group": "2_workspace@1"
         },
         {
-          "command": "simpleScp.downloadToLocal",
+          "command": "simpleSftp.downloadToLocal",
           "group": "2_workspace@2"
         }
       ],
       "editor/context": [
         {
-          "command": "simpleScp.uploadFile",
+          "command": "simpleSftp.uploadFile",
           "group": "2_workspace@1"
         },
         {
-          "command": "simpleScp.downloadToLocal",
+          "command": "simpleSftp.downloadToLocal",
           "group": "2_workspace@2"
         }
       ]
     },
     "configuration": {
-      "title": "Simple SCP",
+      "title": "Simple SFTP",
       "properties": {
-        "simpleScp.showDotFiles": {
+        "simpleSftp.showDotFiles": {
           "type": "boolean",
           "default": true,
           "description": "Show hidden files and directories (dot files) when browsing remote files"
         },
-        "simpleScp.speedUnit": {
+        "simpleSftp.speedUnit": {
           "type": "string",
           "enum": [
             "auto",
@@ -723,38 +723,38 @@
           "default": "auto",
           "description": "Download speed display unit. 'auto' will automatically choose between KB/s and MB/s based on speed"
         },
-        "simpleScp.transferQueue.maxConcurrent": {
+        "simpleSftp.transferQueue.maxConcurrent": {
           "type": "number",
           "default": 2,
           "minimum": 1,
           "maximum": 10,
           "description": "Maximum number of concurrent file transfers"
         },
-        "simpleScp.transferQueue.autoRetry": {
+        "simpleSftp.transferQueue.autoRetry": {
           "type": "boolean",
           "default": true,
           "description": "Automatically retry failed transfers"
         },
-        "simpleScp.transferQueue.maxRetries": {
+        "simpleSftp.transferQueue.maxRetries": {
           "type": "number",
           "default": 3,
           "minimum": 0,
           "maximum": 10,
           "description": "Maximum number of retry attempts for failed transfers"
         },
-        "simpleScp.transferQueue.retryDelay": {
+        "simpleSftp.transferQueue.retryDelay": {
           "type": "number",
           "default": 2000,
           "minimum": 1000,
           "maximum": 60000,
           "description": "Delay between retry attempts (in milliseconds)"
         },
-        "simpleScp.transferQueue.showNotifications": {
+        "simpleSftp.transferQueue.showNotifications": {
           "type": "boolean",
           "default": true,
           "description": "Show notifications for transfer completion"
         },
-        "simpleScp.transferQueue.historySize": {
+        "simpleSftp.transferQueue.historySize": {
           "type": "number",
           "default": 100,
           "minimum": 10,

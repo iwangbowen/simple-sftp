@@ -139,7 +139,7 @@ export class TransferQueueService extends EventEmitter {
       this._onTaskUpdated.fire(task);
 
       // TODO: Implement actual file transfer logic
-      // This is a placeholder that will be replaced with real SCP/SFTP transfer
+      // This is a placeholder that will be replaced with real SFTP transfer
       await this.performTransfer(task);
 
       task.complete();
@@ -188,7 +188,7 @@ export class TransferQueueService extends EventEmitter {
 
   /**
    * Perform actual file transfer (placeholder)
-   * TODO: Integrate with existing SSH/SCP implementation
+   * TODO: Integrate with existing SSH/SFTP implementation
    */
   private async performTransfer(task: TransferTaskModel): Promise<void> {
     if (!this.hostManager || !this.authManager) {
