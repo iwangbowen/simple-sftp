@@ -213,6 +213,12 @@
         "icon": "$(edit)"
       },
       {
+        "command": "simpleScp.editBookmarkDescription",
+        "title": "Edit Description",
+        "category": "Simple SCP",
+        "icon": "$(note)"
+      },
+      {
         "command": "simpleScp.deleteBookmark",
         "title": "Delete Bookmark",
         "category": "Simple SCP",
@@ -616,6 +622,11 @@
           "command": "simpleScp.renameBookmark",
           "when": "view == simpleScp.hosts && viewItem == bookmark",
           "group": "inline@2"
+        },
+        {
+          "command": "simpleScp.editBookmarkDescription",
+          "when": "view == simpleScp.hosts && viewItem == bookmark",
+          "group": "1_edit@1"
         },
         {
           "command": "simpleScp.deleteBookmark",

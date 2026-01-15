@@ -106,9 +106,7 @@ describe('BookmarkService', () => {
     it('should add bookmark successfully', async () => {
       mockAuthManager.getAuth.mockResolvedValue({ password: 'test' } as HostAuthConfig);
       mockBrowseCallback.mockResolvedValue('/remote/path/projects');
-      vi.spyOn(vscode.window, 'showInputBox')
-        .mockResolvedValueOnce('My Projects') // First call for name
-        .mockResolvedValueOnce('Project description'); // Second call for description
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('My Projects');
       vi.spyOn(vscode.window, 'showWarningMessage').mockResolvedValue(undefined);
 
       const hostItem: any = {
@@ -118,7 +116,7 @@ describe('BookmarkService', () => {
 
       await bookmarkService.addBookmark(hostItem);
 
-      expect(mockHostManager.addBookmark).toHaveBeenCalledWith('host1', 'My Projects', '/remote/path/projects', 'Project description');
+      expect(mockHostManager.addBookmark).toHaveBeenCalledWith('host1', 'My Projects', '/remote/path/projects');
       expect(mockTreeProvider.refresh).toHaveBeenCalled();
     });
 
@@ -126,9 +124,7 @@ describe('BookmarkService', () => {
       const showErrorSpy = vi.spyOn(vscode.window, 'showErrorMessage').mockResolvedValue(undefined);
       mockAuthManager.getAuth.mockResolvedValue({ password: 'test' } as HostAuthConfig);
       mockBrowseCallback.mockResolvedValue('/remote/path');
-      vi.spyOn(vscode.window, 'showInputBox')
-        .mockResolvedValueOnce('Test Bookmark')
-        .mockResolvedValueOnce('Test description');
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('Test Bookmark');
       mockHostManager.addBookmark.mockRejectedValue(new Error('Test error'));
 
       const hostItem: any = {
@@ -238,9 +234,7 @@ describe('BookmarkService', () => {
     });
 
     it('should not rename when new name is same as old name', async () => {
-      vi.spyOn(vscode.window, 'showInputBox')
-        .mockResolvedValueOnce('Test Bookmark') // name unchanged
-        .mockResolvedValueOnce(''); // description unchanged (empty)
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('Test Bookmark');
 
       const bookmarkItem: any = {
         type: 'bookmark',
@@ -254,9 +248,7 @@ describe('BookmarkService', () => {
     });
 
     it('should rename bookmark successfully', async () => {
-      vi.spyOn(vscode.window, 'showInputBox')
-        .mockResolvedValueOnce('New Bookmark Name')
-        .mockResolvedValueOnce('New description');
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('New Bookmark Name');
 
       const bookmarkItem: any = {
         type: 'bookmark',
@@ -271,7 +263,7 @@ describe('BookmarkService', () => {
         'Old Bookmark Name',
         'New Bookmark Name',
         '/remote/path',
-        'New description'
+        undefined
       );
       expect(mockTreeProvider.refresh).toHaveBeenCalled();
     });
@@ -290,7 +282,7 @@ describe('BookmarkService', () => {
       await bookmarkService.renameBookmark(bookmarkItem);
 
       expect(showErrorSpy).toHaveBeenCalled();
-      expect(showErrorSpy.mock.calls[0][0]).toContain('Failed to update bookmark');
+      expect(showErrorSpy.mock.calls[0][0]).toContain('Failed to rename bookmark');
     });
   });
 

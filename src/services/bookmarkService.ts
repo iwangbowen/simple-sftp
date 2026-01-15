@@ -74,14 +74,8 @@ export class BookmarkService {
       return;
     }
 
-    // Ask for bookmark description (optional)
-    const description = await vscode.window.showInputBox({
-      prompt: 'Enter bookmark description (optional)',
-      placeHolder: 'e.g., Main project source code directory',
-    });
-
     try {
-      await this.hostManager.addBookmark(host.id, name.trim(), remotePath, description?.trim());
+      await this.hostManager.addBookmark(host.id, name.trim(), remotePath);
       this.treeProvider.refresh();
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to add bookmark: ${error}`);
@@ -146,27 +140,51 @@ export class BookmarkService {
       }
     });
 
-    if (!newName) {
-      return; // User cancelled
+    if (!newName || newName.trim() === bookmark.name) {
+      return; // User cancelled or name unchanged
     }
 
-    // Ask for new description (optional)
+    try {
+      await this.hostManager.updateBookmark(hostId, bookmark.name, newName.trim(), bookmark.path, bookmark.description);
+      this.treeProvider.refresh();
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to rename bookmark: ${error}`);
+    }
+  }
+
+  /**
+   * Edit bookmark description
+   */
+  async editBookmarkDescription(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'bookmark') {
+      vscode.window.showWarningMessage('Please select a bookmark');
+      return;
+    }
+
+    const bookmark = item.data as PathBookmark;
+    const hostId = item.hostId;
+
+    if (!hostId) {
+      return;
+    }
+
     const newDescription = await vscode.window.showInputBox({
       prompt: 'Enter bookmark description (optional)',
       value: bookmark.description || '',
       placeHolder: 'e.g., Main project source code directory',
     });
 
-    // Check if anything changed
-    if (newName.trim() === bookmark.name && newDescription?.trim() === (bookmark.description || '')) {
-      return; // Nothing changed
+    // User cancelled or no change
+    if (newDescription === undefined || newDescription.trim() === (bookmark.description || '')) {
+      return;
     }
 
     try {
-      await this.hostManager.updateBookmark(hostId, bookmark.name, newName.trim(), bookmark.path, newDescription?.trim());
+      await this.hostManager.updateBookmark(hostId, bookmark.name, bookmark.name, bookmark.path, newDescription.trim() || undefined);
       this.treeProvider.refresh();
+      vscode.window.showInformationMessage(`Description updated for bookmark: ${bookmark.name}`);
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to update bookmark: ${error}`);
+      vscode.window.showErrorMessage(`Failed to update description: ${error}`);
     }
   }
 

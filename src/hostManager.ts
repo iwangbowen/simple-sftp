@@ -391,7 +391,12 @@ export class HostManager {
       throw new Error(`Bookmark with name '${name}' already exists`);
     }
 
-    host.bookmarks.push({ name, path, description });
+    // Only add description if it's not empty
+    const bookmark: PathBookmark = { name, path };
+    if (description) {
+      bookmark.description = description;
+    }
+    host.bookmarks.push(bookmark);
     await this.saveData(data);
   }
 
@@ -446,7 +451,12 @@ export class HostManager {
 
     bookmark.name = newName;
     bookmark.path = newPath;
-    bookmark.description = newDescription;
+    // Only set description if it's provided and not empty, otherwise remove it
+    if (newDescription) {
+      bookmark.description = newDescription;
+    } else {
+      delete bookmark.description;
+    }
     await this.saveData(data);
   }
 

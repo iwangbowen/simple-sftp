@@ -118,6 +118,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.renameBookmark', (item: HostTreeItem) =>
         this.bookmarkService.renameBookmark(item)
       ),
+      vscode.commands.registerCommand('simpleScp.editBookmarkDescription', (item: HostTreeItem) =>
+        this.bookmarkService.editBookmarkDescription(item)
+      ),
       vscode.commands.registerCommand('simpleScp.deleteBookmark', (item: HostTreeItem) =>
         this.bookmarkService.deleteBookmark(item)
       ),
@@ -988,7 +991,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     try {
       const jsonData = await this.hostManager.exportGroup(item.id);
       const group = (await this.hostManager.getGroups()).find(g => g.id === item.id);
-      const fileName = group ? group.name.toLowerCase().replace(/\s+/g, '-') : 'group';
+      const groupName = group?.name ?? 'group';
+      const fileName = groupName.toLowerCase().replace(/\s+/g, '-');
       await this.saveExportFile(jsonData, fileName);
     } catch (error) {
       vscode.window.showErrorMessage(`Export failed: ${error}`);
@@ -1006,7 +1010,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     try {
       const jsonData = await this.hostManager.exportHost(item.id);
       const host = (await this.hostManager.getHosts()).find(h => h.id === item.id);
-      const fileName = host ? host.name.toLowerCase().replace(/\s+/g, '-') : 'host';
+      const hostName = host?.name ?? 'host';
+      const fileName = hostName.toLowerCase().replace(/\s+/g, '-');
       await this.saveExportFile(jsonData, fileName);
     } catch (error) {
       vscode.window.showErrorMessage(`Export failed: ${error}`);
@@ -1544,7 +1549,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
 
     // Add identity file if using private key auth
-    if (authConfig.type === 'privateKey' && authConfig.privateKeyPath) {
+    if (authConfig.authType === 'privateKey' && authConfig.privateKeyPath) {
       args.push('-i', authConfig.privateKeyPath);
     }
 
