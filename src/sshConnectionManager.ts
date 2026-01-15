@@ -130,12 +130,21 @@ export class SshConnectionManager {
     startOffset: number = 0
   ): Promise<void> {
     // Check if we should use parallel transfer
+    logger.info(`Upload check - File: ${path.basename(localPath)}, Offset: ${startOffset}`);
+
     if (PARALLEL_TRANSFER.ENABLED && startOffset === 0) {
       const stat = fs.statSync(localPath);
+      const fileSizeMB = (stat.size / 1024 / 1024).toFixed(2);
+      const thresholdMB = (PARALLEL_TRANSFER.THRESHOLD / 1024 / 1024).toFixed(2);
+
+      logger.info(`Parallel transfer check - File size: ${fileSizeMB}MB, Threshold: ${thresholdMB}MB, Enabled: ${PARALLEL_TRANSFER.ENABLED}`);
+
       if (this.parallelTransferManager.shouldUseParallelTransfer(stat.size, {
         threshold: PARALLEL_TRANSFER.THRESHOLD
       })) {
-        logger.info(`Using parallel transfer for large file: ${path.basename(localPath)} (${stat.size} bytes)`);
+        logger.info(`🚀 Using parallel transfer for large file: ${path.basename(localPath)} (${fileSizeMB}MB)`);
+        logger.info(`Configuration - Chunk size: ${PARALLEL_TRANSFER.CHUNK_SIZE / 1024 / 1024}MB, Max concurrent: ${PARALLEL_TRANSFER.MAX_CONCURRENT}`);
+
         return this.parallelTransferManager.uploadFileParallel(
           config,
           authConfig,
@@ -149,10 +158,20 @@ export class SshConnectionManager {
             threshold: PARALLEL_TRANSFER.THRESHOLD
           }
         );
+      } else {
+        logger.info(`Using standard transfer - File size ${fileSizeMB}MB is below threshold ${thresholdMB}MB`);
+      }
+    } else {
+      if (!PARALLEL_TRANSFER.ENABLED) {
+        logger.info(`Parallel transfer disabled in configuration`);
+      }
+      if (startOffset > 0) {
+        logger.info(`Using resume transfer - Starting from offset ${startOffset} bytes`);
       }
     }
 
     // Use standard transfer for small files or resume
+    logger.info(`Using standard upload method for ${path.basename(localPath)}`);
     return this.withConnection(config, authConfig, async (sftp) => {
       // Check if already aborted
       if (signal?.aborted) {
@@ -292,16 +311,25 @@ export class SshConnectionManager {
     startOffset: number = 0
   ): Promise<void> {
     // Check if we should use parallel transfer
+    logger.info(`Download check - File: ${path.basename(remotePath)}, Offset: ${startOffset}`);
+
     if (PARALLEL_TRANSFER.ENABLED && startOffset === 0) {
       // Get remote file size first
       const stat = await this.withConnection(config, authConfig, async (sftp) => {
         return sftp.stat(remotePath);
       });
 
+      const fileSizeMB = (stat.size / 1024 / 1024).toFixed(2);
+      const thresholdMB = (PARALLEL_TRANSFER.THRESHOLD / 1024 / 1024).toFixed(2);
+
+      logger.info(`Parallel transfer check - File size: ${fileSizeMB}MB, Threshold: ${thresholdMB}MB, Enabled: ${PARALLEL_TRANSFER.ENABLED}`);
+
       if (this.parallelTransferManager.shouldUseParallelTransfer(stat.size, {
         threshold: PARALLEL_TRANSFER.THRESHOLD
       })) {
-        logger.info(`Using parallel transfer for large file: ${path.basename(remotePath)} (${stat.size} bytes)`);
+        logger.info(`🚀 Using parallel transfer for large file: ${path.basename(remotePath)} (${fileSizeMB}MB)`);
+        logger.info(`Configuration - Chunk size: ${PARALLEL_TRANSFER.CHUNK_SIZE / 1024 / 1024}MB, Max concurrent: ${PARALLEL_TRANSFER.MAX_CONCURRENT}`);
+
         return this.parallelTransferManager.downloadFileParallel(
           config,
           authConfig,
@@ -315,10 +343,20 @@ export class SshConnectionManager {
             threshold: PARALLEL_TRANSFER.THRESHOLD
           }
         );
+      } else {
+        logger.info(`Using standard transfer - File size ${fileSizeMB}MB is below threshold ${thresholdMB}MB`);
+      }
+    } else {
+      if (!PARALLEL_TRANSFER.ENABLED) {
+        logger.info(`Parallel transfer disabled in configuration`);
+      }
+      if (startOffset > 0) {
+        logger.info(`Using resume transfer - Starting from offset ${startOffset} bytes`);
       }
     }
 
     // Use standard transfer for small files or resume
+    logger.info(`Using standard download method for ${path.basename(remotePath)}`);
     return this.withConnection(config, authConfig, async (sftp) => {
       // Check if already aborted
       if (signal?.aborted) {

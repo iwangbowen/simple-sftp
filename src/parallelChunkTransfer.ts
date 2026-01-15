@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as os from 'node:os';
 // @ts-ignore
 import SftpClient from 'ssh2-sftp-client';
 import { HostConfig, HostAuthConfig } from './types';
@@ -91,7 +92,14 @@ export class ParallelChunkTransferManager {
 
     // Split into chunks
     const chunks = this.splitIntoChunks(fileSize, opts.chunkSize);
-    logger.info(`Uploading ${path.basename(localPath)} in ${chunks.length} chunks with ${opts.maxConcurrent} concurrent transfers`);
+    const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+    const chunkSizeMB = (opts.chunkSize / 1024 / 1024).toFixed(2);
+
+    logger.info(`📦 Parallel Upload Started`);
+    logger.info(`  File: ${path.basename(localPath)} (${fileSizeMB}MB)`);
+    logger.info(`  Total chunks: ${chunks.length} (${chunkSizeMB}MB each)`);
+    logger.info(`  Max concurrent: ${opts.maxConcurrent} connections`);
+    logger.info(`  Remote path: ${remotePath}`);
 
     // Progress tracking
     const chunkProgress: ChunkProgress = {};
@@ -106,10 +114,14 @@ export class ParallelChunkTransferManager {
 
     try {
       // Upload chunks in batches
+      logger.info(`Starting batch upload of ${chunks.length} chunks...`);
+      let completedChunks = 0;
+
       await this.processBatches(
         chunks,
         opts.maxConcurrent,
         async (chunk) => {
+          logger.debug(`Uploading chunk ${chunk.index + 1}/${chunks.length} (${(chunk.size / 1024 / 1024).toFixed(2)}MB)`);
           await this.uploadChunk(
             config,
             authConfig,
@@ -122,13 +134,16 @@ export class ParallelChunkTransferManager {
             },
             signal
           );
+          completedChunks++;
+          logger.info(`✓ Chunk ${chunk.index + 1}/${chunks.length} uploaded (${completedChunks}/${chunks.length} complete)`);
         }
       );
 
+      logger.info(`All chunks uploaded successfully. Starting merge...`);
       // Merge chunks on remote server
       await this.mergeChunksOnRemote(config, authConfig, remotePath, chunks.length);
 
-      logger.info(`Successfully uploaded ${path.basename(localPath)} using parallel transfer`);
+      logger.info(`✓ Successfully uploaded ${path.basename(localPath)} using parallel transfer`);
     } catch (error: any) {
       // Clean up partial chunks
       await this.cleanupPartialChunks(config, authConfig, remotePath, chunks.length);
@@ -151,7 +166,8 @@ export class ParallelChunkTransferManager {
     const opts = { ...ParallelChunkTransferManager.DEFAULT_OPTIONS, ...options };
 
     // Get remote file size
-    const { sftpClient } = await this.connectionPool.getConnection(config, authConfig);
+    const connectConfig = this.buildConnectConfig(config, authConfig);
+    const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
     const stat = await sftpClient.stat(remotePath);
     this.connectionPool.releaseConnection(config);
 
@@ -172,10 +188,14 @@ export class ParallelChunkTransferManager {
 
     try {
       // Download chunks in batches
+      logger.info(`Starting batch download of ${chunks.length} chunks...`);
+      let completedChunks = 0;
+
       await this.processBatches(
         chunks,
         opts.maxConcurrent,
         async (chunk) => {
+          logger.debug(`Downloading chunk ${chunk.index + 1}/${chunks.length} (${(chunk.size / 1024 / 1024).toFixed(2)}MB)`);
           await this.downloadChunk(
             config,
             authConfig,
@@ -188,13 +208,16 @@ export class ParallelChunkTransferManager {
             },
             signal
           );
+          completedChunks++;
+          logger.info(`✓ Chunk ${chunk.index + 1}/${chunks.length} downloaded (${completedChunks}/${chunks.length} complete)`);
         }
       );
 
+      logger.info(`All chunks downloaded successfully. Starting merge...`);
       // Merge chunks locally
       await this.mergeChunksLocally(localPath, chunks.length);
 
-      logger.info(`Successfully downloaded ${path.basename(remotePath)} using parallel transfer`);
+      logger.info(`✓ Successfully downloaded ${path.basename(remotePath)} using parallel transfer`);
     } catch (error: any) {
       // Clean up partial chunks
       await this.cleanupLocalChunks(localPath, chunks.length);
@@ -351,6 +374,7 @@ export class ParallelChunkTransferManager {
     remotePath: string,
     totalChunks: number
   ): Promise<void> {
+    logger.info(`Merging ${totalChunks} chunks on remote server...`);
     const connectConfig = this.buildConnectConfig(config, authConfig);
     const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
 
@@ -365,6 +389,8 @@ export class ParallelChunkTransferManager {
       // Note: We need to add exec support to the connection
       // For now, we'll use sequential merge via SFTP
       await this.sequentialMergeRemote(sftpClient, remotePath, totalChunks);
+
+      logger.info(`✓ Chunks merged successfully on remote server`);
     } finally {
       this.connectionPool.releaseConnection(config);
     }
@@ -404,6 +430,7 @@ export class ParallelChunkTransferManager {
    * Merge chunks locally
    */
   private async mergeChunksLocally(localPath: string, totalChunks: number): Promise<void> {
+    logger.info(`Merging ${totalChunks} chunks locally...`);
     const writeStream = fs.createWriteStream(localPath);
 
     for (let i = 0; i < totalChunks; i++) {
@@ -411,14 +438,17 @@ export class ParallelChunkTransferManager {
       const readStream = fs.createReadStream(chunkPath);
 
       await new Promise((resolve, reject) => {
-        readStream.on('end', resolve);
+        readStream.on('end', () => resolve(undefined));
         readStream.on('error', reject);
         readStream.pipe(writeStream, { end: i === totalChunks - 1 });
       });
 
       // Delete chunk after merging
       fs.unlinkSync(chunkPath);
+      logger.debug(`Merged and deleted chunk ${i + 1}/${totalChunks}`);
     }
+
+    logger.info(`✓ Chunks merged successfully locally`);
   }
 
   /**
@@ -478,7 +508,7 @@ export class ParallelChunkTransferManager {
     if (authConfig.authType === 'password' && authConfig.password) {
       connectConfig.password = authConfig.password;
     } else if (authConfig.authType === 'privateKey' && authConfig.privateKeyPath) {
-      const privateKeyPath = authConfig.privateKeyPath.replace('~', require('os').homedir());
+      const privateKeyPath = authConfig.privateKeyPath.replace('~', os.homedir());
       if (fs.existsSync(privateKeyPath)) {
         connectConfig.privateKey = fs.readFileSync(privateKeyPath);
         if (authConfig.passphrase) {
