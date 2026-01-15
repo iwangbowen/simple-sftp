@@ -11,6 +11,7 @@
   - Automatic chunk merging after successful transfer
   - 3-5x speed improvement for large files
   - Configurable chunk size, concurrency, and threshold via constants
+  - **Download chunks stored in system temp directory** (improved UX - no clutter in user's folders)
 
 - **File Integrity Verification (文件完整性校验)**: Optional checksum verification after file transfers
   - Supports MD5 and SHA256 algorithms

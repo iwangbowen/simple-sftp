@@ -278,8 +278,9 @@ export class ParallelChunkTransferManager {
       let transferred = 0;
 
       return new Promise((resolve, reject) => {
-        readStream.on('data', (data: Buffer) => {
-          transferred += data.length;
+        readStream.on('data', (data: string | Buffer) => {
+          const dataLength = typeof data === 'string' ? Buffer.byteLength(data) : data.length;
+          transferred += dataLength;
           onProgress(transferred);
 
           if (signal?.aborted) {
@@ -312,7 +313,10 @@ export class ParallelChunkTransferManager {
     onProgress: (transferred: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const chunkPath = `${localPath}.part${chunk.index}`;
+    // Use system temp directory for chunk files to avoid cluttering user's directory
+    const tempDir = os.tmpdir();
+    const fileName = path.basename(localPath);
+    const chunkPath = path.join(tempDir, `${fileName}.part${chunk.index}`);
 
     // Get connection from pool
     const connectConfig = this.buildConnectConfig(config, authConfig);
@@ -324,10 +328,9 @@ export class ParallelChunkTransferManager {
         throw new Error('Transfer aborted');
       }
 
-      // Ensure local directory exists
-      const localDir = path.dirname(chunkPath);
-      if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir, { recursive: true });
+      // Temp directory should always exist, but ensure it
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
       }
 
       // Create read stream for remote chunk
@@ -343,8 +346,9 @@ export class ParallelChunkTransferManager {
       let transferred = 0;
 
       return new Promise((resolve, reject) => {
-        readStream.on('data', (data: Buffer) => {
-          transferred += data.length;
+        readStream.on('data', (data: string | Buffer) => {
+          const dataLength = typeof data === 'string' ? Buffer.byteLength(data) : data.length;
+          transferred += dataLength;
           onProgress(transferred);
 
           if (signal?.aborted) {
@@ -431,10 +435,20 @@ export class ParallelChunkTransferManager {
    */
   private async mergeChunksLocally(localPath: string, totalChunks: number): Promise<void> {
     logger.info(`Merging ${totalChunks} chunks locally...`);
+
+    // Ensure target directory exists
+    const localDir = path.dirname(localPath);
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+
     const writeStream = fs.createWriteStream(localPath);
+    const tempDir = os.tmpdir();
+    const fileName = path.basename(localPath);
 
     for (let i = 0; i < totalChunks; i++) {
-      const chunkPath = `${localPath}.part${i}`;
+      // Read from temp directory
+      const chunkPath = path.join(tempDir, `${fileName}.part${i}`);
       const readStream = fs.createReadStream(chunkPath);
 
       await new Promise((resolve, reject) => {
@@ -443,12 +457,12 @@ export class ParallelChunkTransferManager {
         readStream.pipe(writeStream, { end: i === totalChunks - 1 });
       });
 
-      // Delete chunk after merging
+      // Delete chunk from temp directory after merging
       fs.unlinkSync(chunkPath);
-      logger.debug(`Merged and deleted chunk ${i + 1}/${totalChunks}`);
+      logger.debug(`Merged and deleted chunk ${i + 1}/${totalChunks} from temp directory`);
     }
 
-    logger.info(`✓ Chunks merged successfully locally`);
+    logger.info(`✓ Chunks merged successfully locally from temp directory`);
   }
 
   /**
@@ -483,11 +497,16 @@ export class ParallelChunkTransferManager {
    * Clean up partial chunks locally
    */
   private async cleanupLocalChunks(localPath: string, totalChunks: number): Promise<void> {
+    const tempDir = os.tmpdir();
+    const fileName = path.basename(localPath);
+
     for (let i = 0; i < totalChunks; i++) {
-      const chunkPath = `${localPath}.part${i}`;
+      // Clean from temp directory
+      const chunkPath = path.join(tempDir, `${fileName}.part${i}`);
       try {
         if (fs.existsSync(chunkPath)) {
           fs.unlinkSync(chunkPath);
+          logger.debug(`Cleaned up chunk ${i} from temp directory`);
         }
       } catch (error: any) {
         logger.error(`Failed to cleanup local chunk ${i}: ${error.message}`);
