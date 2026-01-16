@@ -412,26 +412,53 @@ export class ParallelChunkTransferManager {
     totalChunks: number
   ): Promise<void> {
     const fileName = path.basename(remotePath);
-    // Create temporary merged file
-    const tempPath = `${remotePath}.merging`;
-    const writeStream = sftp.createWriteStream(tempPath);
+    const localMergedPath = path.join(os.tmpdir(), `merged_${Date.now()}_${fileName}`);
 
-    for (let i = 0; i < totalChunks; i++) {
-      const chunkPath = `/tmp/${fileName}.part${i}`;
-      const readStream = sftp.createReadStream(chunkPath);
+    logger.info(`Merging ${totalChunks} chunks locally then uploading to ${remotePath}`);
 
+    try {
+      // Download all chunks and merge locally
+      const writeStream = fs.createWriteStream(localMergedPath);
+
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkPath = `/tmp/${fileName}.part${i}`;
+        const localChunkPath = path.join(os.tmpdir(), `temp_chunk_${i}_${Date.now()}`);
+
+        logger.debug(`Downloading and merging chunk ${i + 1}/${totalChunks}`);
+        
+        // Download chunk
+        await sftp.fastGet(chunkPath, localChunkPath);
+        
+        // Append to local merged file
+        const chunkData = fs.readFileSync(localChunkPath);
+        writeStream.write(chunkData);
+        
+        // Cleanup local chunk
+        fs.unlinkSync(localChunkPath);
+        
+        // Delete remote chunk from /tmp
+        await sftp.unlink(chunkPath);
+        
+        logger.info(`✓ Merged chunk ${i + 1}/${totalChunks}`);
+      }
+
+      // Close write stream
       await new Promise((resolve, reject) => {
-        readStream.on('end', resolve);
-        readStream.on('error', reject);
-        readStream.pipe(writeStream, { end: i === totalChunks - 1 });
+        writeStream.end(resolve);
+        writeStream.on('error', reject);
       });
 
-      // Delete chunk from /tmp after merging
-      await sftp.unlink(chunkPath);
+      // Upload merged file to final destination
+      logger.info(`Uploading merged file to ${remotePath}`);
+      await sftp.fastPut(localMergedPath, remotePath);
+      
+      logger.info(`✓ Merge complete: ${remotePath}`);
+    } finally {
+      // Cleanup local merged file
+      if (fs.existsSync(localMergedPath)) {
+        fs.unlinkSync(localMergedPath);
+      }
     }
-
-    // Rename merged file to final name
-    await sftp.rename(tempPath, remotePath);
   }
 
   /**

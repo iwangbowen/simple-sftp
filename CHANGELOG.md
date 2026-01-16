@@ -1,5 +1,36 @@
 # Change Log
 
+## [2.4.5] - 2026-01-17
+
+### Fixed
+
+- **Upload Hanging Issues**: Improved transfer completion and timeout handling
+  - Added 5-minute timeout for `fastPut` operations to prevent indefinite hangs
+  - Redesigned parallel chunk merge process to be more reliable
+  - Now downloads chunks locally, merges them, then uploads final file
+  - Prevents stream control issues that could cause transfers to get stuck
+  - Better logging to track upload progress and completion
+  - Tasks should properly complete at 100% instead of showing spinning icon
+
+### Changed
+
+- **Parallel Transfer Merge**: Changed merge strategy for uploaded chunks
+  - Old: Sequential stream-based merge on remote server (could hang)
+  - New: Download chunks to local temp, merge locally, upload complete file
+  - More reliable and easier to debug
+  - Better error recovery during merge process
+  - Automatic cleanup of temporary files
+
+### Technical Details
+
+- Added timeout wrapper around `sftp.fastPut()` calls
+- Rewrote `sequentialMergeRemote()` to use download-merge-upload pattern
+- Added comprehensive logging for merge operations
+- Uses `fs.createWriteStream()` for efficient local merging
+- All temporary files cleaned up automatically
+
+---
+
 ## [2.4.4] - 2026-01-17
 
 ### Fixed
