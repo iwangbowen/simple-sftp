@@ -140,11 +140,11 @@ export class ParallelChunkTransferManager {
       );
 
       logger.info(`All chunks uploaded successfully. Starting merge...`);
-      
+
       // Merge chunks on remote server
       try {
         await this.mergeChunksOnRemote(config, authConfig, remotePath, chunks.length);
-        
+
         logger.info(`Merge completed. Sending final progress update...`);
         // Send final 100% progress after merge completes
         if (onProgress) {
@@ -156,12 +156,12 @@ export class ParallelChunkTransferManager {
         logger.warn(`Remote merge failed: ${mergeError.message}`);
         logger.info('Cleaning up remote chunks...');
         await this.cleanupPartialChunks(config, authConfig, remotePath, chunks.length);
-        
+
         logger.info('Falling back to normal single-file upload...');
         // Use normal upload (fastPut) as fallback
         const connectConfig = this.buildConnectConfig(config, authConfig);
         const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
-        
+
         try {
           let lastProgressTime = 0;
           await sftpClient.fastPut(localPath, remotePath, {
@@ -175,13 +175,13 @@ export class ParallelChunkTransferManager {
               }
             }
           });
-          
+
           // Final progress
           if (onProgress) {
             onProgress(fileSize, fileSize);
             logger.info(`Final progress sent: ${fileSize}/${fileSize} bytes (100%)`);
           }
-          
+
           logger.info('✓ Fallback upload completed successfully');
         } finally {
           this.connectionPool.releaseConnection(config);
@@ -306,7 +306,7 @@ export class ParallelChunkTransferManager {
     // Use remote /tmp directory for chunk files
     const fileName = path.basename(remotePath);
     const chunkPath = `/tmp/${fileName}.part${chunk.index}`;
-    
+
     // Create a temporary file for this chunk locally
     const localChunkPath = path.join(os.tmpdir(), `upload_chunk_${Date.now()}_${chunk.index}`);
 
@@ -326,7 +326,7 @@ export class ParallelChunkTransferManager {
         end: chunk.end
       });
       const writeStream = fs.createWriteStream(localChunkPath);
-      
+
       await new Promise((resolve, reject) => {
         readStream.on('error', reject);
         writeStream.on('error', reject);
@@ -467,7 +467,7 @@ export class ParallelChunkTransferManager {
 
           let stderr = '';
           let stdout = '';
-          
+
           // Must consume stdout and stderr to prevent blocking
           stream.on('data', (data: Buffer) => {
             stdout += data.toString();

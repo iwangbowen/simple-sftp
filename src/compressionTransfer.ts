@@ -8,11 +8,11 @@ import { logger } from './logger';
 
 /**
  * Manages intelligent file compression for SFTP transfers.
- * 
+ *
  * Strategy:
  * 1. SSH connection-level compression for all files (handled in SSH2 config)
  * 2. File-level gzip compression for large compressible files (>50MB text files)
- * 
+ *
  * Benefits:
  * - 3-10x speedup for text files
  * - 70-90% bandwidth savings
@@ -49,7 +49,7 @@ export class CompressionManager {
    */
   static async compressFile(localPath: string): Promise<string> {
     const compressedPath = `${localPath}.gz`;
-    
+
     logger.info(`[Compression] Compressing ${localPath} → ${compressedPath}`);
     const startTime = Date.now();
 
@@ -82,7 +82,7 @@ export class CompressionManager {
     remotePath: string
   ): Promise<void> {
     const remoteGzPath = `${remotePath}.gz`;
-    
+
     logger.info(`[Compression] Decompressing remote file: ${remoteGzPath}`);
 
     return new Promise<void>((resolve, reject) => {

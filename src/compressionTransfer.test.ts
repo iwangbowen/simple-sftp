@@ -80,7 +80,7 @@ describe('CompressionManager', () => {
       const compressedPath = await CompressionManager.compressFile(testFile);
 
       expect(fs.existsSync(compressedPath)).toBe(true);
-      
+
       // Cleanup
       fs.unlinkSync(compressedPath);
     });
@@ -88,7 +88,7 @@ describe('CompressionManager', () => {
     it('should overwrite existing .gz file', async () => {
       fs.writeFileSync(testFile, 'content');
       const gzPath = `${testFile}.gz`;
-      
+
       // Create existing .gz file
       fs.writeFileSync(gzPath, 'old compressed data');
 
@@ -108,7 +108,7 @@ describe('CompressionManager', () => {
       const mockClient = {
         exec: vi.fn((cmd, callback) => {
           expect(cmd).toBe('gunzip -f "/remote/test.log.gz"');
-          
+
           // Simulate success
           const mockStream = {
             on: vi.fn((event, handler) => {
@@ -175,7 +175,7 @@ describe('CompressionManager', () => {
       const mockClient = {
         exec: vi.fn((cmd, callback) => {
           expect(cmd).toBe('which gunzip');
-          
+
           const mockStream = {
             on: vi.fn((event, handler) => {
               if (event === 'data') {

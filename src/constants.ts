@@ -41,12 +41,12 @@ export const DELTA_SYNC = {
 export const COMPRESSION = {
   // SSH connection-level compression (always enabled for all transfers)
   SSH_LEVEL_ENABLED: true,              // Enable SSH connection-level compression
-  
+
   // File-level gzip compression for large text files
   FILE_LEVEL_ENABLED: true,             // Enable file-level gzip compression
   FILE_LEVEL_THRESHOLD: 50 * 1024 * 1024, // Min file size for file-level compression (50MB)
   COMPRESSION_LEVEL: 6,                 // Gzip compression level (1-9, 6 is balanced)
-  
+
   // File extensions eligible for file-level compression
   COMPRESSIBLE_EXTENSIONS: [
     '.txt', '.log', '.json', '.xml', '.csv', '.md', '.yaml', '.yml',
