@@ -7,14 +7,27 @@
 - **Critical Bug**: Fixed `sftp.unlink is not a function` error in parallel transfers
   - Corrected method name from `sftp.unlink()` to `sftp.delete()` for removing remote chunk files
   - This was causing transfers to fail at 100% and enter retry loop
-  - Affected both `sequentialMergeRemote` and `cleanupPartialChunks` methods
-  - Now properly cleans up temporary chunk files from remote `/tmp` directory
+  - Affected both chunk cleanup operations
+
+### Changed
+
+- **Parallel Transfer Optimization**: Drastically improved efficiency
+  - **Direct remote merge**: Chunks now merge directly on remote server using SSH exec (`cat` command)
+  - **No unnecessary downloads**: Eliminates the inefficient download-merge-upload cycle
+  - **Intelligent fallback**: If remote merge fails (timeout or SSH exec unavailable), automatically:
+    1. Cleans up remote chunks to free space
+    2. Falls back to normal single-file upload (fastPut)
+  - **Merge speed**: Remote merge completes in seconds instead of minutes
+  - **Bandwidth savings**: Saves ~360MB of unnecessary transfers on a 180MB file
 
 ### Technical Details
 
+- SSH exec used for remote chunk merging when available
+- Added proper stdout consumption to prevent SSH stream blocking
+- 5-minute timeout protection for remote merge operations
+- Fallback strategy uses normal upload instead of inefficient local merge
 - ssh2-sftp-client uses `delete()` method, not `unlink()`, for file deletion
-- Added error handling for chunk cleanup to prevent transfer failure
-- Ensures remote `/tmp` directory is cleaned after successful merge
+- Added comprehensive error handling and logging for merge operations
 
 ---
 

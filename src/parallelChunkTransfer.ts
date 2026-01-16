@@ -140,14 +140,52 @@ export class ParallelChunkTransferManager {
       );
 
       logger.info(`All chunks uploaded successfully. Starting merge...`);
+      
       // Merge chunks on remote server
-      await this.mergeChunksOnRemote(config, authConfig, remotePath, chunks.length);
-
-      logger.info(`Merge completed. Sending final progress update...`);
-      // Send final 100% progress after merge completes
-      if (onProgress) {
-        onProgress(fileSize, fileSize);
-        logger.info(`Final progress sent: ${fileSize}/${fileSize} bytes (100%)`);
+      try {
+        await this.mergeChunksOnRemote(config, authConfig, remotePath, chunks.length);
+        
+        logger.info(`Merge completed. Sending final progress update...`);
+        // Send final 100% progress after merge completes
+        if (onProgress) {
+          onProgress(fileSize, fileSize);
+          logger.info(`Final progress sent: ${fileSize}/${fileSize} bytes (100%)`);
+        }
+      } catch (mergeError: any) {
+        // Remote merge failed, cleanup chunks and use normal upload as fallback
+        logger.warn(`Remote merge failed: ${mergeError.message}`);
+        logger.info('Cleaning up remote chunks...');
+        await this.cleanupPartialChunks(config, authConfig, remotePath, chunks.length);
+        
+        logger.info('Falling back to normal single-file upload...');
+        // Use normal upload (fastPut) as fallback
+        const connectConfig = this.buildConnectConfig(config, authConfig);
+        const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+        
+        try {
+          let lastProgressTime = 0;
+          await sftpClient.fastPut(localPath, remotePath, {
+            step: (transferred: number, _chunk: any, total: number) => {
+              const now = Date.now();
+              if (now - lastProgressTime >= 100) {
+                if (onProgress) {
+                  onProgress(transferred, total);
+                }
+                lastProgressTime = now;
+              }
+            }
+          });
+          
+          // Final progress
+          if (onProgress) {
+            onProgress(fileSize, fileSize);
+            logger.info(`Final progress sent: ${fileSize}/${fileSize} bytes (100%)`);
+          }
+          
+          logger.info('✓ Fallback upload completed successfully');
+        } finally {
+          this.connectionPool.releaseConnection(config);
+        }
       }
 
       logger.info(`✓ Successfully uploaded ${path.basename(localPath)} using parallel transfer`);
@@ -408,7 +446,7 @@ export class ParallelChunkTransferManager {
   ): Promise<void> {
     logger.info(`Merging ${totalChunks} chunks on remote server from /tmp directory...`);
     const connectConfig = this.buildConnectConfig(config, authConfig);
-    const { client, sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+    const { client } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
 
     try {
       // Build merge command
@@ -422,11 +460,8 @@ export class ParallelChunkTransferManager {
       const execPromise = new Promise<void>((resolve, reject) => {
         client.exec(command, (err, stream) => {
           if (err) {
-            logger.warn(`SSH exec failed: ${err.message}, falling back to local merge`);
-            // Fallback to local merge
-            this.sequentialMergeRemote(sftpClient, remotePath, totalChunks)
-              .then(resolve)
-              .catch(reject);
+            logger.error(`SSH exec failed: ${err.message}`);
+            reject(new Error(`SSH exec not supported: ${err.message}`));
             return;
           }
 
@@ -455,11 +490,9 @@ export class ParallelChunkTransferManager {
               logger.info(`✓ Chunks merged successfully on remote server`);
               resolve();
             } else {
-              logger.error(`Remote merge command failed with code ${code}: ${stderr}`);
-              // Fallback to local merge
-              this.sequentialMergeRemote(sftpClient, remotePath, totalChunks)
-                .then(resolve)
-                .catch(reject);
+              const errorMsg = `Remote merge failed with exit code ${code}: ${stderr || 'unknown error'}`;
+              logger.error(errorMsg);
+              reject(new Error(errorMsg));
             }
           });
 
@@ -473,123 +506,13 @@ export class ParallelChunkTransferManager {
       // Add timeout for remote merge (5 minutes should be enough for cat + rm)
       const timeoutPromise = new Promise<void>((_, reject) => {
         setTimeout(() => {
-          logger.warn('Remote merge timeout after 5 minutes, falling back to local merge');
-          reject(new Error('Remote merge timeout'));
+          reject(new Error('Remote merge timeout after 5 minutes'));
         }, 5 * 60 * 1000);
       });
 
-      try {
-        await Promise.race([execPromise, timeoutPromise]);
-      } catch (error: any) {
-        // If remote merge fails or times out, fallback to local merge
-        logger.warn(`Remote merge failed: ${error.message}, using local merge as fallback`);
-        await this.sequentialMergeRemote(sftpClient, remotePath, totalChunks);
-      }
+      await Promise.race([execPromise, timeoutPromise]);
     } finally {
       this.connectionPool.releaseConnection(config);
-    }
-  }
-
-  /**
-   * Sequential merge using SFTP (fallback when SSH exec not available)
-   */
-  private async sequentialMergeRemote(
-    sftp: any,
-    remotePath: string,
-    totalChunks: number
-  ): Promise<void> {
-    const fileName = path.basename(remotePath);
-    const localMergedPath = path.join(os.tmpdir(), `merged_${Date.now()}_${fileName}`);
-
-    logger.info(`Merging ${totalChunks} chunks locally then uploading to ${remotePath}`);
-
-    try {
-      // Download all chunks and merge locally
-      const writeStream = fs.createWriteStream(localMergedPath);
-
-      for (let i = 0; i < totalChunks; i++) {
-        const chunkPath = `/tmp/${fileName}.part${i}`;
-        const localChunkPath = path.join(os.tmpdir(), `temp_chunk_${i}_${Date.now()}`);
-
-        logger.debug(`Downloading and merging chunk ${i + 1}/${totalChunks}`);
-        
-        // Download chunk
-        await sftp.fastGet(chunkPath, localChunkPath);
-        logger.debug(`Downloaded chunk ${i + 1}, size: ${fs.statSync(localChunkPath).size} bytes`);
-        
-        // Append to local merged file
-        const chunkData = fs.readFileSync(localChunkPath);
-        const writeComplete = writeStream.write(chunkData);
-        if (!writeComplete) {
-          // Wait for drain if buffer is full
-          await new Promise(resolve => writeStream.once('drain', resolve));
-        }
-        
-        // Cleanup local chunk
-        fs.unlinkSync(localChunkPath);
-        
-        // Delete remote chunk from /tmp
-        try {
-          await sftp.delete(chunkPath);
-          logger.debug(`Deleted remote chunk ${chunkPath}`);
-        } catch (cleanupError) {
-          logger.debug(`Failed to delete remote chunk ${chunkPath}: ${cleanupError}`);
-        }
-        
-        logger.info(`✓ Merged chunk ${i + 1}/${totalChunks}`);
-      }
-
-      // Close write stream
-      logger.info('Closing write stream...');
-      await new Promise((resolve, reject) => {
-        writeStream.end((error: Error | null | undefined) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(undefined);
-          }
-        });
-        writeStream.on('error', reject);
-      });
-      logger.info('Write stream closed successfully');
-
-      // Upload merged file to final destination
-      const mergedFileSize = fs.statSync(localMergedPath).size;
-      logger.info(`Uploading merged file to ${remotePath} (size: ${(mergedFileSize / 1024 / 1024).toFixed(2)}MB)`);
-      
-      let lastUploadProgress = 0;
-      let lastUploadLog = Date.now();
-      
-      // Add timeout for the final upload with progress tracking
-      const uploadPromise = sftp.fastPut(localMergedPath, remotePath, {
-        step: (transferred: number, _chunk: any, total: number) => {
-          lastUploadProgress = transferred;
-          const now = Date.now();
-          // Log every 5 seconds
-          if (now - lastUploadLog >= 5000) {
-            const percentComplete = ((transferred / total) * 100).toFixed(1);
-            logger.info(`Upload progress: ${(transferred / 1024 / 1024).toFixed(2)}MB / ${(total / 1024 / 1024).toFixed(2)}MB (${percentComplete}%)`);
-            lastUploadLog = now;
-          }
-        }
-      });
-      
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Merged file upload timeout - uploaded ${(lastUploadProgress / 1024 / 1024).toFixed(2)}MB of ${(mergedFileSize / 1024 / 1024).toFixed(2)}MB`));
-        }, 10 * 60 * 1000); // 10 minute timeout for merged file upload
-      });
-      
-      await Promise.race([uploadPromise, timeoutPromise]);
-      
-      logger.info(`✓ Upload complete: ${(mergedFileSize / 1024 / 1024).toFixed(2)}MB uploaded to ${remotePath}`);
-      
-      logger.info(`✓ Merge complete: ${remotePath}`);
-    } finally {
-      // Cleanup local merged file
-      if (fs.existsSync(localMergedPath)) {
-        fs.unlinkSync(localMergedPath);
-      }
     }
   }
 
