@@ -458,20 +458,30 @@ export class TransferQueueCommands {
     const status = this.queueService.getQueueStatus();
 
     const details = [
-      `**Queue Status:** ${status.isPaused ? 'PAUSED' : 'ACTIVE'}`,
-      `**Running:** ${status.runningCount} / ${status.maxConcurrent}`,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      'QUEUE STATUS',
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      `Status:          ${status.isPaused ? 'PAUSED' : 'ACTIVE'}`,
+      `Running:         ${status.runningCount} / ${status.maxConcurrent}`,
       '',
-      `**Total Tasks:** ${stats.total}`,
-      `**Pending:** ${stats.pending}`,
-      `**Running:** ${stats.running}`,
-      `**Paused:** ${stats.paused}`,
-      `**Completed:** ${stats.completed}`,
-      `**Failed:** ${stats.failed}`,
-      `**Cancelled:** ${stats.cancelled}`,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      'TASKS',
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      `Total:           ${stats.total}`,
+      `Pending:         ${stats.pending}`,
+      `Running:         ${stats.running}`,
+      `Paused:          ${stats.paused}`,
+      `Completed:       ${stats.completed}`,
+      `Failed:          ${stats.failed}`,
+      `Cancelled:       ${stats.cancelled}`,
       '',
-      `**Total Size:** ${this.formatBytes(stats.totalBytes)}`,
-      `**Transferred:** ${this.formatBytes(stats.transferredBytes)}`,
-      `**Average Speed:** ${this.formatSpeed(stats.averageSpeed)}`
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      'TRANSFER PROGRESS',
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      `Total Size:      ${this.formatBytes(stats.totalBytes)}`,
+      `Transferred:     ${this.formatBytes(stats.transferredBytes)}`,
+      `Average Speed:   ${this.formatSpeed(stats.averageSpeed)}`,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
     ];
 
     vscode.window.showInformationMessage(
