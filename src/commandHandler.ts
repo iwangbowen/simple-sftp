@@ -1263,10 +1263,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         fileSize: fileSize,
         isDirectory: stat.isDirectory()
       });
-
-      vscode.window.showInformationMessage(
-        `Upload started: ${fileName}`
-      );
+      // Task added to queue, progress visible in queue view
 
       // Record this host as recently used
       await this.hostManager.recordRecentUsed(config.id);
@@ -1657,9 +1654,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
       await this.hostManager.recordRecentUsed(config.id);
       await this.hostManager.recordRecentPath(config.id, remoteDir);
-      vscode.window.showInformationMessage(
-        `${uris.length} upload task(s) started`
-      );
+      // Task added to queue, no need to show notification here (queue will show progress)
       return;
     }
 
