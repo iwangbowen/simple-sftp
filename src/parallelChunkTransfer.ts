@@ -256,6 +256,9 @@ export class ParallelChunkTransferManager {
     // Use remote /tmp directory for chunk files
     const fileName = path.basename(remotePath);
     const chunkPath = `/tmp/${fileName}.part${chunk.index}`;
+    
+    // Create a temporary file for this chunk locally
+    const localChunkPath = path.join(os.tmpdir(), `upload_chunk_${Date.now()}_${chunk.index}`);
 
     // Get connection from pool
     const connectConfig = this.buildConnectConfig(config, authConfig);
@@ -267,37 +270,48 @@ export class ParallelChunkTransferManager {
         throw new Error('Transfer aborted');
       }
 
-      // Create read stream for this chunk
+      // Extract chunk data to temporary file
       const readStream = fs.createReadStream(localPath, {
         start: chunk.start,
-        end: chunk.end,
-        highWaterMark: 64 * 1024
+        end: chunk.end
       });
-
-      // Create write stream for chunk
-      const writeStream = sftpClient.createWriteStream(chunkPath);
-
-      let transferred = 0;
-
-      return new Promise((resolve, reject) => {
-        readStream.on('data', (data: string | Buffer) => {
-          const dataLength = typeof data === 'string' ? Buffer.byteLength(data) : data.length;
-          transferred += dataLength;
-          onProgress(transferred);
-
-          if (signal?.aborted) {
-            readStream.destroy();
-            writeStream.destroy();
-            reject(new Error('Transfer aborted'));
-          }
-        });
-
+      const writeStream = fs.createWriteStream(localChunkPath);
+      
+      await new Promise((resolve, reject) => {
         readStream.on('error', reject);
         writeStream.on('error', reject);
         writeStream.on('finish', resolve);
-
         readStream.pipe(writeStream);
       });
+
+      // Upload chunk file using fastPut (more reliable than streams)
+      let lastProgressTime = 0;
+      await sftpClient.fastPut(localChunkPath, chunkPath, {
+        step: (transferred: number, _chunk: any, _total: number) => {
+          const now = Date.now();
+          // Throttle progress updates
+          if (now - lastProgressTime >= 100) {
+            onProgress(transferred);
+            lastProgressTime = now;
+          }
+
+          if (signal?.aborted) {
+            throw new Error('Transfer aborted');
+          }
+        }
+      });
+
+      // Final progress update
+      onProgress(chunk.size);
+
+      // Cleanup local temp chunk
+      fs.unlinkSync(localChunkPath);
+    } catch (error) {
+      // Cleanup on error
+      if (fs.existsSync(localChunkPath)) {
+        fs.unlinkSync(localChunkPath);
+      }
+      throw error;
     } finally {
       this.connectionPool.releaseConnection(config);
     }

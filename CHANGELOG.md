@@ -1,5 +1,35 @@
 # Change Log
 
+## [2.4.6] - 2026-01-17
+
+### Fixed
+
+- **Transfer Stability Improvements**: Critical fixes for upload hanging and progress issues
+  - Added progress update throttling (100ms) to prevent system overload
+  - Replaced stream-based chunk upload with `fastPut` for better reliability
+  - Fixed backpressure issues that caused transfers to hang at random percentages
+  - Ensured final 100% progress update is always sent
+  - Better timeout handling for all transfer operations
+
+### Changed
+
+- **Parallel Chunk Upload**: Improved chunk upload reliability
+  - Now extracts chunk data to local temp file first
+  - Uses `fastPut` instead of streams for uploading chunks
+  - Better progress tracking with throttling
+  - Automatic cleanup of temporary chunk files
+  - More predictable transfer completion
+
+### Technical Details
+
+- Progress updates throttled to maximum 10 times per second
+- Final progress (100%) always sent after upload completes
+- Stream piping replaced with `fastPut` for chunk uploads
+- Added comprehensive error handling and cleanup
+- All temporary files properly managed
+
+---
+
 ## [2.4.5] - 2026-01-17
 
 ### Fixed
