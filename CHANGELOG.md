@@ -1,5 +1,46 @@
 # Change Log
 
+## [2.7.0] - 2026-01-16
+
+### Added - Transfer History Tree View
+
+- **New Transfer History View**
+  - Dedicated tree view for browsing transfer history
+  - Displays file size, completion time, and transfer duration
+  - Color-coded status icons (green for success, red for failed, gray for cancelled)
+  - Individual task deletion with trash icon button
+  - Clear all history button in view title
+  - Click any task to view detailed information
+
+- **Enhanced Time Display**
+  - Consistent time formatting across the extension using `TimeUtils`
+  - Format: `YYYY-MM-DD HH:mm:ss` (without milliseconds for better readability)
+  - Applied to both tree views and detail panels
+  - Completion time shown alongside transfer duration
+
+- **Improved Queue Statistics**
+  - Removed markdown formatting from statistics modal (not supported by VS Code)
+  - Clean text-based layout with Unicode dividers
+  - Organized into clear sections: Queue Status, Tasks, Transfer Progress
+  - No emoji usage for better cross-platform compatibility
+
+### Removed
+
+- **Show Queue Statistics Button**
+  - Removed dedicated statistics button from Transfer Queue view
+  - Queue information now accessible through individual task details and history view
+
+### Technical Details
+
+- Created `TransferHistoryTreeProvider` for history management
+- Added `TimeUtils.formatTime()` for consistent time formatting without milliseconds
+- Integrated history service with new tree view provider
+- Added `removeHistoryTask()` command for individual task deletion
+- Updated package.json with new view configuration and commands
+- Enhanced icon theming with VS Code color tokens for better visibility
+
+---
+
 ## [2.6.0] - 2026-01-16
 
 ### Enhanced - Transfer Queue UI Improvements
