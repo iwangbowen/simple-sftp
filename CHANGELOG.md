@@ -11,14 +11,21 @@
 
 ### Changed
 
-- **Parallel Transfer Optimization**: Drastically improved efficiency
-  - **Direct remote merge**: Chunks now merge directly on remote server using SSH exec (`cat` command)
-  - **No unnecessary downloads**: Eliminates the inefficient download-merge-upload cycle
+- **Parallel Transfer Optimization**: Drastically improved efficiency for both upload and download
+  - **Upload - Direct remote merge**: Chunks now merge directly on remote server using SSH exec (`cat` command)
+  - **Upload - No unnecessary downloads**: Eliminates the inefficient download-merge-upload cycle
+  - **Download - Improved reliability**: Fixed stream handling and progress tracking issues
+  - **Common issues fixed**:
+    - ✅ Fixed transfers hanging at random percentages (27.9%, 100%, etc.)
+    - ✅ Fixed "100% but not completing" issue - tasks now properly transition to completed state
+    - ✅ Fixed SSH stream blocking - properly consume stdout/stderr to prevent hangs
+    - ✅ Fixed progress throttling to prevent UI blocking
+    - ✅ Replaced unreliable stream uploads with fastPut for better stability
   - **Intelligent fallback**: If remote merge fails (timeout or SSH exec unavailable), automatically:
     1. Cleans up remote chunks to free space
     2. Falls back to normal single-file upload (fastPut)
   - **Merge speed**: Remote merge completes in seconds instead of minutes
-  - **Bandwidth savings**: Saves ~360MB of unnecessary transfers on a 180MB file
+  - **Bandwidth savings**: Saves ~360MB of unnecessary transfers on a 180MB file (upload scenario)
 
 ### Technical Details
 
