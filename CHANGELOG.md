@@ -1,29 +1,43 @@
 # Change Log
 
-## [Unreleased]
+## [2.6.0] - 2026-01-16
 
-### Enhanced
+### Enhanced - Transfer Queue UI Improvements
 
-- **Transfer Queue UI Improvements**
-  - Real-time progress updates in task detail view (500ms refresh rate)
-  - ASCII-style progress bars for better theme compatibility
-    - Uses block characters (█ and ░) for visual progress
-    - Clear visibility in both dark and light themes
-    - No emoji dependency for better compatibility
-  - Live display of transfer speed and estimated time remaining
-  - Task detail panel automatically updates during transfer
-  - Progress display moved to top of detail view for better visibility
-  - Better resource management with automatic cleanup on task completion
+- **Real-time Progress Updates**
+  - Task detail view updates every 500ms during transfers
+  - Live display of transfer speed, progress, and estimated time remaining
+  - Elapsed time counter showing transfer duration
+  - Automatic cleanup when tasks complete
+
+- **Visual Progress Bars**
+  - ASCII-style progress bars using block characters (█ and ░)
+  - Progress percentage displayed inline with progress bar
+  - Clear visibility in both dark and light themes
+  - No emoji dependency for better cross-platform compatibility
+  - Responsive layout adapts to webview width
+
+- **Smart Panel Management**
+  - Panels are reused when viewing same task multiple times
+  - No duplicate panels or column switching
+  - Completed tasks remain visible and clickable
+  - Better theme compatibility for file names and paths
+
+- **Task Queue Organization**
+  - Active tasks (running/pending/paused) always shown first
+  - Completed tasks displayed by default for easy access
+  - Smart sorting by status priority and creation time
+  - Silent removal of completed tasks (no notification spam)
 
 ### Technical Details
 
-- Modified `TransferQueueCommands` to support WebView real-time updates
-- Enhanced `task-details.html` with ASCII progress bar generation
-- Implemented `generateProgressBar()` function for dynamic character-based progress
-- Added CSS styles that adapt to VS Code theme colors
-- Implemented `postMessage` communication between extension and webview
-- Update interval: 500ms for running tasks
-- Automatic cleanup of intervals and panels when tasks complete or windows close
+- Modified `TransferQueueCommands` to support WebView real-time updates via `postMessage`
+- Enhanced `task-details.html` with responsive design and ASCII progress bar generation
+- Implemented panel reuse logic to prevent duplicate webviews
+- Added sorting logic in `TransferQueueTreeProvider` for task prioritization
+- Update interval: 500ms for running/pending/paused tasks
+- Automatic cleanup of intervals when tasks finish
+- Improved error handling for panel lifecycle management
 
 ---
 
