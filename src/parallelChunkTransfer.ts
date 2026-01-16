@@ -143,6 +143,11 @@ export class ParallelChunkTransferManager {
       // Merge chunks on remote server
       await this.mergeChunksOnRemote(config, authConfig, remotePath, chunks.length);
 
+      // Send final 100% progress after merge completes
+      if (onProgress) {
+        onProgress(fileSize, fileSize);
+      }
+
       logger.info(`✓ Successfully uploaded ${path.basename(localPath)} using parallel transfer`);
     } catch (error: any) {
       // Clean up partial chunks
@@ -216,6 +221,11 @@ export class ParallelChunkTransferManager {
       logger.info(`All chunks downloaded successfully. Starting merge...`);
       // Merge chunks locally
       await this.mergeChunksLocally(localPath, chunks.length);
+
+      // Send final 100% progress after merge completes
+      if (onProgress) {
+        onProgress(fileSize, fileSize);
+      }
 
       logger.info(`✓ Successfully downloaded ${path.basename(remotePath)} using parallel transfer`);
     } catch (error: any) {

@@ -1,5 +1,24 @@
 # Change Log
 
+## [2.4.7] - 2026-01-17
+
+### Fixed
+
+- **Transfer Completion**: Fixed 100% progress hanging issue
+  - Now sends final 100% progress update after merge completes in parallel transfers
+  - Task properly completes and stops showing spinning icon
+  - Applied to both upload and download parallel transfers
+  - File is ready immediately when UI shows 100%
+
+### Technical Details
+
+- Added final `onProgress(fileSize, fileSize)` call after chunk merge
+- Ensures task status transitions from "running" to "completed"
+- Queue UI properly reflects completion state
+- No more indefinite spinning at 100%
+
+---
+
 ## [2.4.6] - 2026-01-17
 
 ### Fixed
