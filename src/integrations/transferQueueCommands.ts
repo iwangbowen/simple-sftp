@@ -544,10 +544,10 @@ export class TransferQueueCommands {
     const confirm = await vscode.window.showWarningMessage(
       `Clear all ${stats.total} history records?`,
       { modal: true },
-      'Yes', 'No'
+      'Clear'
     );
 
-    if (confirm === 'Yes') {
+    if (confirm === 'Clear') {
       await this.historyService.clearAllHistory();
       vscode.window.showInformationMessage('History cleared');
       logger.info('History cleared by user');
