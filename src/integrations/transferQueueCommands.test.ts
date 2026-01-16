@@ -22,161 +22,57 @@ describe('TransferQueueCommands', () => {
     commands = new TransferQueueCommands();
   });
 
-  describe('buildTaskDetailsMarkdown', () => {
-    it('should generate markdown with basic task information', () => {
+  describe('markdownToHtml', () => {
+    it('should convert markdown bold to HTML strong tags', () => {
       const task = {
-        id: 'task-123',
         fileName: 'test.txt',
-        type: 'upload',
-        status: 'completed',
-        hostName: 'Test Server',
-        localPath: '/local/test.txt',
-        remotePath: '/remote/test.txt',
-        fileSize: 1024,
-        transferred: 1024,
-        progress: 100,
-        createdAt: new Date('2024-01-01T10:00:00'),
-        retryCount: 0,
-        getDuration: () => undefined,
-        getAverageSpeed: () => undefined
+        status: 'completed'
       } as unknown as TransferTaskModel;
 
-      const markdown = (commands as any).buildTaskDetailsMarkdown(task);
+      const markdown = '**File:** test.txt';
+      const html = (commands as any).markdownToHtml(markdown, task);
 
-      expect(markdown).toContain('# Transfer Task Details');
-      expect(markdown).toContain('test.txt');
-      expect(markdown).toContain('UPLOAD');
-      expect(markdown).toContain('COMPLETED');
-      expect(markdown).toContain('Test Server');
-      expect(markdown).toContain('/local/test.txt');
-      expect(markdown).toContain('/remote/test.txt');
-      expect(markdown).toContain('task-123');
+      expect(html).toContain('<strong>File:</strong>');
     });
 
-    it('should include duration and average speed when available', () => {
+    it('should convert newlines to br tags', () => {
       const task = {
-        id: 'task-456',
-        fileName: 'large-file.zip',
-        type: 'download',
-        status: 'completed',
-        hostName: 'Prod Server',
-        localPath: '/local/large-file.zip',
-        remotePath: '/remote/large-file.zip',
-        fileSize: 10485760, // 10 MB
-        transferred: 10485760,
-        progress: 100,
-        createdAt: new Date('2024-01-01T10:00:00'),
-        startedAt: new Date('2024-01-01T10:00:05'),
-        completedAt: new Date('2024-01-01T10:01:05'),
-        retryCount: 0,
-        getDuration: () => 60000, // 60 seconds
-        getAverageSpeed: () => 174762.67 // ~170 KB/s
-      } as unknown as TransferTaskModel;
+        fileName: 'test.txt',
+        status: 'completed'
+      } as TransferTaskModel;
 
-      const markdown = (commands as any).buildTaskDetailsMarkdown(task, 60000, 174762.67);
+      const markdown = 'Line 1\n\nLine 2\nLine 3';
+      const html = (commands as any).markdownToHtml(markdown, task);
 
-      expect(markdown).toContain('Duration');
-      expect(markdown).toContain('1m 0s');
-      expect(markdown).toContain('Average Speed');
-      expect(markdown).toContain('KB/s');
+      expect(html).toContain('<br>');
     });
 
-    it('should include retry information when retries occurred', () => {
+    it('should include VS Code theme variables', () => {
       const task = {
-        id: 'task-789',
-        fileName: 'retry-test.dat',
-        type: 'upload',
-        status: 'completed',
-        hostName: 'Unstable Server',
-        localPath: '/local/retry-test.dat',
-        remotePath: '/remote/retry-test.dat',
-        fileSize: 2048,
-        transferred: 2048,
-        progress: 100,
-        createdAt: new Date('2024-01-01T10:00:00'),
-        retryCount: 2,
-        maxRetries: 3,
-        getDuration: () => undefined,
-        getAverageSpeed: () => undefined
-      } as unknown as TransferTaskModel;
+        fileName: 'test.txt',
+        status: 'running'
+      } as TransferTaskModel;
 
-      const markdown = (commands as any).buildTaskDetailsMarkdown(task);
+      const markdown = '**Test**';
+      const html = (commands as any).markdownToHtml(markdown, task);
 
-      expect(markdown).toContain('Retry Information');
-      expect(markdown).toContain('2 / 3');
-    });
-
-    it('should include error details when task failed', () => {
-      const task = {
-        id: 'task-error',
-        fileName: 'failed-file.bin',
-        type: 'upload',
-        status: 'failed',
-        hostName: 'Error Server',
-        localPath: '/local/failed-file.bin',
-        remotePath: '/remote/failed-file.bin',
-        fileSize: 512,
-        transferred: 256,
-        progress: 50,
-        createdAt: new Date('2024-01-01T10:00:00'),
-        retryCount: 0,
-        lastError: 'Connection timeout: Failed to connect to server',
-        getDuration: () => undefined,
-        getAverageSpeed: () => undefined
-      } as unknown as TransferTaskModel;
-
-      const markdown = (commands as any).buildTaskDetailsMarkdown(task);
-
-      expect(markdown).toContain('Error Details');
-      expect(markdown).toContain('Connection timeout: Failed to connect to server');
-      expect(markdown).toContain('```');
-    });
-
-    it('should include timestamps for all events', () => {
-      const createdAt = new Date('2024-01-01T10:00:00');
-      const startedAt = new Date('2024-01-01T10:00:05');
-      const completedAt = new Date('2024-01-01T10:01:05');
-
-      const task = {
-        id: 'task-timestamps',
-        fileName: 'timestamp-test.log',
-        type: 'download',
-        status: 'completed',
-        hostName: 'Time Server',
-        localPath: '/local/timestamp-test.log',
-        remotePath: '/remote/timestamp-test.log',
-        fileSize: 128,
-        transferred: 128,
-        progress: 100,
-        createdAt,
-        startedAt,
-        completedAt,
-        retryCount: 0,
-        getDuration: () => undefined,
-        getAverageSpeed: () => undefined
-      } as unknown as TransferTaskModel;
-
-      const markdown = (commands as any).buildTaskDetailsMarkdown(task);
-
-      expect(markdown).toContain('Timestamps');
-      expect(markdown).toContain(createdAt.toLocaleString());
-      expect(markdown).toContain(startedAt.toLocaleString());
-      expect(markdown).toContain(completedAt.toLocaleString());
+      expect(html).toContain('var(--vscode-font-family)');
+      expect(html).toContain('var(--vscode-foreground)');
+      expect(html).toContain('var(--vscode-editor-background)');
     });
   });
 
-  describe('getStatusEmoji', () => {
-    it('should return correct emoji for each status', () => {
-      expect((commands as any).getStatusEmoji('pending')).toBe('⏳');
-      expect((commands as any).getStatusEmoji('running')).toBe('🔄');
-      expect((commands as any).getStatusEmoji('paused')).toBe('⏸️');
-      expect((commands as any).getStatusEmoji('completed')).toBe('✅');
-      expect((commands as any).getStatusEmoji('failed')).toBe('❌');
-      expect((commands as any).getStatusEmoji('cancelled')).toBe('🚫');
+  describe('getStatusColor', () => {
+    it('should return correct color for each status', () => {
+      expect((commands as any).getStatusColor('completed')).toBe('#4ec9b0');
+      expect((commands as any).getStatusColor('failed')).toBe('#f48771');
+      expect((commands as any).getStatusColor('running')).toBe('#569cd6');
+      expect((commands as any).getStatusColor('paused')).toBe('#dcdcaa');
+      expect((commands as any).getStatusColor('cancelled')).toBe('#858585');
     });
 
-    it('should return default emoji for unknown status', () => {
-      expect((commands as any).getStatusEmoji('unknown')).toBe('❓');
+    it('should return default color for unknown status', () => {
+      expect((commands as any).getStatusColor('unknown')).toBe('#d4d4d4');
     });
   });
 
