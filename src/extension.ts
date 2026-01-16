@@ -138,6 +138,9 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('simpleSftp.clearHistory', () =>
       transferQueueCommands.clearHistory()
     ),
+    vscode.commands.registerCommand('simpleSftp.removeHistoryTask', (treeItem) =>
+      transferQueueCommands.removeHistoryTask(treeItem)
+    ),
 
     // Help and feedback commands
     vscode.commands.registerCommand('simpleSftp.openGitHubReadme', () => {

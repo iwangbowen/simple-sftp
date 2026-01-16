@@ -554,6 +554,25 @@ export class TransferQueueCommands {
   }
 
   /**
+   * Remove a task from history
+   */
+  async removeHistoryTask(treeItem?: any): Promise<void> {
+    if (!this.historyService) {
+      vscode.window.showWarningMessage('History service not available');
+      return;
+    }
+
+    const task = treeItem?.task as TransferTaskModel | undefined;
+    if (!task) {
+      vscode.window.showWarningMessage('No task selected');
+      return;
+    }
+
+    this.historyService.removeFromHistory(task.id);
+    logger.info(`Removed task from history: ${task.id}`);
+  }
+
+  /**
    * Helper: Select a task from queue
    */
   private async selectTask(filterStatus?: string): Promise<TransferTaskModel | undefined> {

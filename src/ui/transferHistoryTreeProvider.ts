@@ -3,6 +3,7 @@ import { TransferHistoryService } from '../services/transferHistoryService';
 import { TransferTaskModel } from '../models/transferTask';
 import { TaskStatus } from '../types/transfer.types';
 import { formatBytes, formatDuration } from '../utils/formatUtils';
+import { TimeUtils } from '../timeUtils';
 import { logger } from '../logger';
 
 class TransferHistoryTreeItem extends vscode.TreeItem {
@@ -54,28 +55,32 @@ class TransferHistoryTreeItem extends vscode.TreeItem {
 
     parts.push(formatBytes(task.fileSize));
 
-    if (task.completedAt && task.startedAt) {
-      const duration = task.completedAt.getTime() - task.startedAt.getTime();
-      parts.push(formatDuration(duration));
-    }
+    if (task.completedAt) {
+      // Show completion time
+      parts.push(TimeUtils.formatISOTime(task.completedAt.getTime()));
 
-    parts.push(`[${task.status}]`);
+      // Show duration if we have start time
+      if (task.startedAt) {
+        const duration = task.completedAt.getTime() - task.startedAt.getTime();
+        parts.push(`(${formatDuration(duration)})`);
+      }
+    }
 
     return parts.join(' · ');
   }
 
   private getIcon(): vscode.ThemeIcon {
-    const iconMap: Record<TaskStatus, string> = {
-      pending: 'circle-outline',
-      running: 'sync~spin',
-      paused: 'debug-pause',
-      completed: 'check',
-      failed: 'error',
-      cancelled: 'circle-slash'
+    const iconMap: Record<TaskStatus, { id: string; color?: vscode.ThemeColor }> = {
+      pending: { id: 'circle-outline' },
+      running: { id: 'sync~spin' },
+      paused: { id: 'debug-pause' },
+      completed: { id: 'check', color: new vscode.ThemeColor('testing.iconPassed') },
+      failed: { id: 'error', color: new vscode.ThemeColor('testing.iconFailed') },
+      cancelled: { id: 'circle-slash', color: new vscode.ThemeColor('testing.iconSkipped') }
     };
 
-    const icon = iconMap[this.task.status] || 'file';
-    return new vscode.ThemeIcon(icon);
+    const iconInfo = iconMap[this.task.status] || { id: 'file' };
+    return new vscode.ThemeIcon(iconInfo.id, iconInfo.color);
   }
 }
 

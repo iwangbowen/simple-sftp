@@ -332,6 +332,12 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "simpleSftp.removeHistoryTask",
+        "title": "Remove from History",
+        "category": "Simple SFTP",
+        "icon": "$(trash)"
+      },
+      {
         "command": "simpleSftp.openGitHubReadme",
         "title": "Read Documentation",
         "category": "Simple SFTP",
@@ -535,6 +541,10 @@
         },
         {
           "command": "simpleSftp.showTaskDetails",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.removeHistoryTask",
           "when": "false"
         },
         {
@@ -749,6 +759,13 @@
           "command": "simpleSftp.removeTask",
           "when": "view == simpleSftp.transferQueue",
           "group": "9_danger@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "simpleSftp.removeHistoryTask",
+          "when": "view == simpleSftp.transferHistory && viewItem =~ /historyTask/",
+          "group": "inline@1"
         }
       ],
       "explorer/context": [
