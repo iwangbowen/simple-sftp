@@ -175,6 +175,10 @@ export class TransferQueueCommands {
     }
   }
 
+  // Store active task detail panels
+  private readonly taskDetailPanels = new Map<string, vscode.WebviewPanel>();
+  private readonly taskUpdateIntervals = new Map<string, NodeJS.Timeout>();
+
   /**
    * Show task details using WebView panel with external HTML template
    */
@@ -184,22 +188,87 @@ export class TransferQueueCommands {
       if (!task) {return;}
     }
 
+    // Check if panel already exists for this task
+    const existingPanel = this.taskDetailPanels.get(task.id);
+    if (existingPanel) {
+      // Reuse existing panel
+      existingPanel.reveal(vscode.ViewColumn.Beside);
+      // Update content with latest data
+      const duration = task.getDuration();
+      const avgSpeed = task.getAverageSpeed();
+      existingPanel.webview.html = this.getWebviewContent(task, duration, avgSpeed);
+      return;
+    }
+
     const duration = task.getDuration();
     const avgSpeed = task.getAverageSpeed();
 
-    // Create webview panel
+    // Create webview panel with scripts enabled
     const panel = vscode.window.createWebviewPanel(
       'taskDetails',
       `Task: ${task.fileName}`,
       vscode.ViewColumn.Beside,
       {
-        enableScripts: false,
+        enableScripts: true,
         retainContextWhenHidden: true
       }
     );
 
+    // Store panel reference
+    this.taskDetailPanels.set(task.id, panel);
+
     // Load HTML content from template
     panel.webview.html = this.getWebviewContent(task, duration, avgSpeed);
+
+    // Setup real-time updates for running tasks
+    if (task.status === 'running' || task.status === 'pending' || task.status === 'paused') {
+      const updateInterval = setInterval(() => {
+        const currentTask = this.queueService.getTask(task.id);
+        if (!currentTask) {
+          this.cleanupTaskPanel(task.id);
+          return;
+        }
+
+        // Send update message to webview
+        panel.webview.postMessage({
+          type: 'update',
+          task: {
+            status: currentTask.status,
+            progress: currentTask.progress,
+            transferred: currentTask.transferred,
+            fileSize: currentTask.fileSize,
+            speed: currentTask.speed,
+            estimatedTime: currentTask.estimatedTime,
+            lastError: currentTask.lastError,
+            startedAt: currentTask.startedAt
+          }
+        });
+
+        // Stop updating if task is finished
+        if (currentTask.status === 'completed' || currentTask.status === 'failed' || currentTask.status === 'cancelled') {
+          this.cleanupTaskPanel(task.id);
+        }
+      }, 500); // Update every 500ms
+
+      this.taskUpdateIntervals.set(task.id, updateInterval);
+    }
+
+    // Cleanup when panel is closed
+    panel.onDidDispose(() => {
+      this.cleanupTaskPanel(task.id);
+    });
+  }
+
+  /**
+   * Cleanup task panel and interval
+   */
+  private cleanupTaskPanel(taskId: string): void {
+    const interval = this.taskUpdateIntervals.get(taskId);
+    if (interval) {
+      clearInterval(interval);
+      this.taskUpdateIntervals.delete(taskId);
+    }
+    this.taskDetailPanels.delete(taskId);
   }
 
   /**
@@ -223,7 +292,9 @@ export class TransferQueueCommands {
       '{{TRANSFERRED}}': this.formatBytes(task.transferred),
       '{{PROGRESS}}': task.progress.toFixed(2),
       '{{CREATED_AT}}': task.createdAt.toLocaleString(),
-      '{{TASK_ID}}': task.id
+      '{{TASK_ID}}': task.id,
+      '{{CURRENT_SPEED}}': this.formatSpeed(task.speed),
+      '{{SPEED_DISPLAY}}': task.speed > 0 || task.status === 'running' ? 'flex' : 'none'
     };
 
     // Add running info

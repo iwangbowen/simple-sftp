@@ -51,6 +51,12 @@ If you find this extension helpful, consider buying me a coffee!
 - **Connection Testing**: Test SSH connections before uploading files
 - **Copy SSH Command**: Quickly copy connection commands to clipboard
 - **Output Logs**: Dedicated log viewer for troubleshooting
+- **Transfer Queue**:
+  - Visual task management with real-time progress updates
+  - ASCII-style progress bars compatible with all themes
+  - Live transfer speed and estimated time remaining
+  - Pause, resume, and cancel individual transfers
+  - Task detail view with comprehensive transfer statistics
 
 #### Performance
 - **SSH Connection Pool**: Automatic connection reuse for 5-10x performance improvement
@@ -331,6 +337,12 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 - **连接测试**：上传文件前测试 SSH 连接
 - **复制 SSH 命令**：快速复制连接命令到剪贴板
 - **输出日志**：专用日志查看器，便于故障排查
+- **传输队列**：
+  - 可视化任务管理，实时进度更新
+  - ASCII风格进度条，兼容所有主题
+  - 实时显示传输速度和预计剩余时间
+  - 暂停、恢复和取消单个传输
+  - 任务详情视图，全面的传输统计信息
 
 #### 性能优化
 
