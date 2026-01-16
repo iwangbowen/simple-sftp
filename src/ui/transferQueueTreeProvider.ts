@@ -113,7 +113,7 @@ export class TransferQueueTreeProvider implements vscode.TreeDataProvider<Transf
   private readonly queueService: TransferQueueService;
   private historyService?: TransferHistoryService;
 
-  private showCompleted: boolean = false;
+  private showCompleted: boolean = true;  // Show completed tasks by default
   private showHistory: boolean = false;
   private filterStatus?: TaskStatus;
 
@@ -216,6 +216,28 @@ export class TransferQueueTreeProvider implements vscode.TreeDataProvider<Transf
       logger.info('Transfer queue tree: showing placeholder (no tasks)');
       return Promise.resolve([placeholderItem as any]);
     }
+
+    // Sort tasks: running/pending/paused first, then others
+    tasks.sort((a, b) => {
+      const priorityOrder: Record<TaskStatus, number> = {
+        running: 1,
+        pending: 2,
+        paused: 3,
+        completed: 4,
+        failed: 5,
+        cancelled: 6
+      };
+
+      const priorityA = priorityOrder[a.status] || 99;
+      const priorityB = priorityOrder[b.status] || 99;
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // Same priority, sort by creation time (newer first)
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
 
     // Create tree items
     const items = tasks.map(task =>
