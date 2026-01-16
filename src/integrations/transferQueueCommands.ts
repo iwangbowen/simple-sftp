@@ -10,6 +10,7 @@ import * as path from 'node:path';
 import { TransferQueueService } from '../services/transferQueueService';
 import { TransferHistoryService } from '../services/transferHistoryService';
 import { TransferTaskModel } from '../models/transferTask';
+import { TimeUtils } from '../timeUtils';
 import { logger } from '../logger';
 
 /**
@@ -307,7 +308,7 @@ export class TransferQueueCommands {
       '{{FILE_SIZE}}': this.formatBytes(task.fileSize),
       '{{TRANSFERRED}}': this.formatBytes(task.transferred),
       '{{PROGRESS}}': task.progress.toFixed(2),
-      '{{CREATED_AT}}': task.createdAt.toLocaleString(),
+      '{{CREATED_AT}}': TimeUtils.formatTime(task.createdAt.getTime()),
       '{{TASK_ID}}': task.id,
       '{{CURRENT_SPEED}}': this.formatSpeed(task.speed),
       '{{SPEED_DISPLAY}}': task.speed > 0 || task.status === 'running' ? 'flex' : 'none'
@@ -370,7 +371,7 @@ export class TransferQueueCommands {
     if (task.startedAt) {
       replacements['{{#HAS_STARTED}}'] = '';
       replacements['{{/HAS_STARTED}}'] = '';
-      replacements['{{STARTED_AT}}'] = task.startedAt.toLocaleString();
+      replacements['{{STARTED_AT}}'] = TimeUtils.formatTime(task.startedAt.getTime());
     } else {
       html = this.removeConditionalBlock(html, '{{#HAS_STARTED}}', '{{/HAS_STARTED}}');
     }
@@ -378,7 +379,7 @@ export class TransferQueueCommands {
     if (task.completedAt) {
       replacements['{{#HAS_COMPLETED}}'] = '';
       replacements['{{/HAS_COMPLETED}}'] = '';
-      replacements['{{COMPLETED_AT}}'] = task.completedAt.toLocaleString();
+      replacements['{{COMPLETED_AT}}'] = TimeUtils.formatTime(task.completedAt.getTime());
     } else {
       html = this.removeConditionalBlock(html, '{{#HAS_COMPLETED}}', '{{/HAS_COMPLETED}}');
     }

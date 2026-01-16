@@ -56,9 +56,8 @@ class TransferHistoryTreeItem extends vscode.TreeItem {
     parts.push(formatBytes(task.fileSize));
 
     if (task.completedAt) {
-      // Show completion time
-      parts.push(TimeUtils.formatISOTime(task.completedAt.getTime()));
-
+      // Show completion time without milliseconds
+      parts.push(TimeUtils.formatTime(task.completedAt.getTime()));
       // Show duration if we have start time
       if (task.startedAt) {
         const duration = task.completedAt.getTime() - task.startedAt.getTime();

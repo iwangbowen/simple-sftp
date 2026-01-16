@@ -619,6 +619,11 @@
           "group": "1_queue@2"
         },
         {
+          "command": "simpleSftp.clearHistory",
+          "when": "view == simpleSftp.transferHistory",
+          "group": "navigation@1"
+        },
+        {
           "command": "simpleSftp.viewTransferHistory",
           "when": "view == simpleSftp.transferQueue",
           "group": "2_stats@1"
