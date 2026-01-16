@@ -1,5 +1,26 @@
 # Change Log
 
+## [2.4.3] - 2026-01-17
+
+### Fixed
+
+- **Parallel Chunk Transfer**: Use temporary directories for chunk files during parallel transfer
+  - Upload chunks now stored in remote `/tmp` directory instead of current directory
+  - Download chunks already using local system temp directory (`os.tmpdir()`)
+  - Prevents cluttering working directories with `.partN` files
+  - Automatic cleanup of temp files after merge or on error
+  - More organized and cleaner file transfer process
+
+### Technical Details
+
+- Modified `uploadChunk()` to write chunks to `/tmp/${filename}.partN` on remote server
+- Updated `mergeChunksOnRemote()` and `sequentialMergeRemote()` to read from `/tmp` directory
+- Updated `cleanupPartialChunks()` to clean from `/tmp` directory
+- Download already using `os.tmpdir()` for local chunk storage
+- All parallel transfer tests passing
+
+---
+
 ## [2.4.2] - 2026-01-17
 
 ### Improved
@@ -11,7 +32,8 @@
   - Added template variable replacement system with conditional blocks
   - Improved HTML escaping for security
   - Better theme integration with VS Code CSS variables
-  - Enhanced error handling with fallback HTML template
+  - Removed unnecessary fallback HTML template
+  - Removed progress bar visualization, kept text-based progress display
 
 ### Technical Details
 

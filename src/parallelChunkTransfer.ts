@@ -253,7 +253,9 @@ export class ParallelChunkTransferManager {
     onProgress: (transferred: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const chunkPath = `${remotePath}.part${chunk.index}`;
+    // Use remote /tmp directory for chunk files
+    const fileName = path.basename(remotePath);
+    const chunkPath = `/tmp/${fileName}.part${chunk.index}`;
 
     // Get connection from pool
     const connectConfig = this.buildConnectConfig(config, authConfig);
@@ -378,13 +380,14 @@ export class ParallelChunkTransferManager {
     remotePath: string,
     totalChunks: number
   ): Promise<void> {
-    logger.info(`Merging ${totalChunks} chunks on remote server...`);
+    logger.info(`Merging ${totalChunks} chunks on remote server from /tmp directory...`);
     const connectConfig = this.buildConnectConfig(config, authConfig);
     const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
 
     try {
       // Build merge command
-      const parts = Array.from({ length: totalChunks }, (_, i) => `"${remotePath}.part${i}"`).join(' ');
+      const fileName = path.basename(remotePath);
+      const parts = Array.from({ length: totalChunks }, (_, i) => `"/tmp/${fileName}.part${i}"`).join(' ');
       const command = `cat ${parts} > "${remotePath}" && rm ${parts}`;
 
       logger.debug(`Merging chunks on remote: ${command}`);
@@ -394,7 +397,7 @@ export class ParallelChunkTransferManager {
       // For now, we'll use sequential merge via SFTP
       await this.sequentialMergeRemote(sftpClient, remotePath, totalChunks);
 
-      logger.info(`✓ Chunks merged successfully on remote server`);
+      logger.info(`✓ Chunks merged successfully on remote server from /tmp directory`);
     } finally {
       this.connectionPool.releaseConnection(config);
     }
@@ -408,12 +411,13 @@ export class ParallelChunkTransferManager {
     remotePath: string,
     totalChunks: number
   ): Promise<void> {
+    const fileName = path.basename(remotePath);
     // Create temporary merged file
     const tempPath = `${remotePath}.merging`;
     const writeStream = sftp.createWriteStream(tempPath);
 
     for (let i = 0; i < totalChunks; i++) {
-      const chunkPath = `${remotePath}.part${i}`;
+      const chunkPath = `/tmp/${fileName}.part${i}`;
       const readStream = sftp.createReadStream(chunkPath);
 
       await new Promise((resolve, reject) => {
@@ -422,7 +426,7 @@ export class ParallelChunkTransferManager {
         readStream.pipe(writeStream, { end: i === totalChunks - 1 });
       });
 
-      // Delete chunk after merging
+      // Delete chunk from /tmp after merging
       await sftp.unlink(chunkPath);
     }
 
@@ -477,9 +481,10 @@ export class ParallelChunkTransferManager {
     try {
       const connectConfig = this.buildConnectConfig(config, authConfig);
       const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+      const fileName = path.basename(remotePath);
 
       for (let i = 0; i < totalChunks; i++) {
-        const chunkPath = `${remotePath}.part${i}`;
+        const chunkPath = `/tmp/${fileName}.part${i}`;
         try {
           await sftpClient.unlink(chunkPath);
         } catch {
@@ -489,7 +494,7 @@ export class ParallelChunkTransferManager {
 
       this.connectionPool.releaseConnection(config);
     } catch (error: any) {
-      logger.error(`Failed to cleanup remote chunks: ${error.message}`);
+      logger.error(`Failed to cleanup remote chunks from /tmp: ${error.message}`);
     }
   }
 
