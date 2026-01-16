@@ -33,7 +33,6 @@ export class TransferQueueCommands {
    */
   async pauseQueue(): Promise<void> {
     this.queueService.pauseQueue();
-    vscode.window.showInformationMessage('Transfer queue paused');
     logger.info('Transfer queue paused by user');
   }
 
@@ -42,7 +41,6 @@ export class TransferQueueCommands {
    */
   async resumeQueue(): Promise<void> {
     this.queueService.resumeQueue();
-    vscode.window.showInformationMessage('Transfer queue resumed');
     logger.info('Transfer queue resumed by user');
   }
 
@@ -177,7 +175,7 @@ export class TransferQueueCommands {
   }
 
   /**
-   * Show task details
+   * Show task details using virtual document in text editor
    */
   async showTaskDetails(task?: TransferTaskModel): Promise<void> {
     if (!task) {
@@ -188,128 +186,164 @@ export class TransferQueueCommands {
     const duration = task.getDuration();
     const avgSpeed = task.getAverageSpeed();
 
-    const details = [
-      `**File:** ${task.fileName}`,
-      `**Type:** ${task.type.toUpperCase()}`,
-      `**Status:** ${task.status.toUpperCase()}`,
+    // Build markdown content
+    const content = this.buildTaskDetailsMarkdown(task, duration, avgSpeed);
+
+    // Create virtual document URI with task ID
+    const uri = vscode.Uri.parse(`simpleSftp-task:/${task.id}.md`);
+
+    // Register temporary text document content provider
+    const provider = new class implements vscode.TextDocumentContentProvider {
+      provideTextDocumentContent(_uri: vscode.Uri): string {
+        return content;
+      }
+    };
+
+    const registration = vscode.workspace.registerTextDocumentContentProvider('simpleSftp-task', provider);
+
+    try {
+      // Open document in editor
+      const doc = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(doc, {
+        viewColumn: vscode.ViewColumn.Beside,
+        preview: false,
+        preserveFocus: false
+      });
+
+      // Show preview command hint
+      vscode.window.showInformationMessage(
+        'Tip: Use "Markdown: Open Preview" to view formatted details',
+        'Open Preview'
+      ).then(action => {
+        if (action === 'Open Preview') {
+          vscode.commands.executeCommand('markdown.showPreview', uri);
+        }
+      });
+    } finally {
+      // Cleanup provider after a delay to ensure document is loaded
+      setTimeout(() => registration.dispose(), 1000);
+    }
+  }
+
+  /**
+   * Build task details markdown content
+   */
+  private buildTaskDetailsMarkdown(task: TransferTaskModel, duration?: number, avgSpeed?: number): string {
+    const statusEmoji = this.getStatusEmoji(task.status);
+    const lines = [
+      `# Transfer Task Details`,
       '',
-      `**Host:** ${task.hostName}`,
-      `**Local:** ${task.localPath}`,
-      `**Remote:** ${task.remotePath}`,
+      `## ${statusEmoji} ${task.fileName}`,
       '',
-      `**Size:** ${this.formatBytes(task.fileSize)}`,
-      `**Transferred:** ${this.formatBytes(task.transferred)}`,
-      `**Progress:** ${task.progress.toFixed(2)}%`,
-      ''
+      `---`,
+      '',
+      `### Basic Information`,
+      '',
+      `| Property | Value |`,
+      `|----------|-------|`,
+      `| **File Name** | \`${task.fileName}\` |`,
+      `| **Type** | ${task.type.toUpperCase()} |`,
+      `| **Status** | ${task.status.toUpperCase()} ${statusEmoji} |`,
+      `| **Host** | ${task.hostName} |`,
+      '',
+      `### Paths`,
+      '',
+      `| Path | Location |`,
+      `|------|----------|`,
+      `| **Local** | \`${task.localPath}\` |`,
+      `| **Remote** | \`${task.remotePath}\` |`,
+      '',
+      `### Transfer Progress`,
+      '',
+      `| Metric | Value |`,
+      `|--------|-------|`,
+      `| **File Size** | ${this.formatBytes(task.fileSize)} |`,
+      `| **Transferred** | ${this.formatBytes(task.transferred)} |`,
+      `| **Progress** | ${task.progress.toFixed(2)}% |`
     ];
 
+    // Add running status information
     if (task.status === 'running') {
-      details.push(`**Speed:** ${this.formatSpeed(task.speed)}`);
+      lines.push(`| **Current Speed** | ${this.formatSpeed(task.speed)} |`);
       if (task.estimatedTime) {
-        details.push(`**Estimated Time:** ${this.formatDuration(task.estimatedTime)}`);
+        lines.push(`| **Estimated Time** | ${this.formatDuration(task.estimatedTime)} |`);
       }
     }
 
+    // Add timing information
     if (duration) {
-      details.push(`**Duration:** ${this.formatDuration(duration)}`);
+      lines.push(`| **Duration** | ${this.formatDuration(duration)} |`);
     }
 
     if (avgSpeed) {
-      details.push(`**Average Speed:** ${this.formatSpeed(avgSpeed)}`);
+      lines.push(`| **Average Speed** | ${this.formatSpeed(avgSpeed)} |`);
     }
 
+    // Add retry information
     if (task.retryCount > 0) {
-      details.push(`**Retries:** ${task.retryCount}/${task.maxRetries}`);
+      lines.push(
+        '',
+        `### Retry Information`,
+        '',
+        `| Property | Value |`,
+        `|----------|-------|`,
+        `| **Retry Count** | ${task.retryCount} / ${task.maxRetries} |`
+      );
     }
 
+    // Add error information
     if (task.lastError) {
-      details.push('', `**Error:** ${task.lastError}`);
+      lines.push(
+        '',
+        `### ❌ Error Details`,
+        '',
+        '```',
+        task.lastError,
+        '```'
+      );
     }
 
-    // Create webview panel to display markdown
-    const panel = vscode.window.createWebviewPanel(
-      'taskDetails',
-      `Task: ${task.fileName}`,
-      vscode.ViewColumn.Beside,
-      {
-        enableScripts: false,
-        retainContextWhenHidden: true
-      }
+    // Add timestamps
+    const timestampRows = [
+      '',
+      `### Timestamps`,
+      '',
+      `| Event | Time |`,
+      `|-------|------|`,
+      `| **Created** | ${task.createdAt.toLocaleString()} |`
+    ];
+
+    if (task.startedAt) {
+      timestampRows.push(`| **Started** | ${task.startedAt.toLocaleString()} |`);
+    }
+    if (task.completedAt) {
+      timestampRows.push(`| **Completed** | ${task.completedAt.toLocaleString()} |`);
+    }
+
+    lines.push(
+      ...timestampRows,
+      '',
+      `---`,
+      '',
+      `*Task ID: ${task.id}*`
     );
 
-    // Convert markdown to HTML
-    const htmlContent = this.markdownToHtml(details.join('\n\n'), task);
-    panel.webview.html = htmlContent;
+    return lines.join('\n');
   }
 
   /**
-   * Convert markdown to HTML for webview
+   * Get emoji for task status
    */
-  private markdownToHtml(markdown: string, task: TransferTaskModel): string {
-    // Simple markdown to HTML conversion
-    let html = markdown
-      .replaceAll(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replaceAll('\n\n', '<br><br>')
-      .replaceAll('\n', '<br>');
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Task Details</title>
-  <style>
-    body {
-      font-family: var(--vscode-font-family);
-      font-size: var(--vscode-font-size);
-      color: var(--vscode-foreground);
-      background-color: var(--vscode-editor-background);
-      padding: 20px;
-      line-height: 1.6;
-    }
-    strong {
-      color: var(--vscode-textLink-foreground);
-    }
-    .status-${task.status} {
-      color: ${this.getStatusColor(task.status)};
-    }
-    .header {
-      font-size: 1.2em;
-      margin-bottom: 20px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <strong>Task Details: ${task.fileName}</strong>
-  </div>
-  <div>
-    ${html}
-  </div>
-</body>
-</html>`;
-  }
-
-  /**
-   * Get status color
-   */
-  private getStatusColor(status: string): string {
-    switch (status) {
-      case 'completed':
-        return '#4ec9b0';
-      case 'failed':
-        return '#f48771';
-      case 'running':
-        return '#569cd6';
-      case 'paused':
-        return '#dcdcaa';
-      case 'cancelled':
-        return '#858585';
-      default:
-        return '#d4d4d4';
-    }
+  private getStatusEmoji(status: string): string {
+    const emojis: Record<string, string> = {
+      'pending': '⏳',
+      'running': '🔄',
+      'paused': '⏸️',
+      'completed': '✅',
+      'failed': '❌',
+      'cancelled': '🚫'
+    };
+    return emojis[status] || '❓';
   }
 
   /**

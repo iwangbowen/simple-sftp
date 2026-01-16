@@ -1,5 +1,34 @@
 # Change Log
 
+## [2.4.1] - 2026-01-17
+
+### Changed
+
+- **Transfer Details UI Improvement**: Replaced WebView with virtual document in text editor
+  - Now displays task details as Markdown in a standard VS Code text editor
+  - Better user experience: supports copy/paste, search, and Markdown preview
+  - Removed heavy WebView dependency for viewing transfer details
+  - One-click Markdown preview available via "Markdown: Open Preview" command
+  - Cleaner, more structured layout with tables and emojis
+  - Details include: basic info, paths, progress, timing, retry info, and errors
+
+- **Transfer Queue UI Improvement**: Removed notification messages when pausing/resuming the queue
+  - No more popup notifications when queue is paused or resumed
+  - Still logs queue state changes for debugging purposes
+  - Cleaner, less intrusive user experience
+
+### Technical Details
+
+- Replaced `vscode.window.createWebviewPanel` with virtual document provider
+- New `buildTaskDetailsMarkdown()` method generates structured Markdown content
+- Uses `vscode.workspace.registerTextDocumentContentProvider` for virtual URIs
+- Added status emojis (✅ completed, ❌ failed, 🔄 running, etc.)
+- Improved test coverage: 6 new unit tests for Markdown generation and emoji mapping
+- Removed obsolete `markdownToHtml()` and `getStatusColor()` methods
+- Removed `vscode.window.showInformationMessage()` calls from `pauseQueue()` and `resumeQueue()`
+
+---
+
 ## [2.4.0] - 2026-01-16
 
 ### Added
