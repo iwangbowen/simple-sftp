@@ -19,6 +19,11 @@ export type TaskStatus =
 export type TransferType = 'upload' | 'download';
 
 /**
+ * Transfer priority
+ */
+export type TransferPriority = 'high' | 'normal' | 'low';
+
+/**
  * Transfer direction for display
  */
 export type TransferDirection = 'to' | 'from';
@@ -31,6 +36,7 @@ export interface TransferTask {
   id: string;                        // Unique task identifier
   type: TransferType;                // Upload or download
   status: TaskStatus;                // Current status
+  priority: TransferPriority;        // Transfer priority (auto-calculated based on file size)
 
   // Host information
   hostId: string;                    // Host configuration ID
@@ -144,6 +150,7 @@ export interface TransferHistoryItem {
   id: string;
   type: TransferType;
   status: TaskStatus;
+  priority: TransferPriority;
   hostName: string;
   localPath: string;
   remotePath: string;

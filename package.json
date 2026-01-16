@@ -2,7 +2,7 @@
   "name": "simple-sftp",
   "displayName": "Simple SFTP",
   "description": "Lightweight SFTP file upload and download tool with cross-device host configuration sync",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
   "license": "MIT",
@@ -764,9 +764,7 @@
           "command": "simpleSftp.removeTask",
           "when": "view == simpleSftp.transferQueue",
           "group": "9_danger@1"
-        }
-      ],
-      "view/item/context": [
+        },
         {
           "command": "simpleSftp.removeHistoryTask",
           "when": "view == simpleSftp.transferHistory && viewItem =~ /historyTask/",

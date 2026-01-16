@@ -22,7 +22,7 @@ export class TransferQueueService extends EventEmitter {
 
   private queue: TransferTaskModel[] = [];
   private runningTasks: Set<string> = new Set();
-  private maxConcurrent: number = 2; // Maximum concurrent transfers
+  private maxConcurrent: number = 5; // Maximum concurrent transfers
   private isPaused: boolean = false;
 
   // Managers for host/auth configuration
@@ -100,6 +100,9 @@ export class TransferQueueService extends EventEmitter {
 
   /**
    * Process queue - start pending tasks up to concurrency limit
+   * Tasks are prioritized by:
+   * 1. Priority level (high > normal > low)
+   * 2. Creation time (earlier first)
    */
   private async processQueue(): Promise<void> {
     logger.debug(`processQueue called, isPaused: ${this.isPaused}, runningTasks: ${this.runningTasks.size}, maxConcurrent: ${this.maxConcurrent}`);
@@ -109,9 +112,23 @@ export class TransferQueueService extends EventEmitter {
       return;
     }
 
-    // Find pending tasks
-    const pendingTasks = this.queue.filter(t => t.status === 'pending');
-    logger.debug(`Found ${pendingTasks.length} pending tasks`);
+    // Find pending tasks and sort by priority
+    const pendingTasks = this.queue
+      .filter(t => t.status === 'pending')
+      .sort((a, b) => {
+        // Priority order: high > normal > low
+        const priorityOrder = { high: 3, normal: 2, low: 1 };
+        const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+        
+        if (priorityDiff !== 0) {
+          return priorityDiff; // Sort by priority first
+        }
+        
+        // If same priority, sort by creation time (earlier first)
+        return a.createdAt.getTime() - b.createdAt.getTime();
+      });
+
+    logger.debug(`Found ${pendingTasks.length} pending tasks (sorted by priority)`);
 
     // Start tasks up to concurrency limit
     for (const task of pendingTasks) {
@@ -121,7 +138,7 @@ export class TransferQueueService extends EventEmitter {
       }
 
       if (!this.runningTasks.has(task.id)) {
-        logger.info(`Starting task ${task.id}: ${task.fileName}`);
+        logger.info(`Starting task ${task.id}: ${task.fileName} (priority: ${task.priority})`);
         this.executeTask(task);
       } else {
         logger.debug(`Task ${task.id} already running`);

@@ -1,4 +1,4 @@
-import { TransferTask, TaskStatus, CreateTransferTaskOptions } from '../types/transfer.types';
+import { TransferTask, TaskStatus, CreateTransferTaskOptions, TransferPriority } from '../types/transfer.types';
 import { logger } from '../logger';
 
 /**
@@ -10,6 +10,7 @@ export class TransferTaskModel implements TransferTask {
   id: string;
   type: 'upload' | 'download';
   status: TaskStatus;
+  priority: TransferPriority;
 
   hostId: string;
   hostName: string;
@@ -53,6 +54,9 @@ createdAt!: Date;
     this.fileSize = options.fileSize || 0;
     this.isDirectory = options.isDirectory || false;
 
+    // Calculate priority based on file size
+    this.priority = this.calculatePriority(this.fileSize);
+
     this.transferred = 0;
     this.speed = 0;
     this.progress = 0;
@@ -78,6 +82,25 @@ createdAt!: Date;
   }
 
   /**
+   * Calculate priority based on file size
+   * - Files < 1MB: high priority
+   * - Files > 100MB: low priority
+   * - Others: normal priority
+   */
+  private calculatePriority(fileSize: number): TransferPriority {
+    const ONE_MB = 1024 * 1024;
+    const HUNDRED_MB = 100 * ONE_MB;
+
+    if (fileSize < ONE_MB) {
+      return 'high';
+    } else if (fileSize > HUNDRED_MB) {
+      return 'low';
+    } else {
+      return 'normal';
+    }
+  }
+
+  /**
    * Update transfer progress
    */
   updateProgress(transferred: number, total: number): void {
@@ -85,7 +108,12 @@ createdAt!: Date;
 
     if (total > 0) {
       this.progress = Math.min(100, (transferred / total) * 100);
-      this.fileSize = total; // Update file size if it wasn't known
+
+      // Update file size and recalculate priority if it wasn't known
+      if (this.fileSize === 0 && total > 0) {
+        this.fileSize = total;
+        this.priority = this.calculatePriority(total);
+      }
     }
 
     // Calculate speed
@@ -231,6 +259,7 @@ createdAt!: Date;
       id: this.id,
       type: this.type,
       status: this.status,
+      priority: this.priority,
       hostId: this.hostId,
       hostName: this.hostName,
       localPath: this.localPath,
@@ -269,6 +298,7 @@ createdAt!: Date;
 
     task.id = data.id;
     task.status = data.status;
+    task.priority = data.priority || 'normal'; // Default to normal if not present
     task.transferred = data.transferred;
     task.speed = data.speed;
     task.progress = data.progress;
