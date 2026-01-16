@@ -1,5 +1,32 @@
 # Change Log
 
+## [Unreleased]
+
+### Enhanced
+
+- **Transfer Queue UI Improvements**
+  - Real-time progress updates in task detail view (500ms refresh rate)
+  - ASCII-style progress bars for better theme compatibility
+    - Uses block characters (█ and ░) for visual progress
+    - Clear visibility in both dark and light themes
+    - No emoji dependency for better compatibility
+  - Live display of transfer speed and estimated time remaining
+  - Task detail panel automatically updates during transfer
+  - Progress display moved to top of detail view for better visibility
+  - Better resource management with automatic cleanup on task completion
+
+### Technical Details
+
+- Modified `TransferQueueCommands` to support WebView real-time updates
+- Enhanced `task-details.html` with ASCII progress bar generation
+- Implemented `generateProgressBar()` function for dynamic character-based progress
+- Added CSS styles that adapt to VS Code theme colors
+- Implemented `postMessage` communication between extension and webview
+- Update interval: 500ms for running tasks
+- Automatic cleanup of intervals and panels when tasks complete or windows close
+
+---
+
 ## [2.5.0] - 2026-01-16
 
 ### Added

@@ -191,13 +191,19 @@ export class TransferQueueCommands {
     // Check if panel already exists for this task
     const existingPanel = this.taskDetailPanels.get(task.id);
     if (existingPanel) {
-      // Reuse existing panel
-      existingPanel.reveal(vscode.ViewColumn.Beside);
-      // Update content with latest data
-      const duration = task.getDuration();
-      const avgSpeed = task.getAverageSpeed();
-      existingPanel.webview.html = this.getWebviewContent(task, duration, avgSpeed);
-      return;
+      try {
+        // Reuse existing panel
+        existingPanel.reveal(vscode.ViewColumn.Beside);
+        // Update content with latest data
+        const duration = task.getDuration();
+        const avgSpeed = task.getAverageSpeed();
+        existingPanel.webview.html = this.getWebviewContent(task, duration, avgSpeed);
+        return;
+      } catch (error) {
+        // Panel might be disposed, clean up and create new one
+        this.logger.warn(`Failed to reuse panel for task ${task.id}: ${error}`);
+        this.cleanupTaskPanel(task.id);
+      }
     }
 
     const duration = task.getDuration();
@@ -256,7 +262,7 @@ export class TransferQueueCommands {
     // Cleanup when panel is closed
     panel.onDidDispose(() => {
       this.cleanupTaskPanel(task.id);
-    });
+    }, null, this.context.subscriptions);
   }
 
   /**

@@ -153,11 +153,10 @@
     }
 
     .progress-bar-percentage {
-      margin-left: 12px;
+      margin-left: 8px;
       color: var(--vscode-foreground);
       font-weight: bold;
-      min-width: 60px;
-      text-align: right;
+      white-space: nowrap;
     }
 
     .progress-bar-fill {
@@ -196,6 +195,27 @@
       color: var(--vscode-foreground);
       font-weight: 500;
       font-size: 13px;
+    }
+
+    /* Responsive layout */
+    @media (max-width: 600px) {
+      .progress-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .info-grid {
+        grid-template-columns: 120px 1fr;
+      }
+
+      .progress-bar-line {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .progress-bar-percentage {
+        margin-left: 0;
+        margin-top: 4px;
+      }
     }
   </style>
 </head>
