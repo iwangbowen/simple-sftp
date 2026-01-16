@@ -151,7 +151,7 @@ class ParallelChunkTransferManager {
       // 如果远程合并失败，清理chunks并fallback到普通上传
       logger.warn(`Remote merge failed: ${mergeError.message}`);
       await this.cleanupPartialChunks(config, authConfig, remotePath, chunks.length);
-      
+
       logger.info('Falling back to normal single-file upload...');
       // 使用普通fastPut上传完整文件
       await sftpClient.fastPut(localPath, remotePath, {
@@ -246,7 +246,7 @@ export const PARALLEL_TRANSFER = {
 - 集成点: `src/sshConnectionManager.ts` 自动检测文件大小并使用并发传输
 - 测试: `src/parallelChunkTransfer.test.ts` (19 tests)
 - **Chunk存储**: 上传时使用远程 `/tmp` 目录，下载时使用本地 `os.tmpdir()`
-- **文件合并**: 
+- **文件合并**:
   - 优先使用SSH exec执行 `cat` 命令在远程合并（几秒完成）
   - Fallback使用普通fastPut上传完整文件
   - **已移除**低效的下载-本地合并-上传策略
@@ -576,7 +576,7 @@ export class CompressionManager {
   // Check if file should use file-level compression (>50MB text files)
   static shouldCompressFile(localPath: string, fileSize: number): boolean {
     if (fileSize < 50 * 1024 * 1024) return false; // Skip small files
-    
+
     const ext = path.extname(localPath).toLowerCase();
     const compressible = ['.txt', '.log', '.json', '.xml', '.csv', '.md', '.js', '.ts', '.html'];
     return compressible.includes(ext);
@@ -586,13 +586,13 @@ export class CompressionManager {
   static async compressFile(localPath: string): Promise<string> {
     const compressedPath = `${localPath}.gz`;
     const gzip = zlib.createGzip({ level: 6 });
-    
+
     await pipeline(
       fs.createReadStream(localPath),
       gzip,
       fs.createWriteStream(compressedPath)
     );
-    
+
     return compressedPath;
   }
 
@@ -616,12 +616,12 @@ export class CompressionManager {
 export const COMPRESSION = {
   // SSH connection-level compression (enabled by default)
   SSH_LEVEL_ENABLED: true,
-  
+
   // File-level gzip compression (reserved for future use)
   FILE_LEVEL_ENABLED: false,
   FILE_LEVEL_THRESHOLD: 50 * 1024 * 1024, // 50MB
   COMPRESSION_LEVEL: 6, // 1-9
-  
+
   COMPRESSIBLE_EXTENSIONS: [
     '.txt', '.log', '.json', '.xml', '.csv', '.md', '.yaml', '.yml',
     '.js', '.ts', '.jsx', '.tsx', '.css', '.html', '.sql', '.sh', '.py'
@@ -766,77 +766,7 @@ commands.registerCommand('simpleSftp.setPriority', (task) => {
 
 ---
 
-### 📝 7. 带宽限制 (Bandwidth Throttling)
-
-**优先级**: 低 ⭐⭐
-**预计版本**: v2.6.0
-
-**问题描述**:
-传输占满带宽，影响其他应用。
-
-**优化方案**:
-实现可配置的带宽限制。
-
-**实现思路**:
-```typescript
-class ThrottledStream extends Transform {
-  private bytesPerSecond: number;
-  private transferred: number = 0;
-  private startTime: number = Date.now();
-
-  constructor(bytesPerSecond: number) {
-    super();
-    this.bytesPerSecond = bytesPerSecond;
-  }
-
-  _transform(chunk: Buffer, encoding: string, callback: Function) {
-    this.transferred += chunk.length;
-    const elapsed = (Date.now() - this.startTime) / 1000;
-    const expectedTime = this.transferred / this.bytesPerSecond;
-
-    if (expectedTime > elapsed) {
-      // 需要延迟
-      const delay = (expectedTime - elapsed) * 1000;
-      setTimeout(() => callback(null, chunk), delay);
-    } else {
-      // 立即传输
-      callback(null, chunk);
-    }
-  }
-}
-
-// 使用示例
-const readStream = fs.createReadStream(localPath);
-const throttled = new ThrottledStream(1024 * 1024); // 1MB/s
-const writeStream = sftp.createWriteStream(remotePath);
-
-readStream.pipe(throttled).pipe(writeStream);
-```
-
-**配置选项**:
-```json
-{
-  "simpleSftp.transfer.maxUploadSpeed": 0,    // 0 = 无限制，单位 KB/s
-  "simpleSftp.transfer.maxDownloadSpeed": 0,
-  "simpleSftp.transfer.throttleSchedule": {
-    "enable": false,
-    "workingHours": {
-      "start": "09:00",
-      "end": "18:00",
-      "maxSpeed": 512  // 工作时间限速 512KB/s
-    }
-  }
-}
-```
-
-**预期效果**:
-- 后台传输不影响前台工作
-- 符合企业网络策略
-- 可按时间段自动调整
-
----
-
-### 📝 8. 符号链接和文件属性保留
+### 📝 7. 符号链接和文件属性保留
 
 **优先级**: 低 ⭐
 **预计版本**: v2.7.0
@@ -888,190 +818,6 @@ class AttributePreservingTransfer {
   "simpleSftp.transfer.followSymlinks": false
 }
 ```
-
----
-
-### 📝 9. 智能重试策略 (Smart Retry)
-
-**优先级**: 高 ⭐⭐⭐⭐
-**预计版本**: v2.5.0
-
-**问题描述**:
-当前固定次数重试，不区分错误类型，效率低。
-
-**优化方案**:
-根据错误类型智能重试，使用指数退避。
-
-**实现思路**:
-```typescript
-class SmartRetryManager {
-  private retryableErrors = [
-    'ETIMEDOUT',
-    'ECONNRESET',
-    'ECONNREFUSED',
-    'EPIPE',
-    'ENOTFOUND'
-  ];
-
-  private nonRetryableErrors = [
-    'EACCES',      // 权限错误
-    'ENOSPC',      // 磁盘空间不足
-    'ENOENT',      // 文件不存在
-    'EISDIR'       // 是目录
-  ];
-
-  async executeWithRetry<T>(
-    operation: () => Promise<T>,
-    options = {}
-  ): Promise<T> {
-    const maxRetries = options.maxRetries || 3;
-    const baseDelay = options.baseDelay || 1000;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error: any) {
-        // 检查是否应该重试
-        if (!this.shouldRetry(error, attempt, maxRetries)) {
-          throw error;
-        }
-
-        // 计算延迟时间（指数退避）
-        const delay = this.calculateDelay(attempt, baseDelay, error);
-
-        logger.warn(
-          `Operation failed (attempt ${attempt + 1}/${maxRetries + 1}): ${error.message}. ` +
-          `Retrying in ${delay}ms...`
-        );
-
-        await this.sleep(delay);
-      }
-    }
-
-    throw new Error('Max retries exceeded');
-  }
-
-  private shouldRetry(error: any, attempt: number, maxRetries: number): boolean {
-    // 已达到最大重试次数
-    if (attempt >= maxRetries) {
-      return false;
-    }
-
-    // 明确不可重试的错误
-    if (this.nonRetryableErrors.includes(error.code)) {
-      logger.error(`Non-retryable error: ${error.code}`);
-      return false;
-    }
-
-    // 可重试的网络错误
-    if (this.retryableErrors.includes(error.code)) {
-      return true;
-    }
-
-    // 默认重试一次
-    return attempt === 0;
-  }
-
-  private calculateDelay(attempt: number, baseDelay: number, error: any): number {
-    // 指数退避: 1s, 2s, 4s, 8s, ...
-    let delay = baseDelay * Math.pow(2, attempt);
-
-    // 添加随机抖动，避免雪崩效应
-    const jitter = Math.random() * 1000;
-    delay += jitter;
-
-    // 最大延迟 30 秒
-    return Math.min(delay, 30000);
-  }
-}
-
-// 使用示例
-await retryManager.executeWithRetry(
-  () => this.uploadFile(localPath, remotePath),
-  { maxRetries: 3, baseDelay: 1000 }
-);
-```
-
-**配置选项**:
-```json
-{
-  "simpleSftp.retry.maxAttempts": 3,
-  "simpleSftp.retry.baseDelay": 1000,
-  "simpleSftp.retry.maxDelay": 30000,
-  "simpleSftp.retry.enableJitter": true
-}
-```
-
-**预期效果**:
-- 网络错误自动恢复
-- 减少用户手动重试
-- 提升成功率 20-30%
-
----
-
-## 实施优先级
-
-### 第一阶段 (v2.3.0) - 核心优化 ✅ 完成
-
-**目标**: 提升可靠性和性能
-
-1. ✅ 断点续传 (已完成 v2.1.0)
-2. ✅ 并发分片传输 (已完成 v2.3.0)
-3. ✅ 文件完整性校验 (已完成 v2.3.0)
-
-**实际开发时间**: 2 周（3 个核心功能完成）
-
-### 第二阶段 (v2.4.0) - 同步优化 ✅ 完成
-
-**目标**: 提升同步效率
-
-1. ✅ 增量同步 (已完成 v2.4.0)
-
-**实际开发时间**: 1 天
-
-### 第三阶段 (v2.5.0+) - 高级功能
-
-**目标**: 提升用户体验和特定场景优化
-
-1. 智能重试策略 (规划中)
-2. 传输优先级队列 (规划中)
-3. 智能压缩传输 (规划中)
-4. 带宽限制 (规划中)
-
-**预计开发时间**: 3-4 周
-
-### 第四阶段 (v2.6.0+) - 兼容性优化
-
-**目标**: 完善边缘功能
-
-1. 符号链接和属性保留
-
-**预计开发时间**: 1-2 周
-
----
-
-## 性能指标目标
-
-### 当前基线 (v2.1.0)
-
-- 10MB 文件上传: ~5 秒
-- 100MB 文件上传: ~60 秒
-- 1GB 文件上传: ~10 分钟
-- 1000 个小文件: ~2 分钟
-- 1000 文件目录（全部上传）: ~2 分钟
-
-### 已达成 (v2.4.0)
-
-- 10MB 文件上传: ~5 秒 (无变化，已经很快)
-- 100MB 文件上传: ~12-20 秒 (-67-80%) ← **v2.3.0 并发分片传输**
-- 1GB 文件上传: ~3 分钟 (-70%) ← **v2.3.0 并发分片传输**
-- 1000 文件目录（10% 修改）: ~5-10 秒 (-95%) ← **v2.4.0 增量同步**
-- 5000 文件目录（5% 修改）: ~20-30 秒 (-95%) ← **v2.4.0 增量同步**
-
-### 未来目标 (v2.5.0+)
-
-- 1000 个小文件: ~30 秒 (-85%) ← 优先级队列
-- 大文本文件: ~10 倍提升 ← 压缩传输
 
 ---
 
@@ -1166,7 +912,7 @@ await retryManager.executeWithRetry(
 
 ---
 
-**最后更新**: 2026-01-17 (11:45)
+**最后更新**: 2026-01-16 (11:45)
 **当前版本**: v2.5.0
 **文档版本**: 1.2
 **维护人**: Development Team
