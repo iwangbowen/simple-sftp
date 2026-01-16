@@ -6,6 +6,7 @@
  */
 
 import * as vscode from 'vscode';
+import * as path from 'node:path';
 import { TransferQueueService } from '../services/transferQueueService';
 import { TransferHistoryService } from '../services/transferHistoryService';
 import { TransferTaskModel } from '../models/transferTask';
@@ -15,11 +16,13 @@ import { logger } from '../logger';
  * Command handlers to add to CommandHandler class
  */
 export class TransferQueueCommands {
-  private queueService: TransferQueueService;
-  private historyService?: TransferHistoryService;
+  private readonly queueService: TransferQueueService;
+  private readonly historyService?: TransferHistoryService;
+  private readonly extensionContext?: vscode.ExtensionContext;
 
-  constructor() {
+  constructor(extensionContext?: vscode.ExtensionContext) {
     this.queueService = TransferQueueService.getInstance();
+    this.extensionContext = extensionContext;
 
     try {
       this.historyService = TransferHistoryService.getInstance();
@@ -175,7 +178,7 @@ export class TransferQueueCommands {
   }
 
   /**
-   * Show task details using WebView panel
+   * Show task details using WebView panel with external HTML template
    */
   async showTaskDetails(task?: TransferTaskModel): Promise<void> {
     if (!task) {
@@ -186,45 +189,7 @@ export class TransferQueueCommands {
     const duration = task.getDuration();
     const avgSpeed = task.getAverageSpeed();
 
-    const details = [
-      `**File:** ${task.fileName}`,
-      `**Type:** ${task.type.toUpperCase()}`,
-      `**Status:** ${task.status.toUpperCase()}`,
-      '',
-      `**Host:** ${task.hostName}`,
-      `**Local:** ${task.localPath}`,
-      `**Remote:** ${task.remotePath}`,
-      '',
-      `**Size:** ${this.formatBytes(task.fileSize)}`,
-      `**Transferred:** ${this.formatBytes(task.transferred)}`,
-      `**Progress:** ${task.progress.toFixed(2)}%`,
-      ''
-    ];
-
-    if (task.status === 'running') {
-      details.push(`**Speed:** ${this.formatSpeed(task.speed)}`);
-      if (task.estimatedTime) {
-        details.push(`**Estimated Time:** ${this.formatDuration(task.estimatedTime)}`);
-      }
-    }
-
-    if (duration) {
-      details.push(`**Duration:** ${this.formatDuration(duration)}`);
-    }
-
-    if (avgSpeed) {
-      details.push(`**Average Speed:** ${this.formatSpeed(avgSpeed)}`);
-    }
-
-    if (task.retryCount > 0) {
-      details.push(`**Retries:** ${task.retryCount}/${task.maxRetries}`);
-    }
-
-    if (task.lastError) {
-      details.push('', `**Error:** ${task.lastError}`);
-    }
-
-    // Create webview panel to display markdown
+    // Create webview panel
     const panel = vscode.window.createWebviewPanel(
       'taskDetails',
       `Task: ${task.fileName}`,
@@ -235,63 +200,153 @@ export class TransferQueueCommands {
       }
     );
 
-    // Convert markdown to HTML
-    const htmlContent = this.markdownToHtml(details.join('\n\n'), task);
-    panel.webview.html = htmlContent;
+    // Load HTML content from template
+    panel.webview.html = this.getWebviewContent(task, duration, avgSpeed);
   }
 
   /**
-   * Convert markdown to HTML for webview
+   * Load and populate HTML template for task details
    */
-  private markdownToHtml(markdown: string, task: TransferTaskModel): string {
-    // Simple markdown to HTML conversion
-    let html = markdown
-      .replaceAll(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replaceAll('\n\n', '<br><br>')
-      .replaceAll('\n', '<br>');
+  private getWebviewContent(task: TransferTaskModel, duration?: number, avgSpeed?: number): string {
+    // Load HTML template
+    let html = this.loadHtmlTemplate();
 
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Task Details</title>
-  <style>
-    body {
-      font-family: var(--vscode-font-family);
-      font-size: var(--vscode-font-size);
-      color: var(--vscode-foreground);
-      background-color: var(--vscode-editor-background);
-      padding: 20px;
-      line-height: 1.6;
+    // Replace all placeholders with actual values
+    const replacements: Record<string, string> = {
+      '{{TITLE}}': `Task Details: ${task.fileName}`,
+      '{{FILE_NAME}}': this.escapeHtml(task.fileName),
+      '{{TYPE}}': task.type.toUpperCase(),
+      '{{STATUS}}': task.status.toUpperCase(),
+      '{{STATUS_CLASS}}': task.status.toLowerCase(),
+      '{{HOST}}': this.escapeHtml(task.hostName),
+      '{{LOCAL_PATH}}': this.escapeHtml(task.localPath),
+      '{{REMOTE_PATH}}': this.escapeHtml(task.remotePath),
+      '{{FILE_SIZE}}': this.formatBytes(task.fileSize),
+      '{{TRANSFERRED}}': this.formatBytes(task.transferred),
+      '{{PROGRESS}}': task.progress.toFixed(2),
+      '{{CREATED_AT}}': task.createdAt.toLocaleString(),
+      '{{TASK_ID}}': task.id
+    };
+
+    // Add running info
+    if (task.status === 'running') {
+      replacements['{{#RUNNING_INFO}}'] = '';
+      replacements['{{/RUNNING_INFO}}'] = '';
+      replacements['{{CURRENT_SPEED}}'] = this.formatSpeed(task.speed);
+
+      if (task.estimatedTime) {
+        replacements['{{#HAS_ESTIMATE}}'] = '';
+        replacements['{{/HAS_ESTIMATE}}'] = '';
+        replacements['{{ESTIMATED_TIME}}'] = this.formatDuration(task.estimatedTime);
+      } else {
+        html = this.removeConditionalBlock(html, '{{#HAS_ESTIMATE}}', '{{/HAS_ESTIMATE}}');
+      }
+    } else {
+      html = this.removeConditionalBlock(html, '{{#RUNNING_INFO}}', '{{/RUNNING_INFO}}');
     }
-    strong {
-      color: var(--vscode-textLink-foreground);
+
+    // Add duration and average speed
+    if (duration) {
+      replacements['{{#HAS_DURATION}}'] = '';
+      replacements['{{/HAS_DURATION}}'] = '';
+      replacements['{{DURATION}}'] = this.formatDuration(duration);
+
+      if (avgSpeed) {
+        replacements['{{#HAS_AVG_SPEED}}'] = '';
+        replacements['{{/HAS_AVG_SPEED}}'] = '';
+        replacements['{{AVG_SPEED}}'] = this.formatSpeed(avgSpeed);
+      } else {
+        html = this.removeConditionalBlock(html, '{{#HAS_AVG_SPEED}}', '{{/HAS_AVG_SPEED}}');
+      }
+    } else {
+      html = this.removeConditionalBlock(html, '{{#HAS_DURATION}}', '{{/HAS_DURATION}}');
     }
-    .status-${task.status} {
-      color: ${this.getStatusColor(task.status)};
+
+    // Add retry information
+    if (task.retryCount > 0) {
+      replacements['{{#HAS_RETRIES}}'] = '';
+      replacements['{{/HAS_RETRIES}}'] = '';
+      replacements['{{RETRY_COUNT}}'] = task.retryCount.toString();
+      replacements['{{MAX_RETRIES}}'] = task.maxRetries.toString();
+    } else {
+      html = this.removeConditionalBlock(html, '{{#HAS_RETRIES}}', '{{/HAS_RETRIES}}');
     }
-    .header {
-      font-size: 1.2em;
-      margin-bottom: 20px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--vscode-panel-border);
+
+    // Add error information
+    if (task.lastError) {
+      replacements['{{#HAS_ERROR}}'] = '';
+      replacements['{{/HAS_ERROR}}'] = '';
+      replacements['{{ERROR_MESSAGE}}'] = this.escapeHtml(task.lastError);
+    } else {
+      html = this.removeConditionalBlock(html, '{{#HAS_ERROR}}', '{{/HAS_ERROR}}');
     }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <strong>Task Details: ${task.fileName}</strong>
-  </div>
-  <div>
-    ${html}
-  </div>
-</body>
-</html>`;
+
+    // Add timestamps
+    if (task.startedAt) {
+      replacements['{{#HAS_STARTED}}'] = '';
+      replacements['{{/HAS_STARTED}}'] = '';
+      replacements['{{STARTED_AT}}'] = task.startedAt.toLocaleString();
+    } else {
+      html = this.removeConditionalBlock(html, '{{#HAS_STARTED}}', '{{/HAS_STARTED}}');
+    }
+
+    if (task.completedAt) {
+      replacements['{{#HAS_COMPLETED}}'] = '';
+      replacements['{{/HAS_COMPLETED}}'] = '';
+      replacements['{{COMPLETED_AT}}'] = task.completedAt.toLocaleString();
+    } else {
+      html = this.removeConditionalBlock(html, '{{#HAS_COMPLETED}}', '{{/HAS_COMPLETED}}');
+    }
+
+    // Apply all replacements
+    Object.entries(replacements).forEach(([key, value]) => {
+      html = html.replaceAll(key, value);
+    });
+
+    return html;
   }
 
   /**
-   * Get status color for WebView
+   * Load HTML template from file
+   */
+  private loadHtmlTemplate(): string {
+    // Get template path
+    const templatePath = this.extensionContext
+      ? path.join(this.extensionContext.extensionPath, 'resources', 'webview', 'task-details.html')
+      : path.join(__dirname, '..', '..', 'resources', 'webview', 'task-details.html');
+
+    // Read template file
+    const fs = require('node:fs');
+    return fs.readFileSync(templatePath, 'utf8');
+  }
+
+  /**
+   * Remove conditional block from HTML template
+   */
+  private removeConditionalBlock(html: string, startTag: string, endTag: string): string {
+    const startIndex = html.indexOf(startTag);
+    if (startIndex === -1) {return html;}
+
+    const endIndex = html.indexOf(endTag, startIndex);
+    if (endIndex === -1) {return html;}
+
+    return html.substring(0, startIndex) + html.substring(endIndex + endTag.length);
+  }
+
+  /**
+   * Escape HTML special characters
+   */
+  private escapeHtml(text: string): string {
+    return text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  /**
+   * Get status color for WebView (kept for backward compatibility)
    */
   private getStatusColor(status: string): string {
     switch (status) {

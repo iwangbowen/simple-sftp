@@ -79,7 +79,7 @@ export async function activate(context: vscode.ExtensionContext) {
   commandHandler.registerCommands(context);
 
   // Register transfer queue commands
-  const transferQueueCommands = new TransferQueueCommands();
+  const transferQueueCommands = new TransferQueueCommands(context);
 
   context.subscriptions.push(
     // Queue control commands

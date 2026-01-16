@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+  <title>Task Details</title>
+  <style>
+    body {
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      color: var(--vscode-foreground);
+      background-color: var(--vscode-editor-background);
+      padding: 20px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .header {
+      font-size: 1.3em;
+      font-weight: bold;
+      margin-bottom: 25px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--vscode-panel-border);
+      color: var(--vscode-textLink-foreground);
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 1.1em;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: var(--vscode-textLink-activeForeground);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 8px 15px;
+      margin-bottom: 15px;
+    }
+
+    .label {
+      font-weight: 600;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .value {
+      color: var(--vscode-foreground);
+      word-break: break-all;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 0.9em;
+    }
+
+    .status-completed {
+      background-color: rgba(78, 201, 176, 0.2);
+      color: #4ec9b0;
+    }
+
+    .status-failed {
+      background-color: rgba(244, 135, 113, 0.2);
+      color: #f48771;
+    }
+
+    .status-running {
+      background-color: rgba(86, 156, 214, 0.2);
+      color: #569cd6;
+    }
+
+    .status-paused {
+      background-color: rgba(220, 220, 170, 0.2);
+      color: #dcdcaa;
+    }
+
+    .status-cancelled {
+      background-color: rgba(133, 133, 133, 0.2);
+      color: #858585;
+    }
+
+    .status-pending {
+      background-color: rgba(212, 212, 212, 0.2);
+      color: #d4d4d4;
+    }
+
+    .error-box {
+      background-color: var(--vscode-inputValidation-errorBackground);
+      border: 1px solid var(--vscode-inputValidation-errorBorder);
+      border-left: 4px solid var(--vscode-inputValidation-errorBorder);
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 3px;
+      font-family: var(--vscode-editor-font-family);
+      font-size: 0.9em;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background-color: var(--vscode-progressBar-background);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background-color: var(--vscode-progressBar-background);
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--vscode-button-foreground);
+      font-size: 0.85em;
+      font-weight: bold;
+    }
+
+    .divider {
+      height: 1px;
+      background-color: var(--vscode-panel-border);
+      margin: 25px 0;
+    }
+
+    code {
+      background-color: var(--vscode-textCodeBlock-background);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: var(--vscode-editor-font-family);
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">{{TITLE}}</div>
+
+  <div class="section">
+    <div class="info-grid">
+      <div class="label">Status:</div>
+      <div class="value">
+        <span class="status-badge status-{{STATUS_CLASS}}">{{STATUS}}</span>
+      </div>
+
+      <div class="label">Type:</div>
+      <div class="value">{{TYPE}}</div>
+
+      <div class="label">Host:</div>
+      <div class="value">{{HOST}}</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-title">File Information</div>
+    <div class="info-grid">
+      <div class="label">File Name:</div>
+      <div class="value"><code>{{FILE_NAME}}</code></div>
+
+      <div class="label">Local Path:</div>
+      <div class="value"><code>{{LOCAL_PATH}}</code></div>
+
+      <div class="label">Remote Path:</div>
+      <div class="value"><code>{{REMOTE_PATH}}</code></div>
+
+      <div class="label">File Size:</div>
+      <div class="value">{{FILE_SIZE}}</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-title">Transfer Progress</div>
+    <div class="info-grid">
+      <div class="label">Transferred:</div>
+      <div class="value">{{TRANSFERRED}}</div>
+
+      <div class="label">Progress:</div>
+      <div class="value">{{PROGRESS}}%</div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: {{PROGRESS}}%;">{{PROGRESS}}%</div>
+    </div>
+
+    {{#RUNNING_INFO}}
+    <div class="info-grid" style="margin-top: 15px;">
+      <div class="label">Current Speed:</div>
+      <div class="value">{{CURRENT_SPEED}}</div>
+
+      {{#HAS_ESTIMATE}}
+      <div class="label">Estimated Time:</div>
+      <div class="value">{{ESTIMATED_TIME}}</div>
+      {{/HAS_ESTIMATE}}
+    </div>
+    {{/RUNNING_INFO}}
+
+    {{#HAS_DURATION}}
+    <div class="info-grid" style="margin-top: 15px;">
+      <div class="label">Duration:</div>
+      <div class="value">{{DURATION}}</div>
+
+      {{#HAS_AVG_SPEED}}
+      <div class="label">Average Speed:</div>
+      <div class="value">{{AVG_SPEED}}</div>
+      {{/HAS_AVG_SPEED}}
+    </div>
+    {{/HAS_DURATION}}
+  </div>
+
+  {{#HAS_RETRIES}}
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-title">Retry Information</div>
+    <div class="info-grid">
+      <div class="label">Retry Count:</div>
+      <div class="value">{{RETRY_COUNT}} / {{MAX_RETRIES}}</div>
+    </div>
+  </div>
+  {{/HAS_RETRIES}}
+
+  {{#HAS_ERROR}}
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-title">Error Details</div>
+    <div class="error-box">{{ERROR_MESSAGE}}</div>
+  </div>
+  {{/HAS_ERROR}}
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-title">Timestamps</div>
+    <div class="info-grid">
+      <div class="label">Created:</div>
+      <div class="value">{{CREATED_AT}}</div>
+
+      {{#HAS_STARTED}}
+      <div class="label">Started:</div>
+      <div class="value">{{STARTED_AT}}</div>
+      {{/HAS_STARTED}}
+
+      {{#HAS_COMPLETED}}
+      <div class="label">Completed:</div>
+      <div class="value">{{COMPLETED_AT}}</div>
+      {{/HAS_COMPLETED}}
+    </div>
+  </div>
+
+  <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid var(--vscode-panel-border); font-size: 0.85em; color: var(--vscode-descriptionForeground); text-align: center;">
+    Task ID: {{TASK_ID}}
+  </div>
+</body>
+</html>

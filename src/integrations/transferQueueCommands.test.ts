@@ -1,65 +1,11 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import * as vscode from 'vscode';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TransferQueueCommands } from './transferQueueCommands';
-import { TransferTaskModel } from '../models/transferTask';
 
 describe('TransferQueueCommands', () => {
-  let mockOutputChannel: any;
   let commands: TransferQueueCommands;
-
-  beforeAll(() => {
-    // Set up vscode mocks
-    mockOutputChannel = {
-      appendLine: vi.fn(),
-      show: vi.fn(),
-      dispose: vi.fn()
-    };
-
-    vi.spyOn(vscode.window, 'createOutputChannel').mockReturnValue(mockOutputChannel);
-  });
 
   beforeEach(() => {
     commands = new TransferQueueCommands();
-  });
-
-  describe('markdownToHtml', () => {
-    it('should convert markdown bold to HTML strong tags', () => {
-      const task = {
-        fileName: 'test.txt',
-        status: 'completed'
-      } as unknown as TransferTaskModel;
-
-      const markdown = '**File:** test.txt';
-      const html = (commands as any).markdownToHtml(markdown, task);
-
-      expect(html).toContain('<strong>File:</strong>');
-    });
-
-    it('should convert newlines to br tags', () => {
-      const task = {
-        fileName: 'test.txt',
-        status: 'completed'
-      } as TransferTaskModel;
-
-      const markdown = 'Line 1\n\nLine 2\nLine 3';
-      const html = (commands as any).markdownToHtml(markdown, task);
-
-      expect(html).toContain('<br>');
-    });
-
-    it('should include VS Code theme variables', () => {
-      const task = {
-        fileName: 'test.txt',
-        status: 'running'
-      } as TransferTaskModel;
-
-      const markdown = '**Test**';
-      const html = (commands as any).markdownToHtml(markdown, task);
-
-      expect(html).toContain('var(--vscode-font-family)');
-      expect(html).toContain('var(--vscode-foreground)');
-      expect(html).toContain('var(--vscode-editor-background)');
-    });
   });
 
   describe('getStatusColor', () => {

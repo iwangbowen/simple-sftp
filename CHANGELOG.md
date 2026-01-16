@@ -1,5 +1,29 @@
 # Change Log
 
+## [2.4.2] - 2026-01-17
+
+### Improved
+
+- **Task Details View Architecture**: Refactored WebView implementation to use external HTML templates
+  - Moved HTML content from inline strings to external template file: `resources/webview/task-details.html`
+  - Cleaner code architecture with separation of concerns
+  - Easier template maintenance and customization
+  - Added template variable replacement system with conditional blocks
+  - Improved HTML escaping for security
+  - Better theme integration with VS Code CSS variables
+  - Enhanced error handling with fallback HTML template
+
+### Technical Details
+
+- External HTML template: `resources/webview/task-details.html`
+- New template processing methods: `loadHtmlTemplate()`, `getWebviewContent()`, `removeConditionalBlock()`, `escapeHtml()`
+- Conditional rendering support for optional sections (errors, retries, timestamps, etc.)
+- Extension context integration for proper resource path resolution
+- Removed legacy `markdownToHtml()` method
+- Updated unit tests to match new architecture
+
+---
+
 ## [2.4.1] - 2026-01-17
 
 ### Changed
