@@ -768,6 +768,9 @@ export class SshConnectionManager {
       host: config.host,
       port: config.port,
       username: config.username,
+      readyTimeout: 30000,        // 30 seconds timeout for initial connection
+      keepaliveInterval: 10000,   // Send keepalive every 10 seconds
+      keepaliveCountMax: 3,       // Disconnect after 3 failed keepalive attempts
     };
 
     if (authConfig.authType === 'password' && authConfig.password) {

@@ -1,5 +1,26 @@
 # Change Log
 
+## [2.4.4] - 2026-01-17
+
+### Fixed
+
+- **SSH Connection Stability**: Added timeout and keepalive settings to prevent connection hangs
+  - Added 30-second timeout for initial connection establishment
+  - Enabled SSH keepalive with 10-second intervals
+  - Auto-disconnect after 3 failed keepalive attempts (30 seconds of inactivity)
+  - Prevents transfers from hanging indefinitely when network issues occur
+  - Resume functionality should work more reliably now
+
+### Technical Details
+
+- Added `readyTimeout: 30000` to SSH connection config
+- Added `keepaliveInterval: 10000` for proactive connection monitoring
+- Added `keepaliveCountMax: 3` to detect dead connections
+- Applied to both `SshConnectionManager` and `ParallelChunkTransferManager`
+- SSH connections now properly timeout and can be retried
+
+---
+
 ## [2.4.3] - 2026-01-17
 
 ### Fixed
@@ -10,6 +31,14 @@
   - Prevents cluttering working directories with `.partN` files
   - Automatic cleanup of temp files after merge or on error
   - More organized and cleaner file transfer process
+
+### Changed
+
+- **Transfer Task UI**: Removed notification messages when pausing/resuming individual tasks
+  - No more popup notifications when a task is paused or resumed
+  - Still logs task state changes for debugging purposes
+  - Consistent with queue pause/resume behavior (no notifications)
+  - Cleaner, less intrusive user experience
 
 ### Technical Details
 

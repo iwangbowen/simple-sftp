@@ -57,7 +57,6 @@ export class TransferQueueCommands {
     }
 
     this.queueService.pauseTask(task.id);
-    vscode.window.showInformationMessage(`Paused: ${task.fileName}`);
     logger.info(`Task paused: ${task.id}`);
   }
 
@@ -71,7 +70,6 @@ export class TransferQueueCommands {
     }
 
     this.queueService.resumeTask(task.id);
-    vscode.window.showInformationMessage(`Resumed: ${task.fileName}`);
     logger.info(`Task resumed: ${task.id}`);
   }
 
