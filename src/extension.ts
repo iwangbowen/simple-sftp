@@ -6,6 +6,7 @@ import { CommandHandler } from './commandHandler';
 import { TransferQueueService } from './services/transferQueueService';
 import { TransferHistoryService } from './services/transferHistoryService';
 import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
+import { TransferHistoryTreeProvider } from './ui/transferHistoryTreeProvider';
 import { HelpFeedbackTreeProvider } from './ui/helpFeedbackTreeProvider';
 import { TransferQueueCommands } from './integrations/transferQueueCommands';
 import { formatSpeed } from './utils/formatUtils';
@@ -66,6 +67,16 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(transferQueueView);
   logger.info('Transfer queue tree view registered');
 
+  // Create transfer history TreeView provider
+  const transferHistoryTreeProvider = new TransferHistoryTreeProvider();
+  transferHistoryTreeProvider.setHistoryService(transferHistoryService);
+  const transferHistoryView = vscode.window.createTreeView('simpleSftp.transferHistory', {
+    treeDataProvider: transferHistoryTreeProvider,
+    showCollapseAll: true
+  });
+  context.subscriptions.push(transferHistoryView);
+  logger.info('Transfer history tree view registered');
+
   // Create help and feedback TreeView provider
   const helpFeedbackTreeProvider = new HelpFeedbackTreeProvider();
   const helpFeedbackView = vscode.window.createTreeView('simpleSftp.helpFeedback', {
@@ -118,9 +129,6 @@ export async function activate(context: vscode.ExtensionContext) {
     // Info commands
     vscode.commands.registerCommand('simpleSftp.showTaskDetails', (task) =>
       transferQueueCommands.showTaskDetails(task)
-    ),
-    vscode.commands.registerCommand('simpleSftp.showQueueStats', () =>
-      transferQueueCommands.showQueueStats()
     ),
 
     // History commands

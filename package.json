@@ -56,6 +56,11 @@
           "icon": "$(cloud-upload)"
         },
         {
+          "id": "simpleSftp.transferHistory",
+          "name": "Transfer History",
+          "icon": "$(history)"
+        },
+        {
           "id": "simpleSftp.helpFeedback",
           "name": "Help and Feedback",
           "icon": "$(question)"
@@ -315,12 +320,6 @@
         "icon": "$(info)"
       },
       {
-        "command": "simpleSftp.showQueueStats",
-        "title": "Show Queue Statistics",
-        "category": "Simple SFTP",
-        "icon": "$(graph)"
-      },
-      {
         "command": "simpleSftp.viewTransferHistory",
         "title": "View Transfer History",
         "category": "Simple SFTP",
@@ -539,10 +538,6 @@
           "when": "false"
         },
         {
-          "command": "simpleSftp.showQueueStats",
-          "when": "false"
-        },
-        {
           "command": "simpleSftp.openGitHubReadme",
           "when": "false"
         },
@@ -599,14 +594,9 @@
           "group": "1_import@3"
         },
         {
-          "command": "simpleSftp.pauseQueue",
+          "command": "simpleSftp.clearCompleted",
           "when": "view == simpleSftp.transferQueue",
-          "group": "navigation@1"
-        },
-        {
-          "command": "simpleSftp.resumeQueue",
-          "when": "view == simpleSftp.transferQueue",
-          "group": "navigation@2"
+          "group": "navigation@5"
         },
         {
           "command": "simpleSftp.clearCompleted",
@@ -619,14 +609,9 @@
           "group": "1_queue@2"
         },
         {
-          "command": "simpleSftp.showQueueStats",
-          "when": "view == simpleSftp.transferQueue",
-          "group": "2_stats@1"
-        },
-        {
           "command": "simpleSftp.viewTransferHistory",
           "when": "view == simpleSftp.transferQueue",
-          "group": "2_stats@2"
+          "group": "2_stats@1"
         }
       ],
       "view/item/context": [
