@@ -25,6 +25,19 @@ export const PARALLEL_TRANSFER = {
   ENABLED: true,                        // Enable/disable parallel transfer feature
 } as const;
 
+export const DELTA_SYNC = {
+  ENABLED: true,                        // Enable/disable delta sync (skip unchanged files)
+  COMPARE_METHOD: 'mtime' as const,     // 'mtime' | 'checksum' - Method to detect file changes
+  DELETE_REMOTE: false,                 // Delete remote files that don't exist locally
+  PRESERVE_TIMESTAMPS: false,           // Preserve file modification times (experimental)
+  EXCLUDE_PATTERNS: [                   // Files/folders to exclude from sync
+    'node_modules',
+    String.raw`\.git`,
+    String.raw`\.vscode`,
+    String.raw`.*\.log`
+  ],
+} as const;
+
 export const PROMPTS = {
   // Add Host steps
   hostName: 'Step 1/6: Enter host name',

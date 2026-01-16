@@ -8,8 +8,9 @@ import { HostConfig, HostAuthConfig } from './types';
 import { SshConnectionPool } from './sshConnectionPool';
 import { logger } from './logger';
 import { ParallelChunkTransferManager } from './parallelChunkTransfer';
-import { PARALLEL_TRANSFER } from './constants';
+import { PARALLEL_TRANSFER, DELTA_SYNC } from './constants';
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
+import { DeltaSyncManager } from './services/deltaSyncManager';
 
 /**
  * SSH 连接管理器
@@ -314,6 +315,43 @@ export class SshConnectionManager {
     signal?: AbortSignal
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
+      // Check if delta sync is enabled
+      if (DELTA_SYNC.ENABLED) {
+        logger.info(`Using delta sync for directory upload: ${localPath} → ${remotePath}`);
+
+        const stats = await DeltaSyncManager.syncDirectory(
+          sftp,
+          localPath,
+          remotePath,
+          {
+            compareMethod: DELTA_SYNC.COMPARE_METHOD,
+            deleteRemote: DELTA_SYNC.DELETE_REMOTE,
+            preserveTimestamps: DELTA_SYNC.PRESERVE_TIMESTAMPS,
+            excludePatterns: [...DELTA_SYNC.EXCLUDE_PATTERNS],
+            onProgress: (current, total, currentFile) => {
+              if (signal?.aborted) {
+                throw new Error('Transfer aborted');
+              }
+
+              if (onProgress) {
+                const progress = Math.round((current / total) * 100);
+                onProgress(currentFile, progress);
+              }
+            }
+          }
+        );
+
+        logger.info(
+          `Delta sync completed - Uploaded: ${stats.uploaded}, Deleted: ${stats.deleted}, ` +
+          `Skipped: ${stats.skipped}, Failed: ${stats.failed}, Total: ${stats.total}`
+        );
+
+        return;
+      }
+
+      // Fallback to traditional full upload
+      logger.info(`Using traditional full upload for directory: ${localPath} → ${remotePath}`);
+
       // 获取所有文件
       const files = this.getAllFiles(localPath);
       const totalFiles = files.length;
