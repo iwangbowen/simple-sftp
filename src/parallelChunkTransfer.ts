@@ -143,9 +143,11 @@ export class ParallelChunkTransferManager {
       // Merge chunks on remote server
       await this.mergeChunksOnRemote(config, authConfig, remotePath, chunks.length);
 
+      logger.info(`Merge completed. Sending final progress update...`);
       // Send final 100% progress after merge completes
       if (onProgress) {
         onProgress(fileSize, fileSize);
+        logger.info(`Final progress sent: ${fileSize}/${fileSize} bytes (100%)`);
       }
 
       logger.info(`✓ Successfully uploaded ${path.basename(localPath)} using parallel transfer`);
@@ -473,8 +475,17 @@ export class ParallelChunkTransferManager {
       });
 
       // Upload merged file to final destination
-      logger.info(`Uploading merged file to ${remotePath}`);
-      await sftp.fastPut(localMergedPath, remotePath);
+      logger.info(`Uploading merged file to ${remotePath} (size: ${(fs.statSync(localMergedPath).size / 1024 / 1024).toFixed(2)}MB)`);
+      
+      // Add timeout for the final upload
+      const uploadPromise = sftp.fastPut(localMergedPath, remotePath);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Merged file upload timeout - operation took too long'));
+        }, 10 * 60 * 1000); // 10 minute timeout for merged file upload
+      });
+      
+      await Promise.race([uploadPromise, timeoutPromise]);
       
       logger.info(`✓ Merge complete: ${remotePath}`);
     } finally {

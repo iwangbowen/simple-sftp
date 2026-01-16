@@ -138,12 +138,15 @@ export class TransferQueueService extends EventEmitter {
       task.start();
       this._onTaskUpdated.fire(task);
 
+      logger.info(`Executing task ${task.id}: ${task.fileName}`);
       // TODO: Implement actual file transfer logic
       // This is a placeholder that will be replaced with real SFTP transfer
       await this.performTransfer(task);
 
+      logger.info(`Transfer completed for task ${task.id}, marking as complete`);
       task.complete();
       this._onTaskUpdated.fire(task);
+      logger.info(`Task ${task.id} completed successfully`);
 
     } catch (error: any) {
       // Check if task was paused (not a real error)
