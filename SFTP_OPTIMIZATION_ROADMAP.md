@@ -19,34 +19,81 @@
 
 **功能描述**:
 - 暂停的传输任务可以从上次停止的位置继续
-- 保留传输进度、速度统计
-- 使用 SFTP Stream API 实现
+- 保留传输进度和速度统计
+- 使用 Node.js Stream API 配合 SFTP 的 createReadStream/createWriteStream 实现
 
 **实现方式**:
 ```typescript
-// 使用 Node.js Stream 从指定偏移量开始
-const readStream = fs.createReadStream(localPath, {
-  start: startOffset,
-  highWaterMark: 64 * 1024
-});
+// sshConnectionManager.ts - uploadFileWithResume()
+private static async uploadFileWithResume(
+  sftp: any,
+  localPath: string,
+  remotePath: string,
+  startOffset: number,
+  onProgress?: (transferred: number, total: number) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const stat = fs.statSync(localPath);
+  const totalSize = stat.size;
 
-const writeStream = sftp.createWriteStream(remotePath, {
-  flags: 'a',  // append mode
-  start: startOffset
-});
+  // 创建读取流，从指定偏移量开始
+  const readStream = fs.createReadStream(localPath, {
+    start: startOffset,
+    highWaterMark: 64 * 1024 // 64KB chunks
+  });
 
-readStream.pipe(writeStream);
+  // 创建写入流，追加模式
+  const writeStream = sftp.createWriteStream(remotePath, {
+    flags: 'a',  // append mode
+    start: startOffset
+  });
+
+  let transferredSinceStart = 0;
+
+  return new Promise((resolve, reject) => {
+    readStream.on('data', (chunk: string | Buffer) => {
+      const chunkLength = typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.length;
+      transferredSinceStart += chunkLength;
+      const totalTransferred = startOffset + transferredSinceStart;
+
+      if (signal?.aborted) {
+        readStream.destroy();
+        writeStream.destroy();
+        reject(new Error('Transfer aborted'));
+        return;
+      }
+
+      if (onProgress) {
+        onProgress(totalTransferred, totalSize);
+      }
+    });
+
+    readStream.on('error', reject);
+    writeStream.on('error', reject);
+    writeStream.on('finish', resolve);
+
+    readStream.pipe(writeStream);
+  });
+}
 ```
 
 **优势**:
 - 大文件传输中断后无需重新开始
 - 节省时间和带宽
 - 提升不稳定网络环境下的用户体验
+- 支持用户手动暂停/恢复传输
 
 **技术细节**:
 - 文件: `src/sshConnectionManager.ts`
 - 方法: `uploadFileWithResume()`, `downloadFileWithResume()`
-- 自动模式切换: offset=0 使用 fastPut/fastGet，offset>0 使用 Stream
+- 自动模式切换:
+  - offset = 0: 使用 fastPut/fastGet（适合新传输）
+  - offset > 0: 使用 Stream（适合断点续传）
+- 支持 AbortSignal 中断传输
+
+**使用场景**:
+- TransferQueueService 在恢复暂停任务时传递 `startOffset` 参数
+- 传输过程中用户可以暂停任务，下次恢复时从断点继续
 
 ---
 
@@ -56,29 +103,55 @@ readStream.pipe(writeStream);
 
 **功能描述**:
 - 将大文件（≥100MB）分成多个块并发传输
-- 使用多个 SFTP 连接提升传输速度
+- 使用多个 SFTP 连接池连接提升传输速度
 - 自动聚合块传输进度
 - 传输完成后自动合并文件
 
 **实现方式**:
 ```typescript
+// parallelChunkTransfer.ts - ParallelChunkTransferManager
 class ParallelChunkTransferManager {
-  // 自动检测并使用并发分片传输
-  if (fileSize >= PARALLEL_TRANSFER.THRESHOLD) {
+  async uploadFileParallel(config, authConfig, localPath, remotePath, options) {
+    const stat = fs.statSync(localPath);
+    const fileSize = stat.size;
+
     // 1. 将文件分成 10MB 的块
-    const chunks = this.splitIntoChunks(fileSize, CHUNK_SIZE);
+    const chunks = this.splitIntoChunks(fileSize, options.chunkSize);
 
-    // 2. 使用 5 个并发连接传输
-    await this.processBatches(chunks, MAX_CONCURRENT, uploadChunk);
+    // 2. 创建临时目录用于存储块
+    const tempDir = await this.createTempDir();
 
-    // 3. 合并文件块
-    await this.mergeChunks(remotePath, chunks.length);
+    // 3. 使用连接池并发传输块（最多5个并发）
+    const uploadChunk = async (chunk: Chunk) => {
+      const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+      try {
+        // 读取并上传块
+        const readStream = fs.createReadStream(localPath, {
+          start: chunk.start,
+          end: chunk.end,
+          highWaterMark: 256 * 1024
+        });
+        const chunkRemotePath = `${tempDir}/chunk_${chunk.index}`;
+        await this.uploadChunkStream(sftpClient, readStream, chunkRemotePath, chunk, onChunkProgress);
+      } finally {
+        this.connectionPool.releaseConnection(config);
+      }
+    };
+
+    await this.processBatches(chunks, options.maxConcurrent, uploadChunk);
+
+    // 4. 合并远程文件块
+    await this.mergeRemoteChunks(remotePath, chunks.length, tempDir, config, authConfig, connectConfig);
+
+    // 5. 清理临时文件
+    await this.cleanupRemoteTemp(tempDir, config, authConfig, connectConfig);
   }
 }
 ```
 
 **配置选项**:
 ```typescript
+// constants.ts
 export const PARALLEL_TRANSFER = {
   CHUNK_SIZE: 10 * 1024 * 1024,        // 10MB per chunk
   MAX_CONCURRENT: 5,                    // 5 concurrent transfers
@@ -89,19 +162,32 @@ export const PARALLEL_TRANSFER = {
 
 **优势**:
 - 大文件传输速度提升 3-5 倍
-- 充分利用带宽
+- 充分利用带宽和多核 CPU
 - 自动透明处理，无需用户干预
 - 支持进度实时聚合
 
 **技术细节**:
 - 文件: `src/parallelChunkTransfer.ts`
 - 类: `ParallelChunkTransferManager`
-- 集成点: `src/sshConnectionManager.ts` 自动检测文件大小
+- 集成点: `src/sshConnectionManager.ts` 自动检测文件大小并使用并发传输
 - 测试: `src/parallelChunkTransfer.test.ts` (19 tests)
+- 临时目录: 下载时使用系统临时目录（`os.tmpdir()`），上传时使用远程临时目录
+- 文件合并: 使用 SSH exec 执行 `cat` 命令合并块
+- 清理策略: 传输完成后自动删除临时文件和目录
 
 **性能指标**:
 - 100MB 文件: 从 ~60 秒降至 ~15-20 秒 (-67%)
 - 1GB 文件: 从 ~10 分钟降至 ~3 分钟 (-70%)
+- 使用连接池避免重复建立连接
+
+**实际执行流程**:
+1. 检测文件大小是否 ≥ 阈值（100MB）
+2. 将文件分成 N 个块（每块 10MB）
+3. 使用连接池获取连接，最多 5 个并发
+4. 每个块独立上传到临时目录
+5. 所有块上传完成后，在远程服务器执行 `cat` 合并
+6. 删除临时目录和块文件
+7. 如果启用校验，验证最终文件完整性
 
 ---
 
@@ -113,38 +199,75 @@ export const PARALLEL_TRANSFER = {
 - 传输后自动校验文件完整性
 - 支持 MD5 和 SHA256 算法
 - 可配置的校验阈值（仅大文件校验）
-- 服务器端工具自动检测
+- 服务器端工具自动检测和回退
 
 **实现方式**:
 ```typescript
+// services/fileIntegrityChecker.ts
 class FileIntegrityChecker {
-  // 计算本地文件校验和
+  // 计算本地文件校验和（流式，避免大文件内存溢出）
   static async calculateLocalChecksum(filePath, algorithm = 'sha256') {
-    const hash = crypto.createHash(algorithm);
-    const stream = fs.createReadStream(filePath);
-    // 流式计算，避免大文件内存溢出
-    return hash.digest('hex');
+    return new Promise((resolve, reject) => {
+      const hash = crypto.createHash(algorithm);
+      const stream = fs.createReadStream(filePath);
+
+      stream.on('data', (data) => hash.update(data));
+      stream.on('end', () => resolve(hash.digest('hex')));
+      stream.on('error', reject);
+    });
   }
 
-  // 计算远程文件校验和
-  static async calculateRemoteChecksum(remotePath, algorithm = 'sha256') {
-    // 执行远程命令: md5sum / sha256sum / shasum
-    const command = algorithm === 'md5'
-      ? `md5sum "${remotePath}"`
-      : `sha256sum "${remotePath}"`;
-    return checksum;
+  // 计算远程文件校验和（通过 SSH 执行命令）
+  static async calculateRemoteChecksum(config, authConfig, remotePath, algorithm, connectConfig) {
+    return new Promise((resolve, reject) => {
+      const conn = new Client();
+      conn.on('ready', () => {
+        // 尝试多个工具，兼容不同系统
+        const command = algorithm === 'md5'
+          ? `md5sum "${remotePath}" 2>/dev/null || md5 -q "${remotePath}" 2>/dev/null || echo "CHECKSUM_TOOL_NOT_FOUND"`
+          : `sha256sum "${remotePath}" 2>/dev/null || shasum -a 256 "${remotePath}" 2>/dev/null || echo "CHECKSUM_TOOL_NOT_FOUND"`;
+
+        conn.exec(command, (err, stream) => {
+          let output = '';
+          stream.on('data', (data) => { output += data.toString(); });
+          stream.on('close', () => {
+            conn.end();
+            const trimmed = output.trim();
+
+            // 检查工具是否可用
+            if (trimmed.includes('CHECKSUM_TOOL_NOT_FOUND') || trimmed === '') {
+              reject(new Error(`Checksum tool not found. Install ${algorithm}sum or disable verification.`));
+              return;
+            }
+
+            // 提取校验和（第一个字段）
+            const checksum = trimmed.split(/\s+/)[0];
+            resolve(checksum);
+          });
+        });
+      });
+      conn.connect(connectConfig);
+    });
   }
 
   // 上传后验证
-  static async verifyUpload(localPath, remotePath, options) {
+  static async verifyUpload(config, authConfig, localPath, remotePath, connectConfig, options) {
+    const stat = fs.statSync(localPath);
+
+    // 检查文件大小是否超过阈值
+    if (stat.size < options.threshold) {
+      logger.info(`File size ${stat.size} below threshold ${options.threshold}, skipping verification`);
+      return true;
+    }
+
     const localChecksum = await this.calculateLocalChecksum(localPath, options.algorithm);
-    const remoteChecksum = await this.calculateRemoteChecksum(remotePath, options.algorithm);
+    const remoteChecksum = await this.calculateRemoteChecksum(config, authConfig, remotePath, options.algorithm, connectConfig);
 
     if (localChecksum === remoteChecksum) {
       logger.info(`✓ Upload verified (${options.algorithm}: ${localChecksum})`);
       return true;
     } else {
-      logger.error(`✗ Upload verification failed!`);
+      logger.error(`✗ Upload verification failed! Local: ${localChecksum}, Remote: ${remoteChecksum}`);
       return false;
     }
   }
@@ -153,35 +276,65 @@ class FileIntegrityChecker {
 
 **配置选项**:
 ```json
+// VS Code settings.json
 {
-  "simpleSftp.verification.enabled": false,      // 默认禁用
+  "simpleSftp.verification.enabled": false,      // 默认禁用（向后兼容）
   "simpleSftp.verification.algorithm": "sha256", // md5 | sha256
   "simpleSftp.verification.threshold": 10485760  // 10MB 以上才校验
 }
 ```
 
+**使用方式**:
+```typescript
+// sshConnectionManager.ts - uploadFile()
+// 并发分片传输后验证
+await this.parallelTransferManager.uploadFileParallel(...);
+
+const checksumOptions = FileIntegrityChecker.getOptionsFromConfig();
+if (checksumOptions.enabled) {
+  const verified = await FileIntegrityChecker.verifyUpload(
+    config, authConfig, localPath, remotePath, connectConfig, checksumOptions
+  );
+
+  if (!verified) {
+    throw new Error('File integrity verification failed. Please try uploading again.');
+  }
+}
+```
+
 **优势**:
-- 100% 检测文件传输错误
+- 100% 检测文件传输错误（位翻转、网络损坏）
 - 流式计算，低内存占用
 - 自动跳过小文件（提升性能）
-- 友好的错误提示
+- 友好的错误提示和工具安装建议
 
 **技术细节**:
 - 文件: `src/services/fileIntegrityChecker.ts`
 - 类: `FileIntegrityChecker`
-- 集成点: `src/sshConnectionManager.ts` uploadFile/downloadFile 方法
-- 支持工具: md5sum, sha256sum, shasum, md5, certutil (Windows)
+- 集成点: `src/sshConnectionManager.ts` 的 uploadFile/downloadFile 方法
+- 支持工具（按优先级尝试）:
+  - Linux/Unix: md5sum, sha256sum
+  - macOS: md5 -q, shasum -a 256
+  - Windows: certutil -hashfile（未测试）
+- 配置读取: `vscode.workspace.getConfiguration('simpleSftp.verification')`
+
+**错误处理**:
+- 校验失败会抛出异常，阻止传输完成
+- 服务器无工具时友好提示并建议：
+  - 安装所需工具（md5sum/sha256sum）
+  - 或在设置中禁用校验（`simpleSftp.verification.enabled: false`）
+- 可通过配置关闭校验以兼容旧服务器
 
 **服务器要求**:
 - Linux/Unix: 需要 `md5sum` 或 `sha256sum` 命令
 - macOS: 使用 `md5 -q` 或 `shasum -a 256`
-- Windows: 使用 `certutil -hashfile`
-- 如无工具，校验会失败并提示用户禁用或安装工具
+- 如无工具，校验会失败并提示用户
 
-**错误处理**:
-- 校验失败会抛出异常，阻止传输完成
-- 服务器无工具时友好提示并提供禁用选项
-- 可通过配置关闭校验以兼容旧服务器
+**最佳实践**:
+- 重要文件传输: 启用 SHA256 校验
+- 大批量文件: 提高阈值到 100MB，仅校验大文件
+- 不稳定网络: 启用校验确保数据完整性
+- 旧服务器: 禁用校验或安装工具
 
 ---
 
