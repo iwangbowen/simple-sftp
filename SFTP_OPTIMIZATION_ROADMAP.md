@@ -4,9 +4,9 @@
 
 本文档记录了基于 SFTP 协议特性的传输优化方案，旨在提升 Simple SFTP 扩展的性能、可靠性和用户体验。
 
-**当前版本**: v2.3.0
+**当前版本**: v2.4.8
 **文档创建日期**: 2026-01-15
-**最后更新**: 2026-01-15 (23:03)
+**最后更新**: 2026-01-17 (11:30)
 **维护人**: Development Team
 
 ---
@@ -99,13 +99,13 @@ private static async uploadFileWithResume(
 
 ### ✅ 2. 并发分片传输 (Chunked Parallel Transfer)
 
-**状态**: 已实现 (v2.3.0)
+**状态**: 已实现并优化 (v2.4.8)
 
 **功能描述**:
 - 将大文件（≥100MB）分成多个块并发传输
 - 使用多个 SFTP 连接池连接提升传输速度
 - 自动聚合块传输进度
-- 传输完成后自动合并文件
+- 传输完成后在远程服务器直接合并文件（高效）
 
 **实现方式**:
 ```typescript
@@ -118,33 +118,84 @@ class ParallelChunkTransferManager {
     // 1. 将文件分成 10MB 的块
     const chunks = this.splitIntoChunks(fileSize, options.chunkSize);
 
-    // 2. 创建临时目录用于存储块
-    const tempDir = await this.createTempDir();
-
-    // 3. 使用连接池并发传输块（最多5个并发）
-    const uploadChunk = async (chunk: Chunk) => {
+    // 2. 使用连接池并发传输块到远程 /tmp 目录（最多5个并发）
+    await this.processBatches(chunks, options.maxConcurrent, async (chunk) => {
       const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
       try {
-        // 读取并上传块
+        // 将chunk数据提取到本地临时文件
+        const localChunkPath = path.join(os.tmpdir(), `upload_chunk_${Date.now()}_${chunk.index}`);
         const readStream = fs.createReadStream(localPath, {
           start: chunk.start,
-          end: chunk.end,
-          highWaterMark: 256 * 1024
+          end: chunk.end
         });
-        const chunkRemotePath = `${tempDir}/chunk_${chunk.index}`;
-        await this.uploadChunkStream(sftpClient, readStream, chunkRemotePath, chunk, onChunkProgress);
+        const writeStream = fs.createWriteStream(localChunkPath);
+        await pipeline(readStream, writeStream);
+
+        // 使用fastPut上传chunk（比stream更可靠）
+        const chunkRemotePath = `/tmp/${fileName}.part${chunk.index}`;
+        await sftpClient.fastPut(localChunkPath, chunkRemotePath, {
+          step: (transferred) => onProgress(transferred)
+        });
+
+        // 清理本地临时chunk
+        fs.unlinkSync(localChunkPath);
       } finally {
         this.connectionPool.releaseConnection(config);
       }
-    };
+    });
 
-    await this.processBatches(chunks, options.maxConcurrent, uploadChunk);
+    // 3. 在远程服务器直接合并chunks（高效策略）
+    try {
+      await this.mergeChunksOnRemote(config, authConfig, remotePath, chunks.length);
+    } catch (mergeError) {
+      // 如果远程合并失败，清理chunks并fallback到普通上传
+      logger.warn(`Remote merge failed: ${mergeError.message}`);
+      await this.cleanupPartialChunks(config, authConfig, remotePath, chunks.length);
+      
+      logger.info('Falling back to normal single-file upload...');
+      // 使用普通fastPut上传完整文件
+      await sftpClient.fastPut(localPath, remotePath, {
+        step: (transferred, total) => onProgress(transferred, total)
+      });
+    }
+  }
 
-    // 4. 合并远程文件块
-    await this.mergeRemoteChunks(remotePath, chunks.length, tempDir, config, authConfig, connectConfig);
+  // 远程合并 - 使用SSH exec执行cat命令
+  private async mergeChunksOnRemote(config, authConfig, remotePath, totalChunks) {
+    const { client } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
 
-    // 5. 清理临时文件
-    await this.cleanupRemoteTemp(tempDir, config, authConfig, connectConfig);
+    // 构建合并命令: cat part0 part1 ... > final.jar && rm part0 part1 ...
+    const fileName = path.basename(remotePath);
+    const parts = Array.from({ length: totalChunks }, (_, i) => `"/tmp/${fileName}.part${i}"`).join(' ');
+    const command = `cat ${parts} > "${remotePath}" && rm ${parts}`;
+
+    // 通过SSH执行远程命令
+    await new Promise<void>((resolve, reject) => {
+      client.exec(command, (err, stream) => {
+        if (err) {
+          reject(new Error(`SSH exec not supported: ${err.message}`));
+          return;
+        }
+
+        let stderr = '';
+        let stdout = '';
+
+        // 必须消费stdout和stderr，否则stream会阻塞
+        stream.on('data', (data) => { stdout += data.toString(); });
+        stream.stderr.on('data', (data) => { stderr += data.toString(); });
+
+        stream.on('close', (code) => {
+          if (code === 0) {
+            logger.info(`✓ Chunks merged successfully on remote server`);
+            resolve();
+          } else {
+            reject(new Error(`Remote merge failed with exit code ${code}: ${stderr}`));
+          }
+        });
+
+        stream.on('error', reject);
+      });
+    });
   }
 }
 ```
@@ -163,31 +214,68 @@ export const PARALLEL_TRANSFER = {
 **优势**:
 - 大文件传输速度提升 3-5 倍
 - 充分利用带宽和多核 CPU
+- **远程直接合并**：避免下载-合并-上传的低效循环
+- **智能Fallback**：远程合并失败时自动切换到普通上传
 - 自动透明处理，无需用户干预
 - 支持进度实时聚合
+
+**关键优化 (v2.4.8)**:
+1. **修复 `sftp.unlink is not a function` 错误**
+   - 正确使用 `sftp.delete()` 方法删除远程文件
+   - 之前的错误导致任务在100%时失败并无限重试
+
+2. **远程直接合并策略**
+   - 优先使用SSH exec在远程执行 `cat` 命令合并chunks
+   - 避免下载180MB chunks → 本地合并 → 上传180MB文件的低效流程
+   - 节省约360MB的不必要传输（对于180MB文件）
+   - 合并时间从数分钟降至数秒
+
+3. **SSH Stream阻塞问题修复**
+   - 必须消费stdout和stderr数据，否则stream会永久阻塞
+   - 添加5分钟超时保护
+   - 添加详细的调试日志
+
+4. **合理的Fallback策略**
+   - 之前：远程merge失败 → 下载chunks → 本地merge → 上传完整文件（**多此一举**）
+   - 现在：远程merge失败 → 清理chunks → 使用普通fastPut上传完整文件（**高效**）
+   - 避免了3倍传输量的浪费
 
 **技术细节**:
 - 文件: `src/parallelChunkTransfer.ts`
 - 类: `ParallelChunkTransferManager`
 - 集成点: `src/sshConnectionManager.ts` 自动检测文件大小并使用并发传输
 - 测试: `src/parallelChunkTransfer.test.ts` (19 tests)
-- 临时目录: 下载时使用系统临时目录（`os.tmpdir()`），上传时使用远程临时目录
-- 文件合并: 使用 SSH exec 执行 `cat` 命令合并块
-- 清理策略: 传输完成后自动删除临时文件和目录
+- **Chunk存储**: 上传时使用远程 `/tmp` 目录，下载时使用本地 `os.tmpdir()`
+- **文件合并**: 
+  - 优先使用SSH exec执行 `cat` 命令在远程合并（几秒完成）
+  - Fallback使用普通fastPut上传完整文件
+  - **已移除**低效的下载-本地合并-上传策略
+- **清理策略**: 传输完成后自动删除临时chunk文件
 
 **性能指标**:
 - 100MB 文件: 从 ~60 秒降至 ~15-20 秒 (-67%)
 - 1GB 文件: 从 ~10 分钟降至 ~3 分钟 (-70%)
+- **远程合并**: 18个10MB chunks合并时间 < 5秒
+- **带宽节省**: 避免下载chunks，节省50%传输量
 - 使用连接池避免重复建立连接
 
 **实际执行流程**:
 1. 检测文件大小是否 ≥ 阈值（100MB）
-2. 将文件分成 N 个块（每块 10MB）
+2. 将文件分成 N 个chunks（每块 10MB）
 3. 使用连接池获取连接，最多 5 个并发
-4. 每个块独立上传到临时目录
-5. 所有块上传完成后，在远程服务器执行 `cat` 合并
-6. 删除临时目录和块文件
-7. 如果启用校验，验证最终文件完整性
+4. 每个chunk独立上传到远程 `/tmp` 目录
+5. 所有chunks上传完成后，执行远程合并：
+   - **方式A**（优先）：通过SSH exec执行 `cat part0 part1 ... > final && rm part*`
+   - **方式B**（Fallback）：清理chunks，使用普通fastPut上传完整文件
+6. 如果启用校验，验证最终文件完整性
+
+**已知问题和解决方案**:
+| 问题 | 原因 | 解决方案 | 版本 |
+|------|------|---------|------|
+| 100%卡住不完成 | `sftp.unlink()` 不存在 | 改用 `sftp.delete()` | v2.4.8 |
+| 远程merge永久阻塞 | 未消费stdout/stderr | 添加stream数据消费 | v2.4.8 |
+| Fallback效率低下 | 下载-合并-上传3倍传输 | 改为直接普通上传 | v2.4.8 |
+| 用户看不到最终上传进度 | 缺少进度回调 | 添加fastPut进度日志 | v2.4.8 |
 
 ---
 
@@ -1002,6 +1090,7 @@ await retryManager.executeWithRetry(
 
 ---
 
-**最后更新**: 2026-01-16 (14:30)
-**文档版本**: 1.1
+**最后更新**: 2026-01-17 (11:30)
+**当前版本**: v2.4.8
+**文档版本**: 1.2
 **维护人**: Development Team
