@@ -122,7 +122,12 @@ export class TransferQueueCommands {
     }
 
     this.queueService.removeTask(task.id);
-    vscode.window.showInformationMessage(`Removed: ${task.fileName}`);
+
+    // Only show message for active tasks
+    if (task.status === 'running' || task.status === 'pending' || task.status === 'paused') {
+      vscode.window.showInformationMessage(`Removed: ${task.fileName}`);
+    }
+
     logger.info(`Task removed: ${task.id}`);
   }
 
