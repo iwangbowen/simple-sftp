@@ -463,7 +463,11 @@ export class ParallelChunkTransferManager {
         fs.unlinkSync(localChunkPath);
         
         // Delete remote chunk from /tmp
-        await sftp.unlink(chunkPath);
+        try {
+          await sftp.delete(chunkPath);
+        } catch (cleanupError) {
+          logger.debug(`Failed to delete remote chunk ${chunkPath}: ${cleanupError}`);
+        }
         
         logger.info(`✓ Merged chunk ${i + 1}/${totalChunks}`);
       }
@@ -548,7 +552,7 @@ export class ParallelChunkTransferManager {
       for (let i = 0; i < totalChunks; i++) {
         const chunkPath = `/tmp/${fileName}.part${i}`;
         try {
-          await sftpClient.unlink(chunkPath);
+          await sftpClient.delete(chunkPath);
         } catch {
           // Ignore if chunk doesn't exist
         }

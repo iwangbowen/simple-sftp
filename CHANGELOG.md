@@ -1,5 +1,23 @@
 # Change Log
 
+## [2.4.8] - 2026-01-17
+
+### Fixed
+
+- **Critical Bug**: Fixed `sftp.unlink is not a function` error in parallel transfers
+  - Corrected method name from `sftp.unlink()` to `sftp.delete()` for removing remote chunk files
+  - This was causing transfers to fail at 100% and enter retry loop
+  - Affected both `sequentialMergeRemote` and `cleanupPartialChunks` methods
+  - Now properly cleans up temporary chunk files from remote `/tmp` directory
+
+### Technical Details
+
+- ssh2-sftp-client uses `delete()` method, not `unlink()`, for file deletion
+- Added error handling for chunk cleanup to prevent transfer failure
+- Ensures remote `/tmp` directory is cleaned after successful merge
+
+---
+
 ## [2.4.7] - 2026-01-17
 
 ### Fixed
