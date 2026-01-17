@@ -162,13 +162,8 @@ body {
 }
 
 /* Tree Item 结构 */
-.tree-item-indent {
-    width: 16px;
-    flex-shrink: 0;
-}
-
 .tree-item-icon {
-    margin-right: 6px;
+    margin-right: 8px;
     flex-shrink: 0;
 }
 
@@ -176,25 +171,36 @@ body {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 100px;
 }
 
-.tree-item-arrow {
-    width: 16px;
-    margin-right: 2px;
-    text-align: center;
+.tree-item-time {
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+    margin-left: 12px;
     flex-shrink: 0;
-    transition: transform 0.2s;
-}
-
-.tree-item-arrow.expanded {
-    transform: rotate(90deg);
+    min-width: 80px;
+    text-align: right;
 }
 
 .tree-item-size {
     color: var(--vscode-descriptionForeground);
-    font-size: 0.9em;
+    font-size: 11px;
     margin-left: 8px;
     flex-shrink: 0;
+    min-width: 60px;
+    text-align: right;
+}
+
+/* 返回上一级按钮 */
+.tree-item.back-item {
+    font-weight: 500;
+    color: var(--vscode-textLink-foreground);
+}
+
+.tree-item.back-item:hover {
+    background-color: var(--vscode-textLink-activeForeground);
+    opacity: 0.1;
 }
 
 /* 文件类型图标 */
