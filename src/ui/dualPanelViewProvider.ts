@@ -326,7 +326,19 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                 await this.loadLocalDirectory(parentPath);
                 this.updateStatus(`Created folder: ${name}`);
             } else if (panel === 'remote') {
-                vscode.window.showInformationMessage('Creating remote folders is not yet implemented');
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
+
+                const folderPath = path.posix.join(parentPath, name);
+                await SshConnectionManager.createRemoteFolder(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    folderPath
+                );
+                await this.loadRemoteDirectory(parentPath);
+                this.updateStatus(`Created folder: ${name}`);
             }
         } catch (error) {
             logger.error(`Create folder failed: ${error}`);
@@ -381,7 +393,19 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                 await this.loadLocalDirectory(parentPath);
                 this.updateStatus(`Renamed to: ${newName}`);
             } else if (panel === 'remote') {
-                vscode.window.showInformationMessage('Renaming remote files is not yet implemented');
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
+
+                await SshConnectionManager.renameRemoteFile(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    oldPath,
+                    newPath
+                );
+                await this.loadRemoteDirectory(parentPath);
+                this.updateStatus(`Renamed to: ${newName}`);
             }
         } catch (error) {
             logger.error(`Rename failed: ${error}`);

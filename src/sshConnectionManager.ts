@@ -710,7 +710,7 @@ export class SshConnectionManager {
           await this.deleteRemoteDirectory(sftp, remotePath);
         } else {
           // Delete single file
-          await sftp.unlink(remotePath);
+          await sftp.delete(remotePath);
           logger.info(`Deleted remote file: ${remotePath}`);
         }
       } catch (error: any) {
@@ -730,7 +730,7 @@ export class SshConnectionManager {
 
     // Delete all files first
     for (const file of files) {
-      await sftp.unlink(file);
+      await sftp.delete(file);
     }
 
     // Get all directories

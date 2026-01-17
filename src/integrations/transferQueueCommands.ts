@@ -406,41 +406,32 @@ export class TransferQueueCommands {
       const fs = require('node:fs');
       const content = fs.readFileSync(templatePath, 'utf8');
 
-      if (!content) {
+      if (!content || content.trim().length === 0) {
         throw new Error('Template file is empty');
       }
 
       return content;
     } catch (error) {
       logger.error(`Failed to load HTML template: ${error}`);
-      // Return a fallback HTML
-      return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Task Details</title>
-        </head>
-        <body>
-          <h1>Task Details</h1>
-          <p>Error loading template: ${error}</p>
-        </body>
-        </html>
-      `;
+      // Return a complete fallback HTML that doesn't use replaceAll
+      return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Task Details</title>
+  <style>
+    body { font-family: var(--vscode-font-family); padding: 20px; }
+    .error { color: var(--vscode-errorForeground); }
+  </style>
+</head>
+<body>
+  <h1>Task Details</h1>
+  <p class="error">Error loading template file.</p>
+  <p>Error: ${String(error)}</p>
+  <p>Please check if the template file exists at: resources/webview/task-details.html</p>
+</body>
+</html>`;
     }
-  }
-
-  /**
-   * Remove conditional block from HTML template
-   */
-  private removeConditionalBlock(html: string, startTag: string, endTag: string): string {
-    const startIndex = html.indexOf(startTag);
-    if (startIndex === -1) {return html;}
-
-    const endIndex = html.indexOf(endTag, startIndex);
-    if (endIndex === -1) {return html;}
-
-    return html.substring(0, startIndex) + html.substring(endIndex + endTag.length);
   }
 
   /**
