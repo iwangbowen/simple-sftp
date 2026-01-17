@@ -1,5 +1,50 @@
 # Change Log
 
+## [2.9.0] - 2026-01-17
+
+### Added - File Attributes and Symbolic Links Preservation
+
+- **Automatic Attribute Preservation**
+  - File permissions preserved during upload/download operations
+  - Modification timestamps maintained across transfers
+  - Symbolic links properly detected and handled
+  - Works with both standard and parallel chunk transfer methods
+
+- **Configuration Options**
+  - `simpleSftp.transfer.preservePermissions`: Enable/disable permission preservation (default: true)
+  - `simpleSftp.transfer.preserveTimestamps`: Enable/disable timestamp preservation (default: true)
+  - `simpleSftp.transfer.followSymlinks`: Follow symbolic links or preserve them (default: false)
+
+- **Intelligent Processing**
+  - Attribute preservation runs after checksum verification for data integrity
+  - Best-effort approach: failures logged as warnings, don't fail transfers
+  - Automatic detection of symbolic links on both local and remote systems
+  - Permission mode conversion between local (decimal) and SFTP (octal) formats
+
+### Technical Details
+
+- Added `AttributePreservingTransfer` class with static utility methods
+- `uploadWithAttributes()`: Preserves permissions and timestamps after upload
+- `downloadWithAttributes()`: Applies original attributes after download
+- `isSymbolicLink()` / `isRemoteSymbolicLink()`: Detect symbolic links
+- Integration points: sshConnectionManager.ts upload/download methods (lines 184, 252, 501, 570)
+- Test coverage: 13 comprehensive unit tests added
+
+### Implementation Notes
+
+- Attribute preservation is optional and fully configurable
+- Compatible with existing transfer queue and parallel chunk transfer features
+- No breaking changes - all 445 existing tests pass
+- Graceful degradation: attribute preservation failures don't interrupt file transfers
+
+### Documentation
+
+- Updated `SFTP_OPTIMIZATION_ROADMAP.md` with feature #7 implementation
+- Moved from "待实现优化方案" to "已实现功能"
+- Documented configuration options, usage patterns, and technical details
+
+---
+
 ## [2.8.0] - 2026-01-16
 
 ### Added - Priority Queue System

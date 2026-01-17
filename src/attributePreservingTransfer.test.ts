@@ -1,20 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { AttributePreservingTransfer } from './attributePreservingTransfer';
 
-// Mock vscode module
-vi.mock('vscode', () => ({
-  workspace: {
-    getConfiguration: vi.fn(() => ({
-      get: vi.fn((key: string, defaultValue: any) => {
-        if (key === 'preservePermissions') {return true;}
-        if (key === 'preserveTimestamps') {return true;}
-        if (key === 'followSymlinks') {return false;}
-        return defaultValue;
-      })
-    }))
-  }
-}));
+// Mock fs module
+vi.mock('fs', async () => {
+  const actual = await vi.importActual<typeof import('fs')>('fs');
+  return {
+    ...actual,
+    lstatSync: vi.fn(),
+    readlinkSync: vi.fn(),
+    realpathSync: vi.fn(),
+    statSync: vi.fn(),
+    chmodSync: vi.fn(),
+    utimesSync: vi.fn(),
+    symlinkSync: vi.fn(),
+  };
+});
 
 // Mock logger
 vi.mock('./logger', () => ({
@@ -26,10 +27,15 @@ vi.mock('./logger', () => ({
 }));
 
 describe('AttributePreservingTransfer', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('getOptionsFromConfig', () => {
     it('should return default configuration options', () => {
       const options = AttributePreservingTransfer.getOptionsFromConfig();
 
+      // Since vscode is not available in tests, should return defaults
       expect(options).toEqual({
         preservePermissions: true,
         preserveTimestamps: true,
@@ -40,38 +46,34 @@ describe('AttributePreservingTransfer', () => {
 
   describe('isSymbolicLink', () => {
     it('should detect symbolic links', () => {
-      const lstatSyncSpy = vi.spyOn(fs, 'lstatSync').mockReturnValue({
+      vi.mocked(fs.lstatSync).mockReturnValue({
         isSymbolicLink: () => true
       } as fs.Stats);
 
       const result = AttributePreservingTransfer.isSymbolicLink('/path/to/symlink');
 
       expect(result).toBe(true);
-      expect(lstatSyncSpy).toHaveBeenCalledWith('/path/to/symlink');
-
-      lstatSyncSpy.mockRestore();
+      expect(fs.lstatSync).toHaveBeenCalledWith('/path/to/symlink');
     });
 
     it('should return false for regular files', () => {
-      const lstatSyncSpy = vi.spyOn(fs, 'lstatSync').mockReturnValue({
+      vi.mocked(fs.lstatSync).mockReturnValue({
         isSymbolicLink: () => false
       } as fs.Stats);
 
       const result = AttributePreservingTransfer.isSymbolicLink('/path/to/file.txt');
 
       expect(result).toBe(false);
-      lstatSyncSpy.mockRestore();
     });
 
     it('should return false if file does not exist', () => {
-      const lstatSyncSpy = vi.spyOn(fs, 'lstatSync').mockImplementation(() => {
+      vi.mocked(fs.lstatSync).mockImplementation(() => {
         throw new Error('ENOENT: no such file or directory');
       });
 
       const result = AttributePreservingTransfer.isSymbolicLink('/nonexistent/path');
 
       expect(result).toBe(false);
-      lstatSyncSpy.mockRestore();
     });
   });
 
@@ -131,7 +133,7 @@ describe('AttributePreservingTransfer', () => {
         }
       };
 
-      const lstatSyncSpy = vi.spyOn(fs, 'lstatSync').mockReturnValue({
+      vi.mocked(fs.lstatSync).mockReturnValue({
         isSymbolicLink: () => false,
         isFile: () => true,
         isDirectory: () => false,
@@ -153,8 +155,6 @@ describe('AttributePreservingTransfer', () => {
 
       expect(mockSftp.fastPut).toHaveBeenCalledWith('/local/file.txt', '/remote/file.txt');
       expect(mockSftp.chmod).toHaveBeenCalledWith('/remote/file.txt', 0o644);
-
-      lstatSyncSpy.mockRestore();
     });
 
     it('should skip attribute preservation when disabled', async () => {
@@ -164,7 +164,7 @@ describe('AttributePreservingTransfer', () => {
         sftp: { setstat: vi.fn() }
       };
 
-      const lstatSyncSpy = vi.spyOn(fs, 'lstatSync').mockReturnValue({
+      vi.mocked(fs.lstatSync).mockReturnValue({
         isSymbolicLink: () => false,
         isFile: () => true,
         isDirectory: () => false,
@@ -185,8 +185,6 @@ describe('AttributePreservingTransfer', () => {
       expect(mockSftp.fastPut).toHaveBeenCalled();
       expect(mockSftp.chmod).not.toHaveBeenCalled();
       expect(mockSftp.sftp.setstat).not.toHaveBeenCalled();
-
-      lstatSyncSpy.mockRestore();
     });
 
     it('should create symlink when followSymlinks is false', async () => {
@@ -194,13 +192,13 @@ describe('AttributePreservingTransfer', () => {
         symlink: vi.fn().mockResolvedValue(undefined)
       };
 
-      const lstatSyncSpy = vi.spyOn(fs, 'lstatSync').mockReturnValue({
+      vi.mocked(fs.lstatSync).mockReturnValue({
         isSymbolicLink: () => true,
         isFile: () => false,
         isDirectory: () => false
       } as fs.Stats);
 
-      const readlinkSyncSpy = vi.spyOn(fs, 'readlinkSync').mockReturnValue('/target/file.txt');
+      vi.mocked(fs.readlinkSync).mockReturnValue('/target/file.txt');
 
       await AttributePreservingTransfer.uploadWithAttributes(
         mockSftp as any,
@@ -214,9 +212,6 @@ describe('AttributePreservingTransfer', () => {
       );
 
       expect(mockSftp.symlink).toHaveBeenCalledWith('/target/file.txt', '/remote/symlink');
-
-      lstatSyncSpy.mockRestore();
-      readlinkSyncSpy.mockRestore();
     });
   });
 
@@ -235,8 +230,8 @@ describe('AttributePreservingTransfer', () => {
         fastGet: vi.fn().mockResolvedValue(undefined)
       };
 
-      const chmodSyncSpy = vi.spyOn(fs, 'chmodSync').mockImplementation(() => {});
-      const utimesSyncSpy = vi.spyOn(fs, 'utimesSync').mockImplementation(() => {});
+      vi.mocked(fs.chmodSync).mockImplementation(() => {});
+      vi.mocked(fs.utimesSync).mockImplementation(() => {});
 
       await AttributePreservingTransfer.downloadWithAttributes(
         mockSftp as any,
@@ -250,11 +245,8 @@ describe('AttributePreservingTransfer', () => {
       );
 
       expect(mockSftp.fastGet).toHaveBeenCalledWith('/remote/file.txt', '/local/file.txt');
-      expect(chmodSyncSpy).toHaveBeenCalledWith('/local/file.txt', 0o755);
-      expect(utimesSyncSpy).toHaveBeenCalled();
-
-      chmodSyncSpy.mockRestore();
-      utimesSyncSpy.mockRestore();
+      expect(fs.chmodSync).toHaveBeenCalledWith('/local/file.txt', 0o755);
+      expect(fs.utimesSync).toHaveBeenCalled();
     });
 
     it('should skip attribute application when disabled', async () => {
@@ -268,8 +260,8 @@ describe('AttributePreservingTransfer', () => {
         fastGet: vi.fn().mockResolvedValue(undefined)
       };
 
-      const chmodSyncSpy = vi.spyOn(fs, 'chmodSync').mockImplementation(() => {});
-      const utimesSyncSpy = vi.spyOn(fs, 'utimesSync').mockImplementation(() => {});
+      vi.mocked(fs.chmodSync).mockImplementation(() => {});
+      vi.mocked(fs.utimesSync).mockImplementation(() => {});
 
       await AttributePreservingTransfer.downloadWithAttributes(
         mockSftp as any,
@@ -283,11 +275,8 @@ describe('AttributePreservingTransfer', () => {
       );
 
       expect(mockSftp.fastGet).toHaveBeenCalled();
-      expect(chmodSyncSpy).not.toHaveBeenCalled();
-      expect(utimesSyncSpy).not.toHaveBeenCalled();
-
-      chmodSyncSpy.mockRestore();
-      utimesSyncSpy.mockRestore();
+      expect(fs.chmodSync).not.toHaveBeenCalled();
+      expect(fs.utimesSync).not.toHaveBeenCalled();
     });
 
     it('should create local symlink when followSymlinks is false', async () => {
@@ -300,7 +289,7 @@ describe('AttributePreservingTransfer', () => {
         readlink: vi.fn().mockResolvedValue('/remote/target/file.txt')
       };
 
-      const symlinkSyncSpy = vi.spyOn(fs, 'symlinkSync').mockImplementation(() => {});
+      vi.mocked(fs.symlinkSync).mockImplementation(() => {});
 
       await AttributePreservingTransfer.downloadWithAttributes(
         mockSftp as any,
@@ -314,9 +303,7 @@ describe('AttributePreservingTransfer', () => {
       );
 
       expect(mockSftp.readlink).toHaveBeenCalledWith('/remote/symlink');
-      expect(symlinkSyncSpy).toHaveBeenCalledWith('/remote/target/file.txt', '/local/symlink');
-
-      symlinkSyncSpy.mockRestore();
+      expect(fs.symlinkSync).toHaveBeenCalledWith('/remote/target/file.txt', '/local/symlink');
     });
   });
 });

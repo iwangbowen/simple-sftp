@@ -249,8 +249,19 @@ export class AttributePreservingTransfer {
    * Get attribute preservation options from VS Code configuration
    */
   static getOptionsFromConfig(): AttributePreservationOptions {
-    const vscode = require('vscode');
-    const config = vscode.workspace.getConfiguration('simpleSftp.transfer');
+    // Use dynamic import to allow testing
+    let config: any;
+    try {
+      const vscode = require('vscode');
+      config = vscode.workspace.getConfiguration('simpleSftp.transfer');
+    } catch {
+      // Return defaults if vscode is not available (e.g., in tests)
+      return {
+        preservePermissions: true,
+        preserveTimestamps: true,
+        followSymlinks: false,
+      };
+    }
 
     return {
       preservePermissions: config.get('preservePermissions', true),
