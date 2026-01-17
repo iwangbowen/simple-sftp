@@ -176,7 +176,7 @@
         "command": "simpleSftp.browseFiles",
         "title": "Browse Files",
         "category": "Simple SFTP",
-        "icon": "$(folder-opened)"
+        "icon": "$(list-selection)"
       },
       {
         "command": "simpleSftp.downloadToLocal",
@@ -391,7 +391,7 @@
         "command": "simpleSftp.openDualPanelBrowser",
         "title": "Open Dual Panel File Browser",
         "category": "Simple SFTP",
-        "icon": "$(files)"
+        "icon": "$(folder-opened)"
       },
       {
         "command": "simpleSftp.dualPanel.upload",
@@ -725,12 +725,12 @@
         {
           "command": "simpleSftp.browseFiles",
           "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "inline@1"
+          "group": "inline@2"
         },
         {
           "command": "simpleSftp.openDualPanelBrowser",
           "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "inline@2"
+          "group": "inline@1"
         },
         {
           "command": "simpleSftp.editHost",

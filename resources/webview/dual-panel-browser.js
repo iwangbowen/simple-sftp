@@ -282,15 +282,86 @@
 
         const ext = node.name.split('.').pop()?.toLowerCase();
         const iconMap = {
+            // JavaScript/TypeScript
             'js': 'codicon-symbol-namespace',
+            'jsx': 'codicon-symbol-namespace',
             'ts': 'codicon-symbol-interface',
+            'tsx': 'codicon-symbol-interface',
+            'mjs': 'codicon-symbol-namespace',
+            'cjs': 'codicon-symbol-namespace',
+
+            // Data formats
             'json': 'codicon-json',
+            'xml': 'codicon-code',
+            'yaml': 'codicon-symbol-key',
+            'yml': 'codicon-symbol-key',
+            'toml': 'codicon-symbol-key',
+            'ini': 'codicon-symbol-key',
+            'csv': 'codicon-graph',
+
+            // Markup/Documentation
             'md': 'codicon-markdown',
+            'markdown': 'codicon-markdown',
             'html': 'codicon-code',
+            'htm': 'codicon-code',
+            'txt': 'codicon-file-text',
+            'pdf': 'codicon-file-pdf',
+
+            // Styling
             'css': 'codicon-symbol-color',
+            'scss': 'codicon-symbol-color',
+            'sass': 'codicon-symbol-color',
+            'less': 'codicon-symbol-color',
+
+            // Programming languages
             'py': 'codicon-snake',
             'java': 'codicon-symbol-class',
-            'xml': 'codicon-code',
+            'c': 'codicon-symbol-method',
+            'cpp': 'codicon-symbol-method',
+            'h': 'codicon-symbol-method',
+            'hpp': 'codicon-symbol-method',
+            'cs': 'codicon-symbol-class',
+            'go': 'codicon-symbol-namespace',
+            'rs': 'codicon-symbol-struct',
+            'php': 'codicon-symbol-misc',
+            'rb': 'codicon-ruby',
+            'swift': 'codicon-symbol-class',
+            'kt': 'codicon-symbol-class',
+            'scala': 'codicon-symbol-class',
+
+            // Shell/Scripts
+            'sh': 'codicon-terminal',
+            'bash': 'codicon-terminal',
+            'zsh': 'codicon-terminal',
+            'ps1': 'codicon-terminal-powershell',
+            'bat': 'codicon-terminal-cmd',
+            'cmd': 'codicon-terminal-cmd',
+
+            // Images
+            'png': 'codicon-file-media',
+            'jpg': 'codicon-file-media',
+            'jpeg': 'codicon-file-media',
+            'gif': 'codicon-file-media',
+            'svg': 'codicon-file-media',
+            'ico': 'codicon-file-media',
+            'webp': 'codicon-file-media',
+
+            // Archives
+            'zip': 'codicon-file-zip',
+            'tar': 'codicon-file-zip',
+            'gz': 'codicon-file-zip',
+            'rar': 'codicon-file-zip',
+            '7z': 'codicon-file-zip',
+
+            // Others
+            'sql': 'codicon-database',
+            'db': 'codicon-database',
+            'sqlite': 'codicon-database',
+            'log': 'codicon-output',
+            'env': 'codicon-symbol-key',
+            'git': 'codicon-git-commit',
+            'gitignore': 'codicon-symbol-event',
+            'dockerfile': 'codicon-vm',
         };
 
         return iconMap[ext || ''] || 'codicon-file';
