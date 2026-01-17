@@ -727,26 +727,51 @@ export class SshConnectionManager {
     remotePath: string
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
-      // Check if path exists and is directory
       try {
+        // Check if path exists
         const stats = await sftp.stat(remotePath);
+        logger.info(`Deleting remote path: ${remotePath}, type: ${stats.type}, mode: ${stats.mode}, isDirectory: ${stats.isDirectory}`);
 
-        // Check if it's a directory - ssh2-sftp-client stat returns an object with type property
-        const isDirectory = (stats.type === 'd');
+        // Check if it's a directory - handle different SFTP server responses
+        // Some servers return type='d', some use mode bits, some have isDirectory property
+        let isDirectory = false;
+
+        if (stats.type === 'd') {
+          isDirectory = true;
+        } else if (stats.isDirectory !== undefined) {
+          isDirectory = typeof stats.isDirectory === 'function' ? stats.isDirectory() : stats.isDirectory;
+        } else if (stats.mode !== undefined) {
+          // Use mode bits: directories have S_IFDIR bit set (octal 040000)
+          isDirectory = (stats.mode & 0o040000) !== 0;
+        }
+
+        logger.info(`Determined isDirectory: ${isDirectory} for ${remotePath}`);
 
         if (isDirectory) {
           // Delete directory recursively
+          logger.info(`Path is directory, using recursive delete: ${remotePath}`);
           await this.deleteRemoteDirectory(sftp, remotePath);
         } else {
           // Delete single file
+          logger.info(`Path is file, using delete: ${remotePath}`);
           await sftp.delete(remotePath);
           logger.info(`Deleted remote file: ${remotePath}`);
         }
       } catch (error: any) {
-        // If file doesn't exist, that's ok
-        if (error.code !== 2) { // ENOENT
-          throw error;
+        logger.error(`Error in deleteRemoteFile for ${remotePath}:`, error);
+
+        // Check if file doesn't exist (different SFTP servers may use different error codes/messages)
+        const errorMessage = String(error.message || error);
+        if (errorMessage.includes('No such file') ||
+            errorMessage.includes('ENOENT') ||
+            error.code === 2 ||
+            error.code === 'ENOENT') {
+          logger.warn(`File/directory does not exist: ${remotePath}, treating as success`);
+          return; // File doesn't exist, that's ok
         }
+
+        // Re-throw other errors with more context
+        throw new Error(`Failed to delete ${remotePath}: ${errorMessage}`);
       }
     });
   }
@@ -776,7 +801,7 @@ export class SshConnectionManager {
       // Get all directories
       const dirs: string[] = [];
       logger.debug(`Reading directory structure: ${remotePath}`);
-      const items = await sftp.readdir(remotePath);
+      const items = await sftp.list(remotePath);  // Use list() not readdir()
       logger.debug(`Found ${items.length} items in ${remotePath}`);
 
       for (const item of items) {
