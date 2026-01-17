@@ -53,6 +53,10 @@ class TransferHistoryTreeItem extends vscode.TreeItem {
     const task = this.task;
     const parts: string[] = [];
 
+    // Add upload/download indicator
+    const arrow = task.type === 'upload' ? '↑' : '↓';
+    parts.push(arrow);
+
     parts.push(formatBytes(task.fileSize));
 
     if (task.completedAt) {

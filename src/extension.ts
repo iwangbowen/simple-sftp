@@ -207,8 +207,20 @@ export async function activate(context: vscode.ExtensionContext) {
   const statusBarThrottleMs = 1000; // Throttle to 1 second for subsequent updates
   let lastUpdateTime = 0;
 
+  // Check if status bar should be hidden
+  const shouldHideStatusBar = (): boolean => {
+    const config = vscode.workspace.getConfiguration('simpleSftp.ui');
+    return config.get('hideStatusBar', false);
+  };
+
   // Update status bar with queue info
   const updateStatusBar = () => {
+    // If user configured to hide status bar, don't show it
+    if (shouldHideStatusBar()) {
+      transferStatusBar.hide();
+      return;
+    }
+
     const now = Date.now();
     const elapsed = now - lastUpdateTime;
 
@@ -235,6 +247,12 @@ export async function activate(context: vscode.ExtensionContext) {
   };
 
   const doUpdateStatusBar = () => {
+    // Double check if status bar should be hidden
+    if (shouldHideStatusBar()) {
+      transferStatusBar.hide();
+      return;
+    }
+
     const runningTasks = transferQueueService.getRunningTasks();
     const pendingTasks = transferQueueService.getPendingTasks();
 

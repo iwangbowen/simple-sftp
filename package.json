@@ -867,6 +867,11 @@
           "default": 10485760,
           "minimum": 0,
           "description": "Minimum file size (in bytes) for checksum verification. Default: 10MB. Set to 0 to verify all files."
+        },
+        "simpleSftp.ui.hideStatusBar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Hide the transfer status bar in the bottom status bar. Default: false (show status bar)"
         }
       }
     }
