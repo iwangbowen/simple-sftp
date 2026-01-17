@@ -1619,15 +1619,53 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     // If the remote path is a file, use its parent directory
     const remoteDir = isDirectory ? remotePath : path.dirname(remotePath);
 
-    // Open file/folder picker
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
-    const uris = await vscode.window.showOpenDialog({
-      canSelectFiles: true,
-      canSelectFolders: true,
-      canSelectMany: true,
-      openLabel: 'Select Files or Folders to Upload',
-      defaultUri: workspaceFolder
-    });
+    // On Windows/Linux, we need to ask user to select file type first
+    let uris: vscode.Uri[] | undefined;
+    const isMacOS = process.platform === 'darwin';
+
+    if (isMacOS) {
+      // macOS supports mixed selection
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+      uris = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: true,
+        canSelectMany: true,
+        openLabel: 'Upload',
+        defaultUri: workspaceFolder
+      });
+    } else {
+      // Windows/Linux: Ask user first
+      const choice = await vscode.window.showQuickPick(
+        [
+          { label: '$(file) Select Files', value: 'files' },
+          { label: '$(folder) Select Folders', value: 'folders' },
+          { label: '$(files) Select Both', value: 'both' }
+        ],
+        {
+          placeHolder: 'What do you want to upload?'
+        }
+      );
+
+      if (!choice) {
+        return;
+      }
+
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+
+      if (choice.value === 'both') {
+        // Allow both, but user may need to select multiple times
+        const message = 'Note: You may need to select files and folders separately due to system limitations.';
+        vscode.window.showInformationMessage(message);
+      }
+
+      uris = await vscode.window.showOpenDialog({
+        canSelectFiles: choice.value === 'files' || choice.value === 'both',
+        canSelectFolders: choice.value === 'folders' || choice.value === 'both',
+        canSelectMany: true,
+        openLabel: 'Upload',
+        defaultUri: workspaceFolder
+      });
+    }
 
     if (!uris || uris.length === 0) {
       return;
@@ -1927,15 +1965,53 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
    * Handle upload files/folders to remote host
    */
   private async handleUploadToHost(config: HostConfig, authConfig: HostAuthConfig): Promise<void> {
-    // Open file/folder picker
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
-    const uris = await vscode.window.showOpenDialog({
-      canSelectFiles: true,
-      canSelectFolders: true,
-      canSelectMany: true,
-      openLabel: 'Select Files or Folders to Upload',
-      defaultUri: workspaceFolder
-    });
+    // On Windows/Linux, we need to ask user to select file type first
+    let uris: vscode.Uri[] | undefined;
+    const isMacOS = process.platform === 'darwin';
+
+    if (isMacOS) {
+      // macOS supports mixed selection
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+      uris = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: true,
+        canSelectMany: true,
+        openLabel: 'Upload',
+        defaultUri: workspaceFolder
+      });
+    } else {
+      // Windows/Linux: Ask user first
+      const choice = await vscode.window.showQuickPick(
+        [
+          { label: '$(file) Select Files', value: 'files' },
+          { label: '$(folder) Select Folders', value: 'folders' },
+          { label: '$(files) Select Both', value: 'both' }
+        ],
+        {
+          placeHolder: 'What do you want to upload?'
+        }
+      );
+
+      if (!choice) {
+        return;
+      }
+
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+
+      if (choice.value === 'both') {
+        // Allow both, but user may need to select multiple times
+        const message = 'Note: You may need to select files and folders separately due to system limitations.';
+        vscode.window.showInformationMessage(message);
+      }
+
+      uris = await vscode.window.showOpenDialog({
+        canSelectFiles: choice.value === 'files' || choice.value === 'both',
+        canSelectFolders: choice.value === 'folders' || choice.value === 'both',
+        canSelectMany: true,
+        openLabel: 'Upload',
+        defaultUri: workspaceFolder
+      });
+    }
 
     if (!uris || uris.length === 0) {
       return;
