@@ -314,56 +314,79 @@ body {
 .host-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0;
 }
 
 .host-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background-color: var(--vscode-list-hoverBackground);
-    border: 1px solid var(--vscode-panel-border);
-    border-radius: 4px;
+    gap: 8px;
+    padding: 4px 8px;
+    min-height: 22px;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color 0.1s;
 }
 
 .host-item:hover {
-    background-color: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
-    border-color: var(--vscode-focusBorder);
+    background-color: var(--vscode-list-hoverBackground);
+    color: inherit;
+    border: none;
 }
 
 .host-icon {
-    font-size: 20px;
+    font-size: 16px;
     color: var(--vscode-icon-foreground);
+    flex-shrink: 0;
 }
 
 .host-star {
-    font-size: 20px;
+    font-size: 16px;
     color: var(--vscode-list-warningForeground);
+    flex-shrink: 0;
 }
 
 .host-info {
     flex: 1;
+    min-width: 0;
 }
 
 .host-name {
-    font-weight: 500;
-    margin-bottom: 4px;
+    font-weight: normal;
+    font-size: 13px;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .host-group {
-    margin-left: 8px;
+    margin-left: 6px;
     font-size: 11px;
     color: var(--vscode-descriptionForeground);
     font-weight: normal;
 }
 
 .host-details {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--vscode-descriptionForeground);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.host-item .codicon-chevron-right {
+    font-size: 14px;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.host-item:hover .codicon-chevron-right {
+    opacity: 1;
 }
 
 .empty-message {
