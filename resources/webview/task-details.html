@@ -120,101 +120,76 @@
       border: 1px solid var(--vscode-panel-border);
     }
 
-    /* ASCII-Style Progress Bar */
+    /* Progress Bar - Full Width CSS Version */
     .progress-container {
       width: 100%;
       margin: 20px 0;
-      font-family: var(--vscode-editor-font-family), monospace;
     }
 
     .progress-ascii {
       background-color: var(--vscode-editor-background);
       border: 1px solid var(--vscode-panel-border);
-      padding: 12px 16px;
+      padding: 16px;
       border-radius: 4px;
-      font-size: 13px;
-      line-height: 1.6;
-      color: var(--vscode-foreground);
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    .progress-bar-line {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 14px;
-      margin-bottom: 8px;
-      font-family: monospace;
-      letter-spacing: 0;
+    .progress-bar-wrapper {
+      width: 100%;
+      height: 20px;
+      background-color: var(--vscode-input-background);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 12px;
     }
 
-    .progress-bar-chars {
-      flex: 1;
-      white-space: pre;
-    }
-
-    .progress-bar-percentage {
-      margin-left: 8px;
-      color: var(--vscode-foreground);
-      font-weight: bold;
-      white-space: nowrap;
-    }
-
-    .progress-bar-fill {
-      color: var(--vscode-progressBar-background);
-    }
-
-    .progress-bar-empty {
-      color: var(--vscode-descriptionForeground);
-      opacity: 0.3;
+    .progress-bar-fill-visual {
+      height: 100%;
+      background-color: var(--vscode-progressBar-background);
+      transition: width 0.3s ease;
+      border-radius: 1px;
     }
 
     .progress-stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--vscode-panel-border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
       font-size: 12px;
     }
 
     .progress-stat-item {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
     }
 
     .progress-stat-label {
       color: var(--vscode-descriptionForeground);
       font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
 
     .progress-stat-value {
       color: var(--vscode-foreground);
-      font-weight: 500;
-      font-size: 13px;
+      font-weight: 600;
+      font-size: 12px;
     }
 
     /* Responsive layout */
     @media (max-width: 600px) {
       .progress-stats {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
       }
 
       .info-grid {
         grid-template-columns: 120px 1fr;
-      }
-
-      .progress-bar-line {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .progress-bar-percentage {
-        margin-left: 0;
-        margin-top: 4px;
       }
     }
   </style>
@@ -257,30 +232,29 @@
   <div class="section">
     <div class="section-title">Transfer Progress</div>
 
-    <!-- ASCII Progress Bar -->
+    <!-- CSS Progress Bar -->
     <div class="progress-container">
       <div class="progress-ascii">
-        <div class="progress-bar-line">
-          <span class="progress-bar-chars"><span id="progressBarFill" class="progress-bar-fill"></span><span id="progressBarEmpty" class="progress-bar-empty"></span></span>
-          <span class="progress-bar-percentage" id="progressPercentage">{{PROGRESS}}%</span>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-fill-visual" id="progressBarFill" style="width: {{PROGRESS}}%"></div>
         </div>
 
         <div class="progress-stats">
           <div class="progress-stat-item">
-            <span class="progress-stat-label">Transferred</span>
+            <span class="progress-stat-label">进度:</span>
+            <span class="progress-stat-value" id="progressPercentage">{{PROGRESS}}%</span>
+          </div>
+          <div class="progress-stat-item">
+            <span class="progress-stat-label">已传输:</span>
             <span class="progress-stat-value" id="transferredText">{{TRANSFERRED}} / {{FILE_SIZE}}</span>
           </div>
-          <div class="progress-stat-item" id="elapsedContainer">
-            <span class="progress-stat-label">Elapsed Time</span>
-            <span class="progress-stat-value" id="elapsedTime">0s</span>
-          </div>
           <div class="progress-stat-item" id="speedContainer" style="display: {{SPEED_DISPLAY}};">
-            <span class="progress-stat-label">Speed</span>
+            <span class="progress-stat-label">速度:</span>
             <span class="progress-stat-value" id="speedText">{{CURRENT_SPEED}}</span>
           </div>
-          <div class="progress-stat-item" id="estimateContainer" style="display: {{SPEED_DISPLAY}};">
-            <span class="progress-stat-label">Estimated Time</span>
-            <span class="progress-stat-value" id="estimatedTime">{{#HAS_ESTIMATE}}{{ESTIMATED_TIME}}{{/HAS_ESTIMATE}}{{^HAS_ESTIMATE}}Calculating...{{/HAS_ESTIMATE}}</span>
+          <div class="progress-stat-item" id="elapsedContainer">
+            <span class="progress-stat-label">已用时间:</span>
+            <span class="progress-stat-value" id="elapsedTime">0s</span>
           </div>
         </div>
       </div>
@@ -372,48 +346,14 @@
         return hours + 'h ' + (minutes % 60) + 'm';
       }
 
-      // Generate ASCII progress bar (full width)
-      function generateProgressBar(percentage) {
-        const totalChars = 60; // Wider for full-width display
-        const filledChars = Math.round((percentage / 100) * totalChars);
-        const emptyChars = totalChars - filledChars;
-
-        const filled = '█'.repeat(filledChars);
-        const empty = '░'.repeat(emptyChars);
-
-        return { filled, empty };
-      }
-
-      // Initialize progress bar on load
-      function initProgressBar() {
-        const progressPercentage = document.getElementById('progressPercentage');
-        if (progressPercentage) {
-          const percentageText = progressPercentage.textContent || '0%';
-          const percentage = Number.parseFloat(percentageText.replace('%', '')) || 0;
-          const { filled, empty } = generateProgressBar(percentage);
-
-          const progressBarFill = document.getElementById('progressBarFill');
-          const progressBarEmpty = document.getElementById('progressBarEmpty');
-
-          if (progressBarFill) progressBarFill.textContent = filled;
-          if (progressBarEmpty) progressBarEmpty.textContent = empty;
-        }
-      }
-
       // Update UI with new task data
       function updateUI(taskData) {
-        // Update ASCII progress bar
+        // Update CSS progress bar
         const progressBarFill = document.getElementById('progressBarFill');
-        const progressBarEmpty = document.getElementById('progressBarEmpty');
         const progressPercentage = document.getElementById('progressPercentage');
 
-        const { filled, empty } = generateProgressBar(taskData.progress);
-
         if (progressBarFill) {
-          progressBarFill.textContent = filled;
-        }
-        if (progressBarEmpty) {
-          progressBarEmpty.textContent = empty;
+          progressBarFill.style.width = taskData.progress.toFixed(1) + '%';
         }
         if (progressPercentage) {
           progressPercentage.textContent = taskData.progress.toFixed(1) + '%';
@@ -438,25 +378,14 @@
 
         // Update speed
         const speedContainer = document.getElementById('speedContainer');
-        const estimateContainer = document.getElementById('estimateContainer');
         const speedText = document.getElementById('speedText');
         const formattedSpeed = formatSpeed(taskData.speed || 0);
 
         if (taskData.speed > 0 || taskData.status === 'running') {
           if (speedContainer) speedContainer.style.display = 'flex';
-          if (estimateContainer) estimateContainer.style.display = 'flex';
           if (speedText) speedText.textContent = formattedSpeed;
         } else {
           if (speedContainer) speedContainer.style.display = 'none';
-          if (estimateContainer) estimateContainer.style.display = 'none';
-        }
-
-        // Update estimated time
-        const estimatedTime = document.getElementById('estimatedTime');
-        if (estimatedTime && taskData.estimatedTime) {
-          estimatedTime.textContent = formatDuration(taskData.estimatedTime);
-        } else if (estimatedTime) {
-          estimatedTime.textContent = 'Calculating...';
         }
 
         // Update status if status badge exists
@@ -466,9 +395,6 @@
           badge.textContent = taskData.status.toUpperCase();
         });
       }
-
-      // Initialize on load
-      initProgressBar();
 
       // Listen for messages from extension
       window.addEventListener('message', event => {
