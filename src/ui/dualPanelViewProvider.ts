@@ -5,6 +5,7 @@ import { HostConfig } from '../types';
 import { SshConnectionManager } from '../sshConnectionManager';
 import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
+import { HostManager } from '../hostManager';
 import { logger } from '../logger';
 
 interface FileNode {
@@ -33,7 +34,8 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
     constructor(
         private readonly _extensionUri: vscode.Uri,
         private readonly transferQueueService: TransferQueueService,
-        private readonly authManager: AuthManager
+        private readonly authManager: AuthManager,
+        private readonly hostManager: HostManager
     ) {}
 
     /**
@@ -100,6 +102,18 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                 if (this._currentHost && this._localRootPath && this._remoteRootPath) {
                     await this.loadLocalDirectory(this._localRootPath);
                     await this.loadRemoteDirectory(this._remoteRootPath);
+                } else {
+                    // 显示主机选择界面
+                    await this.showHostSelection();
+                }
+                break;
+
+            case 'selectHost':
+                const hostId = message.hostId;
+                const hosts = await this.hostManager.getHosts();
+                const selectedHost = hosts.find(h => h.id === hostId);
+                if (selectedHost) {
+                    await this.openForHost(selectedHost);
                 }
                 break;
 
@@ -397,6 +411,128 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
 
     private shouldShowDotFiles(): boolean {
         return vscode.workspace.getConfiguration('simpleSftp').get('showDotFiles', true);
+    }
+
+    /**
+     * 显示主机选择界面
+     */
+    private async showHostSelection(): Promise<void> {
+        const hosts = await this.hostManager.getHosts();
+        this._view?.webview.postMessage({
+            command: 'showHostSelection',
+            hosts: hosts.map(h => ({
+                id: h.id,
+                name: h.name,
+                host: h.host,
+                username: h.username,
+                port: h.port,
+                group: h.group
+            }))
+        });
+    }
+
+    /**
+     * 公共方法供外部命令调用
+     */
+    /**
+     * 公共方法供外部命令调用
+     */
+    public async executeRefresh(args: any): Promise<void> {
+        const { panel } = args;
+        if (panel === 'local') {
+            const currentPath = this._localRootPath;
+            if (currentPath) {
+                await this.loadLocalDirectory(currentPath);
+                this.updateStatus('Local files refreshed');
+            }
+        } else if (panel === 'remote') {
+            const currentPath = this._remoteRootPath;
+            if (currentPath) {
+                await this.loadRemoteDirectory(currentPath);
+                this.updateStatus('Remote files refreshed');
+            }
+        }
+    }
+
+    public async executeRename(args: any): Promise<void> {
+        const { filePath, panel } = args;
+        const oldName = path.basename(filePath);
+        const newName = await vscode.window.showInputBox({
+            prompt: 'Enter new name',
+            value: oldName,
+            validateInput: (value) => {
+                if (!value) {
+                    return 'Name cannot be empty';
+                }
+                if (value.includes('/') || value.includes('\\')) {
+                    return 'Invalid characters in name';
+                }
+                return null;
+            }
+        });
+
+        if (!newName || newName === oldName) {
+            return;
+        }
+
+        await this.handleRename({ path: filePath, newName, panel });
+    }
+
+    public async executeDelete(args: any): Promise<void> {
+        const { filePath, isDirectory, panel } = args;
+        const confirmed = await vscode.window.showWarningMessage(
+            `Are you sure you want to delete "${path.basename(filePath)}"?`,
+            { modal: true },
+            'Delete'
+        );
+
+        if (confirmed === 'Delete') {
+            await this.handleDelete({ path: filePath, panel, isDir: isDirectory });
+        }
+    }
+
+    public async executeCreateFolder(args: any): Promise<void> {
+        const { panel } = args;
+        const parentPath = panel === 'local' ? this._localRootPath : this._remoteRootPath;
+
+        const folderName = await vscode.window.showInputBox({
+            prompt: 'Enter folder name',
+            validateInput: (value) => {
+                if (!value) {
+                    return 'Folder name cannot be empty';
+                }
+                if (value.includes('/') || value.includes('\\')) {
+                    return 'Invalid characters in folder name';
+                }
+                return null;
+            }
+        });
+
+        if (!folderName || !parentPath) {
+            return;
+        }
+
+        await this.handleCreateFolder({ parentPath, name: folderName, panel });
+    }
+
+    public async executeUpload(args: any): Promise<void> {
+        const { filePath } = args;
+        const remotePath = this._remoteRootPath;
+        if (!remotePath) {
+            vscode.window.showErrorMessage('No remote path selected');
+            return;
+        }
+        await this.handleUpload(filePath, remotePath);
+    }
+
+    public async executeDownload(args: any): Promise<void> {
+        const { filePath } = args;
+        const localPath = this._localRootPath;
+        if (!localPath) {
+            vscode.window.showErrorMessage('No local path selected');
+            return;
+        }
+        await this.handleDownload(filePath, localPath);
     }
 
     // ===== HTML Generation =====

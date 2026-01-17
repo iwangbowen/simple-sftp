@@ -299,6 +299,70 @@ body {
     pointer-events: none;
 }
 
+/* ===== Host Selection ===== */
+.host-selection-container {
+    padding: 24px;
+}
+
+.host-selection-container h3 {
+    margin: 0 0 16px 0;
+    color: var(--vscode-foreground);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.host-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.host-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background-color: var(--vscode-list-hoverBackground);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.host-item:hover {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+    border-color: var(--vscode-focusBorder);
+}
+
+.host-icon {
+    font-size: 20px;
+    color: var(--vscode-icon-foreground);
+}
+
+.host-info {
+    flex: 1;
+}
+
+.host-name {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.host-details {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.empty-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+
 /* ===== Drag and Drop 视觉反馈 ===== */
 .drag-source {
     opacity: 0.6;

@@ -90,7 +90,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const dualPanelProvider = new DualPanelViewProvider(
     context.extensionUri,
     transferQueueService,
-    authManager
+    authManager,
+    hostManager
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -193,23 +194,23 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
 
     // Dual Panel WebView context menu commands
-    vscode.commands.registerCommand('simpleSftp.dualPanel.upload', (args) => {
-      vscode.window.showInformationMessage(`Upload: ${JSON.stringify(args)}`);
+    vscode.commands.registerCommand('simpleSftp.dualPanel.upload', async (args) => {
+      await dualPanelProvider.executeUpload(args);
     }),
-    vscode.commands.registerCommand('simpleSftp.dualPanel.download', (args) => {
-      vscode.window.showInformationMessage(`Download: ${JSON.stringify(args)}`);
+    vscode.commands.registerCommand('simpleSftp.dualPanel.download', async (args) => {
+      await dualPanelProvider.executeDownload(args);
     }),
-    vscode.commands.registerCommand('simpleSftp.dualPanel.delete', (args) => {
-      vscode.window.showInformationMessage(`Delete: ${JSON.stringify(args)}`);
+    vscode.commands.registerCommand('simpleSftp.dualPanel.delete', async (args) => {
+      await dualPanelProvider.executeDelete(args);
     }),
-    vscode.commands.registerCommand('simpleSftp.dualPanel.rename', (args) => {
-      vscode.window.showInformationMessage(`Rename: ${JSON.stringify(args)}`);
+    vscode.commands.registerCommand('simpleSftp.dualPanel.rename', async (args) => {
+      await dualPanelProvider.executeRename(args);
     }),
-    vscode.commands.registerCommand('simpleSftp.dualPanel.createFolder', (args) => {
-      vscode.window.showInformationMessage(`Create Folder: ${JSON.stringify(args)}`);
+    vscode.commands.registerCommand('simpleSftp.dualPanel.createFolder', async (args) => {
+      await dualPanelProvider.executeCreateFolder(args);
     }),
-    vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', (args) => {
-      vscode.window.showInformationMessage(`Refresh: ${JSON.stringify(args)}`);
+    vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', async (args) => {
+      await dualPanelProvider.executeRefresh(args);
     })
   );
   logger.info('Transfer queue commands registered');

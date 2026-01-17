@@ -307,32 +307,20 @@
     }
 
     /**
-     * 格式化时间
+     * 格式化时间为ISO格式(不带时区)
      * @param {Date|string} time
      * @returns {string}
      */
     function formatTime(time) {
         const date = typeof time === 'string' ? new Date(time) : time;
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-
-        const minute = 60 * 1000;
-        const hour = 60 * minute;
-        const day = 24 * hour;
-
-        if (diff < minute) {
-            return '刚刚';
-        } else if (diff < hour) {
-            return Math.floor(diff / minute) + '分钟前';
-        } else if (diff < day) {
-            return Math.floor(diff / hour) + '小时前';
-        } else if (diff < 7 * day) {
-            return Math.floor(diff / day) + '天前';
-        } else {
-            const month = date.getMonth() + 1;
-            const dayOfMonth = date.getDate();
-            return `${month}月${dayOfMonth}日`;
-        }
+        // 格式: YYYY-MM-DD HH:mm:ss
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 
     // ===== 拖拽处理 =====
@@ -505,6 +493,10 @@
         const message = event.data;
 
         switch (message.command) {
+            case 'showHostSelection':
+                renderHostSelection(message.hosts);
+                break;
+
             case 'updateLocalTree':
                 currentLocalPath = message.data.path;
                 document.getElementById('local-path').textContent = message.data.path;
@@ -526,4 +518,47 @@
                 break;
         }
     });
+
+    /**
+     * 渲染主机选择界面
+     */
+    function renderHostSelection(hosts) {
+        const localTree = document.getElementById('local-tree');
+        const remoteTree = document.getElementById('remote-tree');
+
+        if (!localTree || !remoteTree) return;
+
+        // 隐藏文件树,显示主机选择
+        const selectionHTML = `
+            <div class="host-selection-container">
+                <h3>Select a Host to Browse Files</h3>
+                <div class="host-list">
+                    ${hosts.map(host => `
+                        <div class="host-item" data-host-id="${host.id}">
+                            <span class="codicon codicon-remote host-icon"></span>
+                            <div class="host-info">
+                                <div class="host-name">${host.name}</div>
+                                <div class="host-details">${host.username}@${host.host}:${host.port}</div>
+                            </div>
+                            <span class="codicon codicon-chevron-right"></span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        localTree.innerHTML = selectionHTML;
+        remoteTree.innerHTML = '<div class="empty-message">← Select a host to start browsing</div>';
+
+        // 添加点击事件
+        document.querySelectorAll('.host-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const hostId = item.dataset.hostId;
+                vscode.postMessage({
+                    command: 'selectHost',
+                    hostId: hostId
+                });
+            });
+        });
+    }
 })();
