@@ -774,48 +774,65 @@ private async processQueue(): Promise<void> {
 
 ---
 
-## 待实现优化方案
+## 已实现功能 (续)
 
-### 📝 7. 符号链接和文件属性保留
+### ✅ 7. 符号链接和文件属性保留 (Symbolic Links & File Attributes)
 
-**优先级**: 低 ⭐
-**预计版本**: v2.9.0
+**状态**: 已实现 (v2.9.0)
 
-**问题描述**:
-符号链接被当作普通文件处理，文件权限和修改时间丢失。
+**功能描述**:
+- 正确处理符号链接(symlink)的上传和下载
+- 保留文件权限(chmod)
+- 保留文件修改时间和访问时间(utime)
+- 可配置是否跟随符号链接或保留符号链接本身
 
-**优化方案**:
-正确处理符号链接，保留文件属性。
-
-**实现思路**:
+**实现方式**:
 ```typescript
-class AttributePreservingTransfer {
-  async uploadWithAttributes(localPath, remotePath) {
+// attributePreservingTransfer.ts
+export class AttributePreservingTransfer {
+  static async uploadWithAttributes(
+    sftp: SftpClient,
+    localPath: string,
+    remotePath: string,
+    options: AttributePreservationOptions
+  ): Promise<void> {
     const stat = fs.lstatSync(localPath);
 
     if (stat.isSymbolicLink()) {
-      // 处理符号链接
-      const target = fs.readlinkSync(localPath);
-      await this.sftp.symlink(target, remotePath);
+      if (options.followSymlinks) {
+        const targetPath = fs.realpathSync(localPath);
+        // 上传目标文件
+      } else {
+        const target = fs.readlinkSync(localPath);
+        await sftp.symlink(target, remotePath);
+      }
     } else if (stat.isFile()) {
-      // 上传普通文件
-      await this.sftp.fastPut(localPath, remotePath);
-
-      // 保留属性
-      await this.preserveAttributes(remotePath, stat);
-    } else if (stat.isDirectory()) {
-      await this.sftp.mkdir(remotePath, true);
+      await sftp.fastPut(localPath, remotePath);
+      await this.preserveAttributes(sftp, remotePath, stat, options);
     }
   }
 
-  private async preserveAttributes(remotePath, stat) {
-    // 设置权限
-    await this.sftp.chmod(remotePath, stat.mode);
+  private static async preserveAttributes(
+    sftp: SftpClient,
+    remotePath: string,
+    stat: fs.Stats,
+    options: AttributePreservationOptions
+  ): Promise<void> {
+    if (options.preservePermissions) {
+      const mode = stat.mode & 0o777;
+      await sftp.chmod(remotePath, mode);
+    }
 
-    // 设置修改时间
-    const atime = stat.atime.getTime() / 1000;
-    const mtime = stat.mtime.getTime() / 1000;
-    await this.sftp.utime(remotePath, atime, mtime);
+    if (options.preserveTimestamps) {
+      const atime = Math.floor(stat.atimeMs / 1000);
+      const mtime = Math.floor(stat.mtimeMs / 1000);
+      const sftpStream = (sftp as any).sftp;
+      await new Promise<void>((resolve, reject) => {
+        sftpStream.setstat(remotePath, { atime, mtime }, (err: Error) => {
+          err ? resolve() : resolve(); // Best-effort
+        });
+      });
+    }
   }
 }
 ```
@@ -828,6 +845,28 @@ class AttributePreservingTransfer {
   "simpleSftp.transfer.followSymlinks": false
 }
 ```
+
+**优势**:
+- **符号链接正确处理**: 不再将符号链接当作普通文件
+- **权限保留**: 文件权限(如 `0o755`)在传输后保持不变
+- **时间戳保留**: 修改时间和访问时间得以保留
+- **Best-effort**: 属性保留失败不会导致传输失败
+
+**技术细节**:
+- 文件: `src/attributePreservingTransfer.ts`, `src/sshConnectionManager.ts`
+- 测试: `src/attributePreservingTransfer.test.ts` (9 tests)
+- 配置: `package.json` - `simpleSftp.transfer.*`
+
+**注意事项**:
+- 符号链接支持依赖于 SFTP 服务器实现
+- Windows 创建符号链接可能需要管理员权限
+- 时间戳精度受 SFTP 服务器限制(通常为秒级)
+
+---
+
+## 待实现优化方案
+
+(无)
 
 ---
 
