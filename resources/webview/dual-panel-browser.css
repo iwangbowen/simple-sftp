@@ -340,6 +340,11 @@ body {
     color: var(--vscode-icon-foreground);
 }
 
+.host-star {
+    font-size: 20px;
+    color: var(--vscode-list-warningForeground);
+}
+
 .host-info {
     flex: 1;
 }
@@ -347,6 +352,13 @@ body {
 .host-name {
     font-weight: 500;
     margin-bottom: 4px;
+}
+
+.host-group {
+    margin-left: 8px;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    font-weight: normal;
 }
 
 .host-details {

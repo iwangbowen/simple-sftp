@@ -347,7 +347,22 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                 await this.loadLocalDirectory(path.dirname(itemPath));
                 this.updateStatus(`Deleted: ${path.basename(itemPath)}`);
             } else if (panel === 'remote') {
-                vscode.window.showInformationMessage('Deleting remote files is not yet implemented');
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
+
+                // 删除远程文件或目录
+                await SshConnectionManager.deleteRemoteFile(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    itemPath
+                );
+
+                // 刷新当前目录
+                const currentDir = path.posix.dirname(itemPath);
+                await this.loadRemoteDirectory(currentDir);
+                this.updateStatus(`Deleted: ${path.basename(itemPath)}`);
             }
         } catch (error) {
             logger.error(`Delete failed: ${error}`);
@@ -418,15 +433,27 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
      */
     private async showHostSelection(): Promise<void> {
         const hosts = await this.hostManager.getHosts();
+        // 按照starred排序,starred主机靠前
+        const sortedHosts = [...hosts].sort((a, b) => {
+            if (a.starred && !b.starred) {
+                return -1;
+            }
+            if (!a.starred && b.starred) {
+                return 1;
+            }
+            return 0;
+        });
+
         this._view?.webview.postMessage({
             command: 'showHostSelection',
-            hosts: hosts.map(h => ({
+            hosts: sortedHosts.map(h => ({
                 id: h.id,
                 name: h.name,
                 host: h.host,
                 username: h.username,
                 port: h.port,
-                group: h.group
+                group: h.group,
+                starred: h.starred
             }))
         });
     }

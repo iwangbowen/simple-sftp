@@ -198,13 +198,15 @@
             item.appendChild(time);
         }
 
-        // Size (for files)
+        // Size (for files) or placeholder (for folders)
+        const size = document.createElement('span');
+        size.className = 'tree-item-size';
         if (!node.isDirectory && node.size !== undefined) {
-            const size = document.createElement('span');
-            size.className = 'tree-item-size';
             size.textContent = formatFileSize(node.size);
-            item.appendChild(size);
+        } else {
+            size.textContent = '-';  // 文件夹显示占位符
         }
+        item.appendChild(size);
 
         // Event listeners
         item.addEventListener('click', (e) => {
@@ -535,9 +537,12 @@
                 <div class="host-list">
                     ${hosts.map(host => `
                         <div class="host-item" data-host-id="${host.id}">
-                            <span class="codicon codicon-remote host-icon"></span>
+                            ${host.starred ? '<span class="codicon codicon-star-full host-star"></span>' : '<span class="codicon codicon-remote host-icon"></span>'}
                             <div class="host-info">
-                                <div class="host-name">${host.name}</div>
+                                <div class="host-name">
+                                    ${host.name}
+                                    ${host.group ? `<span class="host-group">[${host.group}]</span>` : ''}
+                                </div>
                                 <div class="host-details">${host.username}@${host.host}:${host.port}</div>
                             </div>
                             <span class="codicon codicon-chevron-right"></span>
