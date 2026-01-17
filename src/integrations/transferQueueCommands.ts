@@ -396,14 +396,38 @@ export class TransferQueueCommands {
    * Load HTML template from file
    */
   private loadHtmlTemplate(): string {
-    // Get template path
-    const templatePath = this.extensionContext
-      ? path.join(this.extensionContext.extensionPath, 'resources', 'webview', 'task-details.html')
-      : path.join(__dirname, '..', '..', 'resources', 'webview', 'task-details.html');
+    try {
+      // Get template path
+      const templatePath = this.extensionContext
+        ? path.join(this.extensionContext.extensionPath, 'resources', 'webview', 'task-details.html')
+        : path.join(__dirname, '..', '..', 'resources', 'webview', 'task-details.html');
 
-    // Read template file
-    const fs = require('node:fs');
-    return fs.readFileSync(templatePath, 'utf8');
+      // Read template file
+      const fs = require('node:fs');
+      const content = fs.readFileSync(templatePath, 'utf8');
+
+      if (!content) {
+        throw new Error('Template file is empty');
+      }
+
+      return content;
+    } catch (error) {
+      logger.error(`Failed to load HTML template: ${error}`);
+      // Return a fallback HTML
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Task Details</title>
+        </head>
+        <body>
+          <h1>Task Details</h1>
+          <p>Error loading template: ${error}</p>
+        </body>
+        </html>
+      `;
+    }
   }
 
   /**

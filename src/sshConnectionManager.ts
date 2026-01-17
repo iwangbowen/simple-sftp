@@ -702,7 +702,10 @@ export class SshConnectionManager {
       try {
         const stats = await sftp.stat(remotePath);
 
-        if (stats.isDirectory()) {
+        // Check if it's a directory using type property or isDirectory method
+        const isDirectory = stats.isDirectory ? stats.isDirectory() : (stats.type === 'd');
+
+        if (isDirectory) {
           // Delete directory recursively
           await this.deleteRemoteDirectory(sftp, remotePath);
         } else {
@@ -738,7 +741,10 @@ export class SshConnectionManager {
       const fullPath = `${remotePath}/${item.name}`.replaceAll('//', '/');
       const stats = await sftp.stat(fullPath);
 
-      if (stats.isDirectory()) {
+      // Check if it's a directory using type property or isDirectory method
+      const isDirectory = stats.isDirectory ? stats.isDirectory() : (stats.type === 'd');
+
+      if (isDirectory) {
         dirs.push(fullPath);
       }
     }

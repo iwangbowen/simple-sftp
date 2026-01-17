@@ -433,6 +433,8 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
      */
     private async showHostSelection(): Promise<void> {
         const hosts = await this.hostManager.getHosts();
+        const groups = await this.hostManager.getGroups();
+
         // 按照starred排序,starred主机靠前
         const sortedHosts = [...hosts].sort((a, b) => {
             if (a.starred && !b.starred) {
@@ -446,15 +448,19 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
 
         this._view?.webview.postMessage({
             command: 'showHostSelection',
-            hosts: sortedHosts.map(h => ({
-                id: h.id,
-                name: h.name,
-                host: h.host,
-                username: h.username,
-                port: h.port,
-                group: h.group,
-                starred: h.starred
-            }))
+            hosts: sortedHosts.map(h => {
+                // 查找分组名称
+                const groupName = h.group ? groups.find(g => g.id === h.group)?.name : undefined;
+                return {
+                    id: h.id,
+                    name: h.name,
+                    host: h.host,
+                    username: h.username,
+                    port: h.port,
+                    group: groupName,  // 使用分组名称而不是ID
+                    starred: h.starred
+                };
+            })
         });
     }
 
