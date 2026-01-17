@@ -434,27 +434,33 @@
       "webview/context": [
         {
           "command": "simpleSftp.dualPanel.upload",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'localFile'"
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'localFile'",
+          "group": "1_files@1"
         },
         {
           "command": "simpleSftp.dualPanel.download",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'"
-        },
-        {
-          "command": "simpleSftp.dualPanel.delete",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser'"
-        },
-        {
-          "command": "simpleSftp.dualPanel.rename",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser'"
-        },
-        {
-          "command": "simpleSftp.dualPanel.createFolder",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser'"
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'",
+          "group": "1_files@2"
         },
         {
           "command": "simpleSftp.dualPanel.refresh",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser'"
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
+          "group": "2_operations@1"
+        },
+        {
+          "command": "simpleSftp.dualPanel.createFolder",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
+          "group": "2_operations@2"
+        },
+        {
+          "command": "simpleSftp.dualPanel.rename",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
+          "group": "2_operations@3"
+        },
+        {
+          "command": "simpleSftp.dualPanel.delete",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
+          "group": "3_dangerous@1"
         }
       ],
       "simpleSftp.addMenu": [

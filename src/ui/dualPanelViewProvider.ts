@@ -129,6 +129,10 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                 await this.handleUpload(message.data.localPath, message.data.remotePath);
                 break;
 
+            case 'requestFolderName':
+                await this.handleRequestFolderName(message.data);
+                break;
+
             case 'download':
                 await this.handleDownload(message.data.remotePath, message.data.localPath);
                 break;
@@ -315,6 +319,45 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
     }
 
     // ===== Other Operations =====
+
+    private async handleRequestFolderName(data: any): Promise<void> {
+        const { panel } = data;
+
+        // Show input box to get folder name
+        const folderName = await vscode.window.showInputBox({
+            prompt: `Enter folder name for ${panel} panel`,
+            placeHolder: 'Folder name',
+            validateInput: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return 'Folder name cannot be empty';
+                }
+                if (value.includes('/') || value.includes('\\')) {
+                    return 'Folder name cannot contain / or \\';
+                }
+                return null;
+            }
+        });
+
+        if (!folderName) {
+            return; // User cancelled
+        }
+
+        // Get current path for the panel (use current directory, not root)
+        let parentPath: string | undefined;
+        if (panel === 'local') {
+            parentPath = this._localRootPath;
+        } else {
+            parentPath = this._remoteRootPath;
+        }
+
+        if (!parentPath) {
+            vscode.window.showErrorMessage(`No ${panel} path selected`);
+            return;
+        }
+
+        // Create the folder
+        await this.handleCreateFolder({ parentPath, name: folderName, panel });
+    }
 
     private async handleCreateFolder(data: any): Promise<void> {
         const { parentPath, name, panel } = data;

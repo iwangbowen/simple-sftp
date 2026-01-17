@@ -417,13 +417,10 @@
     }
 
     function createFolder(panel) {
-        const name = prompt('Enter folder name:');
-        if (!name) return;
-
-        const parentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+        // Send request to extension to show input box
         vscode.postMessage({
-            command: 'createFolder',
-            data: { parentPath, name, panel }
+            command: 'requestFolderName',
+            data: { panel }
         });
     }
 

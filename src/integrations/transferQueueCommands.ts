@@ -191,7 +191,17 @@ export class TransferQueueCommands {
   async showTaskDetails(task?: TransferTaskModel): Promise<void> {
     if (!task) {
       task = await this.selectTask();
-      if (!task) {return;}
+      if (!task) {
+        logger.warn('No task selected for showing details');
+        return;
+      }
+    }
+
+    // Validate task object
+    if (!task || !task.id || !task.fileName) {
+      logger.error('Invalid task object provided to showTaskDetails');
+      vscode.window.showErrorMessage('Invalid task: missing required properties');
+      return;
     }
 
     // Check if panel already exists for this task
@@ -294,6 +304,12 @@ export class TransferQueueCommands {
   private getWebviewContent(task: TransferTaskModel, duration?: number, avgSpeed?: number): string {
     // Load HTML template
     let html = this.loadHtmlTemplate();
+
+    // Check if html is valid string
+    if (!html || typeof html !== 'string') {
+      logger.error('Invalid HTML template loaded');
+      return '<html><body><h1>Error loading template</h1></body></html>';
+    }
 
     // Replace all placeholders with actual values
     const replacements: Record<string, string> = {
@@ -438,7 +454,13 @@ export class TransferQueueCommands {
    * Escape HTML special characters
    */
   private escapeHtml(text: string): string {
-    return text
+    // Handle undefined, null, or non-string values
+    if (text === undefined || text === null) {
+      return '';
+    }
+
+    const str = String(text);
+    return str
       .replaceAll('&', '&amp;')
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;')
@@ -650,5 +672,23 @@ export class TransferQueueCommands {
     if (minutes < 60) {return `${minutes}m ${seconds % 60}s`;}
     const hours = Math.floor(minutes / 60);
     return `${hours}h ${minutes % 60}m`;
+  }
+
+  /**
+   * Helper: Remove conditional block from HTML template
+   */
+  private removeConditionalBlock(html: string, startMarker: string, endMarker: string): string {
+    const startIndex = html.indexOf(startMarker);
+    if (startIndex === -1) {
+      return html; // Marker not found, return original
+    }
+
+    const endIndex = html.indexOf(endMarker, startIndex);
+    if (endIndex === -1) {
+      return html; // End marker not found, return original
+    }
+
+    // Remove everything from start marker to end marker (inclusive)
+    return html.substring(0, startIndex) + html.substring(endIndex + endMarker.length);
   }
 }

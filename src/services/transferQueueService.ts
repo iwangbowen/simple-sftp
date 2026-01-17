@@ -119,11 +119,11 @@ export class TransferQueueService extends EventEmitter {
         // Priority order: high > normal > low
         const priorityOrder = { high: 3, normal: 2, low: 1 };
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
-        
+
         if (priorityDiff !== 0) {
           return priorityDiff; // Sort by priority first
         }
-        
+
         // If same priority, sort by creation time (earlier first)
         return a.createdAt.getTime() - b.createdAt.getTime();
       });
@@ -537,6 +537,13 @@ export class TransferQueueService extends EventEmitter {
   /**
    * Get queue status
    */
+  /**
+   * Get active task count (running tasks)
+   */
+  getActiveTaskCount(): number {
+    return this.runningTasks.size;
+  }
+
   getQueueStatus(): QueueStatus {
     return {
       isPaused: this.isPaused,
