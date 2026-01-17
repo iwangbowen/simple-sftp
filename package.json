@@ -47,7 +47,7 @@
         {
           "id": "simpleSftpPanel",
           "title": "SFTP Browser",
-          "icon": "$(files)"
+          "icon": "$(folder-opened)"
         }
       ]
     },
