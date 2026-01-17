@@ -8,6 +8,7 @@ import { TransferHistoryService } from './services/transferHistoryService';
 import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
 import { TransferHistoryTreeProvider } from './ui/transferHistoryTreeProvider';
 import { HelpFeedbackTreeProvider } from './ui/helpFeedbackTreeProvider';
+import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { TransferQueueCommands } from './integrations/transferQueueCommands';
 import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
@@ -84,6 +85,20 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(helpFeedbackView);
   logger.info('Help and feedback tree view registered');
+
+  // Register Dual Panel WebviewView provider
+  const dualPanelProvider = new DualPanelViewProvider(
+    context.extensionUri,
+    transferQueueService,
+    authManager
+  );
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      DualPanelViewProvider.viewType,
+      dualPanelProvider
+    )
+  );
+  logger.info('Dual panel webview view provider registered');
 
   // Register command handler with transfer queue service
   const commandHandler = new CommandHandler(hostManager, authManager, treeProvider, transferQueueService);
@@ -166,6 +181,35 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('simpleSftp.collapseAll', () => {
       // The tree view has built-in collapse all functionality
       // This command is just for consistency
+    }),
+
+    // Dual Panel Browser - open for selected host
+    vscode.commands.registerCommand('simpleSftp.openDualPanelBrowser', async (item) => {
+      if (!item?.data) {
+        vscode.window.showErrorMessage('请先选择一个主机');
+        return;
+      }
+      await dualPanelProvider.openForHost(item.data);
+    }),
+
+    // Dual Panel WebView context menu commands
+    vscode.commands.registerCommand('simpleSftp.dualPanel.upload', (args) => {
+      vscode.window.showInformationMessage(`Upload: ${JSON.stringify(args)}`);
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.download', (args) => {
+      vscode.window.showInformationMessage(`Download: ${JSON.stringify(args)}`);
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.delete', (args) => {
+      vscode.window.showInformationMessage(`Delete: ${JSON.stringify(args)}`);
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.rename', (args) => {
+      vscode.window.showInformationMessage(`Rename: ${JSON.stringify(args)}`);
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.createFolder', (args) => {
+      vscode.window.showInformationMessage(`Create Folder: ${JSON.stringify(args)}`);
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', (args) => {
+      vscode.window.showInformationMessage(`Refresh: ${JSON.stringify(args)}`);
     })
   );
   logger.info('Transfer queue commands registered');

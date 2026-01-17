@@ -42,6 +42,13 @@
           "title": "Simple SFTP",
           "icon": "resources/icon.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "simpleSftpPanel",
+          "title": "SFTP Browser",
+          "icon": "$(files)"
+        }
       ]
     },
     "views": {
@@ -64,6 +71,13 @@
           "id": "simpleSftp.helpFeedback",
           "name": "Help and Feedback",
           "icon": "$(question)"
+        }
+      ],
+      "simpleSftpPanel": [
+        {
+          "type": "webview",
+          "id": "simpleSftp.dualPanelBrowser",
+          "name": "File Browser"
         }
       ]
     },
@@ -372,9 +386,77 @@
         "title": "Collapse All",
         "category": "Simple SFTP",
         "icon": "$(collapse-all)"
+      },
+      {
+        "command": "simpleSftp.openDualPanelBrowser",
+        "title": "Open Dual Panel File Browser",
+        "category": "Simple SFTP",
+        "icon": "$(files)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.upload",
+        "title": "Upload to Remote",
+        "category": "Simple SFTP",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.download",
+        "title": "Download to Local",
+        "category": "Simple SFTP",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.delete",
+        "title": "Delete",
+        "category": "Simple SFTP",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.rename",
+        "title": "Rename",
+        "category": "Simple SFTP",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.createFolder",
+        "title": "New Folder",
+        "category": "Simple SFTP",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.refresh",
+        "title": "Refresh",
+        "category": "Simple SFTP",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
+      "webview/context": [
+        {
+          "command": "simpleSftp.dualPanel.upload",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'localFile'"
+        },
+        {
+          "command": "simpleSftp.dualPanel.download",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'"
+        },
+        {
+          "command": "simpleSftp.dualPanel.delete",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'"
+        },
+        {
+          "command": "simpleSftp.dualPanel.rename",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'"
+        },
+        {
+          "command": "simpleSftp.dualPanel.createFolder",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'"
+        },
+        {
+          "command": "simpleSftp.dualPanel.refresh",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'"
+        }
+      ],
       "simpleSftp.addMenu": [
         {
           "command": "simpleSftp.addHost"
@@ -570,6 +652,10 @@
         {
           "command": "simpleSftp.collapseAll",
           "when": "false"
+        },
+        {
+          "command": "simpleSftp.openDualPanelBrowser",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -636,9 +722,14 @@
           "group": "inline@1"
         },
         {
-          "command": "simpleSftp.editHost",
+          "command": "simpleSftp.openDualPanelBrowser",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "inline@2"
+        },
+        {
+          "command": "simpleSftp.editHost",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "inline@3"
         },
         {
           "command": "simpleSftp.duplicateHost",
@@ -924,6 +1015,7 @@
     "vitest": "^4.0.17"
   },
   "dependencies": {
+    "@vscode/codicons": "^0.0.44",
     "ssh2": "^1.17.0",
     "ssh2-sftp-client": "^12.0.1"
   }

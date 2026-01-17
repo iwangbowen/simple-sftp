@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src 'nonce-{{nonce}}'; font-src {{cspSource}};">
+    <title>SFTP File Browser</title>
+    <link rel="stylesheet" href="{{styleUri}}">
+    <link rel="stylesheet" href="{{codiconsUri}}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Bar -->
+        <div class="header-bar">
+            <div class="panel-header local-header">
+                <span class="codicon codicon-folder"></span>
+                <span class="header-title">Local: <span id="local-path">{{localPath}}</span></span>
+                <button class="icon-button" id="refresh-local" title="Refresh Local">
+                    <span class="codicon codicon-refresh"></span>
+                </button>
+            </div>
+            <div class="separator">
+                <span class="codicon codicon-arrow-both"></span>
+            </div>
+            <div class="panel-header remote-header">
+                <span class="codicon codicon-remote"></span>
+                <span class="header-title">Remote: <span id="remote-path">{{remotePath}}</span></span>
+                <button class="icon-button" id="refresh-remote" title="Refresh Remote">
+                    <span class="codicon codicon-refresh"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Dual Panel Content -->
+        <div class="dual-panel">
+            <!-- Local File Tree -->
+            <div class="panel local-panel">
+                <div class="panel-toolbar">
+                    <button class="icon-button" id="new-local-folder" title="New Folder">
+                        <span class="codicon codicon-new-folder"></span>
+                    </button>
+                    <button class="icon-button" id="upload-selected" title="Upload Selected">
+                        <span class="codicon codicon-cloud-upload"></span>
+                    </button>
+                </div>
+                <div class="file-tree" id="local-tree" data-panel="local">
+                    <div class="loading">
+                        <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                        Loading local files...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resizer -->
+            <div class="resizer" id="resizer"></div>
+
+            <!-- Remote File Tree -->
+            <div class="panel remote-panel">
+                <div class="panel-toolbar">
+                    <button class="icon-button" id="new-remote-folder" title="New Folder">
+                        <span class="codicon codicon-new-folder"></span>
+                    </button>
+                    <button class="icon-button" id="download-selected" title="Download Selected">
+                        <span class="codicon codicon-cloud-download"></span>
+                    </button>
+                </div>
+                <div class="file-tree" id="remote-tree" data-panel="remote">
+                    <div class="loading">
+                        <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                        Loading remote files...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Bar -->
+        <div class="footer-bar">
+            <div class="status-section">
+                <span class="codicon codicon-info"></span>
+                <span id="status-text">Ready</span>
+            </div>
+            <div class="queue-section">
+                <span class="codicon codicon-layers"></span>
+                <span id="queue-text">0 active tasks</span>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>
