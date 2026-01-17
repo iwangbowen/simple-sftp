@@ -58,6 +58,10 @@ class TransferQueueTreeItem extends vscode.TreeItem {
   private static buildDescription(task: TransferTaskModel): string {
     const parts: string[] = [];
 
+    // Transfer direction indicator
+    const directionIcon = task.type === 'upload' ? '↑' : '↓';
+    parts.push(directionIcon);
+
     // Progress and size
     if (task.status === 'running' || task.status === 'paused') {
       parts.push(`${task.progress.toFixed(1)}%`, `${formatBytes(task.transferred)}/${formatBytes(task.fileSize)}`);
