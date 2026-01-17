@@ -11,6 +11,7 @@ import { ParallelChunkTransferManager } from './parallelChunkTransfer';
 import { PARALLEL_TRANSFER, DELTA_SYNC } from './constants';
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
 import { DeltaSyncManager } from './services/deltaSyncManager';
+import { AttributePreservingTransfer } from './attributePreservingTransfer';
 
 /**
  * SSH 连接管理器
@@ -182,6 +183,24 @@ export class SshConnectionManager {
           }
         }
 
+        // Preserve file attributes if enabled (after parallel upload)
+        const attributeOptions = AttributePreservingTransfer.getOptionsFromConfig();
+        if (attributeOptions.preservePermissions || attributeOptions.preserveTimestamps) {
+          await this.withConnection(config, authConfig, async (sftp) => {
+            try {
+              await AttributePreservingTransfer.uploadWithAttributes(
+                sftp,
+                localPath,
+                remotePath,
+                attributeOptions
+              );
+            } catch (error) {
+              logger.warn(`Failed to preserve attributes for ${remotePath}: ${error}`);
+              // Don't fail the upload if attribute preservation fails
+            }
+          });
+        }
+
         return;
       } else {
         logger.info(`Using standard transfer - File size ${fileSizeMB}MB is below threshold ${thresholdMB}MB`);
@@ -246,6 +265,24 @@ export class SshConnectionManager {
           `The uploaded file may be corrupted. Please try uploading again.`
         );
       }
+    }
+
+    // Preserve file attributes if enabled
+    const attributeOptions = AttributePreservingTransfer.getOptionsFromConfig();
+    if (attributeOptions.preservePermissions || attributeOptions.preserveTimestamps) {
+      await this.withConnection(config, authConfig, async (sftp) => {
+        try {
+          await AttributePreservingTransfer.uploadWithAttributes(
+            sftp,
+            localPath,
+            remotePath,
+            attributeOptions
+          );
+        } catch (error) {
+          logger.warn(`Failed to preserve attributes for ${remotePath}: ${error}`);
+          // Don't fail the upload if attribute preservation fails
+        }
+      });
     }
   }
 
@@ -449,6 +486,24 @@ export class SshConnectionManager {
           }
         }
 
+        // Preserve file attributes if enabled (after parallel download)
+        const attributeOptions = AttributePreservingTransfer.getOptionsFromConfig();
+        if (attributeOptions.preservePermissions || attributeOptions.preserveTimestamps) {
+          await this.withConnection(config, authConfig, async (sftp) => {
+            try {
+              await AttributePreservingTransfer.downloadWithAttributes(
+                sftp,
+                remotePath,
+                localPath,
+                attributeOptions
+              );
+            } catch (error) {
+              logger.warn(`Failed to preserve attributes for ${localPath}: ${error}`);
+              // Don't fail the download if attribute preservation fails
+            }
+          });
+        }
+
         return;
       } else {
         logger.info(`Using standard transfer - File size ${fileSizeMB}MB is below threshold ${thresholdMB}MB`);
@@ -515,6 +570,24 @@ export class SshConnectionManager {
           `The downloaded file may be corrupted. Please try downloading again.`
         );
       }
+    }
+
+    // Preserve file attributes if enabled
+    const attributeOptions = AttributePreservingTransfer.getOptionsFromConfig();
+    if (attributeOptions.preservePermissions || attributeOptions.preserveTimestamps) {
+      await this.withConnection(config, authConfig, async (sftp) => {
+        try {
+          await AttributePreservingTransfer.downloadWithAttributes(
+            sftp,
+            remotePath,
+            localPath,
+            attributeOptions
+          );
+        } catch (error) {
+          logger.warn(`Failed to preserve attributes for ${localPath}: ${error}`);
+          // Don't fail the download if attribute preservation fails
+        }
+      });
     }
   }
 

@@ -872,6 +872,21 @@
           "type": "boolean",
           "default": false,
           "description": "Hide the transfer status bar in the bottom status bar. Default: false (show status bar)"
+        },
+        "simpleSftp.transfer.preservePermissions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preserve file permissions (chmod) during transfers. Requires SFTP server support."
+        },
+        "simpleSftp.transfer.preserveTimestamps": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preserve file modification and access times during transfers. Requires SFTP server support."
+        },
+        "simpleSftp.transfer.followSymlinks": {
+          "type": "boolean",
+          "default": false,
+          "description": "Follow symbolic links and transfer the target file/folder instead of creating symlinks. Default: false (preserve symlinks)"
         }
       }
     }
