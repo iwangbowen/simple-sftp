@@ -86,10 +86,10 @@ export class TransferQueueCommands {
     const confirm = await vscode.window.showWarningMessage(
       `Cancel transfer: ${task.fileName}?`,
       { modal: true },
-      'Yes', 'No'
+      'Confirm'
     );
 
-    if (confirm === 'Yes') {
+    if (confirm === 'Confirm') {
       await this.queueService.cancelTask(task.id);
       vscode.window.showInformationMessage(`Cancelled: ${task.fileName}`);
       logger.info(`Task cancelled: ${task.id}`);
