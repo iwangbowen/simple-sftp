@@ -219,11 +219,58 @@
     }
 
     .chunk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .chunk-group {
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .chunk-group-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background-color: var(--vscode-input-background);
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s ease;
+    }
+
+    .chunk-group-header:hover {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+
+    .chunk-group-toggle {
+      font-size: 0.8em;
+      color: var(--vscode-foreground);
+      width: 12px;
+      text-align: center;
+    }
+
+    .chunk-group-title {
+      font-weight: 600;
+      flex: 1;
+      color: var(--vscode-foreground);
+    }
+
+    .chunk-group-count {
+      font-size: 0.85em;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .chunk-group-content {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       gap: 10px;
-      max-height: 400px;
-      overflow-y: auto;
+      padding: 10px;
+      background-color: var(--vscode-editor-background);
     }
 
     .chunk-item {
@@ -524,6 +571,14 @@
       }
 
       // Update chunk progress display
+      // Store group expansion state (persist across updates)
+      const groupExpansionState = {
+        downloading: true,
+        pending: false,
+        completed: false,
+        failed: true
+      };
+
       function updateChunkProgress(chunks) {
         const chunkProgressSection = document.getElementById('chunkProgressSection');
         const chunkList = document.getElementById('chunkList');
@@ -536,25 +591,55 @@
 
         chunkProgressSection.style.display = 'block';
 
+        // Group chunks by status
+        const grouped = {
+          downloading: chunks.filter(c => c.status === 'downloading'),
+          pending: chunks.filter(c => c.status === 'pending'),
+          completed: chunks.filter(c => c.status === 'completed'),
+          failed: chunks.filter(c => c.status === 'failed')
+        };
+
         // Update summary
-        const completedCount = chunks.filter(c => c.status === 'completed').length;
-        chunkSummary.textContent = `${completedCount} / ${chunks.length} completed`;
+        chunkSummary.textContent = `${grouped.completed.length} / ${chunks.length} completed`;
 
-        // Update or create chunk items
-        chunkList.innerHTML = ''; // Clear existing chunks
-        chunks.forEach((chunk, index) => {
-          const chunkItem = document.createElement('div');
-          chunkItem.className = 'chunk-item';
-          chunkItem.id = `chunk-${index}`;
+        // Build grouped view
+        chunkList.innerHTML = '';
 
-          const progress = chunk.size > 0 ? (chunk.transferred / chunk.size) * 100 : 0;
-          const statusClass = `chunk-status-${chunk.status}`;
+        // Function to create a group section
+        const createGroupSection = (title, chunks, statusKey) => {
+          if (chunks.length === 0) return;
 
-          chunkItem.innerHTML = `
-            <div class="chunk-item-header">
-              <span class="chunk-index">Chunk #${index + 1}</span>
-              <span class="chunk-status ${statusClass}">${chunk.status.toUpperCase()}</span>
-            </div>
+          const isExpanded = groupExpansionState[statusKey];
+
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'chunk-group';
+
+          const groupHeader = document.createElement('div');
+          groupHeader.className = 'chunk-group-header';
+          groupHeader.innerHTML = `
+            <span class="chunk-group-toggle">${isExpanded ? '▼' : '▶'}</span>
+            <span class="chunk-group-title">${title}</span>
+            <span class="chunk-group-count">${chunks.length} chunks</span>
+          `;
+
+          const groupContent = document.createElement('div');
+          groupContent.className = 'chunk-group-content';
+          groupContent.style.display = isExpanded ? 'grid' : 'none';
+
+          // Add chunks to group
+          chunks.forEach((chunk) => {
+            const chunkItem = document.createElement('div');
+            chunkItem.className = 'chunk-item';
+            chunkItem.id = `chunk-${chunk.index}`;
+
+            const progress = chunk.size > 0 ? (chunk.transferred / chunk.size) * 100 : 0;
+            const statusClass = `chunk-status-${chunk.status}`;
+
+            chunkItem.innerHTML = `
+              <div class="chunk-item-header">
+                <span class="chunk-index">Chunk #${chunk.index + 1}</span>
+                <span class="chunk-status ${statusClass}">${chunk.status.toUpperCase()}</span>
+              </div>
             <div class="chunk-progress-bar">
               <div class="chunk-progress-fill" style="width: ${progress.toFixed(1)}%"></div>
             </div>
@@ -564,8 +649,27 @@
             </div>
           `;
 
-          chunkList.appendChild(chunkItem);
-        });
+            groupContent.appendChild(chunkItem);
+          });
+
+          // Toggle expand/collapse on header click
+          groupHeader.addEventListener('click', () => {
+            groupExpansionState[statusKey] = !groupExpansionState[statusKey];
+            groupContent.style.display = groupExpansionState[statusKey] ? 'grid' : 'none';
+            const toggle = groupHeader.querySelector('.chunk-group-toggle');
+            toggle.textContent = groupExpansionState[statusKey] ? '▼' : '▶';
+          });
+
+          groupDiv.appendChild(groupHeader);
+          groupDiv.appendChild(groupContent);
+          chunkList.appendChild(groupDiv);
+        };
+
+        // Create groups (downloading expanded by default)
+        createGroupSection('Downloading', grouped.downloading, 'downloading');
+        createGroupSection('Pending', grouped.pending, 'pending');
+        createGroupSection('Completed', grouped.completed, 'completed');
+        createGroupSection('Failed', grouped.failed, 'failed');
       }
 
       // Listen for messages from extension
