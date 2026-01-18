@@ -409,6 +409,10 @@
             <span class="progress-stat-label">Speed:</span>
             <span class="progress-stat-value" id="speedText">{{CURRENT_SPEED}}</span>
           </div>
+          <div class="progress-stat-item" id="estimatedTimeContainer" style="display: none;">
+            <span class="progress-stat-label">Estimated:</span>
+            <span class="progress-stat-value" id="estimatedTimeText">--</span>
+          </div>
           <div class="progress-stat-item" id="elapsedContainer">
             <span class="progress-stat-label">Elapsed:</span>
             <span class="progress-stat-value" id="elapsedTime">0s</span>
@@ -554,6 +558,17 @@
           if (speedText) speedText.textContent = formattedSpeed;
         } else {
           if (speedContainer) speedContainer.style.display = 'none';
+        }
+
+        // Update estimated time
+        const estimatedTimeContainer = document.getElementById('estimatedTimeContainer');
+        const estimatedTimeText = document.getElementById('estimatedTimeText');
+
+        if (taskData.estimatedTime && taskData.estimatedTime > 0 && taskData.status === 'running') {
+          if (estimatedTimeContainer) estimatedTimeContainer.style.display = 'flex';
+          if (estimatedTimeText) estimatedTimeText.textContent = formatDuration(taskData.estimatedTime);
+        } else {
+          if (estimatedTimeContainer) estimatedTimeContainer.style.display = 'none';
         }
 
         // Update status if status badge exists
