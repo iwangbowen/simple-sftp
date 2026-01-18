@@ -30,10 +30,10 @@ interface PooledConnection {
  */
 export class SshConnectionPool {
   private static instance: SshConnectionPool;
-  private pool: Map<string, PooledConnection> = new Map();
+  private pool: Map<string, PooledConnection[]> = new Map();
 
-  /** 连接池最大容量 */
-  private readonly MAX_POOL_SIZE = 5;
+  /** 每个主机的最大连接数 */
+  private readonly MAX_CONNECTIONS_PER_HOST = 10;
 
   /** 连接空闲超时时间（毫秒）默认 5 分钟 */
   private readonly IDLE_TIMEOUT = 5 * 60 * 1000;
@@ -72,31 +72,46 @@ export class SshConnectionPool {
     config: HostConfig,
     authConfig: HostAuthConfig,
     connectConfig: ConnectConfig
-  ): Promise<{ client: Client; sftpClient: SftpClient }> {
+  ): Promise<{ client: Client; sftpClient: SftpClient; connectionId: string }> {
     const key = this.getConnectionKey(config.id);
 
-    // 检查是否有可用连接
-    const pooled = this.pool.get(key);
+    // 获取或初始化该主机的连接数组
+    let connections = this.pool.get(key);
+    if (!connections) {
+      connections = [];
+      this.pool.set(key, connections);
+    }
 
-    if (pooled && pooled.isReady && !pooled.inUse) {
+    // 查找可用连接
+    const available = connections.find(conn => conn.isReady && !conn.inUse);
+
+    if (available) {
       // 复用现有连接
-      logger.info(`Reusing SSH connection for ${config.name}`);
-      pooled.inUse = true;
-      pooled.lastUsed = Date.now();
+      logger.info(`[ConnectionPool] Reusing connection for ${config.name} (${connections.filter(c => c.inUse).length}/${connections.length} in use)`);
+      available.inUse = true;
+      available.lastUsed = Date.now();
 
       // 如果没有 SFTP 客户端,创建一个
-      if (!pooled.sftpClient) {
-        pooled.sftpClient = await this.createSftpClient(pooled.client);
+      if (!available.sftpClient) {
+        available.sftpClient = await this.createSftpClient(available.client);
       }
 
       return {
-        client: pooled.client,
-        sftpClient: pooled.sftpClient
+        client: available.client,
+        sftpClient: available.sftpClient,
+        connectionId: this.getConnectionId(available)
       };
     }
 
+    // 检查是否达到上限
+    if (connections.length >= this.MAX_CONNECTIONS_PER_HOST) {
+      // 等待有连接释放
+      logger.info(`[ConnectionPool] Max connections reached for ${config.name}, waiting for available connection...`);
+      return this.waitForConnection(config, authConfig, connectConfig);
+    }
+
     // 创建新连接
-    logger.info(`Creating new SSH connection for ${config.name}`);
+    logger.info(`[ConnectionPool] Creating new connection for ${config.name} (${connections.length + 1}/${this.MAX_CONNECTIONS_PER_HOST})`);
     const { client, sftpClient } = await this.createNewConnection(
       config,
       authConfig,
@@ -104,9 +119,58 @@ export class SshConnectionPool {
     );
 
     // 添加到连接池
-    this.addToPool(key, client, sftpClient, config);
+    const pooledConn = this.addToPool(key, client, sftpClient, config);
 
-    return { client, sftpClient };
+    return {
+      client,
+      sftpClient,
+      connectionId: this.getConnectionId(pooledConn)
+    };
+  }
+
+  /**
+   * 等待连接可用
+   */
+  private async waitForConnection(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    connectConfig: ConnectConfig
+  ): Promise<{ client: Client; sftpClient: SftpClient; connectionId: string }> {
+    // 简单的重试逻辑,每 100ms 检查一次
+    for (let i = 0; i < 50; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const key = this.getConnectionKey(config.id);
+      const connections = this.pool.get(key);
+
+      if (connections) {
+        const available = connections.find(conn => conn.isReady && !conn.inUse);
+        if (available) {
+          logger.info(`[ConnectionPool] Connection became available for ${config.name}`);
+          available.inUse = true;
+          available.lastUsed = Date.now();
+
+          if (!available.sftpClient) {
+            available.sftpClient = await this.createSftpClient(available.client);
+          }
+
+          return {
+            client: available.client,
+            sftpClient: available.sftpClient,
+            connectionId: this.getConnectionId(available)
+          };
+        }
+      }
+    }
+
+    throw new Error(`获取 ${config.name} 连接超时`);
+  }
+
+  /**
+   * 生成连接唯一标识
+   */
+  private getConnectionId(conn: PooledConnection): string {
+    return `${conn.hostId}-${conn.lastUsed}`;
   }
 
   /**
@@ -138,9 +202,9 @@ export class SshConnectionPool {
           }
         })
         .on('end', () => {
-          // 连接关闭时从池中移除
+          // 连接关闭时从池中移除该特定连接
           const key = this.getConnectionKey(config.id);
-          this.removeFromPool(key);
+          this.removeFromPool(key, client);
         })
         .connect(connectConfig);
 
@@ -185,13 +249,10 @@ export class SshConnectionPool {
     client: Client,
     sftpClient: SftpClient,
     config: HostConfig
-  ): void {
-    // 如果池已满，移除最旧的未使用连接
-    if (this.pool.size >= this.MAX_POOL_SIZE) {
-      this.removeOldestUnusedConnection();
-    }
+  ): PooledConnection {
+    const connections = this.pool.get(key) || [];
 
-    this.pool.set(key, {
+    const pooledConn: PooledConnection = {
       client,
       sftpClient,
       hostId: config.id,
@@ -199,61 +260,87 @@ export class SshConnectionPool {
       lastUsed: Date.now(),
       inUse: true,
       isReady: true
-    });
+    };
 
-    logger.info(`Added connection to pool. Pool size: ${this.pool.size}`);
+    connections.push(pooledConn);
+    this.pool.set(key, connections);
+
+    logger.info(`[ConnectionPool] Added connection to pool for ${config.name}. Total: ${connections.length}`);
+
+    return pooledConn;
   }
 
   /**
    * 从池中移除连接
    */
-  private removeFromPool(key: string): void {
-    const pooled = this.pool.get(key);
-    if (pooled) {
-      try {
-        if (pooled.sftpClient) {
-          (pooled.sftpClient as any).end?.();
+  private removeFromPool(key: string, client?: Client): void {
+    const connections = this.pool.get(key);
+    if (!connections) {
+      return;
+    }
+
+    if (client) {
+      // 移除特定连接
+      const index = connections.findIndex(conn => conn.client === client);
+      if (index !== -1) {
+        const conn = connections[index];
+        try {
+          if (conn.sftpClient) {
+            (conn.sftpClient as any).end?.();
+          }
+          conn.client.end();
+        } catch (error) {
+          logger.error('[ConnectionPool] Error closing connection', error as Error);
         }
-        pooled.client.end();
-      } catch (error) {
-        logger.error('Error closing pooled connection', error as Error);
+        connections.splice(index, 1);
+        logger.info(`[ConnectionPool] Removed connection from pool. Remaining: ${connections.length}`);
+
+        if (connections.length === 0) {
+          this.pool.delete(key);
+        }
       }
+    } else {
+      // 移除所有连接
+      connections.forEach(conn => {
+        try {
+          if (conn.sftpClient) {
+            (conn.sftpClient as any).end?.();
+          }
+          conn.client.end();
+        } catch (error) {
+          logger.error('[ConnectionPool] Error closing connection', error as Error);
+        }
+      });
       this.pool.delete(key);
-      logger.info(`Removed connection from pool. Pool size: ${this.pool.size}`);
-    }
-  }
-
-  /**
-   * 移除最旧的未使用连接
-   */
-  private removeOldestUnusedConnection(): void {
-    let oldestKey: string | null = null;
-    let oldestTime = Date.now();
-
-    for (const [key, pooled] of this.pool.entries()) {
-      if (!pooled.inUse && pooled.lastUsed < oldestTime) {
-        oldestKey = key;
-        oldestTime = pooled.lastUsed;
-      }
-    }
-
-    if (oldestKey) {
-      logger.info(`Removing oldest unused connection: ${oldestKey}`);
-      this.removeFromPool(oldestKey);
+      logger.info(`[ConnectionPool] Removed all connections for ${key}`);
     }
   }
 
   /**
    * 释放连接（标记为可复用）
    */
-  releaseConnection(config: HostConfig): void {
+  releaseConnection(config: HostConfig, connectionId?: string): void {
     const key = this.getConnectionKey(config.id);
-    const pooled = this.pool.get(key);
+    const connections = this.pool.get(key);
 
-    if (pooled) {
-      pooled.inUse = false;
-      pooled.lastUsed = Date.now();
-      logger.info(`Released connection for ${config.name}`);
+    if (!connections) {
+      logger.warn(`[ConnectionPool] No connections found for ${config.name}`);
+      return;
+    }
+
+    // 如果提供了 connectionId,则释放特定连接
+    // 否则释放第一个正在使用的连接
+    const conn = connectionId
+      ? connections.find(c => this.getConnectionId(c) === connectionId)
+      : connections.find(c => c.inUse);
+
+    if (conn) {
+      conn.inUse = false;
+      conn.lastUsed = Date.now();
+      const inUseCount = connections.filter(c => c.inUse).length;
+      logger.info(`[ConnectionPool] Released connection for ${config.name} (${inUseCount}/${connections.length} in use)`);
+    } else {
+      logger.warn(`[ConnectionPool] Connection not found for release: ${config.name}`);
     }
   }
 
@@ -270,23 +357,24 @@ export class SshConnectionPool {
    */
   private cleanupIdleConnections(): void {
     const now = Date.now();
-    const toRemove: string[] = [];
+    const toRemove: Array<{ key: string; client: Client }> = [];
 
-    for (const [key, pooled] of this.pool.entries()) {
-      const idleTime = now - pooled.lastUsed;
-
-      if (!pooled.inUse && idleTime > this.IDLE_TIMEOUT) {
-        toRemove.push(key);
-      }
+    for (const [key, connections] of this.pool.entries()) {
+      connections.forEach(conn => {
+        const idleTime = now - conn.lastUsed;
+        if (!conn.inUse && idleTime > this.IDLE_TIMEOUT) {
+          toRemove.push({ key, client: conn.client });
+        }
+      });
     }
 
-    toRemove.forEach(key => {
-      logger.info(`Cleaning up idle connection: ${key}`);
-      this.removeFromPool(key);
+    toRemove.forEach(({ key, client }) => {
+      logger.info(`[ConnectionPool] Cleaning up idle connection: ${key}`);
+      this.removeFromPool(key, client);
     });
 
     if (toRemove.length > 0) {
-      logger.info(`Cleaned up ${toRemove.length} idle connection(s)`);
+      logger.info(`[ConnectionPool] Cleaned up ${toRemove.length} idle connection(s)`);
     }
   }
 
@@ -313,22 +401,36 @@ export class SshConnectionPool {
     totalConnections: number;
     activeConnections: number;
     idleConnections: number;
+    byHost: Record<string, { total: number; active: number; idle: number }>;
   } {
-    let active = 0;
-    let idle = 0;
+    let totalActive = 0;
+    let totalIdle = 0;
+    const byHost: Record<string, { total: number; active: number; idle: number }> = {};
 
-    for (const pooled of this.pool.values()) {
-      if (pooled.inUse) {
-        active++;
-      } else {
-        idle++;
-      }
+    for (const [key, connections] of this.pool.entries()) {
+      const active = connections.filter(c => c.inUse).length;
+      const idle = connections.length - active;
+
+      totalActive += active;
+      totalIdle += idle;
+
+      byHost[key] = {
+        total: connections.length,
+        active,
+        idle
+      };
+    }
+
+    let totalConnections = 0;
+    for (const connections of this.pool.values()) {
+      totalConnections += connections.length;
     }
 
     return {
-      totalConnections: this.pool.size,
-      activeConnections: active,
-      idleConnections: idle
+      totalConnections,
+      activeConnections: totalActive,
+      idleConnections: totalIdle,
+      byHost
     };
   }
 }

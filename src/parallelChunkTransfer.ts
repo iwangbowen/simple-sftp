@@ -242,7 +242,7 @@ export class ParallelChunkTransferManager {
 
           logger.info('✓ Fallback upload completed successfully');
         } finally {
-          this.connectionPool.releaseConnection(config);
+          this.connectionPool.releaseConnection(config, connectionId);
         }
       }
 
@@ -274,9 +274,9 @@ export class ParallelChunkTransferManager {
 
     // Get remote file size
     const connectConfig = this.buildConnectConfig(config, authConfig);
-    const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+    const { sftpClient, connectionId } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
     const stat = await sftpClient.stat(remotePath);
-    this.connectionPool.releaseConnection(config);
+    this.connectionPool.releaseConnection(config, connectionId);
 
     const fileSize = stat.size;
     const chunks = this.splitIntoChunks(fileSize, opts.chunkSize);
@@ -424,7 +424,7 @@ export class ParallelChunkTransferManager {
 
     // Get connection from pool
     const connectConfig = this.buildConnectConfig(config, authConfig);
-    const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+    const { sftpClient, connectionId } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
 
     try {
       // Check for abort
@@ -475,7 +475,7 @@ export class ParallelChunkTransferManager {
       }
       throw error;
     } finally {
-      this.connectionPool.releaseConnection(config);
+      this.connectionPool.releaseConnection(config, connectionId);
     }
   }
 
@@ -498,7 +498,7 @@ export class ParallelChunkTransferManager {
 
     // Get connection from pool
     const connectConfig = this.buildConnectConfig(config, authConfig);
-    const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+    const { sftpClient, connectionId } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
 
     try {
       // Check for abort
@@ -543,7 +543,7 @@ export class ParallelChunkTransferManager {
         readStream.pipe(writeStream);
       });
     } finally {
-      this.connectionPool.releaseConnection(config);
+      this.connectionPool.releaseConnection(config, connectionId);
     }
   }
 
@@ -558,7 +558,7 @@ export class ParallelChunkTransferManager {
   ): Promise<void> {
     logger.info(`Merging ${totalChunks} chunks on remote server from /tmp directory...`);
     const connectConfig = this.buildConnectConfig(config, authConfig);
-    const { client } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+    const { client, connectionId } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
 
     try {
       // Build merge command
@@ -624,7 +624,7 @@ export class ParallelChunkTransferManager {
 
       await Promise.race([execPromise, timeoutPromise]);
     } finally {
-      this.connectionPool.releaseConnection(config);
+      this.connectionPool.releaseConnection(config, connectionId);
     }
   }
 
@@ -718,7 +718,7 @@ export class ParallelChunkTransferManager {
   ): Promise<void> {
     try {
       const connectConfig = this.buildConnectConfig(config, authConfig);
-      const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+      const { sftpClient, connectionId } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
       const fileName = path.basename(remotePath);
 
       for (let i = 0; i < totalChunks; i++) {
@@ -730,7 +730,7 @@ export class ParallelChunkTransferManager {
         }
       }
 
-      this.connectionPool.releaseConnection(config);
+      this.connectionPool.releaseConnection(config, connectionId);
     } catch (error: any) {
       logger.error(`Failed to cleanup remote chunks from /tmp: ${error.message}`);
     }
