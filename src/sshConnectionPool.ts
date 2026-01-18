@@ -32,10 +32,10 @@ export class SshConnectionPool {
   private static instance: SshConnectionPool;
   private pool: Map<string, PooledConnection[]> = new Map();
 
-  /** 每个主机的最大连接数 */
-  private readonly MAX_CONNECTIONS_PER_HOST = 10;
+  /** 每个主机的最大连接数 (略大于并发数,预留2个作为buffer) */
+  private readonly MAX_CONNECTIONS_PER_HOST = 7;
 
-  /** 连接空闲超时时间（毫秒）默认 5 分钟 */
+  /** 连接空闲超时时间(毫秒)默认 5 分钟 */
   private readonly IDLE_TIMEOUT = 5 * 60 * 1000;
 
   /** 清理定时器 */
