@@ -196,17 +196,25 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
             }
 
             const fullPath = path.join(dirPath, entry.name);
-            const stats = await fs.promises.stat(fullPath);
 
-            nodes.push({
-                name: entry.name,
-                path: fullPath,
-                isDirectory: entry.isDirectory(),
-                size: entry.isFile() ? stats.size : undefined,
-                modifiedTime: stats.mtime,
-                expanded: false,
-                children: entry.isDirectory() ? [] : undefined
-            });
+            // Try to get stats, skip files we can't access
+            try {
+                const stats = await fs.promises.stat(fullPath);
+
+                nodes.push({
+                    name: entry.name,
+                    path: fullPath,
+                    isDirectory: entry.isDirectory(),
+                    size: entry.isFile() ? stats.size : undefined,
+                    modifiedTime: stats.mtime,
+                    expanded: false,
+                    children: entry.isDirectory() ? [] : undefined
+                });
+            } catch (error) {
+                // Skip files/folders we don't have permission to access
+                logger.debug(`Skipping ${fullPath}: ${error}`);
+                continue;
+            }
         }
 
         return nodes.sort((a, b) => {
