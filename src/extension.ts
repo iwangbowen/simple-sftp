@@ -101,8 +101,8 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   logger.info('Dual panel webview view provider registered');
 
-  // Register command handler with transfer queue service
-  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider, transferQueueService);
+  // Register command handler with transfer queue service and dual panel provider
+  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider, transferQueueService, dualPanelProvider);
   commandHandler.registerCommands(context);
 
   // Register transfer queue commands

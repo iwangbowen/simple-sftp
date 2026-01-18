@@ -4,6 +4,7 @@ import { HostManager } from '../hostManager';
 import { AuthManager } from '../authManager';
 import { HostTreeProvider, HostTreeItem } from '../hostTreeProvider';
 import { HostConfig, HostAuthConfig, PathBookmark } from '../types';
+import { DualPanelViewProvider } from '../ui/dualPanelViewProvider';
 
 /**
  * Service for managing path bookmarks for hosts
@@ -19,7 +20,8 @@ export class BookmarkService {
       mode: 'selectPath' | 'browseFiles' | 'selectBookmark' | 'sync',
       title: string,
       initialPath?: string
-    ) => Promise<string | { path: string; isDirectory: boolean } | undefined>
+    ) => Promise<string | { path: string; isDirectory: boolean } | undefined>,
+    private readonly dualPanelProvider?: DualPanelViewProvider
   ) {}
 
   /**
@@ -198,7 +200,7 @@ export class BookmarkService {
   }
 
   /**
-   * Browse files from a bookmark
+   * Browse files from a bookmark using QuickPick
    */
   async browseBookmark(item: HostTreeItem): Promise<void> {
     if (item.type !== 'bookmark') {
@@ -238,5 +240,53 @@ export class BookmarkService {
       `Browse: ${bookmark.name}`,
       bookmark.path  // Use bookmark path as initial path
     );
+  }
+
+  /**
+   * Browse files from a bookmark using WebView (Dual Panel Browser)
+   */
+  async browseBookmarkWebview(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'bookmark') {
+      vscode.window.showWarningMessage('Please select a bookmark');
+      return;
+    }
+
+    if (!this.dualPanelProvider) {
+      vscode.window.showWarningMessage('Dual Panel Browser is not available');
+      return;
+    }
+
+    const bookmark = item.data as PathBookmark;
+    const hostId = item.hostId;
+
+    if (!hostId) {
+      return;
+    }
+
+    // Get host config
+    const hosts = await this.hostManager.getHosts();
+    const host = hosts.find(h => h.id === hostId);
+
+    if (!host) {
+      vscode.window.showWarningMessage('Host not found');
+      return;
+    }
+
+    // Check authentication
+    const authConfig = await this.authManager.getAuth(host.id);
+    if (!authConfig) {
+      vscode.window.showWarningMessage(`No authentication configured for ${host.name}`);
+      return;
+    }
+
+    // Open dual panel browser for the host with bookmark path
+    // We need to temporarily set the default remote path to the bookmark path
+    const originalDefaultPath = host.defaultRemotePath;
+    host.defaultRemotePath = bookmark.path;
+
+    await this.dualPanelProvider.openForHost(host);
+
+    // Restore original default path
+    host.defaultRemotePath = originalDefaultPath;
   }
 }

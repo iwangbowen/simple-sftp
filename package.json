@@ -245,7 +245,13 @@
       },
       {
         "command": "simpleSftp.browseBookmark",
-        "title": "Browse Files",
+        "title": "Browse Files (QuickPick)",
+        "category": "Simple SFTP",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "simpleSftp.browseBookmarkWebview",
+        "title": "Browse Files (WebView)",
         "category": "Simple SFTP",
         "icon": "$(folder-opened)"
       },
@@ -576,6 +582,10 @@
           "when": "false"
         },
         {
+          "command": "simpleSftp.browseBookmarkWebview",
+          "when": "false"
+        },
+        {
           "command": "simpleSftp.addHostToGroup",
           "when": "false"
         },
@@ -793,14 +803,19 @@
           "group": "9_danger@1"
         },
         {
-          "command": "simpleSftp.browseBookmark",
+          "command": "simpleSftp.browseBookmarkWebview",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "inline@1"
         },
         {
-          "command": "simpleSftp.renameBookmark",
+          "command": "simpleSftp.browseBookmark",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "inline@2"
+        },
+        {
+          "command": "simpleSftp.renameBookmark",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
+          "group": "inline@3"
         },
         {
           "command": "simpleSftp.editBookmarkDescription",

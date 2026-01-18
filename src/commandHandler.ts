@@ -13,6 +13,7 @@ import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/format
 import { BookmarkService } from './services/bookmarkService';
 import { RemoteBrowserService } from './services/remoteBrowserService';
 import { TransferQueueService } from './services/transferQueueService';
+import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS } from './constants';
 
 export class CommandHandler {
@@ -24,7 +25,8 @@ export class CommandHandler {
     private readonly hostManager: HostManager,
     private readonly authManager: AuthManager,
     private readonly treeProvider: HostTreeProvider,
-    private readonly transferQueueService?: TransferQueueService
+    private readonly transferQueueService?: TransferQueueService,
+    private readonly dualPanelProvider?: DualPanelViewProvider
   ) {
     // Create status bar item for download progress
     this.downloadStatusBar = vscode.window.createStatusBarItem(
@@ -44,7 +46,8 @@ export class CommandHandler {
       hostManager,
       authManager,
       treeProvider,
-      this.remoteBrowserService.browseRemoteFilesGeneric.bind(this.remoteBrowserService)
+      this.remoteBrowserService.browseRemoteFilesGeneric.bind(this.remoteBrowserService),
+      dualPanelProvider
     );
   }
 
@@ -126,6 +129,9 @@ export class CommandHandler {
       ),
       vscode.commands.registerCommand('simpleSftp.browseBookmark', (item: HostTreeItem) =>
         this.bookmarkService.browseBookmark(item)
+      ),
+      vscode.commands.registerCommand('simpleSftp.browseBookmarkWebview', (item: HostTreeItem) =>
+        this.bookmarkService.browseBookmarkWebview(item)
       ),
       vscode.commands.registerCommand('simpleSftp.refresh', () => this.refresh()),
       vscode.commands.registerCommand('simpleSftp.showLogs', () => this.showLogs()),
