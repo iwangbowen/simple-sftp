@@ -376,6 +376,7 @@ export class ParallelChunkTransferManager {
     maxConcurrent: number,
     processor: (item: T) => Promise<void>
   ): Promise<void> {
+    logger.info(`[ProcessBatches] Starting: ${items.length} items, maxConcurrent=${maxConcurrent}`);
     let index = 0;
     const executing: Promise<void>[] = [];
 
@@ -383,24 +384,43 @@ export class ParallelChunkTransferManager {
       // Start new tasks up to maxConcurrent
       while (executing.length < maxConcurrent && index < items.length) {
         const item = items[index++];
+        logger.info(`[ProcessBatches] Starting task #${index} (${executing.length + 1}/${maxConcurrent} concurrent)`);
+
+        const taskIndex = index;
+        const startTime = Date.now();
         const promise = processor(item).then(() => {
+          const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+          logger.info(`[ProcessBatches] Task #${taskIndex} completed in ${duration}s (${executing.length - 1} remaining)`);
+
           // Remove from executing array when done
           const idx = executing.indexOf(promise);
           if (idx > -1) {
             executing.splice(idx, 1);
           }
+        }).catch((error) => {
+          logger.error(`[ProcessBatches] Task #${taskIndex} failed:`, error as Error);
+          const idx = executing.indexOf(promise);
+          if (idx > -1) {
+            executing.splice(idx, 1);
+          }
+          throw error;
         });
+
         executing.push(promise);
       }
 
       // Wait for at least one task to complete before starting new ones
       if (executing.length > 0) {
+        logger.debug(`[ProcessBatches] Waiting for one of ${executing.length} tasks to complete...`);
         await Promise.race(executing);
       }
     }
 
     // Wait for all remaining tasks to complete
+    logger.info(`[ProcessBatches] All tasks started, waiting for ${executing.length} remaining tasks...`);
     await Promise.all(executing);
+
+    logger.info(`[ProcessBatches] All tasks completed`);
   }
 
   /**

@@ -87,7 +87,9 @@ export class SshConnectionPool {
 
     if (available) {
       // 复用现有连接
-      logger.info(`[ConnectionPool] Reusing connection for ${config.name} (${connections.filter(c => c.inUse).length}/${connections.length} in use)`);
+      const readyCount = connections.filter(c => c.isReady).length;
+      const inUseCount = connections.filter(c => c.isReady && c.inUse).length;
+      logger.info(`[ConnectionPool] Reusing connection for ${config.name} (${inUseCount + 1}/${readyCount} in use)`);
       available.inUse = true;
       available.lastUsed = Date.now();
 
@@ -110,22 +112,50 @@ export class SshConnectionPool {
       return this.waitForConnection(config, authConfig, connectConfig);
     }
 
-    // 创建新连接
-    logger.info(`[ConnectionPool] Creating new connection for ${config.name} (${connections.length + 1}/${this.MAX_CONNECTIONS_PER_HOST})`);
-    const { client, sftpClient } = await this.createNewConnection(
-      config,
-      authConfig,
-      connectConfig
-    );
-
-    // 添加到连接池
-    const pooledConn = this.addToPool(key, client, sftpClient, config);
-
-    return {
-      client,
-      sftpClient,
-      connectionId: this.getConnectionId(pooledConn)
+    // 创建占位符,防止竞态条件
+    const placeholder: PooledConnection = {
+      client: null as any,
+      sftpClient: null,
+      hostId: config.id,
+      config: {} as ConnectConfig,
+      lastUsed: Date.now(),
+      inUse: true,
+      isReady: false  // 标记为未就绪
     };
+    connections.push(placeholder);
+    this.pool.set(key, connections);
+
+    const connIndex = connections.length;
+    logger.info(`[ConnectionPool] Creating new connection for ${config.name} (${connIndex}/${this.MAX_CONNECTIONS_PER_HOST})`);
+
+    try {
+      // 创建新连接
+      const { client, sftpClient } = await this.createNewConnection(
+        config,
+        authConfig,
+        connectConfig
+      );
+
+      // 更新占位符为真实连接
+      placeholder.client = client;
+      placeholder.sftpClient = sftpClient;
+      placeholder.isReady = true;
+
+      logger.info(`[ConnectionPool] Connection ${connIndex} ready for ${config.name}. Total: ${connections.length}`);
+
+      return {
+        client,
+        sftpClient,
+        connectionId: this.getConnectionId(placeholder)
+      };
+    } catch (error) {
+      // 创建失败,移除占位符
+      const idx = connections.indexOf(placeholder);
+      if (idx > -1) {
+        connections.splice(idx, 1);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -136,6 +166,8 @@ export class SshConnectionPool {
     authConfig: HostAuthConfig,
     connectConfig: ConnectConfig
   ): Promise<{ client: Client; sftpClient: SftpClient; connectionId: string }> {
+    logger.info(`[ConnectionPool] Waiting for available connection for ${config.name}...`);
+
     // 简单的重试逻辑,每 100ms 检查一次
     for (let i = 0; i < 50; i++) {
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -146,7 +178,9 @@ export class SshConnectionPool {
       if (connections) {
         const available = connections.find(conn => conn.isReady && !conn.inUse);
         if (available) {
-          logger.info(`[ConnectionPool] Connection became available for ${config.name}`);
+          const readyCount = connections.filter(c => c.isReady).length;
+          const inUseCount = connections.filter(c => c.isReady && c.inUse).length;
+          logger.info(`[ConnectionPool] Connection became available for ${config.name} (${inUseCount + 1}/${readyCount} in use)`);
           available.inUse = true;
           available.lastUsed = Date.now();
 
