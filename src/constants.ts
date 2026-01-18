@@ -28,15 +28,18 @@ export const PARALLEL_TRANSFER = {
 
 /**
  * Get parallel transfer configuration from VS Code settings
+ * Configuration values are in MB, converted to bytes internally
  */
 export function getParallelTransferConfig() {
   const vscode = require('vscode');
   const config = vscode.workspace.getConfiguration('simpleSftp.parallelTransfer');
 
+  const MB = 1024 * 1024;
+
   return {
     enabled: config.get<boolean>('enabled', PARALLEL_TRANSFER.ENABLED),
-    threshold: config.get<number>('threshold', PARALLEL_TRANSFER.THRESHOLD),
-    chunkSize: config.get<number>('chunkSize', PARALLEL_TRANSFER.CHUNK_SIZE),
+    threshold: config.get<number>('threshold', PARALLEL_TRANSFER.THRESHOLD / MB) * MB,
+    chunkSize: config.get<number>('chunkSize', PARALLEL_TRANSFER.CHUNK_SIZE / MB) * MB,
     maxConcurrent: config.get<number>('maxConcurrent', PARALLEL_TRANSFER.MAX_CONCURRENT),
   };
 }

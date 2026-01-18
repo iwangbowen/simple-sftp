@@ -275,10 +275,11 @@ export class FileIntegrityChecker {
    */
   static getOptionsFromConfig(): ChecksumOptions {
     const config = vscode.workspace.getConfiguration('simpleSftp.verification');
+    const MB = 1024 * 1024;
     return {
       enabled: config.get<boolean>('enabled', false),
       algorithm: config.get<'md5' | 'sha256'>('algorithm', 'sha256'),
-      threshold: config.get<number>('threshold', 10 * 1024 * 1024)
+      threshold: config.get<number>('threshold', 10) * MB  // Config in MB, convert to bytes
     };
   }
 }

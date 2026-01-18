@@ -976,9 +976,9 @@
         },
         "simpleSftp.verification.threshold": {
           "type": "number",
-          "default": 10485760,
+          "default": 10,
           "minimum": 0,
-          "description": "Minimum file size (in bytes) for checksum verification. Default: 10MB. Set to 0 to verify all files."
+          "description": "Minimum file size (in MB) for checksum verification. Default: 10 MB. Set to 0 to verify all files."
         },
         "simpleSftp.ui.hideStatusBar": {
           "type": "boolean",
@@ -1007,16 +1007,16 @@
         },
         "simpleSftp.parallelTransfer.threshold": {
           "type": "number",
-          "default": 104857600,
-          "minimum": 10485760,
-          "description": "Minimum file size (in bytes) to trigger parallel transfer. Default: 100MB (104857600 bytes). Files smaller than this will use single-connection transfer."
+          "default": 100,
+          "minimum": 10,
+          "description": "Minimum file size (in MB) to trigger parallel transfer. Default: 100 MB. Files smaller than this will use single-connection transfer."
         },
         "simpleSftp.parallelTransfer.chunkSize": {
           "type": "number",
-          "default": 10485760,
-          "minimum": 1048576,
-          "maximum": 52428800,
-          "description": "Size of each chunk in parallel transfer (in bytes). Default: 10MB (10485760 bytes). Larger chunks may be faster but use more memory. Range: 1MB - 50MB."
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Size of each chunk in parallel transfer (in MB). Default: 10 MB. Larger chunks may be faster but use more memory. Range: 1-50 MB."
         },
         "simpleSftp.parallelTransfer.maxConcurrent": {
           "type": "number",
