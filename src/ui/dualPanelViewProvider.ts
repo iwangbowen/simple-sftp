@@ -321,7 +321,7 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
     // ===== Other Operations =====
 
     private async handleRequestFolderName(data: any): Promise<void> {
-        const { panel } = data;
+        const { panel, currentPath } = data;
 
         // Show input box to get folder name
         const folderName = await vscode.window.showInputBox({
@@ -342,12 +342,16 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
             return; // User cancelled
         }
 
-        // Get current path for the panel (use current directory, not root)
-        let parentPath: string | undefined;
-        if (panel === 'local') {
-            parentPath = this._localRootPath;
-        } else {
-            parentPath = this._remoteRootPath;
+        // Use current path from frontend (the directory currently being viewed)
+        let parentPath: string | undefined = currentPath;
+
+        // Fallback to root path if currentPath is not provided
+        if (!parentPath) {
+            if (panel === 'local') {
+                parentPath = this._localRootPath;
+            } else {
+                parentPath = this._remoteRootPath;
+            }
         }
 
         if (!parentPath) {

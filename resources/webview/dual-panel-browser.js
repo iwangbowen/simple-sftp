@@ -488,10 +488,11 @@
     }
 
     function createFolder(panel) {
-        // Send request to extension to show input box
+        // Send current directory path to backend
+        const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
         vscode.postMessage({
             command: 'requestFolderName',
-            data: { panel }
+            data: { panel, currentPath }
         });
     }
 
