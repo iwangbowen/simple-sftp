@@ -282,6 +282,7 @@ export class TransferQueueService extends EventEmitter {
           task.abortController?.signal
         );
       } else {
+        logger.info(`🚀 Starting downloadFile for task ${task.id}: ${task.remotePath} -> ${task.localPath}`);
         await SshConnectionManager.downloadFile(
           host,
           authConfig,
@@ -292,10 +293,12 @@ export class TransferQueueService extends EventEmitter {
             this._onTaskUpdated.fire(task);
           },
           task.abortController?.signal,
-          task.transferred // 从已传输的位置开始（断点续传）
+          task.transferred // 从已传输的位置开始(断点续传)
         );
+        logger.info(`✅ downloadFile completed for task ${task.id}: ${task.remotePath}`);
       }
     }
+    logger.info(`🎯 performTransfer finished for task ${task.id}, returning to executeTask`);
   }
 
   /**

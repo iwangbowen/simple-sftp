@@ -68,8 +68,11 @@ export class AttributePreservingTransfer {
     if (remoteStat.isSymbolicLink) {
       await this.handleRemoteSymbolicLink(sftp, remotePath, localPath, options);
     } else if (remoteStat.isFile) {
-      // Download the file
-      await sftp.fastGet(remotePath, localPath);
+      // Check if file already exists (from parallel download)
+      if (!fs.existsSync(localPath)) {
+        // Download the file only if it doesn't exist
+        await sftp.fastGet(remotePath, localPath);
+      }
 
       if (options.preservePermissions || options.preserveTimestamps) {
         await this.applyAttributesToLocal(localPath, remoteStat, options);

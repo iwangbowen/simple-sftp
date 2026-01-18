@@ -569,33 +569,61 @@ export class ParallelChunkTransferManager {
       for (let i = 0; i < totalChunks; i++) {
         // Read from temp directory
         const chunkPath = path.join(tempDir, `${fileName}.part${i}`);
-        const readStream = fs.createReadStream(chunkPath);
 
-        await new Promise((resolve, reject) => {
-          readStream.on('end', () => resolve(undefined));
+        // Use a promise that resolves when the chunk is fully written
+        await new Promise<void>((resolve, reject) => {
+          const readStream = fs.createReadStream(chunkPath);
+
           readStream.on('error', reject);
           writeStream.on('error', reject);
+
+          // For last chunk, let pipe close the writeStream
+          // For other chunks, keep writeStream open
           readStream.pipe(writeStream, { end: i === totalChunks - 1 });
+
+          // Wait for readStream to finish reading
+          readStream.on('end', () => {
+            // Give pipe a moment to flush
+            setImmediate(() => resolve());
+          });
         });
 
         // Delete chunk from temp directory after merging
-        fs.unlinkSync(chunkPath);
-        logger.debug(`Merged and deleted chunk ${i + 1}/${totalChunks} from temp directory`);
+        try {
+          fs.unlinkSync(chunkPath);
+          logger.debug(`Merged and deleted chunk ${i + 1}/${totalChunks} from temp directory`);
+        } catch (unlinkError) {
+          logger.warn(`Failed to delete chunk ${i}: ${unlinkError}`);
+        }
       }
 
-      // Wait for writeStream to finish if it hasn't been closed yet
-      if (!writeStream.writableEnded) {
-        await new Promise((resolve, reject) => {
-          writeStream.on('finish', resolve);
+      // Wait for writeStream to finish
+      if (!writeStream.closed) {
+        await new Promise<void>((resolve, reject) => {
+          writeStream.on('finish', () => {
+            logger.debug('WriteStream finished event received');
+            resolve();
+          });
+          writeStream.on('close', () => {
+            logger.debug('WriteStream close event received');
+            resolve();
+          });
           writeStream.on('error', reject);
-          writeStream.end();
+
+          // If writeStream is not already ending, end it now
+          if (!writeStream.writableEnded) {
+            logger.debug('Explicitly ending writeStream');
+            writeStream.end();
+          }
         });
       }
 
       logger.info(`✓ Chunks merged successfully locally from temp directory`);
     } catch (error) {
       // Clean up write stream on error
-      writeStream.destroy();
+      if (!writeStream.destroyed) {
+        writeStream.destroy();
+      }
       throw error;
     }
   }

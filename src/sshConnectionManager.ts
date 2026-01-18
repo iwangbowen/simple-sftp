@@ -487,8 +487,11 @@ export class SshConnectionManager {
         }
 
         // Preserve file attributes if enabled (after parallel download)
+        logger.info(`✅ Parallel download completed successfully for: ${remotePath}`);
         const attributeOptions = AttributePreservingTransfer.getOptionsFromConfig();
+        logger.info(`Attribute preservation options: ${JSON.stringify(attributeOptions)}`);
         if (attributeOptions.preservePermissions || attributeOptions.preserveTimestamps) {
+          logger.info(`Starting attribute preservation for ${localPath}...`);
           await this.withConnection(config, authConfig, async (sftp) => {
             try {
               await AttributePreservingTransfer.downloadWithAttributes(
@@ -497,6 +500,7 @@ export class SshConnectionManager {
                 localPath,
                 attributeOptions
               );
+              logger.info(`✅ Attributes preserved successfully for ${localPath}`);
             } catch (error) {
               logger.warn(`Failed to preserve attributes for ${localPath}: ${error}`);
               // Don't fail the download if attribute preservation fails
@@ -504,6 +508,7 @@ export class SshConnectionManager {
           });
         }
 
+        logger.info(`🎯 About to return from downloadFile after parallel download: ${remotePath}`);
         return;
       } else {
         logger.info(`Using standard transfer - File size ${fileSizeMB}MB is below threshold ${thresholdMB}MB`);
