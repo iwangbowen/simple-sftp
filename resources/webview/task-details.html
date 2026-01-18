@@ -578,6 +578,9 @@
         failed: true
       };
 
+      // Cache last chunk data to avoid unnecessary re-renders
+      let lastChunkData = null;
+
       function updateChunkProgress(chunks) {
         const chunkProgressSection = document.getElementById('chunkProgressSection');
         const chunkList = document.getElementById('chunkList');
@@ -585,10 +588,38 @@
 
         if (!chunks || chunks.length === 0) {
           chunkProgressSection.style.display = 'none';
+          lastChunkData = null;
           return;
         }
 
         chunkProgressSection.style.display = 'block';
+
+        // Check if chunks structure changed (count or status distribution changed)
+        const chunkSignature = JSON.stringify(chunks.map(c => ({ index: c.index, status: c.status })));
+        if (lastChunkData === chunkSignature) {
+          // Only update progress values, not structure
+          chunks.forEach(chunk => {
+            const chunkItem = document.getElementById(`chunk-${chunk.index}`);
+            if (chunkItem) {
+              const progress = chunk.size > 0 ? (chunk.transferred / chunk.size) * 100 : 0;
+              const progressFill = chunkItem.querySelector('.chunk-progress-fill');
+              const sizeText = chunkItem.querySelector('.chunk-size');
+              const speedText = chunkItem.querySelector('.chunk-speed');
+
+              if (progressFill) progressFill.style.width = `${progress.toFixed(1)}%`;
+              if (sizeText) sizeText.textContent = `${formatBytes(chunk.transferred)} / ${formatBytes(chunk.size)}`;
+              if (speedText) speedText.textContent = formatSpeed(chunk.speed || 0);
+            }
+          });
+
+          // Update summary
+          const completedCount = chunks.filter(c => c.status === 'completed').length;
+          chunkSummary.textContent = `${completedCount} / ${chunks.length} completed`;
+          return;
+        }
+
+        // Structure changed, rebuild everything
+        lastChunkData = chunkSignature;
 
         // Group chunks by status
         const grouped = {
