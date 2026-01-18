@@ -101,6 +101,11 @@ export class ParallelChunkTransferManager {
     logger.info(`  Max concurrent: ${opts.maxConcurrent} connections`);
     logger.info(`  Remote path: ${remotePath}`);
 
+    // Send initial progress to set the total file size in the task
+    if (onProgress) {
+      onProgress(0, fileSize);
+    }
+
     // Progress tracking
     const chunkProgress: ChunkProgress = {};
     chunks.forEach(chunk => chunkProgress[chunk.index] = 0);
@@ -218,7 +223,15 @@ export class ParallelChunkTransferManager {
 
     const fileSize = stat.size;
     const chunks = this.splitIntoChunks(fileSize, opts.chunkSize);
+    const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
     logger.info(`Downloading ${path.basename(remotePath)} in ${chunks.length} chunks with ${opts.maxConcurrent} concurrent transfers`);
+    logger.info(`File size: ${fileSize} bytes (${fileSizeMB}MB)`);
+
+    // Send initial progress to set the total file size in the task
+    if (onProgress) {
+      logger.info(`Sending initial progress: 0/${fileSize} bytes`);
+      onProgress(0, fileSize);
+    }
 
     // Progress tracking
     const chunkProgress: ChunkProgress = {};
@@ -277,18 +290,38 @@ export class ParallelChunkTransferManager {
 
   /**
    * Process chunks in batches with concurrency control
+   * Uses a sliding window approach to maintain maxConcurrent tasks running at all times
    */
   private async processBatches<T>(
     items: T[],
     maxConcurrent: number,
     processor: (item: T) => Promise<void>
   ): Promise<void> {
-    const results: Promise<void>[] = [];
+    let index = 0;
+    const executing: Promise<void>[] = [];
 
-    for (let i = 0; i < items.length; i += maxConcurrent) {
-      const batch = items.slice(i, Math.min(i + maxConcurrent, items.length));
-      await Promise.all(batch.map(item => processor(item)));
+    while (index < items.length) {
+      // Start new tasks up to maxConcurrent
+      while (executing.length < maxConcurrent && index < items.length) {
+        const item = items[index++];
+        const promise = processor(item).then(() => {
+          // Remove from executing array when done
+          const idx = executing.indexOf(promise);
+          if (idx > -1) {
+            executing.splice(idx, 1);
+          }
+        });
+        executing.push(promise);
+      }
+
+      // Wait for at least one task to complete before starting new ones
+      if (executing.length > 0) {
+        await Promise.race(executing);
+      }
     }
+
+    // Wait for all remaining tasks to complete
+    await Promise.all(executing);
   }
 
   /**
@@ -532,23 +565,39 @@ export class ParallelChunkTransferManager {
     const tempDir = os.tmpdir();
     const fileName = path.basename(localPath);
 
-    for (let i = 0; i < totalChunks; i++) {
-      // Read from temp directory
-      const chunkPath = path.join(tempDir, `${fileName}.part${i}`);
-      const readStream = fs.createReadStream(chunkPath);
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        // Read from temp directory
+        const chunkPath = path.join(tempDir, `${fileName}.part${i}`);
+        const readStream = fs.createReadStream(chunkPath);
 
-      await new Promise((resolve, reject) => {
-        readStream.on('end', () => resolve(undefined));
-        readStream.on('error', reject);
-        readStream.pipe(writeStream, { end: i === totalChunks - 1 });
-      });
+        await new Promise((resolve, reject) => {
+          readStream.on('end', () => resolve(undefined));
+          readStream.on('error', reject);
+          writeStream.on('error', reject);
+          readStream.pipe(writeStream, { end: i === totalChunks - 1 });
+        });
 
-      // Delete chunk from temp directory after merging
-      fs.unlinkSync(chunkPath);
-      logger.debug(`Merged and deleted chunk ${i + 1}/${totalChunks} from temp directory`);
+        // Delete chunk from temp directory after merging
+        fs.unlinkSync(chunkPath);
+        logger.debug(`Merged and deleted chunk ${i + 1}/${totalChunks} from temp directory`);
+      }
+
+      // Wait for writeStream to finish if it hasn't been closed yet
+      if (!writeStream.writableEnded) {
+        await new Promise((resolve, reject) => {
+          writeStream.on('finish', resolve);
+          writeStream.on('error', reject);
+          writeStream.end();
+        });
+      }
+
+      logger.info(`✓ Chunks merged successfully locally from temp directory`);
+    } catch (error) {
+      // Clean up write stream on error
+      writeStream.destroy();
+      throw error;
     }
-
-    logger.info(`✓ Chunks merged successfully locally from temp directory`);
   }
 
   /**

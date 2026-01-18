@@ -109,8 +109,12 @@ createdAt!: Date;
     if (total > 0) {
       this.progress = Math.min(100, (transferred / total) * 100);
 
-      // Update file size and recalculate priority if it wasn't known
-      if (this.fileSize === 0 && total > 0) {
+      // Update file size if it wasn't known or if the total has changed (e.g., during parallel transfer)
+      // For parallel transfers, we need to update fileSize when we first learn the actual file size
+      if (this.fileSize === 0 || (total > this.fileSize && total > 0)) {
+        if (this.fileSize !== total) {
+          logger.info(`Task ${this.id}: Updating file size from ${this.fileSize} to ${total} bytes`);
+        }
         this.fileSize = total;
         this.priority = this.calculatePriority(total);
       }
