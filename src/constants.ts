@@ -19,11 +19,27 @@ export const TIMING = {
 } as const;
 
 export const PARALLEL_TRANSFER = {
+  // Default values (can be overridden by configuration)
   CHUNK_SIZE: 10 * 1024 * 1024,        // 10MB per chunk
   MAX_CONCURRENT: 5,                    // Maximum concurrent chunk transfers
   THRESHOLD: 100 * 1024 * 1024,         // Minimum file size to use parallel transfer (100MB)
   ENABLED: true,                        // Enable/disable parallel transfer feature
 } as const;
+
+/**
+ * Get parallel transfer configuration from VS Code settings
+ */
+export function getParallelTransferConfig() {
+  const vscode = require('vscode');
+  const config = vscode.workspace.getConfiguration('simpleSftp.parallelTransfer');
+
+  return {
+    enabled: config.get<boolean>('enabled', PARALLEL_TRANSFER.ENABLED),
+    threshold: config.get<number>('threshold', PARALLEL_TRANSFER.THRESHOLD),
+    chunkSize: config.get<number>('chunkSize', PARALLEL_TRANSFER.CHUNK_SIZE),
+    maxConcurrent: config.get<number>('maxConcurrent', PARALLEL_TRANSFER.MAX_CONCURRENT),
+  };
+}
 
 export const DELTA_SYNC = {
   ENABLED: true,                        // Enable/disable delta sync (skip unchanged files)

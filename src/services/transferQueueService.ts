@@ -13,6 +13,7 @@ import { EventEmitter } from 'events';
 import { SshConnectionManager } from '../sshConnectionManager';
 import { HostManager } from '../hostManager';
 import { AuthManager } from '../authManager';
+import { getParallelTransferConfig } from '../constants';
 /**
  * Transfer Queue Service
  * Manages file transfer queue with concurrency control
@@ -289,11 +290,11 @@ export class TransferQueueService extends EventEmitter {
 
         // Initialize chunk progress if this might be a parallel download
         const initializeChunks = (fileSize: number) => {
-          if (!chunksInitialized && fileSize > 100 * 1024 * 1024) { // 100MB threshold
-            const chunkSize = 10 * 1024 * 1024; // 10MB per chunk
-            const totalChunks = Math.ceil(fileSize / chunkSize);
-            logger.info(`Initializing ${totalChunks} chunks for file size: ${fileSize} bytes`);
-            task.initializeChunkProgress(totalChunks, chunkSize, fileSize);
+          const parallelConfig = getParallelTransferConfig();
+          if (!chunksInitialized && parallelConfig.enabled && fileSize > parallelConfig.threshold) {
+            const totalChunks = Math.ceil(fileSize / parallelConfig.chunkSize);
+            logger.info(`Initializing ${totalChunks} chunks for file size: ${fileSize} bytes (chunk size: ${parallelConfig.chunkSize / 1024 / 1024}MB)`);
+            task.initializeChunkProgress(totalChunks, parallelConfig.chunkSize, fileSize);
             chunksInitialized = true;
             this._onTaskUpdated.fire(task);
           }

@@ -8,7 +8,7 @@ import { HostConfig, HostAuthConfig } from './types';
 import {ChunkProgressCallback, ParallelChunkTransferManager} from './parallelChunkTransfer';
 import { SshConnectionPool } from './sshConnectionPool';
 import { logger } from './logger';
-import { PARALLEL_TRANSFER, DELTA_SYNC } from './constants';
+import { PARALLEL_TRANSFER, DELTA_SYNC, getParallelTransferConfig } from './constants';
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
 import { DeltaSyncManager } from './services/deltaSyncManager';
 import { AttributePreservingTransfer } from './attributePreservingTransfer';
@@ -157,16 +157,19 @@ export class SshConnectionManager {
 
     if (PARALLEL_TRANSFER.ENABLED && startOffset === 0) {
       const stat = fs.statSync(localPath);
+      // Get parallel transfer configuration
+      const parallelConfig = getParallelTransferConfig();
+
       const fileSizeMB = (stat.size / 1024 / 1024).toFixed(2);
-      const thresholdMB = (PARALLEL_TRANSFER.THRESHOLD / 1024 / 1024).toFixed(2);
+      const thresholdMB = (parallelConfig.threshold / 1024 / 1024).toFixed(2);
 
-      logger.info(`Parallel transfer check - File size: ${fileSizeMB}MB, Threshold: ${thresholdMB}MB, Enabled: ${PARALLEL_TRANSFER.ENABLED}`);
+      logger.info(`Parallel transfer check - File size: ${fileSizeMB}MB, Threshold: ${thresholdMB}MB, Enabled: ${parallelConfig.enabled}`);
 
-      if (this.parallelTransferManager.shouldUseParallelTransfer(stat.size, {
-        threshold: PARALLEL_TRANSFER.THRESHOLD
+      if (parallelConfig.enabled && this.parallelTransferManager.shouldUseParallelTransfer(stat.size, {
+        threshold: parallelConfig.threshold
       })) {
         logger.info(`🚀 Using parallel transfer for large file: ${path.basename(localPath)} (${fileSizeMB}MB)`);
-        logger.info(`Configuration - Chunk size: ${PARALLEL_TRANSFER.CHUNK_SIZE / 1024 / 1024}MB, Max concurrent: ${PARALLEL_TRANSFER.MAX_CONCURRENT}`);
+        logger.info(`Configuration - Chunk size: ${parallelConfig.chunkSize / 1024 / 1024}MB, Max concurrent: ${parallelConfig.maxConcurrent}`);
 
         await this.parallelTransferManager.uploadFileParallel(
           config,
@@ -174,9 +177,9 @@ export class SshConnectionManager {
           localPath,
           remotePath,
           {
-            chunkSize: PARALLEL_TRANSFER.CHUNK_SIZE,
-            maxConcurrent: PARALLEL_TRANSFER.MAX_CONCURRENT,
-            threshold: PARALLEL_TRANSFER.THRESHOLD,
+            chunkSize: parallelConfig.chunkSize,
+            maxConcurrent: parallelConfig.maxConcurrent,
+            threshold: parallelConfig.threshold,
             onProgress,
             signal
             // onChunkProgress will be added later when connecting to TransferTask
@@ -459,22 +462,25 @@ export class SshConnectionManager {
     // Check if we should use parallel transfer
     logger.info(`Download check - File: ${path.basename(remotePath)}, Offset: ${startOffset}`);
 
-    if (PARALLEL_TRANSFER.ENABLED && startOffset === 0) {
+    // Get parallel transfer configuration
+    const parallelConfig = getParallelTransferConfig();
+
+    if (parallelConfig.enabled && startOffset === 0) {
       // Get remote file size first
       const stat = await this.withConnection(config, authConfig, async (sftp) => {
         return sftp.stat(remotePath);
       });
 
       const fileSizeMB = (stat.size / 1024 / 1024).toFixed(2);
-      const thresholdMB = (PARALLEL_TRANSFER.THRESHOLD / 1024 / 1024).toFixed(2);
+      const thresholdMB = (parallelConfig.threshold / 1024 / 1024).toFixed(2);
 
-      logger.info(`Parallel transfer check - File size: ${fileSizeMB}MB, Threshold: ${thresholdMB}MB, Enabled: ${PARALLEL_TRANSFER.ENABLED}`);
+      logger.info(`Parallel transfer check - File size: ${fileSizeMB}MB, Threshold: ${thresholdMB}MB, Enabled: ${parallelConfig.enabled}`);
 
       if (this.parallelTransferManager.shouldUseParallelTransfer(stat.size, {
-        threshold: PARALLEL_TRANSFER.THRESHOLD
+        threshold: parallelConfig.threshold
       })) {
         logger.info(`🚀 Using parallel transfer for large file: ${path.basename(remotePath)} (${fileSizeMB}MB)`);
-        logger.info(`Configuration - Chunk size: ${PARALLEL_TRANSFER.CHUNK_SIZE / 1024 / 1024}MB, Max concurrent: ${PARALLEL_TRANSFER.MAX_CONCURRENT}`);
+        logger.info(`Configuration - Chunk size: ${parallelConfig.chunkSize / 1024 / 1024}MB, Max concurrent: ${parallelConfig.maxConcurrent}`);
 
         await this.parallelTransferManager.downloadFileParallel(
           config,
@@ -482,9 +488,9 @@ export class SshConnectionManager {
           remotePath,
           localPath,
           {
-            chunkSize: PARALLEL_TRANSFER.CHUNK_SIZE,
-            maxConcurrent: PARALLEL_TRANSFER.MAX_CONCURRENT,
-            threshold: PARALLEL_TRANSFER.THRESHOLD,
+            chunkSize: parallelConfig.chunkSize,
+            maxConcurrent: parallelConfig.maxConcurrent,
+            threshold: parallelConfig.threshold,
             onProgress,
             signal,
             onChunkProgress
