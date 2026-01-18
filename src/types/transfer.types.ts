@@ -24,6 +24,26 @@ export type TransferType = 'upload' | 'download';
 export type TransferPriority = 'high' | 'normal' | 'low';
 
 /**
+ * Chunk status for parallel transfer
+ */
+export type ChunkStatus = 'pending' | 'downloading' | 'completed' | 'failed';
+
+/**
+ * Chunk progress information for parallel transfer
+ */
+export interface ChunkProgress {
+  index: number;                     // Chunk index (0-based)
+  start: number;                     // Start byte position
+  end: number;                       // End byte position
+  size: number;                      // Chunk size in bytes
+  transferred: number;               // Bytes transferred for this chunk
+  status: ChunkStatus;               // Current status
+  speed: number;                     // Current speed in bytes/sec
+  startTime?: number;                // Timestamp when download started
+  endTime?: number;                  // Timestamp when download completed
+}
+
+/**
  * Transfer direction for display
  */
 export type TransferDirection = 'to' | 'from';
@@ -53,6 +73,9 @@ export interface TransferTask {
   transferred: number;               // Bytes transferred
   speed: number;                     // Current speed in bytes/sec
   progress: number;                  // Progress percentage (0-100)
+
+  // Chunk progress (for parallel transfers)
+  chunkProgress?: ChunkProgress[];   // Progress for each chunk (parallel transfer only)
 
   // Timing information
   createdAt: Date;                   // When task was created

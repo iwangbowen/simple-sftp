@@ -5,13 +5,33 @@ import { Client, ConnectConfig } from 'ssh2';
 // @ts-ignore
 import SftpClient from 'ssh2-sftp-client';
 import { HostConfig, HostAuthConfig } from './types';
+import {ChunkProgressCallback, ParallelChunkTransferManager} from './parallelChunkTransfer';
 import { SshConnectionPool } from './sshConnectionPool';
 import { logger } from './logger';
-import { ParallelChunkTransferManager } from './parallelChunkTransfer';
 import { PARALLEL_TRANSFER, DELTA_SYNC } from './constants';
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
 import { DeltaSyncManager } from './services/deltaSyncManager';
 import { AttributePreservingTransfer } from './attributePreservingTransfer';
+
+/**
+ * Download file options
+ */
+export interface DownloadFileOptions {
+  onProgress?: (transferred: number, total: number) => void;
+  signal?: AbortSignal;
+  startOffset?: number;
+  onChunkProgress?: ChunkProgressCallback;
+}
+
+/**
+ * Upload file options
+ */
+export interface UploadFileOptions {
+  onProgress?: (transferred: number, total: number) => void;
+  signal?: AbortSignal;
+  startOffset?: number;
+  onChunkProgress?: ChunkProgressCallback;
+}
 
 /**
  * SSH 连接管理器
@@ -153,12 +173,13 @@ export class SshConnectionManager {
           authConfig,
           localPath,
           remotePath,
-          onProgress,
-          signal,
           {
             chunkSize: PARALLEL_TRANSFER.CHUNK_SIZE,
             maxConcurrent: PARALLEL_TRANSFER.MAX_CONCURRENT,
-            threshold: PARALLEL_TRANSFER.THRESHOLD
+            threshold: PARALLEL_TRANSFER.THRESHOLD,
+            onProgress,
+            signal
+            // onChunkProgress will be added later when connecting to TransferTask
           }
         );
 
@@ -427,10 +448,14 @@ export class SshConnectionManager {
     authConfig: HostAuthConfig,
     remotePath: string,
     localPath: string,
-    onProgress?: (transferred: number, total: number) => void,
-    signal?: AbortSignal,
-    startOffset: number = 0
+    options?: DownloadFileOptions
   ): Promise<void> {
+    const {
+      onProgress,
+      signal,
+      startOffset = 0,
+      onChunkProgress
+    } = options || {};
     // Check if we should use parallel transfer
     logger.info(`Download check - File: ${path.basename(remotePath)}, Offset: ${startOffset}`);
 
@@ -456,12 +481,13 @@ export class SshConnectionManager {
           authConfig,
           remotePath,
           localPath,
-          onProgress,
-          signal,
           {
             chunkSize: PARALLEL_TRANSFER.CHUNK_SIZE,
             maxConcurrent: PARALLEL_TRANSFER.MAX_CONCURRENT,
-            threshold: PARALLEL_TRANSFER.THRESHOLD
+            threshold: PARALLEL_TRANSFER.THRESHOLD,
+            onProgress,
+            signal,
+            onChunkProgress
           }
         );
 

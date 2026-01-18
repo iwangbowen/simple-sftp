@@ -283,17 +283,44 @@ export class TransferQueueService extends EventEmitter {
         );
       } else {
         logger.info(`🚀 Starting downloadFile for task ${task.id}: ${task.remotePath} -> ${task.localPath}`);
+
+        // Flag to track if chunks have been initialized
+        let chunksInitialized = false;
+
+        // Initialize chunk progress if this might be a parallel download
+        const initializeChunks = (fileSize: number) => {
+          if (!chunksInitialized && fileSize > 100 * 1024 * 1024) { // 100MB threshold
+            const chunkSize = 10 * 1024 * 1024; // 10MB per chunk
+            const totalChunks = Math.ceil(fileSize / chunkSize);
+            logger.info(`Initializing ${totalChunks} chunks for file size: ${fileSize} bytes`);
+            task.initializeChunkProgress(totalChunks, chunkSize, fileSize);
+            chunksInitialized = true;
+            this._onTaskUpdated.fire(task);
+          }
+        };
+
         await SshConnectionManager.downloadFile(
           host,
           authConfig,
           task.remotePath,
           task.localPath,
-          (transferred: number, total: number) => {
-            task.updateProgress(transferred, total);
-            this._onTaskUpdated.fire(task);
-          },
-          task.abortController?.signal,
-          task.transferred // 从已传输的位置开始(断点续传)
+          {
+            onProgress: (transferred: number, total: number) => {
+              // Initialize chunks when we first learn the file size
+              if (total > 0) {
+                initializeChunks(total);
+              }
+              task.updateProgress(transferred, total);
+              this._onTaskUpdated.fire(task);
+            },
+            signal: task.abortController?.signal,
+            startOffset: task.transferred, // 从已传输的位置开始(断点续传)
+            onChunkProgress: (chunkIndex: number, transferred: number, total: number, status: 'pending' | 'downloading' | 'completed' | 'failed') => {
+              logger.debug(`Chunk ${chunkIndex} update: ${transferred}/${total} bytes, status: ${status}`);
+              task.updateChunkProgress(chunkIndex, transferred, status);
+              this._onTaskUpdated.fire(task);
+            }
+          }
         );
         logger.info(`✅ downloadFile completed for task ${task.id}: ${task.remotePath}`);
       }

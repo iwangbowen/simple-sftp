@@ -1,4 +1,4 @@
-import { TransferTask, TaskStatus, CreateTransferTaskOptions, TransferPriority } from '../types/transfer.types';
+import { TransferTask, TaskStatus, CreateTransferTaskOptions, TransferPriority, ChunkProgress } from '../types/transfer.types';
 import { logger } from '../logger';
 
 /**
@@ -24,6 +24,9 @@ export class TransferTaskModel implements TransferTask {
   transferred: number;
   speed: number;
   progress: number;
+
+  // Chunk progress (for parallel transfers)
+  chunkProgress?: ChunkProgress[];
 
 createdAt!: Date;
   startedAt?: Date;
@@ -98,6 +101,73 @@ createdAt!: Date;
     } else {
       return 'normal';
     }
+  }
+
+  /**
+   * Initialize chunk progress for parallel transfer
+   */
+  initializeChunkProgress(totalChunks: number, chunkSize: number, totalSize: number): void {
+    this.chunkProgress = [];
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize - 1, totalSize - 1);
+      const size = end - start + 1;
+
+      this.chunkProgress.push({
+        index: i,
+        start,
+        end,
+        size,
+        transferred: 0,
+        status: 'pending',
+        speed: 0
+      });
+    }
+    logger.info(`Task ${this.id}: Initialized ${totalChunks} chunks for parallel transfer`);
+  }
+
+  /**
+   * Update chunk progress
+   */
+  updateChunkProgress(chunkIndex: number, transferred: number, status: ChunkProgress['status']): void {
+    if (!this.chunkProgress || chunkIndex >= this.chunkProgress.length) {
+      return;
+    }
+
+    const chunk = this.chunkProgress[chunkIndex];
+    const now = Date.now();
+
+    // Update chunk data
+    chunk.transferred = transferred;
+    chunk.status = status;
+
+    // Calculate chunk speed
+    if (status === 'downloading') {
+      if (!chunk.startTime) {
+        chunk.startTime = now;
+      }
+      const timeDelta = (now - chunk.startTime) / 1000; // seconds
+      if (timeDelta > 0) {
+        chunk.speed = transferred / timeDelta;
+      }
+    } else if (status === 'completed') {
+      chunk.endTime = now;
+      chunk.transferred = chunk.size;
+      if (chunk.startTime) {
+        const duration = (chunk.endTime - chunk.startTime) / 1000;
+        chunk.speed = chunk.size / duration;
+      }
+    }
+  }
+
+  /**
+   * Get total transferred bytes from chunk progress
+   */
+  getChunkTotalTransferred(): number {
+    if (!this.chunkProgress) {
+      return 0;
+    }
+    return this.chunkProgress.reduce((sum, chunk) => sum + chunk.transferred, 0);
   }
 
   /**
@@ -274,6 +344,7 @@ createdAt!: Date;
       transferred: this.transferred,
       speed: this.speed,
       progress: this.progress,
+      chunkProgress: this.chunkProgress, // Include chunk progress
       createdAt: this.createdAt.toISOString(),
       startedAt: this.startedAt?.toISOString(),
       completedAt: this.completedAt?.toISOString(),

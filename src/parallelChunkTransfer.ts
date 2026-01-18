@@ -6,6 +6,7 @@ import SftpClient from 'ssh2-sftp-client';
 import { HostConfig, HostAuthConfig } from './types';
 import { SshConnectionPool } from './sshConnectionPool';
 import { logger } from './logger';
+import { ChunkProgress as ChunkProgressType } from './types/transfer.types';
 
 /**
  * Parallel chunk transfer configuration
@@ -14,6 +15,18 @@ interface ChunkTransferOptions {
   chunkSize: number;        // Size of each chunk in bytes
   maxConcurrent: number;    // Maximum concurrent chunk transfers
   threshold: number;        // Minimum file size to use parallel transfer
+}
+
+/**
+ * Download options with progress callbacks
+ */
+export interface DownloadOptions {
+  chunkSize?: number;
+  maxConcurrent?: number;
+  threshold?: number;
+  onProgress?: (transferred: number, total: number) => void;
+  onChunkProgress?: ChunkProgressCallback;
+  signal?: AbortSignal;
 }
 
 interface Chunk {
@@ -29,6 +42,20 @@ interface Chunk {
 interface ChunkProgress {
   [chunkIndex: number]: number; // bytes transferred for each chunk
 }
+
+/**
+ * Chunk progress callback type
+ * @param chunkIndex - Index of the chunk
+ * @param transferred - Bytes transferred for this chunk
+ * @param total - Total bytes for this chunk
+ * @param status - Status of the chunk ('pending' | 'downloading' | 'completed' | 'failed')
+ */
+export type ChunkProgressCallback = (
+  chunkIndex: number,
+  transferred: number,
+  total: number,
+  status: 'pending' | 'downloading' | 'completed' | 'failed'
+) => void;
 
 /**
  * Parallel chunk transfer manager
@@ -82,11 +109,15 @@ export class ParallelChunkTransferManager {
     authConfig: HostAuthConfig,
     localPath: string,
     remotePath: string,
-    onProgress?: (transferred: number, total: number) => void,
-    signal?: AbortSignal,
-    options?: Partial<ChunkTransferOptions>
+    uploadOptions?: DownloadOptions
   ): Promise<void> {
-    const opts = { ...ParallelChunkTransferManager.DEFAULT_OPTIONS, ...options };
+    const {
+      onProgress,
+      signal,
+      onChunkProgress,
+      ...partialOptions
+    } = uploadOptions || {};
+    const opts = { ...ParallelChunkTransferManager.DEFAULT_OPTIONS, ...partialOptions };
     const stat = fs.statSync(localPath);
     const fileSize = stat.size;
 
@@ -108,7 +139,13 @@ export class ParallelChunkTransferManager {
 
     // Progress tracking
     const chunkProgress: ChunkProgress = {};
-    chunks.forEach(chunk => chunkProgress[chunk.index] = 0);
+    chunks.forEach(chunk => {
+      chunkProgress[chunk.index] = 0;
+      // Initialize chunk status as pending
+      if (onChunkProgress) {
+        onChunkProgress(chunk.index, 0, chunk.size, 'pending');
+      }
+    });
 
     const updateProgress = () => {
       const totalTransferred = Object.values(chunkProgress).reduce((sum, val) => sum + val, 0);
@@ -127,6 +164,12 @@ export class ParallelChunkTransferManager {
         opts.maxConcurrent,
         async (chunk) => {
           logger.debug(`Uploading chunk ${chunk.index + 1}/${chunks.length} (${(chunk.size / 1024 / 1024).toFixed(2)}MB)`);
+
+          // Mark chunk as uploading
+          if (onChunkProgress) {
+            onChunkProgress(chunk.index, 0, chunk.size, 'downloading');
+          }
+
           await this.uploadChunk(
             config,
             authConfig,
@@ -136,11 +179,21 @@ export class ParallelChunkTransferManager {
             (chunkTransferred) => {
               chunkProgress[chunk.index] = chunkTransferred;
               updateProgress();
+              // Update chunk progress
+              if (onChunkProgress) {
+                onChunkProgress(chunk.index, chunkTransferred, chunk.size, 'downloading');
+              }
             },
             signal
           );
+
           completedChunks++;
           logger.info(`✓ Chunk ${chunk.index + 1}/${chunks.length} uploaded (${completedChunks}/${chunks.length} complete)`);
+
+          // Mark chunk as completed
+          if (onChunkProgress) {
+            onChunkProgress(chunk.index, chunk.size, chunk.size, 'completed');
+          }
         }
       );
 
@@ -209,11 +262,15 @@ export class ParallelChunkTransferManager {
     authConfig: HostAuthConfig,
     remotePath: string,
     localPath: string,
-    onProgress?: (transferred: number, total: number) => void,
-    signal?: AbortSignal,
-    options?: Partial<ChunkTransferOptions>
+    downloadOptions?: DownloadOptions
   ): Promise<void> {
-    const opts = { ...ParallelChunkTransferManager.DEFAULT_OPTIONS, ...options };
+    const {
+      onProgress,
+      signal,
+      onChunkProgress,
+      ...partialOptions
+    } = downloadOptions || {};
+    const opts = { ...ParallelChunkTransferManager.DEFAULT_OPTIONS, ...partialOptions };
 
     // Get remote file size
     const connectConfig = this.buildConnectConfig(config, authConfig);
@@ -235,7 +292,13 @@ export class ParallelChunkTransferManager {
 
     // Progress tracking
     const chunkProgress: ChunkProgress = {};
-    chunks.forEach(chunk => chunkProgress[chunk.index] = 0);
+    chunks.forEach(chunk => {
+      chunkProgress[chunk.index] = 0;
+      // Initialize chunk status as pending
+      if (onChunkProgress) {
+        onChunkProgress(chunk.index, 0, chunk.size, 'pending');
+      }
+    });
 
     const updateProgress = () => {
       const totalTransferred = Object.values(chunkProgress).reduce((sum, val) => sum + val, 0);
@@ -254,6 +317,12 @@ export class ParallelChunkTransferManager {
         opts.maxConcurrent,
         async (chunk) => {
           logger.debug(`Downloading chunk ${chunk.index + 1}/${chunks.length} (${(chunk.size / 1024 / 1024).toFixed(2)}MB)`);
+
+          // Mark chunk as downloading
+          if (onChunkProgress) {
+            onChunkProgress(chunk.index, 0, chunk.size, 'downloading');
+          }
+
           await this.downloadChunk(
             config,
             authConfig,
@@ -263,11 +332,21 @@ export class ParallelChunkTransferManager {
             (chunkTransferred) => {
               chunkProgress[chunk.index] = chunkTransferred;
               updateProgress();
+              // Update chunk progress
+              if (onChunkProgress) {
+                onChunkProgress(chunk.index, chunkTransferred, chunk.size, 'downloading');
+              }
             },
             signal
           );
+
           completedChunks++;
           logger.info(`✓ Chunk ${chunk.index + 1}/${chunks.length} downloaded (${completedChunks}/${chunks.length} complete)`);
+
+          // Mark chunk as completed
+          if (onChunkProgress) {
+            onChunkProgress(chunk.index, chunk.size, chunk.size, 'completed');
+          }
         }
       );
 
