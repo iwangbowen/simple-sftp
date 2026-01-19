@@ -1,5 +1,20 @@
 # Change Log
 
+## [3.0.0] - 2026-01-19
+
+### Added
+
+- **Dual-Panel Webview File Browser**
+  - Visual dual-panel interface for local and remote file systems
+  - Directory navigation with breadcrumb path display
+  - Click to upload/download files and folders
+  - Quick bookmark creation for remote directories
+  - Toggle visibility of hidden files (dot files)
+  - Display file size and modification time
+  - Support multiple webview panels for different hosts simultaneously
+
+---
+
 ## [2.9.0] - 2026-01-17
 
 ### Added - File Attributes and Symbolic Links Preservation
