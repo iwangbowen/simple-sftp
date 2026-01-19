@@ -212,9 +212,9 @@ body {
     color: var(--vscode-symbolIcon-folderForeground);
 }
 
-/* Windows 驱动器图标 */
+/* Windows 驱动器图标 - 使用与文件夹相同的颜色 */
 .codicon-database {
-    color: var(--vscode-charts-blue);
+    color: var(--vscode-symbolIcon-folderForeground);
 }
 
 /* Loading 状态 */
