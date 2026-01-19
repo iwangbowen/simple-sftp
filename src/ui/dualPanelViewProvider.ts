@@ -171,6 +171,19 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
 
     private async loadLocalDirectory(dirPath: string): Promise<void> {
         try {
+            // Windows: 如果请求驱动器列表
+            if (dirPath === 'drives://') {
+                const drives = await this.listWindowsDrives();
+                this._view?.webview.postMessage({
+                    command: 'updateLocalTree',
+                    data: {
+                        path: 'drives://',
+                        nodes: drives
+                    }
+                });
+                return;
+            }
+
             const nodes = await this.readLocalDirectory(dirPath);
 
             this._view?.webview.postMessage({
@@ -222,6 +235,45 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
             if (!a.isDirectory && b.isDirectory) return 1;
             return a.name.localeCompare(b.name);
         });
+    }
+
+    /**
+     * List available drives on Windows
+     */
+    private async listWindowsDrives(): Promise<FileNode[]> {
+        const drives: FileNode[] = [];
+
+        // On Windows, check common drive letters
+        if (process.platform === 'win32') {
+            for (let i = 65; i <= 90; i++) { // A-Z
+                const driveLetter = String.fromCharCode(i);
+                const drivePath = `${driveLetter}:\\`;
+
+                try {
+                    await fs.promises.access(drivePath);
+                    drives.push({
+                        name: `${driveLetter}:`,
+                        path: drivePath,
+                        isDirectory: true,
+                        expanded: false,
+                        children: []
+                    });
+                } catch {
+                    // Drive doesn't exist or not accessible, skip
+                }
+            }
+        } else {
+            // On Unix-like systems, just return root
+            drives.push({
+                name: '/',
+                path: '/',
+                isDirectory: true,
+                expanded: false,
+                children: []
+            });
+        }
+
+        return drives;
     }
 
     // ===== Remote File System Operations =====

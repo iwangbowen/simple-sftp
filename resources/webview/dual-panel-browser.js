@@ -112,7 +112,7 @@
 
         // 添加返回上一级按钮(如果不是根目录)
         const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
-        if (currentPath && currentPath !== '/' && currentPath !== '') {
+        if (currentPath && currentPath !== '/' && currentPath !== '' && currentPath !== 'drives://') {
             const backItem = createBackItem(panel);
             treeContainer.appendChild(backItem);
         }
@@ -237,16 +237,23 @@
      * 获取父目录路径
      */
     function getParentPath(path, panel) {
-        if (!path || path === '/' || path === '') return null;
+        if (!path || path === '/' || path === '' || path === 'drives://') return null;
 
         if (panel === 'local') {
             // Windows: C:\Users\iwang -> C:\Users
             // Unix: /home/user -> /home
             const separator = path.includes('\\') ? '\\' : '/';
             const parts = path.split(separator).filter(p => p);
+
+            // Windows: 如果当前已经是驱动器根目录 (如 "C:"), 返回驱动器列表标识
+            if (parts.length === 1 && parts[0].match(/^[A-Za-z]:$/)) {
+                return 'drives://';
+            }
+
             if (parts.length === 0) return '/';
             parts.pop();
             if (parts.length === 0) return '/';
+
             if (path.startsWith(separator)) {
                 return separator + parts.join(separator);
             }
