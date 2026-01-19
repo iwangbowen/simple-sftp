@@ -27,7 +27,7 @@ body {
 .header-bar {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
+    padding: 6px 12px;
     background-color: var(--vscode-titleBar-activeBackground);
     color: var(--vscode-titleBar-activeForeground);
     border-bottom: 1px solid var(--vscode-panel-border);
@@ -37,17 +37,19 @@ body {
 .panel-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex: 1;
 }
 
 .header-title {
     font-weight: 500;
+    font-size: 12px;
 }
 
 .separator {
     color: var(--vscode-titleBar-inactiveForeground);
-    font-size: 16px;
+    font-size: 14px;
+    flex-shrink: 0;
 }
 
 /* ===== Dual Panel Layout ===== */
@@ -81,25 +83,18 @@ body {
     background-color: var(--vscode-focusBorder);
 }
 
-/* ===== Panel Toolbar ===== */
-.panel-toolbar {
-    display: flex;
-    gap: 4px;
-    padding: 8px;
-    background-color: var(--vscode-sideBarSectionHeader-background);
-    border-bottom: 1px solid var(--vscode-panel-border);
-}
-
+/* ===== Icon Buttons (in header) ===== */
 .icon-button {
     background: transparent;
     border: none;
     color: var(--vscode-icon-foreground);
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 4px 6px;
+    border-radius: 3px;
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    font-size: 14px;
 }
 
 .icon-button:hover {
