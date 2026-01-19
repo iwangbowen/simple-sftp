@@ -199,8 +199,7 @@ body {
 }
 
 .tree-item.back-item:hover {
-    background-color: var(--vscode-textLink-activeForeground);
-    opacity: 0.1;
+    background-color: var(--vscode-list-hoverBackground);
 }
 
 /* 文件类型图标 */
