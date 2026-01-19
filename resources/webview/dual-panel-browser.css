@@ -41,9 +41,23 @@ body {
     flex: 1;
 }
 
+.panel-header .header-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.panel-header .icon-button {
+    flex-shrink: 0;
+}
+
 .header-title {
     font-weight: 500;
     font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: rtl;
+    text-align: left;
 }
 
 .separator {
