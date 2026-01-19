@@ -1,5 +1,19 @@
 # Change Log
 
+## [3.0.1] - 2026-01-19
+
+### Fixed
+
+- **Webview UI Improvements**
+  - Fixed Windows drive navigation: from drive root (C:\) returns to drive list instead of `/`
+  - Added distinctive drive icon for Windows drives (C:, D:, etc.)
+  - Fixed hover state on ".." (back) button - no longer hides icons and text
+  - Optimized layout: moved action buttons to header bar to save vertical space
+  - Fixed long path display: paths now show ellipsis and don't overflow to other panel
+  - Each panel header limited to 50% width to prevent overlapping
+
+---
+
 ## [3.0.0] - 2026-01-19
 
 ### Added
