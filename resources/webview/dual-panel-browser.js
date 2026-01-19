@@ -283,6 +283,11 @@
      * @returns {string}
      */
     function getFileIcon(node) {
+        // Windows 驱动器特殊图标
+        if (node.isDirectory && node.name.match(/^[A-Za-z]:$/)) {
+            return 'codicon-database';
+        }
+
         if (node.isDirectory) {
             return 'codicon-folder';
         }

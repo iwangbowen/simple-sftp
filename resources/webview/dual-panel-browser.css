@@ -212,6 +212,11 @@ body {
     color: var(--vscode-symbolIcon-folderForeground);
 }
 
+/* Windows 驱动器图标 */
+.codicon-database {
+    color: var(--vscode-charts-blue);
+}
+
 /* Loading 状态 */
 .loading {
     display: flex;
