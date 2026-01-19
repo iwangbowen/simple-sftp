@@ -83,7 +83,7 @@ describe('TransferTaskModel', () => {
       const options = {
         ...defaultOptions,
         fileName: undefined,
-        localPath: 'C:\\Users\\test\\document.pdf'
+        localPath: String.raw`C:\Users\test\document.pdf`
       };
 
       const task = new TransferTaskModel(options);

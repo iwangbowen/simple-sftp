@@ -466,4 +466,24 @@ describe('BookmarkService', () => {
       expect(mockHostManager.updateBookmark).not.toHaveBeenCalled();
     });
   });
+
+  describe('Edge Cases', () => {
+    it('should handle bookmark with empty name', async () => {
+      const mockHost: any = {
+        id: 'host1',
+        name: 'Test Host',
+        host: 'example.com',
+        bookmarks: []
+      };
+
+      mockHostManager.getHosts.mockResolvedValue([mockHost]);
+      (vscode.window.showInputBox as any)
+        .mockResolvedValueOnce('/remote/path')
+        .mockResolvedValueOnce(''); // Empty name
+
+      await bookmarkService.addBookmark({ type: 'host', data: mockHost });
+
+      expect(mockHostManager.addBookmark).not.toHaveBeenCalled();
+    });
+  });
 });
