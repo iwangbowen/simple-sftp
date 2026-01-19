@@ -39,6 +39,8 @@ body {
     align-items: center;
     gap: 6px;
     flex: 1;
+    min-width: 0;
+    max-width: 50%;
 }
 
 .panel-header .header-title {
