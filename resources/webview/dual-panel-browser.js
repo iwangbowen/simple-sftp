@@ -342,10 +342,29 @@
      * 加载目录内容
      */
     function loadDirectory(panel, path) {
+        // 显示加载状态
+        showLoading(panel);
+
         vscode.postMessage({
             command: panel === 'local' ? 'loadLocalDir' : 'loadRemoteDir',
             path: path
         });
+    }
+
+    /**
+     * 显示加载状态
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function showLoading(panel) {
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+
+        treeContainer.innerHTML = `
+            <div class="loading">
+                <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                Loading ${panel} files...
+            </div>
+        `;
     }
 
     /**
@@ -564,6 +583,9 @@
 
     // ===== Commands =====
     function refreshPanel(panel) {
+        // 显示加载状态
+        showLoading(panel);
+
         vscode.postMessage({
             command: panel === 'local' ? 'refreshLocal' : 'refreshRemote'
         });
