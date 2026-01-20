@@ -767,20 +767,10 @@ export class SshConnectionManager {
       try {
         // Check if path exists
         const stats = await sftp.stat(remotePath);
-        logger.info(`Deleting remote path: ${remotePath}, type: ${stats.type}, mode: ${stats.mode}, isDirectory: ${stats.isDirectory}`);
+        logger.info(`Deleting remote path: ${remotePath}, mode: ${stats.mode}, isDirectory: ${stats.isDirectory}`);
 
-        // Check if it's a directory - handle different SFTP server responses
-        // Some servers return type='d', some use mode bits, some have isDirectory property
-        let isDirectory = false;
-
-        if (stats.type === 'd') {
-          isDirectory = true;
-        } else if (stats.isDirectory !== undefined) {
-          isDirectory = typeof stats.isDirectory === 'function' ? stats.isDirectory() : stats.isDirectory;
-        } else if (stats.mode !== undefined) {
-          // Use mode bits: directories have S_IFDIR bit set (octal 040000)
-          isDirectory = (stats.mode & 0o040000) !== 0;
-        }
+        // Check if it's a directory
+        const isDirectory = stats.isDirectory;
 
         logger.info(`Determined isDirectory: ${isDirectory} for ${remotePath}`);
 
