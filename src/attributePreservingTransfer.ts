@@ -109,6 +109,7 @@ export class AttributePreservingTransfer {
       // Create symlink on remote
       const target = fs.readlinkSync(localPath);
       try {
+        // @ts-expect-error - symlink method exists in underlying ssh2 SFTP wrapper
         await sftp.symlink(target, remotePath);
         logger.info(`Symbolic link created: ${remotePath} -> ${target}`);
       } catch (error) {
@@ -194,7 +195,7 @@ export class AttributePreservingTransfer {
   ): Promise<void> {
     if (options.followSymlinks) {
       // Follow the symlink and download the target
-      const targetPath = await sftp.realpath(remotePath);
+      const targetPath = await sftp.realPath(remotePath);
       const targetStat = await sftp.stat(targetPath);
 
       if (targetStat.isFile) {
@@ -208,6 +209,7 @@ export class AttributePreservingTransfer {
       }
     } else {
       // Read the symlink target
+      // @ts-expect-error - readlink method exists in underlying ssh2 SFTP wrapper
       const target = await sftp.readlink(remotePath);
       try {
         fs.symlinkSync(target, localPath);
