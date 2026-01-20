@@ -1,5 +1,25 @@
 # Change Log
 
+## [3.1.1] - 2026-01-21
+
+### Added
+
+- **Bookmark Management in SFTP Browser**
+  - Host selection page now displays bookmarks with expand/collapse functionality
+  - Click bookmark icon to toggle bookmark list visibility (default: collapsed)
+  - Click bookmark item to directly open remote path
+  - Visual hierarchy with indentation and connecting lines
+  - Smooth expand/collapse animation
+
+### Improved
+
+- **User Experience**
+  - Cleaner host selection interface with organized bookmark display
+  - Quick access to favorite remote directories
+  - Maintains independent interaction between host selection and bookmark navigation
+
+---
+
 ## [3.1.0] - 2026-01-20
 
 ### Added
