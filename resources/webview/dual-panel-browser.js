@@ -16,6 +16,16 @@
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
+        // 从DOM中读取初始路径
+        const localPathElement = document.getElementById('local-path');
+        const remotePathElement = document.getElementById('remote-path');
+        if (localPathElement) {
+            currentLocalPath = localPathElement.textContent || '';
+        }
+        if (remotePathElement) {
+            currentRemotePath = remotePathElement.textContent || '';
+        }
+
         initializeEventListeners();
         initializeResizer();
         initializeDragAndDrop();
@@ -586,8 +596,12 @@
         // 显示加载状态
         showLoading(panel);
 
+        // 传递当前路径给后端
+        const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+
         vscode.postMessage({
-            command: panel === 'local' ? 'refreshLocal' : 'refreshRemote'
+            command: panel === 'local' ? 'refreshLocal' : 'refreshRemote',
+            path: currentPath
         });
     }
 

@@ -153,17 +153,23 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                 await this.handleOpenFile(message.data);
                 break;
 
-            case 'refreshLocal':
-                if (this._localRootPath) {
-                    await this.loadLocalDirectory(this._localRootPath);
+            case 'refreshLocal': {
+                // Use the path from message if provided, otherwise use current path
+                const localPath = message.path || this._localRootPath;
+                if (localPath) {
+                    await this.loadLocalDirectory(localPath);
                 }
                 break;
+            }
 
-            case 'refreshRemote':
-                if (this._remoteRootPath) {
-                    await this.loadRemoteDirectory(this._remoteRootPath);
+            case 'refreshRemote': {
+                // Use the path from message if provided, otherwise use current path
+                const remotePath = message.path || this._remoteRootPath;
+                if (remotePath) {
+                    await this.loadRemoteDirectory(remotePath);
                 }
                 break;
+            }
         }
     }
 
@@ -171,6 +177,9 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
 
     private async loadLocalDirectory(dirPath: string): Promise<void> {
         try {
+            // Update the current local path
+            this._localRootPath = dirPath;
+
             // Windows: 如果请求驱动器列表
             if (dirPath === 'drives://') {
                 const drives = await this.listWindowsDrives();
@@ -285,6 +294,9 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
         }
 
         try {
+            // Update the current remote path
+            this._remoteRootPath = dirPath;
+
             const nodes = await this.readRemoteDirectory(this._currentHost, this._currentAuthConfig, dirPath);
 
             this._view?.webview.postMessage({
