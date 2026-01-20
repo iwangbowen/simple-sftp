@@ -93,14 +93,16 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
 
         // 检查是否已配置认证信息
         if (!this._currentAuthConfig) {
-            vscode.window.showErrorMessage(
-                `Authentication not configured for host "${host.name}". Please configure authentication first.`,
-                'Configure Now'
-            ).then(selection => {
-                if (selection === 'Configure Now') {
-                    vscode.commands.executeCommand('simpleSftp.editHost', host);
-                }
-            });
+            const choice = await vscode.window.showWarningMessage(
+                `No authentication configured for ${host.name}`,
+                { modal: false },
+                'Configure Authentication'
+            );
+
+            if (choice === 'Configure Authentication') {
+                // 触发配置认证命令
+                await vscode.commands.executeCommand('simpleSftp.configureAuth', { data: host, type: 'host' });
+            }
             // 不继续打开面板,保持在主机选择页面
             return;
         }

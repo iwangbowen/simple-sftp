@@ -1589,9 +1589,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     if (!authConfig) {
       const choice = await vscode.window.showWarningMessage(
         MESSAGES.noAuthConfigured(config.name),
-        { modal: true },
-        MESSAGES.configure,
-        MESSAGES.cancel
+        { modal: false },
+        MESSAGES.configure
       );
 
       if (choice === MESSAGES.configure) {
