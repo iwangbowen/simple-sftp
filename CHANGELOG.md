@@ -1,5 +1,36 @@
 # Change Log
 
+## [3.1.0] - 2026-01-20
+
+### Added
+
+- **SFTP Browser Enhancements**
+  - Added search/filter input boxes for quick file filtering
+  - Press Enter to select/open single search result
+  - Added "Back to Host Selection" button in browser header
+  - Auto-refresh directory after upload/download completion
+  - Delayed loading indicator (500ms) to reduce UI flicker
+
+### Fixed
+
+- **Path Synchronization**
+  - Fixed directory refresh using current path instead of root path
+  - Upload/download now correctly target current directory
+
+- **Authentication Handling**
+  - Unified authentication warning messages
+  - Fixed duplicate "Cancel" buttons in modal dialogs
+  - Added proper authentication configuration flow
+
+### Improved
+
+- **User Experience**
+  - Show loading indicator when selecting host with slow connection
+  - Prevent Backspace key from navigating when typing in search box
+  - Smoother directory navigation with optimized loading states
+
+---
+
 ## [3.0.1] - 2026-01-19
 
 ### Fixed
