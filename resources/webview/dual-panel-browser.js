@@ -13,6 +13,8 @@
     let currentLocalPath = '';
     /** @type {string} */
     let currentRemotePath = '';
+    /** @type {Object.<string, number>} */
+    let loadingTimers = {};
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -122,6 +124,9 @@
      * @param {Array<Object>} nodes - 文件节点数组
      */
     function renderFileTree(panel, nodes) {
+        // 取消可能存在的加载定时器
+        cancelLoading(panel);
+
         const treeContainer = document.getElementById(`${panel}-tree`);
         if (!treeContainer) return;
 
@@ -352,13 +357,40 @@
      * 加载目录内容
      */
     function loadDirectory(panel, path) {
-        // 显示加载状态
-        showLoading(panel);
+        // 延迟显示加载状态(500ms后才显示,避免快速加载时的闪烁)
+        scheduleLoading(panel);
 
         vscode.postMessage({
             command: panel === 'local' ? 'loadLocalDir' : 'loadRemoteDir',
             path: path
         });
+    }
+
+    /**
+     * 安排延迟显示加载状态
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function scheduleLoading(panel) {
+        // 清除之前的定时器(如果有)
+        if (loadingTimers[panel]) {
+            clearTimeout(loadingTimers[panel]);
+        }
+
+        // 设置新的定时器,500ms后显示加载状态
+        loadingTimers[panel] = setTimeout(() => {
+            showLoading(panel);
+        }, 500);
+    }
+
+    /**
+     * 取消加载状态显示
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function cancelLoading(panel) {
+        if (loadingTimers[panel]) {
+            clearTimeout(loadingTimers[panel]);
+            delete loadingTimers[panel];
+        }
     }
 
     /**
@@ -593,8 +625,8 @@
 
     // ===== Commands =====
     function refreshPanel(panel) {
-        // 显示加载状态
-        showLoading(panel);
+        // 延迟显示加载状态(500ms后才显示,避免快速加载时的闪烁)
+        scheduleLoading(panel);
 
         // 传递当前路径给后端
         const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
