@@ -79,7 +79,7 @@
 
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
-            document.body.style.cursor = 'col-resize';
+            document.body.style.cursor = 'ew-resize';
             document.body.style.userSelect = 'none';
         });
 

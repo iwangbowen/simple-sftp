@@ -138,7 +138,7 @@ body {
 .resizer {
     width: 4px;
     background-color: var(--vscode-panel-border);
-    cursor: col-resize;
+    cursor: ew-resize; /* 横向双箭头光标 */
     transition: background-color 0.2s;
 }
 
