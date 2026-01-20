@@ -90,6 +90,21 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
     public async openForHost(host: HostConfig): Promise<void> {
         this._currentHost = host;
         this._currentAuthConfig = await this.authManager.getAuth(host.id);
+
+        // 检查是否已配置认证信息
+        if (!this._currentAuthConfig) {
+            vscode.window.showErrorMessage(
+                `Authentication not configured for host "${host.name}". Please configure authentication first.`,
+                'Configure Now'
+            ).then(selection => {
+                if (selection === 'Configure Now') {
+                    vscode.commands.executeCommand('simpleSftp.editHost', host);
+                }
+            });
+            // 不继续打开面板,保持在主机选择页面
+            return;
+        }
+
         this._remoteRootPath = host.defaultRemotePath || '/';
 
         // Get workspace folder as local root
