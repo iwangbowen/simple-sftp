@@ -630,13 +630,23 @@
             refreshPanel('local');
             refreshPanel('remote');
         } else if (e.key === 'Backspace') {
-            // 返回上一级
-            e.preventDefault();
-            const panel = selectedItem?.dataset.panel || 'local';
-            const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
-            const parentPath = getParentPath(currentPath, panel);
-            if (parentPath) {
-                loadDirectory(panel, parentPath);
+            // 检查是否在搜索框中输入
+            const activeElement = document.activeElement;
+            const isInSearchInput = activeElement && (
+                activeElement.id === 'local-search' ||
+                activeElement.id === 'remote-search'
+            );
+
+            // 只有当不在搜索框中时才返回上一级
+            if (!isInSearchInput) {
+                // 返回上一级
+                e.preventDefault();
+                const panel = selectedItem?.dataset.panel || 'local';
+                const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+                const parentPath = getParentPath(currentPath, panel);
+                if (parentPath) {
+                    loadDirectory(panel, parentPath);
+                }
             }
         }
     }
