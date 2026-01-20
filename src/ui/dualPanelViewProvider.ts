@@ -190,6 +190,16 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                 }
                 break;
             }
+
+            case 'backToHostSelection':
+                // 清除当前主机和路径
+                this._currentHost = undefined;
+                this._currentAuthConfig = undefined;
+                this._localRootPath = undefined;
+                this._remoteRootPath = undefined;
+                // 显示主机选择界面
+                await this.showHostSelection();
+                break;
         }
     }
 

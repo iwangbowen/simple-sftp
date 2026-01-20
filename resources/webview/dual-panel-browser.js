@@ -39,6 +39,7 @@
     // ===== 事件监听器 =====
     function initializeEventListeners() {
         // Header buttons
+        document.getElementById('back-to-hosts')?.addEventListener('click', backToHostSelection);
         document.getElementById('refresh-local')?.addEventListener('click', () => refreshPanel('local'));
         document.getElementById('refresh-remote')?.addEventListener('click', () => refreshPanel('remote'));
 
@@ -624,6 +625,13 @@
     }
 
     // ===== Commands =====
+    function backToHostSelection() {
+        // 请求后端显示主机选择页面
+        vscode.postMessage({
+            command: 'backToHostSelection'
+        });
+    }
+
     function refreshPanel(panel) {
         // 延迟显示加载状态(500ms后才显示,避免快速加载时的闪烁)
         scheduleLoading(panel);
