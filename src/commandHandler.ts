@@ -1842,37 +1842,39 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           authConfig,
           remotePath,
           localPath,
-          (transferred, total) => {
-            const percentage = Math.round((transferred / total) * 100);
-            const currentTime = Date.now();
-            const elapsed = (currentTime - lastTime) / 1000; // seconds
+          {
+            onProgress: (transferred: number, total: number) => {
+              const percentage = Math.round((transferred / total) * 100);
+              const currentTime = Date.now();
+              const elapsed = (currentTime - lastTime) / 1000; // seconds
 
-            // Calculate and update speed every 5 seconds to reduce flickering
-            if (elapsed > 5 || lastTime === 0) {
-              const bytesTransferred = transferred - lastTransferred;
-              const speed = bytesTransferred / elapsed;
+              // Calculate and update speed every 5 seconds to reduce flickering
+              if (elapsed > 5 || lastTime === 0) {
+                const bytesTransferred = transferred - lastTransferred;
+                const speed = bytesTransferred / elapsed;
 
-              // Always update text to show percentage
-              this.downloadStatusBar.text = `$(sync~spin) ${percentage}%`;
+                // Always update text to show percentage
+                this.downloadStatusBar.text = `$(sync~spin) ${percentage}%`;
 
-              if (speed > 0 && Number.isFinite(speed)) {
-                const formattedSpeed = formatSpeed(speed);
+                if (speed > 0 && Number.isFinite(speed)) {
+                  const formattedSpeed = formatSpeed(speed);
 
-                // Calculate remaining time
-                const remaining = total - transferred;
-                const remainingTime = remaining / speed;
-                const formattedTime = formatRemainingTime(remainingTime);
+                  // Calculate remaining time
+                  const remaining = total - transferred;
+                  const remainingTime = remaining / speed;
+                  const formattedTime = formatRemainingTime(remainingTime);
 
-                // Update status bar
-                this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
-                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
-              } else {
-                // No speed info available, just show basic tooltip
-                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
+                  // Update status bar
+                  this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
+                  this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
+                } else {
+                  // No speed info available, just show basic tooltip
+                  this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
+                }
+
+                lastTransferred = transferred;
+                lastTime = currentTime;
               }
-
-              lastTransferred = transferred;
-              lastTime = currentTime;
             }
           }
         );
@@ -2143,38 +2145,40 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           authConfig,
           remotePath.path,
           localPath,
-          (transferred, total) => {
-            const percentage = Math.round((transferred / total) * 100);
-            const currentTime = Date.now();
-            const elapsed = (currentTime - lastTime) / 1000; // seconds
+          {
+            onProgress: (transferred: number, total: number) => {
+              const percentage = Math.round((transferred / total) * 100);
+              const currentTime = Date.now();
+              const elapsed = (currentTime - lastTime) / 1000; // seconds
 
-            // Calculate and update speed every 5 seconds to reduce flickering
-            if (elapsed > 5 || lastTime === 0) {
-              const bytesTransferred = transferred - lastTransferred;
-              const speed = bytesTransferred / elapsed;
+              // Calculate and update speed every 5 seconds to reduce flickering
+              if (elapsed > 5 || lastTime === 0) {
+                const bytesTransferred = transferred - lastTransferred;
+                const speed = bytesTransferred / elapsed;
 
-              // Always update text to show percentage
-              this.downloadStatusBar.text = `$(cloud-download) ${percentage}%`;
+                // Always update text to show percentage
+                this.downloadStatusBar.text = `$(cloud-download) ${percentage}%`;
 
-              if (speed > 0 && Number.isFinite(speed)) {
-                const formattedSpeed = formatSpeed(speed);
+                if (speed > 0 && Number.isFinite(speed)) {
+                  const formattedSpeed = formatSpeed(speed);
 
-                // Calculate remaining time
-                const remaining = total - transferred;
-                const remainingTime = remaining / speed;
-                const formattedTime = formatRemainingTime(remainingTime);
+                  // Calculate remaining time
+                  const remaining = total - transferred;
+                  const remainingTime = remaining / speed;
+                  const formattedTime = formatRemainingTime(remainingTime);
 
-                // Update status bar with speed
-                this.downloadStatusBar.text = `$(cloud-download) ${percentage}% - ${formattedSpeed}`;
-                // Detailed info in tooltip with file size (only update every 5 seconds to avoid flickering)
-                this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nRemaining: ${formattedTime}`;
-              } else {
-                // No speed info available, just show basic tooltip
-                this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
+                  // Update status bar with speed
+                  this.downloadStatusBar.text = `$(cloud-download) ${percentage}% - ${formattedSpeed}`;
+                  // Detailed info in tooltip with file size (only update every 5 seconds to avoid flickering)
+                  this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nRemaining: ${formattedTime}`;
+                } else {
+                  // No speed info available, just show basic tooltip
+                  this.downloadStatusBar.tooltip = `Downloading: ${path.basename(remotePath.path)}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
+                }
+
+                lastTransferred = transferred;
+                lastTime = currentTime;
               }
-
-              lastTransferred = transferred;
-              lastTime = currentTime;
             }
           }
         );
@@ -2392,37 +2396,39 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           authConfig,
           remotePath.path,
           localPath,
-          (transferred, total) => {
-            const percentage = Math.round((transferred / total) * 100);
-            const currentTime = Date.now();
-            const elapsed = (currentTime - lastTime) / 1000; // seconds
+          {
+            onProgress: (transferred: number, total: number) => {
+              const percentage = Math.round((transferred / total) * 100);
+              const currentTime = Date.now();
+              const elapsed = (currentTime - lastTime) / 1000; // seconds
 
-            // Calculate and update speed every 5 seconds to reduce flickering
-            if (elapsed > 5 || lastTime === 0) {
-              const bytesTransferred = transferred - lastTransferred;
-              const speed = bytesTransferred / elapsed;
+              // Calculate and update speed every 5 seconds to reduce flickering
+              if (elapsed > 5 || lastTime === 0) {
+                const bytesTransferred = transferred - lastTransferred;
+                const speed = bytesTransferred / elapsed;
 
-              // Always update text to show percentage
-              this.downloadStatusBar.text = `$(sync~spin) ${percentage}%`;
+                // Always update text to show percentage
+                this.downloadStatusBar.text = `$(sync~spin) ${percentage}%`;
 
-              if (speed > 0 && Number.isFinite(speed)) {
-                const formattedSpeed = formatSpeed(speed);
+                if (speed > 0 && Number.isFinite(speed)) {
+                  const formattedSpeed = formatSpeed(speed);
 
-                // Calculate remaining time
-                const remaining = total - transferred;
-                const remainingTime = remaining / speed;
-                const formattedTime = formatRemainingTime(remainingTime);
+                  // Calculate remaining time
+                  const remaining = total - transferred;
+                  const remainingTime = remaining / speed;
+                  const formattedTime = formatRemainingTime(remainingTime);
 
-                // Update status bar
-                this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
-                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
-              } else {
-                // No speed info available, just show basic tooltip
-                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
+                  // Update status bar
+                  this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
+                  this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
+                } else {
+                  // No speed info available, just show basic tooltip
+                  this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${formatFileSize(total)}\nProgress: ${percentage}% (${formatFileSize(transferred)} / ${formatFileSize(total)})`;
+                }
+
+                lastTransferred = transferred;
+                lastTime = currentTime;
               }
-
-              lastTransferred = transferred;
-              lastTime = currentTime;
             }
           }
         );
