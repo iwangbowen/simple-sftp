@@ -786,16 +786,33 @@
                 <h3>Select a Host to Browse Files</h3>
                 <div class="host-list">
                     ${hosts.map(host => `
-                        <div class="host-item" data-host-id="${host.id}">
-                            ${host.starred ? '<span class="codicon codicon-star-full host-star"></span>' : '<span class="codicon codicon-remote host-icon"></span>'}
-                            <div class="host-info">
-                                <div class="host-name">
-                                    ${host.name}
-                                    ${host.group ? `<span class="host-group">[${host.group}]</span>` : ''}
+                        <div class="host-item-wrapper">
+                            <div class="host-item" data-host-id="${host.id}">
+                                ${host.starred ? '<span class="codicon codicon-star-full host-star"></span>' : '<span class="codicon codicon-remote host-icon"></span>'}
+                                <div class="host-info">
+                                    <div class="host-name">
+                                        ${host.name}
+                                        ${host.group ? `<span class="host-group">[${host.group}]</span>` : ''}
+                                    </div>
+                                    <div class="host-details">${host.username}@${host.host}:${host.port}</div>
                                 </div>
-                                <div class="host-details">${host.username}@${host.host}:${host.port}</div>
+                                ${(host.bookmarks && host.bookmarks.length > 0) ?
+                                    `<span class="codicon codicon-chevron-down bookmark-toggle" data-host-id="${host.id}" title="Toggle bookmarks"></span>` :
+                                    '<span class="codicon codicon-chevron-right"></span>'}
                             </div>
-                            <span class="codicon codicon-chevron-right"></span>
+                            ${(host.bookmarks && host.bookmarks.length > 0) ? `
+                                <div class="bookmark-list collapsed" data-host-id="${host.id}">
+                                    ${host.bookmarks.map(bookmark => `
+                                        <div class="bookmark-item" data-host-id="${host.id}" data-path="${bookmark.path}">
+                                            <span class="codicon codicon-bookmark bookmark-icon"></span>
+                                            <div class="bookmark-info">
+                                                <div class="bookmark-name">${bookmark.name}</div>
+                                                <div class="bookmark-path">${bookmark.path}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -805,13 +822,51 @@
         localTree.innerHTML = selectionHTML;
         remoteTree.innerHTML = '<div class="empty-message">← Select a host to start browsing</div>';
 
-        // 添加点击事件
+        // 添加主机点击事件
         document.querySelectorAll('.host-item').forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                // 检查是否点击的是书签切换按钮
+                if (e.target.classList.contains('bookmark-toggle')) {
+                    return; // 如果是书签切换,不处理主机打开
+                }
+
                 const hostId = item.dataset.hostId;
                 vscode.postMessage({
                     command: 'selectHost',
                     hostId: hostId
+                });
+            });
+        });
+
+        // 添加书签切换事件
+        document.querySelectorAll('.bookmark-toggle').forEach(toggle => {
+            toggle.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止冒泡到主机项
+                const hostId = toggle.dataset.hostId;
+                const bookmarkList = document.querySelector(`.bookmark-list[data-host-id="${hostId}"]`);
+                if (bookmarkList) {
+                    bookmarkList.classList.toggle('collapsed');
+                    // 切换图标
+                    if (bookmarkList.classList.contains('collapsed')) {
+                        toggle.classList.remove('codicon-chevron-down');
+                        toggle.classList.add('codicon-chevron-right');
+                    } else {
+                        toggle.classList.remove('codicon-chevron-right');
+                        toggle.classList.add('codicon-chevron-down');
+                    }
+                }
+            });
+        });
+
+        // 添加书签点击事件
+        document.querySelectorAll('.bookmark-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const hostId = item.dataset.hostId;
+                const path = item.dataset.path;
+                vscode.postMessage({
+                    command: 'openBookmark',
+                    hostId: hostId,
+                    path: path
                 });
             });
         });

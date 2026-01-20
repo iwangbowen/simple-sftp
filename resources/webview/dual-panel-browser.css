@@ -429,6 +429,88 @@ body {
     opacity: 1;
 }
 
+/* Bookmark toggle icon */
+.bookmark-toggle {
+    font-size: 14px;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.6;
+    flex-shrink: 0;
+    cursor: pointer;
+    padding: 4px;
+    transition: opacity 0.1s, transform 0.1s;
+}
+
+.bookmark-toggle:hover {
+    opacity: 1;
+    background-color: var(--vscode-list-activeSelectionBackground);
+    border-radius: 4px;
+}
+
+.host-item .codicon-chevron-down {
+    font-size: 14px;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+/* Bookmark list */
+.bookmark-list {
+    overflow: hidden;
+    transition: max-height 0.2s ease-out, opacity 0.2s;
+    max-height: 500px;
+    opacity: 1;
+    margin-left: 24px;
+    border-left: 1px solid var(--vscode-editorIndentGuide-background);
+}
+
+.bookmark-list.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+.bookmark-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    padding-left: 12px;
+    min-height: 20px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.bookmark-item:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.bookmark-icon {
+    font-size: 14px;
+    color: var(--vscode-symbolIcon-colorForeground);
+    flex-shrink: 0;
+}
+
+.bookmark-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.bookmark-name {
+    font-size: 12px;
+    font-weight: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bookmark-path {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .empty-message {
     display: flex;
     align-items: center;

@@ -87,7 +87,7 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
     /**
      * Open dual panel for a specific host
      */
-    public async openForHost(host: HostConfig): Promise<void> {
+    public async openForHost(host: HostConfig, initialPath?: string): Promise<void> {
         this._currentHost = host;
         this._currentAuthConfig = await this.authManager.getAuth(host.id);
 
@@ -107,7 +107,8 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
             return;
         }
 
-        this._remoteRootPath = host.defaultRemotePath || '/';
+        // Use provided initial path, or default remote path, or root
+        this._remoteRootPath = initialPath || host.defaultRemotePath || '/';
 
         // Get workspace folder as local root
         const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -145,7 +146,7 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                 }
                 break;
 
-            case 'selectHost':
+            case 'selectHost': {
                 const hostId = message.hostId;
                 const hosts = await this.hostManager.getHosts();
                 const selectedHost = hosts.find(h => h.id === hostId);
@@ -153,6 +154,18 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                     await this.openForHost(selectedHost);
                 }
                 break;
+            }
+
+            case 'openBookmark': {
+                const bookmarkHostId = message.hostId;
+                const bookmarkPath = message.path;
+                const bookmarkHosts = await this.hostManager.getHosts();
+                const bookmarkHost = bookmarkHosts.find(h => h.id === bookmarkHostId);
+                if (bookmarkHost) {
+                    await this.openForHost(bookmarkHost, bookmarkPath);
+                }
+                break;
+            }
 
             case 'loadLocalDir':
                 await this.loadLocalDirectory(message.path);
@@ -678,7 +691,8 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
                     username: h.username,
                     port: h.port,
                     group: groupName,  // 使用分组名称而不是ID
-                    starred: h.starred
+                    starred: h.starred,
+                    bookmarks: h.bookmarks || []  // 包含书签信息
                 };
             })
         });
