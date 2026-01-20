@@ -36,7 +36,19 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
         private readonly transferQueueService: TransferQueueService,
         private readonly authManager: AuthManager,
         private readonly hostManager: HostManager
-    ) {}
+    ) {
+        // Subscribe to task completion events
+        this.transferQueueService.onTaskUpdated((task) => {
+            // If upload task completed successfully, refresh remote directory
+            if (task.type === 'upload' && task.status === 'completed') {
+                this.handleUploadCompleted(task);
+            }
+            // If download task completed successfully, refresh local directory
+            else if (task.type === 'download' && task.status === 'completed') {
+                this.handleDownloadCompleted(task);
+            }
+        });
+    }
 
     /**
      * Resolve webview view when it becomes visible
@@ -387,6 +399,36 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
         } catch (error) {
             logger.error(`Download failed: ${error}`);
             vscode.window.showErrorMessage(`Download failed: ${error}`);
+        }
+    }
+
+    /**
+     * Handle upload task completion - refresh remote directory if it's the target directory
+     */
+    private async handleUploadCompleted(task: any): Promise<void> {
+        if (!this._view || !this._remoteRootPath) return;
+
+        // Extract the directory path from remote file path
+        const remoteDir = path.posix.dirname(task.remotePath);
+
+        // If the current remote directory is the upload target directory, refresh it
+        if (remoteDir === this._remoteRootPath) {
+            await this.loadRemoteDirectory(this._remoteRootPath);
+        }
+    }
+
+    /**
+     * Handle download task completion - refresh local directory if it's the target directory
+     */
+    private async handleDownloadCompleted(task: any): Promise<void> {
+        if (!this._view || !this._localRootPath) return;
+
+        // Extract the directory path from local file path
+        const localDir = path.dirname(task.localPath);
+
+        // If the current local directory is the download target directory, refresh it
+        if (localDir === this._localRootPath) {
+            await this.loadLocalDirectory(this._localRootPath);
         }
     }
 
