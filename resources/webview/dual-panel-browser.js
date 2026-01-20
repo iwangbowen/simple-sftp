@@ -36,6 +36,10 @@
         document.getElementById('upload-selected')?.addEventListener('click', uploadSelected);
         document.getElementById('download-selected')?.addEventListener('click', downloadSelected);
 
+        // Search inputs
+        document.getElementById('local-search')?.addEventListener('input', (e) => filterTree('local', e.target.value));
+        document.getElementById('remote-search')?.addEventListener('input', (e) => filterTree('remote', e.target.value));
+
         // Keyboard shortcuts
         document.addEventListener('keydown', handleKeyboardShortcuts);
     }
@@ -106,6 +110,12 @@
     function renderFileTree(panel, nodes) {
         const treeContainer = document.getElementById(`${panel}-tree`);
         if (!treeContainer) return;
+
+        // 清空搜索框
+        const searchInput = document.getElementById(`${panel}-search`);
+        if (searchInput) {
+            searchInput.value = '';
+        }
 
         // 清空内容
         treeContainer.innerHTML = '';
@@ -232,6 +242,29 @@
     }
 
     // ===== 辅助函数 =====
+
+    /**
+     * 筛选文件树
+     * @param {string} panel - 'local' | 'remote'
+     * @param {string} searchText - 搜索文本
+     */
+    function filterTree(panel, searchText) {
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+
+        const items = treeContainer.querySelectorAll('.tree-item:not(.back-item)');
+        const lowerSearchText = searchText.toLowerCase().trim();
+
+        items.forEach(item => {
+            const label = item.querySelector('.tree-item-label')?.textContent || '';
+
+            if (lowerSearchText === '' || label.toLowerCase().includes(lowerSearchText)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
 
     /**
      * 获取父目录路径

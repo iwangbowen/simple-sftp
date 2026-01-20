@@ -34,6 +34,38 @@ body {
     gap: 12px;
 }
 
+.header-title {
+    font-weight: 500;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: rtl;
+    text-align: left;
+}
+
+/* ===== Icon Buttons (in header) ===== */
+.icon-button {
+    background: transparent;
+    border: none;
+    color: var(--vscode-icon-foreground);
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+}
+
+.icon-button:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.icon-button:active {
+    background-color: var(--vscode-button-secondaryBackground);
+}
+
 .panel-header {
     display: flex;
     align-items: center;
@@ -52,14 +84,29 @@ body {
     flex-shrink: 0;
 }
 
-.header-title {
-    font-weight: 500;
+/* ===== Search Input ===== */
+.search-input {
+    width: 120px;
+    padding: 2px 6px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px;
     font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    direction: rtl;
-    text-align: left;
+    font-family: var(--vscode-font-family);
+    outline: none;
+    transition: border-color 0.15s, width 0.15s;
+    flex-shrink: 0;
+}
+
+.search-input::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+    opacity: 0.8;
+}
+
+.search-input:focus {
+    border-color: var(--vscode-focusBorder);
+    width: 160px;
 }
 
 .separator {
@@ -97,28 +144,6 @@ body {
 
 .resizer:hover {
     background-color: var(--vscode-focusBorder);
-}
-
-/* ===== Icon Buttons (in header) ===== */
-.icon-button {
-    background: transparent;
-    border: none;
-    color: var(--vscode-icon-foreground);
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 3px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-}
-
-.icon-button:hover {
-    background-color: var(--vscode-toolbar-hoverBackground);
-}
-
-.icon-button:active {
-    background-color: var(--vscode-button-secondaryBackground);
 }
 
 /* ===== File Tree ===== */
