@@ -40,6 +40,10 @@
         document.getElementById('local-search')?.addEventListener('input', (e) => filterTree('local', e.target.value));
         document.getElementById('remote-search')?.addEventListener('input', (e) => filterTree('remote', e.target.value));
 
+        // Search inputs - Enter key handling
+        document.getElementById('local-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'local'));
+        document.getElementById('remote-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'remote'));
+
         // Keyboard shortcuts
         document.addEventListener('keydown', handleKeyboardShortcuts);
     }
@@ -242,6 +246,39 @@
     }
 
     // ===== 辅助函数 =====
+
+    /**
+     * 处理搜索框的键盘事件
+     * @param {KeyboardEvent} e - 键盘事件
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function handleSearchKeydown(e, panel) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const treeContainer = document.getElementById(`${panel}-tree`);
+            if (!treeContainer) return;
+
+            // 获取所有可见的文件项(不包括返回上一级按钮)
+            const visibleItems = Array.from(
+                treeContainer.querySelectorAll('.tree-item:not(.back-item)')
+            ).filter(item => item.style.display !== 'none');
+
+            // 如果只有一个可见项
+            if (visibleItems.length === 1) {
+                const item = visibleItems[0];
+                const isDirectory = item.dataset.isDir === 'true';
+                const path = item.dataset.path;
+
+                if (isDirectory) {
+                    // 进入文件夹
+                    loadDirectory(panel, path);
+                } else {
+                    // 选中文件
+                    selectItem(item);
+                }
+            }
+        }
+    }
 
     /**
      * 筛选文件树
