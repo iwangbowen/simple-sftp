@@ -740,6 +740,19 @@
                 renderFileTree('remote', message.data.nodes);
                 break;
 
+            case 'showRemoteLoading':
+                // 立即显示远程加载状态,不等待延迟
+                const remoteTree = document.getElementById('remote-tree');
+                if (remoteTree) {
+                    remoteTree.innerHTML = `
+                        <div class="loading">
+                            <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                            Loading remote files...
+                        </div>
+                    `;
+                }
+                break;
+
             case 'updateStatus':
                 document.getElementById('status-text').textContent = message.text;
                 break;

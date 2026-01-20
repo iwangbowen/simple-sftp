@@ -103,7 +103,15 @@ export class DualPanelViewProvider implements vscode.WebviewViewProvider {
 
         // Initialize both panels
         if (this._view) {
+            // Load local directory first (fast)
             await this.loadLocalDirectory(this._localRootPath);
+
+            // Show loading for remote directory before starting to load
+            this._view.webview.postMessage({
+                command: 'showRemoteLoading'
+            });
+
+            // Then load remote directory (may be slow due to network)
             await this.loadRemoteDirectory(this._remoteRootPath);
         }
     }
