@@ -71,6 +71,12 @@
 
         let isResizing = false;
 
+        // 双击还原默认尺寸
+        resizer.addEventListener('dblclick', () => {
+            localPanel.style.flex = '1';
+            remotePanel.style.flex = '1';
+        });
+
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
             document.body.style.cursor = 'col-resize';
