@@ -251,11 +251,6 @@ export class BookmarkService {
       return;
     }
 
-    if (!this.dualPanelProvider) {
-      vscode.window.showWarningMessage('Dual Panel Browser is not available');
-      return;
-    }
-
     const bookmark = item.data as PathBookmark;
     const hostId = item.hostId;
 
@@ -279,12 +274,16 @@ export class BookmarkService {
       return;
     }
 
-    // Open dual panel browser for the host with bookmark path
-    // We need to temporarily set the default remote path to the bookmark path
+    // Temporarily set the default remote path to the bookmark path
     const originalDefaultPath = host.defaultRemotePath;
     host.defaultRemotePath = bookmark.path;
 
-    await this.dualPanelProvider.openForHost(host);
+    // Use the command to open dual panel browser
+    // This will respect the user's configuration (panel vs editor mode)
+    await vscode.commands.executeCommand('simpleSftp.openDualPanelBrowser', {
+      data: host,
+      type: 'host'
+    });
 
     // Restore original default path
     host.defaultRemotePath = originalDefaultPath;
