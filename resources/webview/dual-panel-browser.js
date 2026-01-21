@@ -62,9 +62,6 @@
         // Search inputs - Enter key handling
         document.getElementById('local-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'local'));
         document.getElementById('remote-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'remote'));
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', handleKeyboardShortcuts);
     }
 
     // ===== Panel Resizer =====
@@ -241,6 +238,7 @@
         }
 
         // Permissions (for remote files only)
+        console.log(`createTreeItem: panel=${panel}, node.permissions=${node.permissions}, node.mode=${node.mode}`);
         if (panel === 'remote' && node.permissions) {
             const permissions = document.createElement('span');
             permissions.className = 'tree-item-permissions';

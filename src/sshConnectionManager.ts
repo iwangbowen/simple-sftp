@@ -128,19 +128,42 @@ export class SshConnectionManager {
   static async listRemoteFiles(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<Array<{name: string, type: 'file' | 'directory', size: number, mode?: number, permissions?: string, owner?: number, group?: number}>> {
     return this.withConnection(config, authConfig, async (sftp) => {
       const list = await sftp.list(remotePath);
-      const items = list
-        .filter((item: any) => item.name !== '.' && item.name !== '..')
-        .map((item: any) => ({
-          name: item.name,
-          type: item.type === 'd' ? 'directory' as const : 'file' as const,
-          size: item.size || 0,
-          mode: item.attrs?.mode,
-          permissions: item.attrs?.mode ? this.formatPermissions(item.attrs.mode) : undefined,
-          owner: item.attrs?.uid,
-          group: item.attrs?.gid
-        }));
 
-      return items;
+      // Get detailed stats for each item
+      const itemsWithStats = await Promise.all(
+        list
+          .filter((item: any) => item.name !== '.' && item.name !== '..')
+          .map(async (item: any) => {
+            const itemPath = `${remotePath}/${item.name}`.replaceAll('//', '/');
+            try {
+              const stats = await sftp.stat(itemPath);
+              logger.debug(`File: ${item.name}, stats mode: ${stats.mode}, type: ${stats.type}`);
+              return {
+                name: item.name,
+                type: (stats.type === 'd' || item.type === 'd') ? 'directory' as const : 'file' as const,
+                size: stats.size || item.size || 0,
+                mode: stats.mode,
+                permissions: stats.mode ? this.formatPermissions(stats.mode) : undefined,
+                owner: stats.uid,
+                group: stats.gid
+              };
+            } catch (error) {
+              // Fallback to basic info if stat fails
+              logger.warn(`Failed to get stats for ${item.name}: ${error}`);
+              return {
+                name: item.name,
+                type: item.type === 'd' ? 'directory' as const : 'file' as const,
+                size: item.size || 0,
+                mode: undefined,
+                permissions: undefined,
+                owner: undefined,
+                group: undefined
+              };
+            }
+          })
+      );
+
+      return itemsWithStats;
     });
   }
 
