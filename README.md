@@ -22,8 +22,15 @@ If you find this extension helpful, consider buying me a coffee!
 
 #### File Management
 - **Dual-Panel File Browser**: Visual interface with side-by-side local and remote file views
-  - Navigate directories with breadcrumb paths
-  - Search/filter files in real-time
+  - **Breadcrumb Navigation**: Clickable path segments for quick directory navigation
+    - Click any path segment to jump to that directory
+    - Intelligent overflow handling - shows trailing paths first
+    - Supports Windows (C:\) and Unix (/) path formats
+  - **File Permissions**: Display and edit Unix-style permissions for remote files
+    - Permission column shows rwx format (e.g., `rwxr-xr-x`)
+    - Right-click context menu to change permissions
+    - Supports octal (755) and symbolic (rwxr-xr-x) input formats
+  - Real-time search/filter files
   - Quick upload/download with click buttons
   - Panel or Editor area display modes
   - Support multiple browser instances (Editor mode)
@@ -360,7 +367,14 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 #### 文件管理
 
 - **双面板文件浏览器**: 本地和远程文件系统并列可视化界面
-  - 面包屑路径导航
+  - **面包屑导航**: 可点击的路径段，快速跳转目录
+    - 点击任意路径段跳转到对应目录
+    - 智能溢出处理 - 优先显示最后的路径段
+    - 支持 Windows (C:\) 和 Unix (/) 路径格式
+  - **文件权限**: 显示和编辑远程文件的 Unix 风格权限
+    - 权限列显示 rwx 格式（如 `rwxr-xr-x`）
+    - 右键菜单修改文件权限
+    - 支持八进制（755）和符号（rwxr-xr-x）输入格式
   - 实时搜索/过滤文件
   - 点击按钮快速上传/下载
   - Panel 或 Editor 区域显示模式
