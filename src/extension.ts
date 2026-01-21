@@ -9,6 +9,7 @@ import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
 import { TransferHistoryTreeProvider } from './ui/transferHistoryTreeProvider';
 import { HelpFeedbackTreeProvider } from './ui/helpFeedbackTreeProvider';
 import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
+import { DualPanelEditorManager } from './ui/dualPanelEditorProvider';
 import { TransferQueueCommands } from './integrations/transferQueueCommands';
 import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
@@ -86,7 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(helpFeedbackView);
   logger.info('Help and feedback tree view registered');
 
-  // Register Dual Panel WebviewView provider
+  // Register Dual Panel WebviewView provider (Panel mode)
   const dualPanelProvider = new DualPanelViewProvider(
     context.extensionUri,
     transferQueueService,
@@ -101,8 +102,26 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   logger.info('Dual panel webview view provider registered');
 
-  // Register command handler with transfer queue service and dual panel provider
-  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider, transferQueueService, dualPanelProvider);
+  // Register Dual Panel Editor Manager (Editor mode)
+  const dualPanelEditorManager = new DualPanelEditorManager(
+    context.extensionUri,
+    transferQueueService,
+    authManager,
+    hostManager
+  );
+  context.subscriptions.push({
+    dispose: () => dualPanelEditorManager.dispose()
+  });
+  logger.info('Dual panel editor manager initialized');
+
+  // Register command handler with transfer queue service and both providers
+  const commandHandler = new CommandHandler(
+    hostManager,
+    authManager,
+    treeProvider,
+    transferQueueService,
+    dualPanelProvider
+  );
   commandHandler.registerCommands(context);
 
   // Register transfer queue commands
@@ -190,27 +209,87 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage('请先选择一个主机');
         return;
       }
-      await dualPanelProvider.openForHost(item.data);
+
+      // Check configuration to decide which mode to use
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        // Open in editor area (supports multiple instances)
+        await dualPanelEditorManager.openForHost(item.data);
+      } else {
+        // Open in panel area (single instance)
+        await dualPanelProvider.openForHost(item.data);
+      }
     }),
 
-    // Dual Panel WebView context menu commands
+    // Dual Panel WebView context menu commands - work with both modes
     vscode.commands.registerCommand('simpleSftp.dualPanel.upload', async (args) => {
-      await dualPanelProvider.executeUpload(args);
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.executeUpload(args);
+      } else {
+        await dualPanelProvider.executeUpload(args);
+      }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.download', async (args) => {
-      await dualPanelProvider.executeDownload(args);
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.executeDownload(args);
+      } else {
+        await dualPanelProvider.executeDownload(args);
+      }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.delete', async (args) => {
-      await dualPanelProvider.executeDelete(args);
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.executeDelete(args);
+      } else {
+        await dualPanelProvider.executeDelete(args);
+      }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.rename', async (args) => {
-      await dualPanelProvider.executeRename(args);
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.executeRename(args);
+      } else {
+        await dualPanelProvider.executeRename(args);
+      }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.createFolder', async (args) => {
-      await dualPanelProvider.executeCreateFolder(args);
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.executeCreateFolder(args);
+      } else {
+        await dualPanelProvider.executeCreateFolder(args);
+      }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', async (args) => {
-      await dualPanelProvider.executeRefresh(args);
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.executeRefresh(args);
+      } else {
+        await dualPanelProvider.executeRefresh(args);
+      }
     })
   );
   logger.info('Transfer queue commands registered');

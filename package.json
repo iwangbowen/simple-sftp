@@ -1024,6 +1024,11 @@
           "minimum": 1,
           "maximum": 10,
           "description": "Maximum number of concurrent chunk transfers. Default: 5. Higher values may increase speed but require more connections and resources. Range: 1-10."
+        },
+        "simpleSftp.browser.openInEditor": {
+          "type": "boolean",
+          "default": false,
+          "description": "Open file browser in editor area instead of panel area. When enabled, allows opening multiple browser instances for different hosts."
         }
       }
     }
