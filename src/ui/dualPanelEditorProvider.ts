@@ -4,6 +4,7 @@ import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { DualPanelBase } from './dualPanelBase';
+import { UI } from '../constants';
 
 /**
  * Manager for dual panel file browser in editor area
