@@ -678,7 +678,7 @@
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'tree-item-input';
-        input.placeholder = 'Folder name';
+        input.placeholder = 'Folder name or path (e.g., parent/child)';
         newItem.appendChild(input);
 
         // 将项添加到包装容器
@@ -705,7 +705,7 @@
 
         /**
          * 验证文件夹名称
-         * @param {string} name - 文件夹名称
+         * @param {string} name - 文件夹名称或路径
          * @returns {string|null} - 错误信息或null
          */
         const validateFolderName = (name) => {
@@ -714,31 +714,37 @@
                 return 'A file or folder name must be provided';
             }
 
-            // 不能以点开头或结尾
-            if (name.startsWith('.') || name.endsWith('.')) {
-                return 'A folder name cannot start or end with a period';
-            }
+            // 分割路径
+            const parts = name.split('/').filter(p => p.trim());
 
-            // 不能只包含点和空格
-            if (/^[.\s]+$/.test(name)) {
-                return 'A folder name cannot consist only of periods and spaces';
-            }
+            // 检查每个部分
+            for (const part of parts) {
+                // 不能以点开头或结尾
+                if (part.startsWith('.') || part.endsWith('.')) {
+                    return String.raw`Folder name "${part}" cannot start or end with a period`;
+                }
 
-            // Windows/Linux 禁用字符
-            const invalidChars = /[\\/:*?"<>|]/;
-            if (invalidChars.test(name)) {
-                return String.raw`A folder name cannot contain: \ / : * ? " < > |`;
-            }
+                // 不能只包含点和空格
+                if (/^[.\s]+$/.test(part)) {
+                    return String.raw`Folder name "${part}" cannot consist only of periods and spaces`;
+                }
 
-            // Windows 保留名称
-            const reservedNames = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
-            if (reservedNames.test(name.trim())) {
-                return 'This name is reserved by the system';
-            }
+                // Windows/Linux 禁用字符 (允许 / 用于多级创建,不允许 \)
+                const invalidChars = /[\\:*?"<>|]/;
+                if (invalidChars.test(part)) {
+                    return String.raw`Folder name "${part}" cannot contain: \ : * ? " < > |`;
+                }
 
-            // 长度限制
-            if (name.length > 255) {
-                return 'The folder name is too long (maximum 255 characters)';
+                // Windows 保留名称
+                const reservedNames = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+                if (reservedNames.test(part.trim())) {
+                    return String.raw`"${part}" is reserved by the system`;
+                }
+
+                // 长度限制
+                if (part.length > 255) {
+                    return String.raw`Folder name "${part}" is too long (maximum 255 characters)`;
+                }
             }
 
             return null; // 验证通过
