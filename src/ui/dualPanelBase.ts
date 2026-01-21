@@ -578,10 +578,11 @@ export abstract class DualPanelBase {
             return 0;
         });
 
-        this.postMessage({
-            command: 'showHostSelection',
-            hosts: sortedHosts.map(h => {
+        // Check authentication status for each host
+        const hostsWithAuth = await Promise.all(
+            sortedHosts.map(async (h) => {
                 const groupName = h.group ? groups.find(g => g.id === h.group)?.name : undefined;
+                const hasAuth = await this.authManager.hasAuth(h.id);
                 return {
                     id: h.id,
                     name: h.name,
@@ -590,9 +591,15 @@ export abstract class DualPanelBase {
                     port: h.port,
                     group: groupName,
                     starred: h.starred,
-                    bookmarks: h.bookmarks || []
+                    bookmarks: h.bookmarks || [],
+                    hasAuth
                 };
             })
+        );
+
+        this.postMessage({
+            command: 'showHostSelection',
+            hosts: hostsWithAuth
         });
     }
 

@@ -956,6 +956,7 @@
                                     <div class="host-name">
                                         ${host.name}
                                         ${host.group ? `<span class="host-group">[${host.group}]</span>` : ''}
+                                        ${host.hasAuth ? '' : '<span class="codicon codicon-warning host-no-auth" title="No authentication configured"></span>'}
                                     </div>
                                     <div class="host-details">${host.username}@${host.host}:${host.port}</div>
                                 </div>

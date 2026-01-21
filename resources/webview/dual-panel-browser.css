@@ -448,6 +448,13 @@ body {
     font-weight: normal;
 }
 
+.host-no-auth {
+    margin-left: 6px;
+    font-size: 14px;
+    color: var(--vscode-editorWarning-foreground);
+    flex-shrink: 0;
+}
+
 .host-details {
     font-size: 11px;
     color: var(--vscode-descriptionForeground);
