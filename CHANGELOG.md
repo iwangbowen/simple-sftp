@@ -1,5 +1,23 @@
 # Change Log
 
+## [3.2.0] - 2026-01-21
+
+### Added
+
+- **Dual Panel Browser - Editor Mode Support**
+  - New configuration `simpleSftp.browser.openInEditor` to choose opening location (Panel or Editor area)
+  - Editor mode supports multiple webview instances (one per host)
+  - Automatic panel reuse for the same host
+  - Unified browse button labels across Host and Bookmark views
+
+### Fixed
+
+- Bookmark WebView browse now respects the configuration setting
+- Context menu commands work correctly in both Panel and Editor modes
+- Resolved missing `@vscode/codicons` package dependency
+
+---
+
 ## [3.1.1] - 2026-01-21
 
 ### Added
