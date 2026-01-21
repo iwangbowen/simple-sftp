@@ -2,6 +2,15 @@
  * Constants used throughout the CommandHandler
  */
 
+// UI Constants
+export const UI = {
+  ICONS: {
+    DUAL_PANEL_BROWSER: 'remote-explorer',  // Icon for dual panel file browser
+    TASK_UPLOAD: 'cloud-upload',            // Icon for upload tasks
+    TASK_DOWNLOAD: 'cloud-download',        // Icon for download tasks
+  },
+} as const;
+
 export const DEFAULTS = {
   PORT: 22,
   USERNAME: 'root',

@@ -80,7 +80,7 @@ export class DualPanelEditorManager extends DualPanelBase {
             );
 
             // Set custom icon for the panel (use VS Code built-in icon)
-            panel.iconPath = new vscode.ThemeIcon('remote-explorer');
+            panel.iconPath = new vscode.ThemeIcon(UI.ICONS.DUAL_PANEL_BROWSER);
 
             this.panels.set(host.id, panel);
             this.currentPanel = panel;

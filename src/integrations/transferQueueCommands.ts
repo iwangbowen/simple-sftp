@@ -12,6 +12,7 @@ import { TransferHistoryService } from '../services/transferHistoryService';
 import { TransferTaskModel } from '../models/transferTask';
 import { TimeUtils } from '../timeUtils';
 import { logger } from '../logger';
+import { UI } from '../constants';
 
 /**
  * Command handlers to add to CommandHandler class
@@ -237,7 +238,7 @@ export class TransferQueueCommands {
     );
 
     // Set icon for the webview panel tab based on task type
-    const iconName = task.type === 'upload' ? 'cloud-upload' : 'cloud-download';
+    const iconName = task.type === 'upload' ? UI.ICONS.TASK_UPLOAD : UI.ICONS.TASK_DOWNLOAD;
     panel.iconPath = new vscode.ThemeIcon(iconName);
 
     // Store panel reference
