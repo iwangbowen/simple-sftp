@@ -1,5 +1,34 @@
 # Change Log
 
+## 3.3.0 - 2026-01-21
+
+### Added
+
+- **Breadcrumb Navigation**: Path display is now clickable breadcrumb navigation
+  - Click any path segment to jump to that directory
+  - Optimized to prioritize displaying the last segments when space is limited
+  - Supports both Windows (C:\Users\...) and Unix (/home/...) path formats
+
+- **File Permissions Display & Editing**: Remote files now show Unix-style permissions
+  - Permission column displays rwx format (e.g., `rwxr-xr-x`)
+  - Right-click context menu "Change Permissions" for remote files
+  - Input supports both octal (755) and symbolic (rwxr-xr-x) formats
+  - Automatic directory refresh after permission changes
+
+### Fixed
+
+- Delete confirmation dialog now uses native VS Code modal instead of browser confirm() to avoid CSP sandbox restrictions
+- Removed duplicate "Cancel" button in delete confirmation dialog
+- Fixed keyboard shortcuts conflict (Ctrl+S for upload, Ctrl+D for download, Delete key for delete)
+- Fixed permission data retrieval by using `sftp.stat()` to get detailed file attributes
+
+### Improved
+
+- Batch operations (delete/upload/download) now show detailed confirmation dialogs with file lists
+- Better error handling with fallback for permission retrieval failures
+
+---
+
 ## 3.2.0 - 2026-01-21
 
 ### Added
