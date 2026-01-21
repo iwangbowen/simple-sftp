@@ -14,6 +14,10 @@ export interface FileNode {
     isDirectory: boolean;
     size?: number;
     modifiedTime?: Date;
+    mode?: number;
+    permissions?: string;
+    owner?: number;
+    group?: number;
     expanded?: boolean;
     children?: FileNode[];
 }
@@ -355,6 +359,10 @@ export abstract class DualPanelBase {
             isDirectory: item.type === 'directory',
             size: item.type === 'file' ? item.size : undefined,
             modifiedTime: new Date(),
+            mode: item.mode,
+            permissions: item.permissions,
+            owner: item.owner,
+            group: item.group,
             expanded: false,
             children: item.type === 'directory' ? [] : undefined
         }));
@@ -841,6 +849,109 @@ export abstract class DualPanelBase {
         this.postMessage({
             command: 'triggerDelete'
         });
+    }
+
+    public async executeChangePermissions(args: any): Promise<void> {
+        const { filePath, panel } = args;
+
+        if (panel !== 'remote') {
+            vscode.window.showWarningMessage('Permissions can only be changed for remote files');
+            return;
+        }
+
+        if (!this._currentHost || !this._currentAuthConfig) {
+            vscode.window.showErrorMessage('No host selected');
+            return;
+        }
+
+        // Get current file info to retrieve current permissions
+        try {
+            const stats = await SshConnectionManager.getFileStats(
+                this._currentHost,
+                this._currentAuthConfig,
+                filePath
+            );
+
+            const currentMode = stats.mode & 0o777; // Get only permission bits
+
+            // Show input box for new permissions
+            const input = await vscode.window.showInputBox({
+                prompt: `Enter new permissions for ${path.basename(filePath)}`,
+                placeHolder: 'rwxr-xr-x or 755',
+                value: currentMode.toString(8), // Show current permissions in octal
+                validateInput: (value) => {
+                    // Validate octal format (e.g., 755)
+                    if (/^[0-7]{3,4}$/.test(value)) {
+                        return null;
+                    }
+                    // Validate rwx format (e.g., rwxr-xr-x)
+                    if (/^[r-][w-][x-][r-][w-][x-][r-][w-][x-]$/.test(value)) {
+                        return null;
+                    }
+                    return 'Please enter permissions in octal (e.g., 755) or symbolic (e.g., rwxr-xr-x) format';
+                }
+            });
+
+            if (!input) {
+                return; // User cancelled
+            }
+
+            // Parse input to octal mode
+            let newMode: number;
+            if (/^[0-7]{3,4}$/.test(input)) {
+                // Octal format
+                newMode = Number.parseInt(input, 8);
+            } else {
+                // rwx format
+                newMode = this.parsePermissionsToMode(input);
+            }
+
+            // Apply new permissions
+            await SshConnectionManager.changeFilePermissions(
+                this._currentHost,
+                this._currentAuthConfig,
+                filePath,
+                newMode
+            );
+
+            vscode.window.showInformationMessage(`Permissions changed to ${newMode.toString(8)} for ${path.basename(filePath)}`);
+
+            // Refresh the directory
+            if (this._remoteRootPath) {
+                await this.loadRemoteDirectory(this._remoteRootPath);
+            }
+        } catch (error: any) {
+            logger.error(`Failed to change permissions: ${error}`);
+            vscode.window.showErrorMessage(`Failed to change permissions: ${error.message}`);
+        }
+    }
+
+    private formatModeToString(mode: number): string {
+        return [
+            (mode & 0o400) ? 'r' : '-',
+            (mode & 0o200) ? 'w' : '-',
+            (mode & 0o100) ? 'x' : '-',
+            (mode & 0o040) ? 'r' : '-',
+            (mode & 0o020) ? 'w' : '-',
+            (mode & 0o010) ? 'x' : '-',
+            (mode & 0o004) ? 'r' : '-',
+            (mode & 0o002) ? 'w' : '-',
+            (mode & 0o001) ? 'x' : '-'
+        ].join('');
+    }
+
+    private parsePermissionsToMode(perms: string): number {
+        let mode = 0;
+        if (perms.charAt(0) === 'r') mode |= 0o400;
+        if (perms.charAt(1) === 'w') mode |= 0o200;
+        if (perms.charAt(2) === 'x') mode |= 0o100;
+        if (perms.charAt(3) === 'r') mode |= 0o040;
+        if (perms.charAt(4) === 'w') mode |= 0o020;
+        if (perms.charAt(5) === 'x') mode |= 0o010;
+        if (perms.charAt(6) === 'r') mode |= 0o004;
+        if (perms.charAt(7) === 'w') mode |= 0o002;
+        if (perms.charAt(8) === 'x') mode |= 0o001;
+        return mode;
     }
 
     public async executeCreateFolder(args: any): Promise<void> {

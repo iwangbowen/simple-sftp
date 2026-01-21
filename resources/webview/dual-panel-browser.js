@@ -240,6 +240,15 @@
             item.appendChild(time);
         }
 
+        // Permissions (for remote files only)
+        if (panel === 'remote' && node.permissions) {
+            const permissions = document.createElement('span');
+            permissions.className = 'tree-item-permissions';
+            permissions.textContent = node.permissions;
+            permissions.title = `Mode: ${node.mode ? node.mode.toString(8) : 'N/A'}`;
+            item.appendChild(permissions);
+        }
+
         // Size (for files) or placeholder (for folders)
         const size = document.createElement('span');
         size.className = 'tree-item-size';

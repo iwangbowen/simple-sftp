@@ -125,7 +125,7 @@ export class SshConnectionManager {
   /**
    * 列出远程目录（包含文件和文件夹）
    */
-  static async listRemoteFiles(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<Array<{name: string, type: 'file' | 'directory', size: number}>> {
+  static async listRemoteFiles(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<Array<{name: string, type: 'file' | 'directory', size: number, mode?: number, permissions?: string, owner?: number, group?: number}>> {
     return this.withConnection(config, authConfig, async (sftp) => {
       const list = await sftp.list(remotePath);
       const items = list
@@ -133,11 +133,37 @@ export class SshConnectionManager {
         .map((item: any) => ({
           name: item.name,
           type: item.type === 'd' ? 'directory' as const : 'file' as const,
-          size: item.size || 0
+          size: item.size || 0,
+          mode: item.attrs?.mode,
+          permissions: item.attrs?.mode ? this.formatPermissions(item.attrs.mode) : undefined,
+          owner: item.attrs?.uid,
+          group: item.attrs?.gid
         }));
 
       return items;
     });
+  }
+
+  /**
+   * Format Unix file mode to rwx string
+   * @param mode Unix file mode (e.g., 0o100644)
+   * @returns Permission string (e.g., "rw-r--r--")
+   */
+  private static formatPermissions(mode: number): string {
+    return [
+      // User permissions
+      (mode & 0o400) ? 'r' : '-',
+      (mode & 0o200) ? 'w' : '-',
+      (mode & 0o100) ? 'x' : '-',
+      // Group permissions
+      (mode & 0o040) ? 'r' : '-',
+      (mode & 0o020) ? 'w' : '-',
+      (mode & 0o010) ? 'x' : '-',
+      // Other permissions
+      (mode & 0o004) ? 'r' : '-',
+      (mode & 0o002) ? 'w' : '-',
+      (mode & 0o001) ? 'x' : '-'
+    ].join('');
   }
 
   /**
@@ -875,6 +901,34 @@ export class SshConnectionManager {
       logger.error(`Error in deleteRemoteDirectory for ${remotePath}: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Get file stats (including permissions)
+   */
+  static async getFileStats(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string
+  ): Promise<any> {
+    return this.withConnection(config, authConfig, async (sftp) => {
+      return await sftp.stat(remotePath);
+    });
+  }
+
+  /**
+   * Change file permissions (chmod)
+   */
+  static async changeFilePermissions(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string,
+    mode: number
+  ): Promise<void> {
+    return this.withConnection(config, authConfig, async (sftp) => {
+      await sftp.chmod(remotePath, mode);
+      logger.info(`Changed permissions for ${remotePath} to ${mode.toString(8)}`);
+    });
   }
 
   /**

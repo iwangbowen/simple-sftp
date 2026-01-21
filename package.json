@@ -419,6 +419,12 @@
         "icon": "$(trash)"
       },
       {
+        "command": "simpleSftp.dualPanel.changePermissions",
+        "title": "Change Permissions",
+        "category": "Simple SFTP",
+        "icon": "$(shield)"
+      },
+      {
         "command": "simpleSftp.dualPanel.rename",
         "title": "Rename",
         "category": "Simple SFTP",
@@ -463,6 +469,11 @@
           "command": "simpleSftp.dualPanel.rename",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
           "group": "2_operations@3"
+        },
+        {
+          "command": "simpleSftp.dualPanel.changePermissions",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'",
+          "group": "2_operations@4"
         },
         {
           "command": "simpleSftp.dualPanel.delete",

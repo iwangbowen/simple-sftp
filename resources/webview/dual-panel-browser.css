@@ -311,6 +311,16 @@ body {
     text-align: right;
 }
 
+.tree-item-permissions {
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+    margin-left: 12px;
+    flex-shrink: 0;
+    min-width: 80px;
+    text-align: left;
+    font-family: 'Courier New', Courier, monospace;
+}
+
 .tree-item-size {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
