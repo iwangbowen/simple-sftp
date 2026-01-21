@@ -109,6 +109,59 @@ body {
     width: 160px;
 }
 
+/* ===== Breadcrumb Navigation ===== */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    overflow: hidden;
+    direction: rtl; /* 右到左文本方向,优先显示右侧内容 */
+}
+
+.breadcrumb > * {
+    direction: ltr; /* 恢复子元素的正常文本方向 */
+}
+
+.breadcrumb-segment {
+    white-space: nowrap;
+    padding: 2px 4px;
+    border-radius: 3px;
+    flex-shrink: 0; /* 不压缩 */
+}
+
+.breadcrumb-root {
+    font-weight: 600;
+    color: var(--vscode-titleBar-activeForeground);
+    flex-shrink: 1; /* root 可以被隐藏 */
+}
+
+.breadcrumb-clickable {
+    cursor: pointer;
+    color: var(--vscode-textLink-foreground);
+    flex-shrink: 1; /* 前面的路径段可以被隐藏 */
+}
+
+.breadcrumb-clickable:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+    text-decoration: underline;
+}
+
+.breadcrumb-current {
+    font-weight: 500;
+    color: var(--vscode-titleBar-activeForeground);
+    flex-shrink: 0; /* 当前目录始终显示 */
+}
+
+.breadcrumb-separator {
+    color: var(--vscode-titleBar-inactiveForeground);
+    font-size: 11px;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
 .separator {
     color: var(--vscode-titleBar-inactiveForeground);
     font-size: 14px;

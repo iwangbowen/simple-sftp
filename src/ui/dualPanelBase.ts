@@ -131,6 +131,14 @@ export abstract class DualPanelBase {
                 await this.loadRemoteDirectory(message.path);
                 break;
 
+            case 'loadDirectory':
+                if (message.panel === 'local') {
+                    await this.loadLocalDirectory(message.path);
+                } else if (message.panel === 'remote') {
+                    await this.loadRemoteDirectory(message.path);
+                }
+                break;
+
             case 'upload':
                 await this.handleUpload(message.data.localPath, message.data.remotePath);
                 break;

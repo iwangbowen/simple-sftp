@@ -989,6 +989,100 @@
         });
     }
 
+    /**
+     * Render breadcrumb navigation from path
+     * @param {string} panel - 'local' or 'remote'
+     * @param {string} fullPath - Full path to display
+     */
+    function renderBreadcrumb(panel, fullPath) {
+        const breadcrumbId = panel === 'local' ? 'local-breadcrumb' : 'remote-breadcrumb';
+        const breadcrumb = document.getElementById(breadcrumbId);
+        if (!breadcrumb) return;
+
+        // Clear existing breadcrumb
+        breadcrumb.innerHTML = '';
+
+        // Split path into segments
+        const isWindows = panel === 'local' && /^[A-Za-z]:/.test(fullPath);
+        const separator = panel === 'local' && isWindows ? '\\' : '/';
+
+        let segments = [];
+        let paths = [];
+
+        if (isWindows) {
+            // Windows path: C:\Users\iwang\Documents
+            const parts = fullPath.split(separator).filter(Boolean);
+            segments = parts;
+
+            // Build cumulative paths
+            paths.push(parts[0] + separator); // C:\
+            for (let i = 1; i < parts.length; i++) {
+                paths.push(paths[i - 1] + parts[i] + separator);
+            }
+        } else {
+            // Unix path: /home/user/documents
+            const parts = fullPath.split('/').filter(Boolean);
+            segments = parts;
+
+            // Build cumulative paths
+            paths.push('/');
+            for (let i = 0; i < parts.length; i++) {
+                if (i === 0) {
+                    paths.push('/' + parts[i]);
+                } else {
+                    paths.push(paths[i] + '/' + parts[i]);
+                }
+            }
+        }
+
+        // Create root segment
+        const rootSpan = document.createElement('span');
+        rootSpan.className = 'breadcrumb-segment breadcrumb-root';
+        rootSpan.textContent = panel === 'local' ? 'Local' : 'Remote';
+        rootSpan.dataset.path = isWindows ? segments[0] + separator : '/';
+        rootSpan.dataset.panel = panel;
+        rootSpan.title = 'Go to root';
+        rootSpan.addEventListener('click', function() {
+            loadDirectory(panel, this.dataset.path);
+        });
+        breadcrumb.appendChild(rootSpan);
+
+        // Create separators and segments
+        for (let i = 0; i < segments.length; i++) {
+            // Add separator
+            const sep = document.createElement('span');
+            sep.className = 'breadcrumb-separator';
+            sep.textContent = separator;
+            breadcrumb.appendChild(sep);
+
+            // Add segment
+            const segment = document.createElement('span');
+            segment.className = 'breadcrumb-segment';
+
+            // For Windows, first segment is drive letter (already included in root)
+            if (isWindows && i === 0) {
+                continue;
+            }
+
+            segment.textContent = segments[i];
+            segment.dataset.path = paths[i + (isWindows ? 0 : 1)];
+            segment.dataset.panel = panel;
+            segment.title = `Go to ${segment.dataset.path}`;
+
+            // Make all but last segment clickable
+            if (i < segments.length - 1) {
+                segment.classList.add('breadcrumb-clickable');
+                segment.addEventListener('click', function() {
+                    loadDirectory(panel, this.dataset.path);
+                });
+            } else {
+                segment.classList.add('breadcrumb-current');
+            }
+
+            breadcrumb.appendChild(segment);
+        }
+    }
+
     // ===== 键盘快捷键 =====
     document.addEventListener('keydown', (e) => {
         // Ctrl+S: Upload selected local files
@@ -1046,13 +1140,13 @@
 
             case 'updateLocalTree':
                 currentLocalPath = message.data.path;
-                document.getElementById('local-path').textContent = message.data.path;
+                renderBreadcrumb('local', message.data.path);
                 renderFileTree('local', message.data.nodes);
                 break;
 
             case 'updateRemoteTree':
                 currentRemotePath = message.data.path;
-                document.getElementById('remote-path').textContent = message.data.path;
+                renderBreadcrumb('remote', message.data.path);
                 renderFileTree('remote', message.data.nodes);
                 break;
 
@@ -1089,7 +1183,7 @@
                 downloadSelected();
                 break;
 
-            case 'showRemoteLoading':
+            case 'showRemoteLoading': {
                 // 立即显示远程加载状态,不等待延迟
                 const remoteTree = document.getElementById('remote-tree');
                 if (remoteTree) {
@@ -1101,6 +1195,7 @@
                     `;
                 }
                 break;
+            }
 
             case 'updateStatus':
                 document.getElementById('status-text').textContent = message.text;

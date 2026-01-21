@@ -17,7 +17,7 @@
                     <span class="codicon codicon-home"></span>
                 </button>
                 <span class="codicon codicon-folder"></span>
-                <span class="header-title">Local: <span id="local-path">{{localPath}}</span></span>
+                <div class="breadcrumb" id="local-breadcrumb"></div>
                 <input type="text" class="search-input" id="local-search" placeholder="Filter..." title="Filter files and folders">
                 <button class="icon-button" id="refresh-local" title="Refresh Local">
                     <span class="codicon codicon-refresh"></span>
@@ -34,7 +34,7 @@
             </div>
             <div class="panel-header remote-header">
                 <span class="codicon codicon-remote"></span>
-                <span class="header-title">Remote: <span id="remote-path">{{remotePath}}</span></span>
+                <div class="breadcrumb" id="remote-breadcrumb"></div>
                 <input type="text" class="search-input" id="remote-search" placeholder="Filter..." title="Filter files and folders">
                 <button class="icon-button" id="refresh-remote" title="Refresh Remote">
                     <span class="codicon codicon-refresh"></span>
