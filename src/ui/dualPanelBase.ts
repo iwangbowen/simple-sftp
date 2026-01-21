@@ -656,24 +656,16 @@ export abstract class DualPanelBase {
         const { panel } = args;
         const parentPath = panel === 'local' ? this._localRootPath : this._remoteRootPath;
 
-        const folderName = await vscode.window.showInputBox({
-            prompt: 'Enter folder name',
-            validateInput: (value) => {
-                if (!value) {
-                    return 'Folder name cannot be empty';
-                }
-                if (value.includes('/') || value.includes('\\')) {
-                    return 'Invalid characters in folder name';
-                }
-                return null;
-            }
-        });
-
-        if (!folderName || !parentPath) {
+        if (!parentPath) {
+            vscode.window.showErrorMessage(`No ${panel} path selected`);
             return;
         }
 
-        await this.handleCreateFolder({ parentPath, name: folderName, panel });
+        // Send message to webview to trigger inline folder creation
+        this.postMessage({
+            command: 'triggerCreateFolder',
+            panel: panel
+        });
     }
 
     public async executeUpload(args: any): Promise<void> {

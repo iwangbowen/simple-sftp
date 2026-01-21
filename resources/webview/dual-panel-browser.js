@@ -900,6 +900,11 @@
                 renderFileTree('remote', message.data.nodes);
                 break;
 
+            case 'triggerCreateFolder':
+                // Trigger inline folder creation from context menu
+                createFolder(message.panel);
+                break;
+
             case 'showRemoteLoading':
                 // 立即显示远程加载状态,不等待延迟
                 const remoteTree = document.getElementById('remote-tree');
