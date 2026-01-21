@@ -15,6 +15,8 @@
     let currentRemotePath = '';
     /** @type {Object.<string, number>} */
     let loadingTimers = {};
+    /** @type {number | null} */
+    let clickTimer = null;
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -246,16 +248,31 @@
 
         // Event listeners
         item.addEventListener('click', (e) => {
-            if (node.isDirectory) {
-                // 单击文件夹进入
-                loadDirectory(panel, node.path);
-            } else {
-                selectItem(item);
+            // 清除之前的单击定时器
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+                clickTimer = null;
+                return; // 这是双击,不执行单击逻辑
             }
+
+            // 设置单击延迟,等待可能的双击
+            clickTimer = setTimeout(() => {
+                selectItem(item);
+                clickTimer = null;
+            }, 250);
         });
 
         item.addEventListener('dblclick', (e) => {
-            if (!node.isDirectory) {
+            // 清除单击定时器
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+                clickTimer = null;
+            }
+
+            if (node.isDirectory) {
+                // 双击文件夹进入
+                loadDirectory(panel, node.path);
+            } else {
                 // 双击文件打开
                 vscode.postMessage({
                     command: 'openFile',
