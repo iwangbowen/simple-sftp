@@ -135,10 +135,6 @@ export abstract class DualPanelBase {
                 await this.handleUpload(message.data.localPath, message.data.remotePath);
                 break;
 
-            case 'requestFolderName':
-                await this.handleRequestFolderName(message.data);
-                break;
-
             case 'download':
                 await this.handleDownload(message.data.remotePath, message.data.localPath);
                 break;
@@ -149,6 +145,10 @@ export abstract class DualPanelBase {
 
             case 'delete':
                 await this.handleDelete(message.data);
+                break;
+
+            case 'showError':
+                vscode.window.showErrorMessage(message.message);
                 break;
 
             case 'rename':
@@ -429,45 +429,6 @@ export abstract class DualPanelBase {
     }
 
     // ===== Other Operations =====
-
-    protected async handleRequestFolderName(data: any): Promise<void> {
-        const { panel, currentPath } = data;
-
-        const folderName = await vscode.window.showInputBox({
-            prompt: `Enter folder name for ${panel} panel`,
-            placeHolder: 'Folder name',
-            validateInput: (value) => {
-                if (!value || value.trim().length === 0) {
-                    return 'Folder name cannot be empty';
-                }
-                if (value.includes('/') || value.includes('\\')) {
-                    return 'Folder name cannot contain / or \\';
-                }
-                return null;
-            }
-        });
-
-        if (!folderName) {
-            return;
-        }
-
-        let parentPath: string | undefined = currentPath;
-
-        if (!parentPath) {
-            if (panel === 'local') {
-                parentPath = this._localRootPath;
-            } else {
-                parentPath = this._remoteRootPath;
-            }
-        }
-
-        if (!parentPath) {
-            vscode.window.showErrorMessage(`No ${panel} path selected`);
-            return;
-        }
-
-        await this.handleCreateFolder({ parentPath, name: folderName, panel });
-    }
 
     protected async handleCreateFolder(data: any): Promise<void> {
         const { parentPath, name, panel } = data;

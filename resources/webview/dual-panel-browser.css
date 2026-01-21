@@ -178,8 +178,47 @@ body {
     white-space: nowrap;
 }
 
+.new-folder-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.tree-item.new-folder-item {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    border: 1px solid var(--vscode-focusBorder);
+    cursor: default;
+}
+
+.tree-item-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--vscode-input-foreground);
+    font-family: var(--vscode-font-family);
+    font-size: 13px;
+    padding: 0;
+    margin: 0;
+    min-width: 100px;
+}
+
+.tree-item-input.has-error {
+    color: var(--vscode-errorForeground);
+}
+
+.tree-item-error {
+    font-size: 11px;
+    color: var(--vscode-errorForeground);
+    padding: 2px 8px 4px 32px;
+    line-height: 1.3;
+}
+
 .tree-item:hover {
     background-color: var(--vscode-list-hoverBackground);
+}
+
+.tree-item.new-folder-item:hover {
+    background-color: var(--vscode-list-activeSelectionBackground);
 }
 
 .tree-item.selected {
