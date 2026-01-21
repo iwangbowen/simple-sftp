@@ -970,61 +970,38 @@
         const folders = selectedItems.filter(item => item.dataset.isDir === 'true');
         const files = selectedItems.filter(item => item.dataset.isDir !== 'true');
 
-        // 构建确认消息
-        let message = `Are you sure you want to delete ${selectedItems.length} item(s)?\n\n`;
+        // 构建删除项目列表
+        const itemsToDelete = selectedItems.map(item => ({
+            path: item.dataset.path,
+            name: item.querySelector('.tree-item-label')?.textContent || '',
+            isDir: item.dataset.isDir === 'true'
+        }));
 
-        // 添加删除列表(最多显示10个)
-        const displayItems = selectedItems.slice(0, 10);
-        displayItems.forEach(item => {
-            const fileName = item.querySelector('.tree-item-label')?.textContent || '';
-            const isDir = item.dataset.isDir === 'true';
-            message += `  ${isDir ? '📁' : '📄'} ${fileName}\n`;
+        // 发送消息到后端显示确认对话框
+        vscode.postMessage({
+            command: 'requestDeleteConfirmation',
+            data: {
+                items: itemsToDelete,
+                panel: panel,
+                folders: folders.length,
+                files: files.length
+            }
         });
-
-        if (selectedItems.length > 10) {
-            message += `  ... and ${selectedItems.length - 10} more\n`;
-        }
-
-        // 添加递归删除警告
-        if (folders.length > 0) {
-            message += `\n⚠️ Warning: ${folders.length} folder(s) will be deleted recursively with all contents!`;
-        }
-
-        message += `\n\nThis action cannot be undone.`;
-
-        if (confirm(message)) {
-            // 发送批量删除命令
-            const itemsToDelete = selectedItems.map(item => ({
-                path: item.dataset.path,
-                isDir: item.dataset.isDir === 'true'
-            }));
-
-            vscode.postMessage({
-                command: 'batchDelete',
-                data: {
-                    items: itemsToDelete,
-                    panel: panel
-                }
-            });
-        }
     }
 
-    function handleKeyboardShortcuts(e) {
-        if (e.ctrlKey || e.metaKey) {
-            switch (e.key.toLowerCase()) {
-                case 'r':
-                    e.preventDefault();
-                    const panel = selectedItem?.dataset.panel;
-                    if (panel) refreshPanel(panel);
-                    break;
-                case 'u':
-                    e.preventDefault();
-                    uploadSelected();
-                    break;
-                case 'd':
-                    e.preventDefault();
-                    downloadSelected();
-                    break;
+    // ===== 键盘快捷键 =====
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+S: Upload selected local files
+        if (e.ctrlKey && e.key === 's') {
+            if (selectedItems.length > 0) {
+                e.preventDefault();
+                uploadSelected();
+            }
+        } else if (e.ctrlKey && e.key === 'd') {
+            // Ctrl+D: Download selected remote files
+            if (selectedItems.length > 0) {
+                e.preventDefault();
+                downloadSelected();
             }
         } else if (e.key === 'Delete') {
             if (selectedItems.length > 0) {
@@ -1056,7 +1033,7 @@
                 }
             }
         }
-    }
+    });
 
     // ===== 接收扩展消息 =====
     window.addEventListener('message', event => {
@@ -1087,6 +1064,19 @@
             case 'triggerDelete':
                 // Trigger delete confirmation with current selection
                 showDeleteConfirmation();
+                break;
+
+            case 'deleteConfirmationResult':
+                if (message.data.confirmed) {
+                    // Perform actual deletion
+                    vscode.postMessage({
+                        command: 'batchDelete',
+                        data: {
+                            panel: message.data.panel,
+                            items: message.data.items
+                        }
+                    });
+                }
                 break;
 
             case 'getSelectedForUpload':

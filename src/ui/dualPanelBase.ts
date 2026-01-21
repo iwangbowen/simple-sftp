@@ -151,6 +151,10 @@ export abstract class DualPanelBase {
                 await this.handleBatchDelete(message.data);
                 break;
 
+            case 'requestDeleteConfirmation':
+                await this.handleRequestDeleteConfirmation(message.data);
+                break;
+
             case 'showError':
                 vscode.window.showErrorMessage(message.message);
                 break;
@@ -503,6 +507,35 @@ export abstract class DualPanelBase {
         } catch (error) {
             logger.error(`Delete failed: ${error}`);
             vscode.window.showErrorMessage(`Delete failed: ${error}`);
+        }
+    }
+
+    /**
+     * Handle request for delete confirmation
+     */
+    protected async handleRequestDeleteConfirmation(data: any): Promise<void> {
+        const { panel, items, folders } = data;
+
+        // Build confirmation message
+        const fileList = items.slice(0, 10).map((item: any) => `  • ${item.name}`).join('\n');
+        const moreFiles = items.length > 10 ? `\n  ... and ${items.length - 10} more` : '';
+        const hasRecursive = folders > 0 ? `\n\n⚠️ This will recursively delete ${folders} folder(s) and all contents!` : '';
+
+        const message = `Are you sure you want to delete ${items.length} item(s)?${hasRecursive}\n\n${fileList}${moreFiles}`;
+
+        const confirmed = await vscode.window.showWarningMessage(
+            message,
+            { modal: true },
+            'Delete',
+            'Cancel'
+        );
+
+        if (confirmed === 'Delete') {
+            // Send confirmation back to webview
+            this._panel?.webview.postMessage({
+                command: 'deleteConfirmationResult',
+                data: { confirmed: true, panel, items }
+            });
         }
     }
 
