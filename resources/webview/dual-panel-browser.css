@@ -118,30 +118,30 @@ body {
     min-width: 0;
     font-size: 12px;
     overflow: hidden;
-    direction: rtl; /* 右到左文本方向,优先显示右侧内容 */
-}
-
-.breadcrumb > * {
-    direction: ltr; /* 恢复子元素的正常文本方向 */
 }
 
 .breadcrumb-segment {
     white-space: nowrap;
     padding: 2px 4px;
     border-radius: 3px;
-    flex-shrink: 0; /* 不压缩 */
 }
 
 .breadcrumb-root {
     font-weight: 600;
     color: var(--vscode-titleBar-activeForeground);
-    flex-shrink: 1; /* root 可以被隐藏 */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 999; /* 优先隐藏 root */
 }
 
 .breadcrumb-clickable {
     cursor: pointer;
     color: var(--vscode-textLink-foreground);
-    flex-shrink: 1; /* 前面的路径段可以被隐藏 */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 100; /* 按顺序隐藏,越前面的 flex-shrink 越大 */
 }
 
 .breadcrumb-clickable:hover {
@@ -152,7 +152,7 @@ body {
 .breadcrumb-current {
     font-weight: 500;
     color: var(--vscode-titleBar-activeForeground);
-    flex-shrink: 0; /* 当前目录始终显示 */
+    flex-shrink: 0; /* 当前目录始终显示,不隐藏 */
 }
 
 .breadcrumb-separator {

@@ -1038,7 +1038,13 @@
         // Create root segment
         const rootSpan = document.createElement('span');
         rootSpan.className = 'breadcrumb-segment breadcrumb-root';
-        rootSpan.textContent = panel === 'local' ? 'Local' : 'Remote';
+        if (isWindows) {
+            // Windows: display drive letter (e.g., "C:")
+            rootSpan.textContent = segments[0];
+        } else {
+            // Unix: display "/" or first segment
+            rootSpan.textContent = '/';
+        }
         rootSpan.dataset.path = isWindows ? segments[0] + separator : '/';
         rootSpan.dataset.panel = panel;
         rootSpan.title = 'Go to root';
@@ -1049,6 +1055,11 @@
 
         // Create separators and segments
         for (let i = 0; i < segments.length; i++) {
+            // For Windows, first segment is drive letter (already shown in root)
+            if (isWindows && i === 0) {
+                continue;
+            }
+
             // Add separator
             const sep = document.createElement('span');
             sep.className = 'breadcrumb-separator';
@@ -1059,11 +1070,6 @@
             const segment = document.createElement('span');
             segment.className = 'breadcrumb-segment';
 
-            // For Windows, first segment is drive letter (already included in root)
-            if (isWindows && i === 0) {
-                continue;
-            }
-
             segment.textContent = segments[i];
             segment.dataset.path = paths[i + (isWindows ? 0 : 1)];
             segment.dataset.panel = panel;
@@ -1072,6 +1078,9 @@
             // Make all but last segment clickable
             if (i < segments.length - 1) {
                 segment.classList.add('breadcrumb-clickable');
+                // 动态设置 flex-shrink: 越前面的值越大,越容易被隐藏
+                const shrinkValue = segments.length - i;
+                segment.style.flexShrink = shrinkValue;
                 segment.addEventListener('click', function() {
                     loadDirectory(panel, this.dataset.path);
                 });
