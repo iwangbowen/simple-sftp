@@ -7,6 +7,10 @@
 
     /** @type {HTMLElement | null} */
     let selectedItem = null;
+    /** @type {HTMLElement[]} */
+    let selectedItems = [];
+    /** @type {HTMLElement | null} */
+    let lastSelectedItem = null;
     /** @type {HTMLElement | null} */
     let draggedItem = null;
     /** @type {string} */
@@ -257,7 +261,7 @@
 
             // 设置单击延迟,等待可能的双击
             clickTimer = setTimeout(() => {
-                selectItem(item);
+                selectItem(item, e.ctrlKey, e.shiftKey);
                 clickTimer = null;
             }, 250);
         });
@@ -278,6 +282,23 @@
                     command: 'openFile',
                     data: { path: node.path, panel }
                 });
+            }
+        });
+
+        // Ensure item is selected on right-click (before context menu opens)
+        item.addEventListener('contextmenu', (e) => {
+            // Cancel any pending click timer
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+                clickTimer = null;
+            }
+
+            // If the item is not already selected, select it immediately (single selection)
+            if (!item.classList.contains('selected')) {
+                console.log(`Right-click selecting item: ${node.path}`);
+                selectItem(item, false, false);
+            } else {
+                console.log(`Item already selected: ${node.path}, total selected: ${selectedItems.length}`);
             }
         });
 
@@ -639,12 +660,66 @@
     }
 
     // ===== 其他交互 =====
-    function selectItem(item) {
-        if (selectedItem) {
-            selectedItem.classList.remove('selected');
+    /**
+     * Select one or multiple items
+     * @param {HTMLElement} item - Item to select
+     * @param {boolean} ctrlKey - Ctrl key pressed (toggle selection)
+     * @param {boolean} shiftKey - Shift key pressed (range selection)
+     */
+    function selectItem(item, ctrlKey = false, shiftKey = false) {
+        const panel = item.dataset.panel;
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+
+        // 获取所有文件项(不包括返回上一级按钮)
+        const allItems = Array.from(
+            treeContainer.querySelectorAll('.tree-item:not(.back-item)')
+        );
+
+        if (shiftKey && lastSelectedItem && lastSelectedItem.dataset.panel === panel) {
+            // Shift+Click: 范围选择
+            const lastIndex = allItems.indexOf(lastSelectedItem);
+            const currentIndex = allItems.indexOf(item);
+
+            if (lastIndex >= 0 && currentIndex >= 0) {
+                const startIndex = Math.min(lastIndex, currentIndex);
+                const endIndex = Math.max(lastIndex, currentIndex);
+
+                // 如果没有按 Ctrl,先清除之前的选择
+                if (!ctrlKey) {
+                    selectedItems.forEach(i => i.classList.remove('selected'));
+                    selectedItems = [];
+                }
+
+                // 选择范围内的所有项
+                for (let i = startIndex; i <= endIndex; i++) {
+                    const targetItem = allItems[i];
+                    if (!targetItem.classList.contains('selected')) {
+                        targetItem.classList.add('selected');
+                        selectedItems.push(targetItem);
+                    }
+                }
+            }
+        } else if (ctrlKey) {
+            // Ctrl+Click: 切换选择
+            if (item.classList.contains('selected')) {
+                item.classList.remove('selected');
+                selectedItems = selectedItems.filter(i => i !== item);
+            } else {
+                item.classList.add('selected');
+                selectedItems.push(item);
+            }
+            lastSelectedItem = item;
+        } else {
+            // 普通点击: 单选
+            selectedItems.forEach(i => i.classList.remove('selected'));
+            selectedItems = [item];
+            item.classList.add('selected');
+            lastSelectedItem = item;
         }
-        selectedItem = item;
-        item.classList.add('selected');
+
+        // 更新 selectedItem (保持向后兼容)
+        selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
     }
 
     // ===== Commands =====
@@ -829,19 +904,109 @@
     }
 
     function uploadSelected() {
-        if (!selectedItem || selectedItem.dataset.panel !== 'local') return;
-        vscode.postMessage({
-            command: 'upload',
-            data: { localPath: selectedItem.dataset.path, remotePath: currentRemotePath }
-        });
+        const localItems = selectedItems.filter(item => item.dataset.panel === 'local');
+        if (localItems.length === 0) {
+            console.warn('No local items selected for upload');
+            return;
+        }
+
+        console.log(`Uploading ${localItems.length} item(s)`);
+
+        if (localItems.length === 1) {
+            // Single item upload (backward compatible)
+            vscode.postMessage({
+                command: 'upload',
+                data: { localPath: localItems[0].dataset.path, remotePath: currentRemotePath }
+            });
+        } else {
+            // Batch upload
+            const paths = localItems.map(item => item.dataset.path);
+            vscode.postMessage({
+                command: 'batchUpload',
+                data: { localPaths: paths, remotePath: currentRemotePath }
+            });
+        }
     }
 
     function downloadSelected() {
-        if (!selectedItem || selectedItem.dataset.panel !== 'remote') return;
-        vscode.postMessage({
-            command: 'download',
-            data: { remotePath: selectedItem.dataset.path, localPath: currentLocalPath }
+        const remoteItems = selectedItems.filter(item => item.dataset.panel === 'remote');
+        if (remoteItems.length === 0) {
+            console.warn('No remote items selected for download');
+            return;
+        }
+
+        console.log(`Downloading ${remoteItems.length} item(s)`);
+
+        if (remoteItems.length === 1) {
+            // Single item download (backward compatible)
+            vscode.postMessage({
+                command: 'download',
+                data: { remotePath: remoteItems[0].dataset.path, localPath: currentLocalPath }
+            });
+        } else {
+            // Batch download
+            const paths = remoteItems.map(item => item.dataset.path);
+            vscode.postMessage({
+                command: 'batchDownload',
+                data: { remotePaths: paths, localPath: currentLocalPath }
+            });
+        }
+    }
+
+    /**
+     * Show delete confirmation dialog with list of files to delete
+     */
+    function showDeleteConfirmation() {
+        console.log(`showDeleteConfirmation called, selectedItems: ${selectedItems.length}`);
+
+        if (selectedItems.length === 0) {
+            console.warn('No items selected for deletion');
+            return;
+        }
+
+        const panel = selectedItems[0].dataset.panel;
+
+        // 统计文件和文件夹数量
+        const folders = selectedItems.filter(item => item.dataset.isDir === 'true');
+        const files = selectedItems.filter(item => item.dataset.isDir !== 'true');
+
+        // 构建确认消息
+        let message = `Are you sure you want to delete ${selectedItems.length} item(s)?\n\n`;
+
+        // 添加删除列表(最多显示10个)
+        const displayItems = selectedItems.slice(0, 10);
+        displayItems.forEach(item => {
+            const fileName = item.querySelector('.tree-item-label')?.textContent || '';
+            const isDir = item.dataset.isDir === 'true';
+            message += `  ${isDir ? '📁' : '📄'} ${fileName}\n`;
         });
+
+        if (selectedItems.length > 10) {
+            message += `  ... and ${selectedItems.length - 10} more\n`;
+        }
+
+        // 添加递归删除警告
+        if (folders.length > 0) {
+            message += `\n⚠️ Warning: ${folders.length} folder(s) will be deleted recursively with all contents!`;
+        }
+
+        message += `\n\nThis action cannot be undone.`;
+
+        if (confirm(message)) {
+            // 发送批量删除命令
+            const itemsToDelete = selectedItems.map(item => ({
+                path: item.dataset.path,
+                isDir: item.dataset.isDir === 'true'
+            }));
+
+            vscode.postMessage({
+                command: 'batchDelete',
+                data: {
+                    items: itemsToDelete,
+                    panel: panel
+                }
+            });
+        }
     }
 
     function handleKeyboardShortcuts(e) {
@@ -862,18 +1027,9 @@
                     break;
             }
         } else if (e.key === 'Delete') {
-            if (selectedItem) {
-                const confirmed = confirm(`Delete "${selectedItem.dataset.path}"?`);
-                if (confirmed) {
-                    vscode.postMessage({
-                        command: 'delete',
-                        data: {
-                            path: selectedItem.dataset.path,
-                            panel: selectedItem.dataset.panel,
-                            isDir: selectedItem.dataset.isDir === 'true'
-                        }
-                    });
-                }
+            if (selectedItems.length > 0) {
+                e.preventDefault();
+                showDeleteConfirmation();
             }
         } else if (e.key === 'F5') {
             e.preventDefault();
@@ -926,6 +1082,21 @@
             case 'triggerCreateFolder':
                 // Trigger inline folder creation from context menu
                 createFolder(message.panel);
+                break;
+
+            case 'triggerDelete':
+                // Trigger delete confirmation with current selection
+                showDeleteConfirmation();
+                break;
+
+            case 'getSelectedForUpload':
+                // Upload selected local files
+                uploadSelected();
+                break;
+
+            case 'getSelectedForDownload':
+                // Download selected remote files
+                downloadSelected();
                 break;
 
             case 'showRemoteLoading':

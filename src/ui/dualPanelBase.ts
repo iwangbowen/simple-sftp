@@ -147,6 +147,10 @@ export abstract class DualPanelBase {
                 await this.handleDelete(message.data);
                 break;
 
+            case 'batchDelete':
+                await this.handleBatchDelete(message.data);
+                break;
+
             case 'showError':
                 vscode.window.showErrorMessage(message.message);
                 break;
@@ -181,6 +185,14 @@ export abstract class DualPanelBase {
                 this._localRootPath = undefined;
                 this._remoteRootPath = undefined;
                 await this.showHostSelection();
+                break;
+
+            case 'batchUpload':
+                await this.handleBatchUpload(message.data);
+                break;
+
+            case 'batchDownload':
+                await this.handleBatchDownload(message.data);
                 break;
         }
     }
@@ -494,6 +506,143 @@ export abstract class DualPanelBase {
         }
     }
 
+    /**
+     * Handle batch delete operation
+     */
+    protected async handleBatchDelete(data: any): Promise<void> {
+        const { items, panel } = data;
+
+        if (!Array.isArray(items) || items.length === 0) {
+            return;
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+        const errors: string[] = [];
+
+        try {
+            for (const item of items) {
+                const { path: itemPath, isDir } = item;
+
+                try {
+                    if (panel === 'local') {
+                        if (isDir) {
+                            await fs.promises.rm(itemPath, { recursive: true, force: true });
+                        } else {
+                            await fs.promises.unlink(itemPath);
+                        }
+                        successCount++;
+                    } else if (panel === 'remote') {
+                        if (!this._currentHost || !this._currentAuthConfig) {
+                            throw new Error('No host selected');
+                        }
+
+                        await SshConnectionManager.deleteRemoteFile(
+                            this._currentHost,
+                            this._currentAuthConfig,
+                            itemPath
+                        );
+                        successCount++;
+                    }
+                } catch (error) {
+                    failCount++;
+                    const fileName = panel === 'local'
+                        ? path.basename(itemPath)
+                        : path.posix.basename(itemPath);
+                    errors.push(`${fileName}: ${error}`);
+                    logger.error(`Failed to delete ${itemPath}: ${error}`);
+                }
+            }
+
+            // Refresh the directory
+            if (panel === 'local' && this._localRootPath) {
+                await this.loadLocalDirectory(this._localRootPath);
+            } else if (panel === 'remote' && this._remoteRootPath) {
+                await this.loadRemoteDirectory(this._remoteRootPath);
+            }
+
+            // Show result
+            if (failCount === 0) {
+                this.updateStatus(`Successfully deleted ${successCount} item(s)`);
+            } else {
+                const errorMessage = `Deleted ${successCount} item(s), ${failCount} failed:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
+                vscode.window.showWarningMessage(errorMessage);
+                this.updateStatus(`Batch delete completed with ${failCount} error(s)`);
+            }
+        } catch (error) {
+            logger.error(`Batch delete failed: ${error}`);
+            vscode.window.showErrorMessage(`Batch delete failed: ${error}`);
+        }
+    }
+
+    /**
+     * Handle batch upload operation
+     */
+    protected async handleBatchUpload(data: any): Promise<void> {
+        const { localPaths, remotePath } = data;
+
+        if (!Array.isArray(localPaths) || localPaths.length === 0) {
+            return;
+        }
+
+        if (!this._currentHost || !this._currentAuthConfig) {
+            vscode.window.showErrorMessage('No host selected');
+            return;
+        }
+
+        this.updateStatus(`Uploading ${localPaths.length} item(s)...`);
+
+        const tasks = localPaths.map(localPath => {
+            const fileName = path.basename(localPath);
+            const remoteFilePath = path.posix.join(remotePath, fileName);
+
+            return {
+                type: 'upload' as const,
+                hostId: this._currentHost!.id,
+                hostName: this._currentHost!.name,
+                localPath,
+                remotePath: remoteFilePath
+            };
+        });
+
+        this.transferQueueService.addTasks(tasks);
+        this.updateStatus(`Added ${localPaths.length} item(s) to upload queue`);
+    }
+
+    /**
+     * Handle batch download operation
+     */
+    protected async handleBatchDownload(data: any): Promise<void> {
+        const { remotePaths, localPath } = data;
+
+        if (!Array.isArray(remotePaths) || remotePaths.length === 0) {
+            return;
+        }
+
+        if (!this._currentHost || !this._currentAuthConfig) {
+            vscode.window.showErrorMessage('No host selected');
+            return;
+        }
+
+        this.updateStatus(`Downloading ${remotePaths.length} item(s)...`);
+
+        const tasks = remotePaths.map(remotePath => {
+            const fileName = path.posix.basename(remotePath);
+            const localFilePath = path.join(localPath, fileName);
+
+            return {
+                type: 'download' as const,
+                hostId: this._currentHost!.id,
+                hostName: this._currentHost!.name,
+                localPath: localFilePath,
+                remotePath
+            };
+        });
+
+        this.transferQueueService.addTasks(tasks);
+        this.updateStatus(`Added ${remotePaths.length} item(s) to download queue`);
+    }
+
     protected async handleRename(data: any): Promise<void> {
         const { path: oldPath, newName, panel } = data;
         const parentPath = panel === 'local' ? path.dirname(oldPath) : path.posix.dirname(oldPath);
@@ -647,16 +796,10 @@ export abstract class DualPanelBase {
     }
 
     public async executeDelete(args: any): Promise<void> {
-        const { filePath, isDirectory, panel } = args;
-        const confirmed = await vscode.window.showWarningMessage(
-            `Are you sure you want to delete "${path.basename(filePath)}"?`,
-            { modal: true },
-            'Delete'
-        );
-
-        if (confirmed === 'Delete') {
-            await this.handleDelete({ path: filePath, panel, isDir: isDirectory });
-        }
+        // Request webview to trigger delete confirmation with current selection
+        this.postMessage({
+            command: 'triggerDelete'
+        });
     }
 
     public async executeCreateFolder(args: any): Promise<void> {
@@ -676,23 +819,17 @@ export abstract class DualPanelBase {
     }
 
     public async executeUpload(args: any): Promise<void> {
-        const { filePath } = args;
-        const remotePath = this._remoteRootPath;
-        if (!remotePath) {
-            vscode.window.showErrorMessage('No remote path selected');
-            return;
-        }
-        await this.handleUpload(filePath, remotePath);
+        // Request webview to send selected items for upload
+        this.postMessage({
+            command: 'getSelectedForUpload'
+        });
     }
 
     public async executeDownload(args: any): Promise<void> {
-        const { filePath } = args;
-        const localPath = this._localRootPath;
-        if (!localPath) {
-            vscode.window.showErrorMessage('No local path selected');
-            return;
-        }
-        await this.handleDownload(filePath, localPath);
+        // Request webview to send selected items for download
+        this.postMessage({
+            command: 'getSelectedForDownload'
+        });
     }
 
     // ===== HTML Generation =====
