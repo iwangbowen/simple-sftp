@@ -47,7 +47,7 @@
         {
           "id": "simpleSftpPanel",
           "title": "SFTP Browser",
-          "icon": "$(folder-opened)"
+          "icon": "$(remote-explorer)"
         }
       ]
     },
@@ -77,7 +77,8 @@
         {
           "type": "webview",
           "id": "simpleSftp.dualPanelBrowser",
-          "name": "File Browser"
+          "name": "File Browser",
+          "icon": "$(remote-explorer)"
         }
       ]
     },
