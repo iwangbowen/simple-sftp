@@ -20,56 +20,44 @@ If you find this extension helpful, consider buying me a coffee!
 
 ### Features
 
-#### Core Functionality
-- **Quick File Upload/Download**: Upload or download files directly from Explorer, Editor, or Sidebar with intelligent host selection
-- **Dual Download Modes**:
-  - Download from Sidebar with custom save location
-  - Download from Explorer directly to selected folder
-- **Smart Host Selection**: Recently used hosts (upload or download) appear first for quick access
-- **Host Management**: Organize and manage remote hosts in TreeView interface with groups and color coding
-- **Cross-Device Sync**: Host configurations automatically sync across devices via VS Code Settings Sync
-- **SSH Config Import**: Import existing configurations from ~/.ssh/config with group selection
-- **Enhanced File Browser**:
-  - Smart path navigation with input box
-  - Alphabetical sorting (directories first, then files)
-  - Quick upload/download buttons on each item
-  - Dot files visibility toggle (configurable via settings)
-  - Parent directory navigation with ".."
-  - File size display for easy reference
+#### File Management
+- **Dual-Panel File Browser**: Visual interface with side-by-side local and remote file views
+  - Navigate directories with breadcrumb paths
+  - Search/filter files in real-time
+  - Quick upload/download with click buttons
+  - Panel or Editor area display modes
+  - Support multiple browser instances (Editor mode)
+- **Quick Upload/Download**: Upload or download files directly from Explorer or Editor
+- **Path Bookmarks**: Save and quickly access frequently used remote directories
+
+#### Host Management
+- **TreeView Interface**: Organize hosts with groups and color coding
+- **SSH Config Import**: Import existing configurations from ~/.ssh/config
+- **Import/Export**: Backup or share host configurations via JSON files
+- **Cross-Device Sync**: Host configurations automatically sync via VS Code Settings Sync
 
 #### Authentication
-- **Multiple Methods**: Support for Password, Private Key, and SSH Agent authentication
-- **Secure Storage**: Authentication credentials stored locally (not synced) for security
-- **Passwordless Setup**: Automatically configure SSH key-based authentication
-- **Visual Indicators**: Clear status icons showing which hosts have authentication configured
-- **Windows SSH Agent**: Native support for Windows OpenSSH Agent via named pipes
+- **Multiple Methods**: Password, Private Key, or SSH Agent
+- **Secure Storage**: Credentials stored locally (never synced)
+- **Passwordless Setup**: Auto-configure SSH key-based authentication
+- **Windows SSH Agent**: Native support via named pipes
 
-#### User Experience
-- **Smart Commands**: Only essential commands shown in Command Palette
-- **Progress Tracking**: Real-time indicators for uploads and long-running operations
-- **Color Coding**: Assign colors to hosts for easy visual identification
-- **Connection Testing**: Test SSH connections before uploading files
-- **Copy SSH Command**: Quickly copy connection commands to clipboard
-- **Output Logs**: Dedicated log viewer for troubleshooting
-- **Transfer Queue**:
-  - Visual task management with real-time progress updates
-  - ASCII-style progress bars compatible with all themes
-  - Live transfer speed and estimated time remaining
-  - Pause, resume, and cancel individual transfers
-  - Task detail view with comprehensive transfer statistics
+#### Transfer Management
+- **Transfer Queue**: Visual task management with real-time progress
+  - Pause, resume, or cancel transfers
+  - Auto-retry failed transfers
+  - Transfer history with statistics
+  - Priority-based queue (small files first)
+- **Advanced Features**:
+  - Parallel chunk transfer for large files (100MB+)
+  - File integrity verification (MD5/SHA256)
+  - Preserve file permissions and timestamps
+  - Smart host selection (recently used first)
 
 #### Performance
-- **SSH Connection Pool**: Automatic connection reuse for 5-10x performance improvement
-  - Maintains up to 5 concurrent connections
-  - Automatically reuses connections for consecutive operations
-  - Idle connections auto-close after 5 minutes
-  - View connection pool status in Command Palette
-  - Dramatically faster repeated file operations
-
-#### Platform Support
-- Compatible with Windows, macOS, and Linux
-- Cross-platform SSH Agent integration
-- Works with standard OpenSSH configurations
+- **SSH Connection Pool**: 5-10x faster with automatic connection reuse
+- **Parallel Transfers**: Up to 5 concurrent file transfers
+- **Large File Optimization**: Automatic chunked transfer for files over 100MB
 
 ### Getting Started
 
@@ -213,13 +201,79 @@ Additional commands are available via context menus in the TreeView and file exp
 
 ### Settings
 
-#### simpleSftp.showDotFiles
+Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
 
-- **Type**: boolean
-- **Default**: true
-- **Description**: Show hidden files and directories (starting with dot) in remote file browser
+#### File Browser
 
-You can change this setting in VS Code Settings (Ctrl/Cmd+,) to control the default behavior. The setting can also be temporarily toggled using the eye icon button in the file browser.
+- **simpleSftp.showDotFiles** (boolean, default: `true`)
+  Show hidden files and directories (dot files) in remote file browser
+
+- **simpleSftp.browser.openInEditor** (boolean, default: `false`)
+  Open file browser in editor area instead of panel. When enabled, supports multiple browser instances for different hosts.
+
+#### Transfer Queue
+
+- **simpleSftp.transferQueue.maxConcurrent** (number, default: `2`, range: 1-10)
+  Maximum number of concurrent file transfers
+
+- **simpleSftp.transferQueue.autoRetry** (boolean, default: `true`)
+  Automatically retry failed transfers
+
+- **simpleSftp.transferQueue.maxRetries** (number, default: `3`, range: 0-10)
+  Maximum retry attempts for failed transfers
+
+- **simpleSftp.transferQueue.retryDelay** (number, default: `2000`, range: 1000-60000)
+  Delay between retry attempts (milliseconds)
+
+- **simpleSftp.transferQueue.showNotifications** (boolean, default: `true`)
+  Show notifications for transfer completion
+
+- **simpleSftp.transferQueue.historySize** (number, default: `100`, range: 10-1000)
+  Maximum number of transfer history records to keep
+
+#### File Verification
+
+- **simpleSftp.verification.enabled** (boolean, default: `false`)
+  Verify file integrity after transfer using checksum. Requires md5sum/sha256sum on remote server.
+
+- **simpleSftp.verification.algorithm** (enum: `md5`|`sha256`, default: `sha256`)
+  Checksum algorithm (MD5: faster, SHA256: more secure)
+
+- **simpleSftp.verification.threshold** (number, default: `10`, minimum: 0)
+  Minimum file size (MB) for verification. Set to 0 to verify all files.
+
+#### File Transfer
+
+- **simpleSftp.transfer.preservePermissions** (boolean, default: `true`)
+  Preserve file permissions (chmod) during transfers
+
+- **simpleSftp.transfer.preserveTimestamps** (boolean, default: `true`)
+  Preserve file modification and access times
+
+- **simpleSftp.transfer.followSymlinks** (boolean, default: `false`)
+  Follow symbolic links instead of preserving them
+
+#### Parallel Transfer (Large Files)
+
+- **simpleSftp.parallelTransfer.enabled** (boolean, default: `true`)
+  Enable parallel chunk-based transfer for large files
+
+- **simpleSftp.parallelTransfer.threshold** (number, default: `100`, minimum: 10)
+  Minimum file size (MB) to trigger parallel transfer
+
+- **simpleSftp.parallelTransfer.chunkSize** (number, default: `10`, range: 1-50)
+  Size of each chunk in parallel transfer (MB)
+
+- **simpleSftp.parallelTransfer.maxConcurrent** (number, default: `5`, range: 1-10)
+  Maximum number of concurrent chunk transfers
+
+#### UI
+
+- **simpleSftp.ui.hideStatusBar** (boolean, default: `false`)
+  Hide the transfer status bar
+
+- **simpleSftp.speedUnit** (enum: `auto`|`KB`|`MB`, default: `auto`)
+  Download speed display unit
 
 ### Security Notes
 
@@ -303,61 +357,49 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ### 功能特性
 
-#### 核心功能
+#### 文件管理
 
-- **快速文件上传/下载**：直接从资源管理器、编辑器或侧边栏上传或下载文件，智能主机选择
-- **双重下载模式**：
-  - 从侧边栏下载，可自定义保存位置
-  - 从资源管理器下载，直接保存到选中的文件夹
-- **智能主机选择**：最近使用的主机（上传或下载）优先显示，便于快速访问
-- **主机管理**：在树形视图界面中管理远程主机，支持分组和颜色标记
-- **跨设备同步**：主机配置通过 VS Code 设置同步自动在设备间同步
-- **SSH 配置导入**：从 ~/.ssh/config 导入现有配置，支持分组选择
-- **增强的文件浏览器**：
-  - 智能路径导航，支持输入框
-  - 字母排序（目录优先，然后是文件）
-  - 每个项目都有快速上传/下载按钮
-  - 点文件可见性切换（可通过设置配置）
-  - 使用 ".." 导航到父目录
-  - 文件大小显示，便于参考
+- **双面板文件浏览器**: 本地和远程文件系统并列可视化界面
+  - 面包屑路径导航
+  - 实时搜索/过滤文件
+  - 点击按钮快速上传/下载
+  - Panel 或 Editor 区域显示模式
+  - 支持多个浏览器实例(Editor 模式)
+- **快速上传/下载**: 直接从资源管理器或编辑器上传或下载文件
+- **路径书签**: 保存并快速访问常用的远程目录
+
+#### 主机管理
+
+- **树形视图界面**: 使用分组和颜色编码组织主机
+- **SSH 配置导入**: 从 ~/.ssh/config 导入现有配置
+- **导入/导出**: 通过 JSON 文件备份或共享主机配置
+- **跨设备同步**: 主机配置通过 VS Code 设置同步自动同步
 
 #### 认证方式
 
-- **多种方法**：支持密码、私钥和 SSH Agent 认证
-- **安全存储**：认证凭据本地存储（不同步），确保安全
-- **免密码设置**：自动配置基于 SSH 密钥的认证
-- **可视化指示器**：清晰的状态图标显示哪些主机已配置认证
-- **Windows SSH Agent**：通过命名管道原生支持 Windows OpenSSH Agent
+- **多种方法**: 密码、私钥或 SSH Agent
+- **安全存储**: 凭据本地存储(永不同步)
+- **免密码设置**: 自动配置基于 SSH 密钥的认证
+- **Windows SSH Agent**: 通过命名管道原生支持
 
-#### 用户体验
+#### 传输管理
 
-- **智能命令**：命令面板中仅显示必要命令
-- **进度跟踪**：上传和长时间运行操作的实时进度指示器
-- **颜色标记**：为主机分配颜色，便于视觉识别
-- **连接测试**：上传文件前测试 SSH 连接
-- **复制 SSH 命令**：快速复制连接命令到剪贴板
-- **输出日志**：专用日志查看器，便于故障排查
-- **传输队列**：
-  - 可视化任务管理，实时进度更新
-  - ASCII风格进度条，兼容所有主题
-  - 实时显示传输速度和预计剩余时间
-  - 暂停、恢复和取消单个传输
-  - 任务详情视图，全面的传输统计信息
+- **传输队列**: 可视化任务管理,实时进度显示
+  - 暂停、恢复或取消传输
+  - 自动重试失败的传输
+  - 传输历史与统计
+  - 基于优先级的队列(小文件优先)
+- **高级功能**:
+  - 大文件(100MB+)并行分块传输
+  - 文件完整性验证(MD5/SHA256)
+  - 保留文件权限和时间戳
+  - 智能主机选择(最近使用的优先)
 
 #### 性能优化
 
-- **SSH 连接池**：自动连接复用，性能提升 5-10 倍
-  - 维护最多 5 个并发连接
-  - 自动复用连接进行连续操作
-  - 闲置连接 5 分钟后自动关闭
-  - 在命令面板中查看连接池状态
-  - 大幅加快重复文件操作
-
-#### 平台支持
-
-- 兼容 Windows、macOS 和 Linux
-- 跨平台 SSH Agent 集成
-- 支持标准 OpenSSH 配置
+- **SSH 连接池**: 自动连接复用,速度提升 5-10 倍
+- **并行传输**: 最多 5 个并发文件传输
+- **大文件优化**: 超过 100MB 的文件自动分块传输
 
 ### 快速开始
 
@@ -502,13 +544,79 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ### 设置
 
-#### simpleSftp.showDotFiles (显示隐藏文件)
+在 VS Code 设置(Ctrl/Cmd+,)中配置 Simple SFTP:
 
-- **类型**：boolean
-- **默认值**：true
-- **描述**：在远程文件浏览器中显示隐藏文件和目录（以点开头）
+#### 文件浏览器
 
-你可以在 VS Code 设置（Ctrl/Cmd+,）中更改此设置以控制默认行为。也可以使用文件浏览器中的眼睛图标按钮临时切换此设置。
+- **simpleSftp.showDotFiles** (布尔值,默认: `true`)
+  在远程文件浏览器中显示隐藏文件和目录(点文件)
+
+- **simpleSftp.browser.openInEditor** (布尔值,默认: `false`)
+  在编辑器区域而不是面板中打开文件浏览器。启用后,支持为不同主机打开多个浏览器实例。
+
+#### 传输队列
+
+- **simpleSftp.transferQueue.maxConcurrent** (数字,默认: `2`,范围: 1-10)
+  最大并发文件传输数
+
+- **simpleSftp.transferQueue.autoRetry** (布尔值,默认: `true`)
+  自动重试失败的传输
+
+- **simpleSftp.transferQueue.maxRetries** (数字,默认: `3`,范围: 0-10)
+  失败传输的最大重试次数
+
+- **simpleSftp.transferQueue.retryDelay** (数字,默认: `2000`,范围: 1000-60000)
+  重试之间的延迟(毫秒)
+
+- **simpleSftp.transferQueue.showNotifications** (布尔值,默认: `true`)
+  显示传输完成通知
+
+- **simpleSftp.transferQueue.historySize** (数字,默认: `100`,范围: 10-1000)
+  保留的传输历史记录最大数量
+
+#### 文件验证
+
+- **simpleSftp.verification.enabled** (布尔值,默认: `false`)
+  传输后使用校验和验证文件完整性。需要远程服务器上有 md5sum/sha256sum。
+
+- **simpleSftp.verification.algorithm** (枚举: `md5`|`sha256`,默认: `sha256`)
+  校验和算法(MD5: 更快,SHA256: 更安全)
+
+- **simpleSftp.verification.threshold** (数字,默认: `10`,最小值: 0)
+  验证的最小文件大小(MB)。设置为 0 验证所有文件。
+
+#### 文件传输
+
+- **simpleSftp.transfer.preservePermissions** (布尔值,默认: `true`)
+  传输期间保留文件权限(chmod)
+
+- **simpleSftp.transfer.preserveTimestamps** (布尔值,默认: `true`)
+  保留文件修改和访问时间
+
+- **simpleSftp.transfer.followSymlinks** (布尔值,默认: `false`)
+  跟随符号链接而不是保留它们
+
+#### 并行传输(大文件)
+
+- **simpleSftp.parallelTransfer.enabled** (布尔值,默认: `true`)
+  为大文件启用基于并行分块的传输
+
+- **simpleSftp.parallelTransfer.threshold** (数字,默认: `100`,最小值: 10)
+  触发并行传输的最小文件大小(MB)
+
+- **simpleSftp.parallelTransfer.chunkSize** (数字,默认: `10`,范围: 1-50)
+  并行传输中每个分块的大小(MB)
+
+- **simpleSftp.parallelTransfer.maxConcurrent** (数字,默认: `5`,范围: 1-10)
+  最大并发分块传输数
+
+#### UI
+
+- **simpleSftp.ui.hideStatusBar** (布尔值,默认: `false`)
+  隐藏传输状态栏
+
+- **simpleSftp.speedUnit** (枚举: `auto`|`KB`|`MB`,默认: `auto`)
+  下载速度显示单位
 
 ### 安全说明
 
