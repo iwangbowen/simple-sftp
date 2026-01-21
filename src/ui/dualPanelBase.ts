@@ -526,13 +526,13 @@ export abstract class DualPanelBase {
         const confirmed = await vscode.window.showWarningMessage(
             message,
             { modal: true },
-            'Delete',
-            'Cancel'
+            'Delete'
         );
 
         if (confirmed === 'Delete') {
             // Send confirmation back to webview
-            this._panel?.webview.postMessage({
+            const webview = this.getWebview();
+            webview?.postMessage({
                 command: 'deleteConfirmationResult',
                 data: { confirmed: true, panel, items }
             });
