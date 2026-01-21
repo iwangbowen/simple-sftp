@@ -236,6 +236,10 @@ export class TransferQueueCommands {
       }
     );
 
+    // Set icon for the webview panel tab based on task type
+    const iconName = task.type === 'upload' ? 'cloud-upload' : 'cloud-download';
+    panel.iconPath = new vscode.ThemeIcon(iconName);
+
     // Store panel reference
     this.taskDetailPanels.set(task.id, panel);
 
