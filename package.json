@@ -174,7 +174,7 @@
       },
       {
         "command": "simpleSftp.browseFiles",
-        "title": "Browse Files",
+        "title": "Browse Files (QuickPick)",
         "category": "Simple SFTP",
         "icon": "$(list-selection)"
       },
@@ -395,7 +395,7 @@
       },
       {
         "command": "simpleSftp.openDualPanelBrowser",
-        "title": "Open Dual Panel File Browser",
+        "title": "Browse Files (WebView)",
         "category": "Simple SFTP",
         "icon": "$(folder-opened)"
       },
