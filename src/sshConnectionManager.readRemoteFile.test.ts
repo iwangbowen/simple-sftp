@@ -9,18 +9,6 @@ vi.mock('ssh2-sftp-client', () => {
     };
 });
 
-// Mock the connection pool
-vi.mock('./sshConnectionPool', () => {
-    return {
-        SshConnectionPool: {
-            getInstance: vi.fn(() => ({
-                getConnection: vi.fn(),
-                releaseConnection: vi.fn()
-            }))
-        }
-    };
-});
-
 describe('SshConnectionManager - readRemoteFile', () => {
     const mockHostConfig: HostConfig = {
         id: 'test-host',
@@ -49,12 +37,20 @@ describe('SshConnectionManager - readRemoteFile', () => {
             get: vi.fn().mockResolvedValue(mockContent)
         };
 
-        // Mock the connection pool
-        const { SshConnectionPool } = await import('./sshConnectionPool');
-        const mockPool = SshConnectionPool.getInstance();
-        (mockPool.getConnection as any).mockResolvedValue({
-            sftpClient: mockSftpClient
+        // Mock the connection pool's getConnection method
+        const mockGetConnection = vi.fn().mockResolvedValue({
+            client: {} as any,
+            sftpClient: mockSftpClient,
+            connectionId: 'test-connection-id'
         });
+
+        const mockReleaseConnection = vi.fn();
+
+        // Access and mock the private connectionPool property
+        (SshConnectionManager as any).connectionPool = {
+            getConnection: mockGetConnection,
+            releaseConnection: mockReleaseConnection
+        };
 
         // Call the method
         const result = await SshConnectionManager.readRemoteFile(
@@ -67,6 +63,7 @@ describe('SshConnectionManager - readRemoteFile', () => {
         expect(result).toBeInstanceOf(Buffer);
         expect(result.toString('utf-8')).toBe('Hello, World!');
         expect(mockSftpClient.get).toHaveBeenCalledWith(remotePath);
+        expect(mockReleaseConnection).toHaveBeenCalledWith(mockHostConfig);
     });
 
     it('should handle errors when reading remote file', async () => {
@@ -78,12 +75,20 @@ describe('SshConnectionManager - readRemoteFile', () => {
             get: vi.fn().mockRejectedValue(mockError)
         };
 
-        // Mock the connection pool
-        const { SshConnectionPool } = await import('./sshConnectionPool');
-        const mockPool = SshConnectionPool.getInstance();
-        (mockPool.getConnection as any).mockResolvedValue({
-            sftpClient: mockSftpClient
+        // Mock the connection pool's getConnection method
+        const mockGetConnection = vi.fn().mockResolvedValue({
+            client: {} as any,
+            sftpClient: mockSftpClient,
+            connectionId: 'test-connection-id'
         });
+
+        const mockReleaseConnection = vi.fn();
+
+        // Access and mock the private connectionPool property
+        (SshConnectionManager as any).connectionPool = {
+            getConnection: mockGetConnection,
+            releaseConnection: mockReleaseConnection
+        };
 
         // Call the method and expect it to throw
         await expect(
@@ -93,5 +98,8 @@ describe('SshConnectionManager - readRemoteFile', () => {
                 remotePath
             )
         ).rejects.toThrow('File not found');
+
+        // Verify releaseConnection was still called
+        expect(mockReleaseConnection).toHaveBeenCalledWith(mockHostConfig);
     });
 });
