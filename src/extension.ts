@@ -334,6 +334,28 @@ export async function activate(context: vscode.ExtensionContext) {
         await dualPanelProvider.postMessageToWebview(messageData);
       }
     }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.selectForCompare', async (args) => {
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.selectFileForCompare(args);
+      } else {
+        await dualPanelProvider.selectFileForCompare(args);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.compareWithSelected', async (args) => {
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.compareWithSelected(args);
+      } else {
+        await dualPanelProvider.compareWithSelected(args);
+      }
+    }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', async (args) => {
       const openInEditor = vscode.workspace
         .getConfiguration('simpleSftp.browser')

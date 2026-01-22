@@ -447,6 +447,18 @@
         "title": "Add to Bookmarks",
         "category": "Simple SFTP",
         "icon": "$(bookmark)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.selectForCompare",
+        "title": "Select for Compare",
+        "category": "Simple SFTP",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.compareWithSelected",
+        "title": "Compare with Selected",
+        "category": "Simple SFTP",
+        "icon": "$(diff)"
       }
     ],
     "menus": {
@@ -485,6 +497,16 @@
           "command": "simpleSftp.dualPanel.addBookmark",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'remoteFile' || webviewSection == 'remoteEmpty')",
           "group": "2_operations@5"
+        },
+        {
+          "command": "simpleSftp.dualPanel.selectForCompare",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
+          "group": "4_compare@1"
+        },
+        {
+          "command": "simpleSftp.dualPanel.compareWithSelected",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile') && hasFileSelectedForCompare",
+          "group": "4_compare@2"
         },
         {
           "command": "simpleSftp.dualPanel.delete",
