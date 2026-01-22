@@ -66,6 +66,27 @@
         document.getElementById('local-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'local'));
         document.getElementById('remote-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'remote'));
 
+        // Regex toggle buttons
+        document.getElementById('local-regex-toggle')?.addEventListener('click', () => {
+            const toggle = document.getElementById('local-regex-toggle');
+            toggle?.classList.toggle('active');
+            // 重新应用过滤
+            const searchInput = document.getElementById('local-search');
+            if (searchInput) {
+                filterTree('local', searchInput.value);
+            }
+        });
+
+        document.getElementById('remote-regex-toggle')?.addEventListener('click', () => {
+            const toggle = document.getElementById('remote-regex-toggle');
+            toggle?.classList.toggle('active');
+            // 重新应用过滤
+            const searchInput = document.getElementById('remote-search');
+            if (searchInput) {
+                filterTree('remote', searchInput.value);
+            }
+        });
+
         // Bookmark dropdown toggle
         const bookmarkToggle = document.getElementById('bookmark-toggle');
         bookmarkToggle?.addEventListener('click', (e) => {
@@ -449,12 +470,39 @@
         if (!treeContainer) return;
 
         const items = treeContainer.querySelectorAll('.tree-item:not(.back-item)');
-        const lowerSearchText = searchText.toLowerCase().trim();
+        const trimmedSearch = searchText.trim();
+        const regexToggle = document.getElementById(`${panel}-regex-toggle`);
+        const useRegex = regexToggle?.classList.contains('active');
+
+        // 如果搜索文本为空，显示所有项
+        if (trimmedSearch === '') {
+            items.forEach(item => {
+                item.style.display = 'flex';
+            });
+            return;
+        }
+
+        let matcher;
+        if (useRegex) {
+            // 正则表达式模式
+            try {
+                matcher = new RegExp(trimmedSearch, 'i'); // 不区分大小写
+            } catch (e) {
+                // 正则表达式语法错误，回退到普通文本搜索
+                console.warn('Invalid regex pattern:', trimmedSearch, e);
+                const lowerSearchText = trimmedSearch.toLowerCase();
+                matcher = { test: (str) => str.toLowerCase().includes(lowerSearchText) };
+            }
+        } else {
+            // 普通文本搜索（不区分大小写）
+            const lowerSearchText = trimmedSearch.toLowerCase();
+            matcher = { test: (str) => str.toLowerCase().includes(lowerSearchText) };
+        }
 
         items.forEach(item => {
             const label = item.querySelector('.tree-item-label')?.textContent || '';
 
-            if (lowerSearchText === '' || label.toLowerCase().includes(lowerSearchText)) {
+            if (matcher.test(label)) {
                 item.style.display = 'flex';
             } else {
                 item.style.display = 'none';

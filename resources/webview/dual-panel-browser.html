@@ -20,7 +20,12 @@
                     </button>
                     <span class="codicon codicon-folder"></span>
                     <div class="breadcrumb" id="local-breadcrumb"></div>
-                    <input type="text" class="search-input" id="local-search" placeholder="Filter..." title="Filter files and folders">
+                    <div class="filter-container">
+                        <input type="text" class="search-input" id="local-search" placeholder="Filter..." title="Filter files and folders">
+                        <button class="icon-button filter-regex-toggle" id="local-regex-toggle" title="Use Regular Expression">
+                            <span class="codicon codicon-regex"></span>
+                        </button>
+                    </div>
                     <button class="icon-button" id="refresh-local" title="Refresh Local">
                         <span class="codicon codicon-refresh"></span>
                     </button>
@@ -63,7 +68,12 @@
                         </div>
                     </div>
                     <div class="breadcrumb" id="remote-breadcrumb"></div>
-                    <input type="text" class="search-input" id="remote-search" placeholder="Filter..." title="Filter files and folders">
+                    <div class="filter-container">
+                        <input type="text" class="search-input" id="remote-search" placeholder="Filter..." title="Filter files and folders">
+                        <button class="icon-button filter-regex-toggle" id="remote-regex-toggle" title="Use Regular Expression">
+                            <span class="codicon codicon-regex"></span>
+                        </button>
+                    </div>
                     <button class="icon-button" id="refresh-remote" title="Refresh Remote">
                         <span class="codicon codicon-refresh"></span>
                     </button>

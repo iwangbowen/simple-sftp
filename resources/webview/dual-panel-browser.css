@@ -192,6 +192,15 @@ body {
     font-style: italic;
 }
 
+/* ===== Filter Container ===== */
+.filter-container {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
 /* ===== Search Input ===== */
 .search-input {
     width: 100px;
@@ -201,7 +210,7 @@ body {
     background-color: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
     border: 1px solid var(--vscode-input-border);
-    border-radius: 3px;
+    border-radius: 3px 0 0 3px; /* 左侧圆角 */
     font-size: 12px;
     font-family: var(--vscode-font-family);
     outline: none;
@@ -217,6 +226,38 @@ body {
 .search-input:focus {
     border-color: var(--vscode-focusBorder);
     width: 140px;
+}
+
+/* ===== Filter Regex Toggle ===== */
+.filter-regex-toggle {
+    padding: 2px 4px !important;
+    min-width: 20px;
+    height: 20px;
+    border: 1px solid var(--vscode-input-border);
+    border-left: none;
+    border-radius: 0 3px 3px 0; /* 右侧圆角 */
+    background-color: var(--vscode-input-background);
+    opacity: 0.7;
+    transition: all 0.15s ease;
+}
+
+.filter-regex-toggle .codicon {
+    font-size: 13px;
+}
+
+.filter-regex-toggle:hover {
+    opacity: 1;
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.filter-regex-toggle.active {
+    opacity: 1;
+    background-color: var(--vscode-button-background);
+    border-color: var(--vscode-button-background);
+}
+
+.filter-regex-toggle.active .codicon {
+    color: var(--vscode-button-foreground);
 }
 
 /* ===== Breadcrumb Navigation ===== */
