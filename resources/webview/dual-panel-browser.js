@@ -685,13 +685,14 @@
         const toggleBtn = document.getElementById('bookmark-toggle');
         if (!dropdown || !toggleBtn) return;
 
-        dropdown.style.display = 'flex';
-        toggleBtn.classList.add('active');
-
-        // Request bookmarks from backend
+        // Always request fresh bookmarks from backend before showing
         vscode.postMessage({
             command: 'getBookmarks'
         });
+
+        // Show dropdown after requesting data
+        dropdown.style.display = 'flex';
+        toggleBtn.classList.add('active');
     }
 
     /**
