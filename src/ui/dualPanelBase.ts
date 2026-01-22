@@ -1017,6 +1017,7 @@ export abstract class DualPanelBase {
 
     protected async handleGetBookmarks(): Promise<void> {
         if (!this._currentHost) {
+            logger.debug('No current host, sending empty bookmarks');
             this.postMessage({
                 command: 'updateBookmarks',
                 data: { bookmarks: [] }
@@ -1024,8 +1025,9 @@ export abstract class DualPanelBase {
             return;
         }
 
-        // Get bookmarks from bookmark service
+        // Get bookmarks from host config
         const bookmarks = this._currentHost.bookmarks || [];
+        logger.debug(`Sending ${bookmarks.length} bookmarks for host ${this._currentHost.name}`, bookmarks);
         this.postMessage({
             command: 'updateBookmarks',
             data: { bookmarks }

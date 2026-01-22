@@ -65,8 +65,11 @@
         document.getElementById('remote-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'remote'));
 
         // Bookmark dropdown toggle
-        document.getElementById('bookmark-toggle')?.addEventListener('click', toggleBookmarkDropdown);
-
+        const bookmarkToggle = document.getElementById('bookmark-toggle');
+        bookmarkToggle?.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent immediate close
+            toggleBookmarkDropdown();
+        });
         // Click outside to close bookmark dropdown
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('bookmark-dropdown');
@@ -643,7 +646,7 @@
         const toggleBtn = document.getElementById('bookmark-toggle');
         if (!dropdown || !toggleBtn) return;
 
-        const isVisible = dropdown.classList.contains('show');
+        const isVisible = dropdown.style.display === 'flex';
         if (isVisible) {
             closeBookmarkDropdown();
         } else {
@@ -659,7 +662,7 @@
         const toggleBtn = document.getElementById('bookmark-toggle');
         if (!dropdown || !toggleBtn) return;
 
-        dropdown.classList.add('show');
+        dropdown.style.display = 'flex';
         toggleBtn.classList.add('active');
 
         // Request bookmarks from backend
@@ -676,7 +679,7 @@
         const toggleBtn = document.getElementById('bookmark-toggle');
         if (!dropdown || !toggleBtn) return;
 
-        dropdown.classList.remove('show');
+        dropdown.style.display = 'none';
         toggleBtn.classList.remove('active');
     }
 
@@ -687,10 +690,12 @@
     function renderBookmarks(bookmarks) {
         currentBookmarks = bookmarks || [];
         const listContainer = document.getElementById('bookmark-list');
-        if (!listContainer) return;
+        if (!listContainer) {
+            return;
+        }
 
         if (currentBookmarks.length === 0) {
-            listContainer.innerHTML = '<div class=\"bookmark-dropdown-empty\">No bookmarks</div>';
+            listContainer.innerHTML = '<div class="bookmark-dropdown-empty">No bookmarks</div>';
             return;
         }
 
@@ -699,10 +704,9 @@
             const item = document.createElement('div');
             item.className = 'bookmark-dropdown-item';
             item.innerHTML = `
-                <span class=\"codicon codicon-bookmark\"></span>
-                <div class=\"bookmark-dropdown-item-content\">
-                    <div class=\"bookmark-dropdown-item-name\">${escapeHtml(bookmark.name)}</div>
-                    <div class=\"bookmark-dropdown-item-path\">${escapeHtml(bookmark.path)}</div>
+                <div class="bookmark-dropdown-item-content">
+                    <div class="bookmark-dropdown-item-name">${escapeHtml(bookmark.name)}</div>
+                    <div class="bookmark-dropdown-item-path">${escapeHtml(bookmark.path)}</div>
                 </div>
             `;
             item.addEventListener('click', () => {
@@ -1296,6 +1300,7 @@
 
             case 'updateBookmarks':
                 // Update bookmarks list
+                console.log('Received updateBookmarks message:', message);
                 renderBookmarks(message.data.bookmarks);
                 break;
 

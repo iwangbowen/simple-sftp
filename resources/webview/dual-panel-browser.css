@@ -34,7 +34,7 @@ body {
     gap: 6px;
     flex-shrink: 0;
     min-height: 34px;
-    overflow: hidden;
+    overflow: visible; /* Allow dropdown to overflow */
 }
 
 .local-header {
@@ -85,6 +85,8 @@ body {
 /* ===== Bookmark Dropdown ===== */
 .bookmark-dropdown-container {
     position: relative;
+    display: flex;
+    align-items: center;
     flex-shrink: 0;
 }
 
@@ -113,28 +115,14 @@ body {
     min-width: 250px;
     max-width: 350px;
     max-height: 400px;
-    background-color: var(--vscode-dropdown-background);
-    border: 1px solid var(--vscode-dropdown-border);
+    background-color: var(--vscode-sideBar-background);
+    border: 1px solid var(--vscode-editorWidget-border);
     border-radius: 4px;
-    box-shadow: var(--vscode-widget-shadow) 0px 2px 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     z-index: 1000;
-    display: none;
+    display: none; /* Controlled by inline style in JS */
     flex-direction: column;
     overflow: hidden;
-}
-
-.bookmark-dropdown.show {
-    display: flex;
-}
-
-.bookmark-dropdown-header {
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--vscode-descriptionForeground);
-    border-bottom: 1px solid var(--vscode-dropdown-border);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .bookmark-dropdown-list {
@@ -159,8 +147,7 @@ body {
 .bookmark-dropdown-item {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    padding: 8px 12px;
+    padding: 10px 12px;
     cursor: pointer;
     transition: background-color 0.1s;
     border-left: 3px solid transparent;
@@ -169,13 +156,6 @@ body {
 .bookmark-dropdown-item:hover {
     background-color: var(--vscode-list-hoverBackground);
     border-left-color: var(--vscode-focusBorder);
-}
-
-.bookmark-dropdown-item .codicon {
-    font-size: 14px;
-    color: var(--vscode-symbolIcon-colorForeground);
-    flex-shrink: 0;
-    margin-top: 2px;
 }
 
 .bookmark-dropdown-item-content {
