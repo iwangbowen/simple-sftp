@@ -1,5 +1,35 @@
 # Change Log
 
+## 3.5.0 - 2026-01-22
+
+### Added
+
+- **Bookmark Management**: Quick access to bookmarked paths via dropdown menu
+  - Click remote path area to toggle bookmark dropdown
+  - Add bookmark from context menu (files, folders, or empty area)
+  - Minimalist design without header or icons
+  - Real-time sync between TreeView and webview
+  - Auto-refresh after bookmark add/delete operations
+
+- **Keyboard Shortcuts**: Enhanced productivity with keyboard navigation
+  - **Ctrl+A (Cmd+A on Mac)**: Select all visible items in current panel
+  - Smart panel detection based on last click location
+  - Works in both file list and empty panel areas
+
+- **Visual Feedback**: Improved user interaction feedback
+  - Panel resize percentage indicator (e.g., "50% | 50%") during drag
+  - Headers now follow panel resize for better visual consistency
+  - 800ms fade-out animation for resize indicator
+
+### Improved
+
+- **UI Polish**: Better visual consistency and user experience
+  - Prevented text selection on UI elements (user-select: none)
+  - Fixed dropdown visibility issues with overflow handling
+  - Cleaner context menus (removed Cut/Copy/Paste)
+
+---
+
 ## 3.4.0 - 2026-01-22
 
 ### Removed

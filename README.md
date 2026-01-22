@@ -30,12 +30,17 @@ If you find this extension helpful, consider buying me a coffee!
     - Permission column shows rwx format (e.g., `rwxr-xr-x`)
     - Right-click context menu to change permissions
     - Supports octal (755) and symbolic (rwxr-xr-x) input formats
+  - **Keyboard Shortcuts**:
+    - Ctrl+A (Cmd+A on Mac): Select all visible items in current panel
   - Real-time search/filter files
   - Quick upload/download with click buttons
   - Panel or Editor area display modes
   - Support multiple browser instances (Editor mode)
 - **Quick Upload/Download**: Upload or download files directly from Explorer or Editor
 - **Path Bookmarks**: Save and quickly access frequently used remote directories
+  - Click remote path area to toggle bookmark dropdown
+  - Add bookmarks from context menu (files, folders, or empty area)
+  - Quick navigation to saved remote directories
 
 #### Host Management
 - **TreeView Interface**: Organize hosts with groups and color coding
@@ -375,12 +380,17 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
     - 权限列显示 rwx 格式（如 `rwxr-xr-x`）
     - 右键菜单修改文件权限
     - 支持八进制（755）和符号（rwxr-xr-x）输入格式
+  - **键盘快捷键**:
+    - Ctrl+A（Mac 上为 Cmd+A）：选中当前面板所有可见项
   - 实时搜索/过滤文件
   - 点击按钮快速上传/下载
   - Panel 或 Editor 区域显示模式
   - 支持多个浏览器实例(Editor 模式)
 - **快速上传/下载**: 直接从资源管理器或编辑器上传或下载文件
 - **路径书签**: 保存并快速访问常用的远程目录
+  - 点击远程路径区域切换书签下拉菜单
+  - 从上下文菜单添加书签（文件、文件夹或空白区域）
+  - 快速导航到保存的远程目录
 
 #### 主机管理
 
