@@ -151,6 +151,10 @@ export abstract class DualPanelBase {
                 await this.handleDownload(message.data.remotePath, message.data.localPath);
                 break;
 
+            case 'diffFiles':
+                await this.handleDiffFiles(message.data);
+                break;
+
             case 'createFolder':
                 await this.handleCreateFolder(message.data);
                 break;
@@ -775,6 +779,40 @@ export abstract class DualPanelBase {
         } catch (error) {
             logger.error(`Open file failed: ${error}`);
             vscode.window.showErrorMessage(`Open file failed: ${error}`);
+        }
+    }
+
+    /**
+     * Handle diff comparison between local and remote files
+     */
+    protected async handleDiffFiles(data: any): Promise<void> {
+        const { localPath, remotePath, localName, remoteName } = data;
+
+        try {
+            if (!this._currentHost || !this._currentAuthConfig) {
+                vscode.window.showErrorMessage('No host selected');
+                return;
+            }
+
+            // Create URIs for both files
+            const localUri = vscode.Uri.file(localPath);
+            const remoteUri = vscode.Uri.parse(`sftp://${this._currentHost.id}${remotePath}`);
+
+            // Create descriptive title for diff editor
+            const title = `${localName} ↔ ${remoteName}`;
+
+            // Open diff editor
+            await vscode.commands.executeCommand(
+                'vscode.diff',
+                localUri,
+                remoteUri,
+                title
+            );
+
+            logger.info(`Diff comparison opened: ${localPath} ↔ ${remotePath}`);
+        } catch (error) {
+            logger.error(`Diff files failed: ${error}`);
+            vscode.window.showErrorMessage(`Diff comparison failed: ${error}`);
         }
     }
 
