@@ -193,10 +193,56 @@ body {
     background-color: var(--vscode-panel-border);
     cursor: ew-resize; /* 横向双箭头光标 */
     transition: background-color 0.2s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .resizer:hover {
     background-color: var(--vscode-focusBorder);
+}
+
+/* 百分比指示器 */
+.resize-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--vscode-editorWidget-background);
+    border: 1px solid var(--vscode-editorWidget-border);
+    border-radius: 4px;
+    padding: 6px 12px;
+    box-shadow: var(--vscode-widget-shadow) 0px 2px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.resize-indicator.visible {
+    opacity: 1;
+}
+
+.resize-indicator .local-percentage {
+    color: var(--vscode-textLink-foreground);
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.resize-indicator .remote-percentage {
+    color: var(--vscode-textLink-foreground);
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.resize-indicator .separator {
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.5;
 }
 
 /* ===== File Tree ===== */

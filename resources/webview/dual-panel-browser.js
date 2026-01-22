@@ -66,21 +66,64 @@
         const resizer = document.getElementById('resizer');
         const localPanel = document.querySelector('.local-panel');
         const remotePanel = document.querySelector('.remote-panel');
+        const indicator = document.getElementById('resize-indicator');
+        const localPercentageSpan = indicator?.querySelector('.local-percentage');
+        const remotePercentageSpan = indicator?.querySelector('.remote-percentage');
 
         if (!resizer || !localPanel || !remotePanel) return;
 
         let isResizing = false;
+        let hideIndicatorTimer = null;
+
+        // 显示百分比指示器
+        const showIndicator = () => {
+            if (indicator) {
+                indicator.classList.add('visible');
+            }
+            // 清除隐藏定时器
+            if (hideIndicatorTimer) {
+                clearTimeout(hideIndicatorTimer);
+                hideIndicatorTimer = null;
+            }
+        };
+
+        // 延迟隐藏百分比指示器
+        const hideIndicator = () => {
+            if (hideIndicatorTimer) {
+                clearTimeout(hideIndicatorTimer);
+            }
+            hideIndicatorTimer = setTimeout(() => {
+                if (indicator) {
+                    indicator.classList.remove('visible');
+                }
+            }, 800); // 800ms后隐藏
+        };
+
+        // 更新百分比显示
+        const updatePercentage = (leftPercent) => {
+            const rightPercent = 100 - leftPercent;
+            if (localPercentageSpan) {
+                localPercentageSpan.textContent = `${Math.round(leftPercent)}%`;
+            }
+            if (remotePercentageSpan) {
+                remotePercentageSpan.textContent = `${Math.round(rightPercent)}%`;
+            }
+        };
 
         // 双击还原默认尺寸
         resizer.addEventListener('dblclick', () => {
             localPanel.style.flex = '1';
             remotePanel.style.flex = '1';
+            updatePercentage(50);
+            showIndicator();
+            hideIndicator();
         });
 
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
             document.body.style.cursor = 'ew-resize';
             document.body.style.userSelect = 'none';
+            showIndicator();
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -93,6 +136,7 @@
             if (leftPercent > 20 && leftPercent < 80) {
                 localPanel.style.flex = `0 0 ${leftPercent}%`;
                 remotePanel.style.flex = `1`;
+                updatePercentage(leftPercent);
             }
         });
 
@@ -101,6 +145,7 @@
                 isResizing = false;
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
+                hideIndicator();
             }
         });
     }
