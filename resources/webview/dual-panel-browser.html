@@ -87,6 +87,69 @@
         </div>
     </div>
 
+    <!-- Permissions Editor Modal -->
+    <div id="permissions-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Permissions</h3>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>File: <span id="perm-file-name" class="file-name"></span></p>
+
+                <div class="permissions-grid">
+                    <div></div>
+                    <div class="header">Read</div>
+                    <div class="header">Write</div>
+                    <div class="header">Execute</div>
+
+                    <div class="label">Owner</div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="owner-read">
+                    </div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="owner-write">
+                    </div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="owner-execute">
+                    </div>
+
+                    <div class="label">Group</div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="group-read">
+                    </div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="group-write">
+                    </div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="group-execute">
+                    </div>
+
+                    <div class="label">Others</div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="others-read">
+                    </div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="others-write">
+                    </div>
+                    <div class="checkbox-cell">
+                        <input type="checkbox" id="others-execute">
+                    </div>
+                </div>
+
+                <div class="octal-display">
+                    <span class="octal-value" id="octal-value">755</span>
+                    <span class="symbolic-value" id="symbolic-value">rwxr-xr-x</span>
+                </div>
+
+                <div class="button-group">
+                    <button class="apply-button" id="apply-perms-button">Apply</button>
+                    <button class="cancel-button" id="cancel-perms-button">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
 </body>
 </html>

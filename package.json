@@ -472,7 +472,7 @@
         },
         {
           "command": "simpleSftp.dualPanel.changePermissions",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
           "group": "2_operations@4"
         },
         {

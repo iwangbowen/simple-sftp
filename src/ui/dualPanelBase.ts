@@ -210,6 +210,10 @@ export abstract class DualPanelBase {
             case 'batchDownload':
                 await this.handleBatchDownload(message.data);
                 break;
+
+            case 'applyPermissions':
+                await this.applyPermissions(message.data);
+                break;
         }
     }
 
@@ -860,71 +864,84 @@ export abstract class DualPanelBase {
     public async executeChangePermissions(args: any): Promise<void> {
         const { filePath, panel } = args;
 
-        if (panel !== 'remote') {
-            vscode.window.showWarningMessage('Permissions can only be changed for remote files');
-            return;
-        }
+        // Get current file permissions
+        let currentMode: number;
 
-        if (!this._currentHost || !this._currentAuthConfig) {
-            vscode.window.showErrorMessage('No host selected');
-            return;
-        }
-
-        // Get current file info to retrieve current permissions
         try {
-            const stats = await SshConnectionManager.getFileStats(
-                this._currentHost,
-                this._currentAuthConfig,
-                filePath
-            );
+            if (panel === 'local') {
+                // Local file
+                const stats = await fs.promises.stat(filePath);
+                currentMode = stats.mode & 0o777;
+            } else {
+                // Remote file
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
 
-            const currentMode = stats.mode & 0o777; // Get only permission bits
+                const stats = await SshConnectionManager.getFileStats(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    filePath
+                );
 
-            // Show input box for new permissions
-            const input = await vscode.window.showInputBox({
-                prompt: `Enter new permissions for ${path.basename(filePath)}`,
-                placeHolder: 'rwxr-xr-x or 755',
-                value: currentMode.toString(8), // Show current permissions in octal
-                validateInput: (value) => {
-                    // Validate octal format (e.g., 755)
-                    if (/^[0-7]{3,4}$/.test(value)) {
-                        return null;
-                    }
-                    // Validate rwx format (e.g., rwxr-xr-x)
-                    if (/^[r-][w-][x-][r-][w-][x-][r-][w-][x-]$/.test(value)) {
-                        return null;
-                    }
-                    return 'Please enter permissions in octal (e.g., 755) or symbolic (e.g., rwxr-xr-x) format';
+                currentMode = stats.mode & 0o777;
+            }
+
+            // Send message to webview to show permissions editor modal
+            this.postMessage({
+                command: 'showPermissionsEditor',
+                data: {
+                    fileName: path.basename(filePath),
+                    filePath: filePath,
+                    panel: panel,
+                    mode: currentMode
                 }
             });
 
-            if (!input) {
-                return; // User cancelled
-            }
+        } catch (error: any) {
+            logger.error(`Failed to get file permissions: ${error}`);
+            vscode.window.showErrorMessage(`Failed to get file permissions: ${error.message}`);
+        }
+    }
 
-            // Parse input to octal mode
-            let newMode: number;
-            if (/^[0-7]{3,4}$/.test(input)) {
-                // Octal format
-                newMode = Number.parseInt(input, 8);
+    private async applyPermissions(data: any): Promise<void> {
+        const { filePath, panel, mode } = data;
+
+        try {
+            if (panel === 'local') {
+                // Change local file permissions
+                await fs.promises.chmod(filePath, mode);
+                vscode.window.showInformationMessage(
+                    `Permissions changed to ${mode.toString(8)} for ${path.basename(filePath)}`
+                );
+
+                // Refresh local directory
+                if (this._localRootPath) {
+                    await this.loadLocalDirectory(this._localRootPath);
+                }
             } else {
-                // rwx format
-                newMode = this.parsePermissionsToMode(input);
-            }
+                // Change remote file permissions
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
 
-            // Apply new permissions
-            await SshConnectionManager.changeFilePermissions(
-                this._currentHost,
-                this._currentAuthConfig,
-                filePath,
-                newMode
-            );
+                await SshConnectionManager.changeFilePermissions(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    filePath,
+                    mode
+                );
 
-            vscode.window.showInformationMessage(`Permissions changed to ${newMode.toString(8)} for ${path.basename(filePath)}`);
+                vscode.window.showInformationMessage(
+                    `Permissions changed to ${mode.toString(8)} for ${path.basename(filePath)}`
+                );
 
-            // Refresh the directory
-            if (this._remoteRootPath) {
-                await this.loadRemoteDirectory(this._remoteRootPath);
+                // Refresh remote directory
+                if (this._remoteRootPath) {
+                    await this.loadRemoteDirectory(this._remoteRootPath);
+                }
             }
         } catch (error: any) {
             logger.error(`Failed to change permissions: ${error}`);

@@ -1130,6 +1130,16 @@
             case 'updateQueue':
                 document.getElementById('queue-text').textContent = `${message.count} active tasks`;
                 break;
+
+            case 'showPermissionsEditor':
+                // Show the permissions editor modal
+                showPermissionsEditor(
+                    message.data.fileName,
+                    message.data.filePath,
+                    message.data.panel,
+                    message.data.mode
+                );
+                break;
         }
     });
 
@@ -1233,5 +1243,137 @@
                 });
             });
         });
+    }
+
+    // ===== 权限编辑器 =====
+    let currentPermissionsContext = null;
+
+    /**
+     * 显示权限编辑器模态框
+     * @param {string} fileName - 文件名
+     * @param {string} filePath - 文件路径
+     * @param {string} panel - 'local' or 'remote'
+     * @param {number} mode - 当前权限模式
+     */
+    function showPermissionsEditor(fileName, filePath, panel, mode) {
+        currentPermissionsContext = { fileName, filePath, panel, mode };
+
+        // 设置文件名
+        document.getElementById('perm-file-name').textContent = fileName;
+
+        // 设置复选框状态
+        document.getElementById('owner-read').checked = (mode & 0o400) !== 0;
+        document.getElementById('owner-write').checked = (mode & 0o200) !== 0;
+        document.getElementById('owner-execute').checked = (mode & 0o100) !== 0;
+        document.getElementById('group-read').checked = (mode & 0o040) !== 0;
+        document.getElementById('group-write').checked = (mode & 0o020) !== 0;
+        document.getElementById('group-execute').checked = (mode & 0o010) !== 0;
+        document.getElementById('others-read').checked = (mode & 0o004) !== 0;
+        document.getElementById('others-write').checked = (mode & 0o002) !== 0;
+        document.getElementById('others-execute').checked = (mode & 0o001) !== 0;
+
+        // 更新显示
+        updatePermissionsDisplay();
+
+        // 显示模态框
+        document.getElementById('permissions-modal').style.display = 'flex';
+    }
+
+    /**
+     * 隐藏权限编辑器模态框
+     */
+    function hidePermissionsEditor() {
+        document.getElementById('permissions-modal').style.display = 'none';
+        currentPermissionsContext = null;
+    }
+
+    /**
+     * 更新权限显示
+     */
+    function updatePermissionsDisplay() {
+        let mode = 0;
+
+        if (document.getElementById('owner-read').checked) mode |= 0o400;
+        if (document.getElementById('owner-write').checked) mode |= 0o200;
+        if (document.getElementById('owner-execute').checked) mode |= 0o100;
+        if (document.getElementById('group-read').checked) mode |= 0o040;
+        if (document.getElementById('group-write').checked) mode |= 0o020;
+        if (document.getElementById('group-execute').checked) mode |= 0o010;
+        if (document.getElementById('others-read').checked) mode |= 0o004;
+        if (document.getElementById('others-write').checked) mode |= 0o002;
+        if (document.getElementById('others-execute').checked) mode |= 0o001;
+
+        // 更新八进制显示
+        document.getElementById('octal-value').textContent = mode.toString(8).padStart(3, '0');
+
+        // 更新符号显示
+        const symbolic = [
+            document.getElementById('owner-read').checked ? 'r' : '-',
+            document.getElementById('owner-write').checked ? 'w' : '-',
+            document.getElementById('owner-execute').checked ? 'x' : '-',
+            document.getElementById('group-read').checked ? 'r' : '-',
+            document.getElementById('group-write').checked ? 'w' : '-',
+            document.getElementById('group-execute').checked ? 'x' : '-',
+            document.getElementById('others-read').checked ? 'r' : '-',
+            document.getElementById('others-write').checked ? 'w' : '-',
+            document.getElementById('others-execute').checked ? 'x' : '-'
+        ].join('');
+        document.getElementById('symbolic-value').textContent = symbolic;
+    }
+
+    // 初始化权限编辑器事件监听
+    function initializePermissionsEditor() {
+        // 复选框变化事件
+        const permCheckboxes = document.querySelectorAll('#permissions-modal input[type="checkbox"]');
+        permCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updatePermissionsDisplay);
+        });
+
+        // 关闭按钮
+        document.querySelector('.modal-close').addEventListener('click', hidePermissionsEditor);
+
+        // 取消按钮
+        document.getElementById('cancel-perms-button').addEventListener('click', hidePermissionsEditor);
+
+        // 应用按钮
+        document.getElementById('apply-perms-button').addEventListener('click', () => {
+            if (!currentPermissionsContext) return;
+
+            let mode = 0;
+            if (document.getElementById('owner-read').checked) mode |= 0o400;
+            if (document.getElementById('owner-write').checked) mode |= 0o200;
+            if (document.getElementById('owner-execute').checked) mode |= 0o100;
+            if (document.getElementById('group-read').checked) mode |= 0o040;
+            if (document.getElementById('group-write').checked) mode |= 0o020;
+            if (document.getElementById('group-execute').checked) mode |= 0o010;
+            if (document.getElementById('others-read').checked) mode |= 0o004;
+            if (document.getElementById('others-write').checked) mode |= 0o002;
+            if (document.getElementById('others-execute').checked) mode |= 0o001;
+
+            vscode.postMessage({
+                command: 'applyPermissions',
+                data: {
+                    filePath: currentPermissionsContext.filePath,
+                    panel: currentPermissionsContext.panel,
+                    mode: mode
+                }
+            });
+
+            hidePermissionsEditor();
+        });
+
+        // 点击模态框背景关闭
+        document.getElementById('permissions-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'permissions-modal') {
+                hidePermissionsEditor();
+            }
+        });
+    }
+
+    // 在 DOMContentLoaded 后初始化权限编辑器
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializePermissionsEditor);
+    } else {
+        initializePermissionsEditor();
     }
 })();
