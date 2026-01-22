@@ -70,6 +70,7 @@
             e.stopPropagation(); // Prevent immediate close
             toggleBookmarkDropdown();
         });
+
         // Click outside to close bookmark dropdown
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('bookmark-dropdown');
@@ -79,6 +80,28 @@
                 !toggleBtn.contains(e.target)) {
                 closeBookmarkDropdown();
             }
+        });
+
+        // Context menu for empty area in file trees
+        ['local-tree', 'remote-tree'].forEach(treeId => {
+            const tree = document.getElementById(treeId);
+            if (!tree) return;
+
+            tree.addEventListener('contextmenu', (e) => {
+                // Only handle if clicked directly on tree container (not on items)
+                if (e.target.id === treeId || e.target.classList.contains('file-tree')) {
+                    const panel = treeId === 'local-tree' ? 'local' : 'remote';
+                    const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+
+                    // Set context data for empty area
+                    tree.dataset.vscodeContext = JSON.stringify({
+                        webviewSection: panel === 'local' ? 'localEmpty' : 'remoteEmpty',
+                        panel: panel,
+                        currentPath: currentPath,
+                        preventDefaultContextMenuItems: true
+                    });
+                }
+            });
         });
     }
 
