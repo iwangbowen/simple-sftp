@@ -1328,8 +1328,15 @@
                 break;
 
             case 'addBookmark':
-                // Add bookmark for current remote path
-                addCurrentPathToBookmark();
+                // Add bookmark - use provided path or current remote path
+                if (message.data && message.data.path) {
+                    vscode.postMessage({
+                        command: 'addBookmark',
+                        data: { path: message.data.path }
+                    });
+                } else {
+                    addCurrentPathToBookmark();
+                }
                 break;
         }
     });

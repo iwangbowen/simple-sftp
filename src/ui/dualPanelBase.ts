@@ -1040,6 +1040,8 @@ export abstract class DualPanelBase {
             return;
         }
 
+        logger.info(`handleAddBookmark received path: ${data.path}`);
+
         // Prompt for bookmark name
         const name = await vscode.window.showInputBox({
             prompt: 'Enter bookmark name',
