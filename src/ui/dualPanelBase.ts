@@ -1025,8 +1025,23 @@ export abstract class DualPanelBase {
             return;
         }
 
-        // Get bookmarks from host config
-        const bookmarks = this._currentHost.bookmarks || [];
+        // Always get fresh host config from hostManager to ensure bookmarks are up-to-date
+        const hosts = await this.hostManager.getHosts();
+        const currentHost = hosts.find(h => h.id === this._currentHost!.id);
+
+        if (!currentHost) {
+            this.postMessage({
+                command: 'updateBookmarks',
+                data: { bookmarks: [] }
+            });
+            return;
+        }
+
+        // Update current host reference
+        this._currentHost = currentHost;
+
+        // Get bookmarks from fresh host config
+        const bookmarks = currentHost.bookmarks || [];
         this.postMessage({
             command: 'updateBookmarks',
             data: { bookmarks }
