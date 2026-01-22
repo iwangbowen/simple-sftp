@@ -1027,7 +1027,6 @@ export abstract class DualPanelBase {
 
         // Get bookmarks from host config
         const bookmarks = this._currentHost.bookmarks || [];
-        logger.debug(`Sending ${bookmarks.length} bookmarks for host ${this._currentHost.name}`, bookmarks);
         this.postMessage({
             command: 'updateBookmarks',
             data: { bookmarks }
@@ -1039,8 +1038,6 @@ export abstract class DualPanelBase {
             vscode.window.showErrorMessage('No host selected');
             return;
         }
-
-        logger.info(`handleAddBookmark received path: ${data.path}`);
 
         // Prompt for bookmark name
         const name = await vscode.window.showInputBox({

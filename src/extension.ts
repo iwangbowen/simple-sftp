@@ -314,13 +314,9 @@ export async function activate(context: vscode.ExtensionContext) {
       const isDirectory = args?.isDirectory === true || !args?.filePath; // True if directory or empty area
       const bookmarkPath = isDirectory ? targetPath : require('path').dirname(targetPath);
 
-      logger.info(`Add bookmark: filePath=${args?.filePath}, currentPath=${args?.currentPath}, isDirectory=${args?.isDirectory}, bookmarkPath=${bookmarkPath}`);
-
-      const messageData = { command: 'addBookmark', data: { path: bookmarkPath } };
-      logger.info(`Sending message to webview: ${JSON.stringify(messageData)}`);
-
       // Post message to webview to add bookmark
       // The webview handler will refresh tree view after adding
+      const messageData = { command: 'addBookmark', data: { path: bookmarkPath } };
       if (openInEditor) {
         await dualPanelEditorManager.postMessageToWebview(messageData);
       } else {
