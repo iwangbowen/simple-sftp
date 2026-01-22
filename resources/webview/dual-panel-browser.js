@@ -215,9 +215,9 @@
             item.appendChild(time);
         }
 
-        // Permissions (for remote files only)
+        // Permissions (for both local and remote files)
         console.log(`createTreeItem: panel=${panel}, node.permissions=${node.permissions}, node.mode=${node.mode}`);
-        if (panel === 'remote' && node.permissions) {
+        if (node.permissions) {
             const permissions = document.createElement('span');
             permissions.className = 'tree-item-permissions';
             permissions.textContent = node.permissions;

@@ -260,12 +260,18 @@ export abstract class DualPanelBase {
             try {
                 const stats = await fs.promises.stat(fullPath);
 
+                // 将数字模式转换为字符串权限 (例如: 0o755 -> 'rwxr-xr-x')
+                const mode = stats.mode;
+                const permissions = this.formatModeToString(mode);
+
                 nodes.push({
                     name: entry.name,
                     path: fullPath,
                     isDirectory: entry.isDirectory(),
                     size: entry.isFile() ? stats.size : undefined,
                     modifiedTime: stats.mtime,
+                    mode: mode,
+                    permissions: permissions,
                     expanded: false,
                     children: entry.isDirectory() ? [] : undefined
                 });
