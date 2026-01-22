@@ -23,15 +23,22 @@ body {
     height: 100vh;
 }
 
-/* ===== Header Bar ===== */
-.header-bar {
+/* ===== Panel Headers ===== */
+.panel-header {
     display: flex;
     align-items: center;
     padding: 6px 12px;
     background-color: var(--vscode-titleBar-activeBackground);
     color: var(--vscode-titleBar-activeForeground);
     border-bottom: 1px solid var(--vscode-panel-border);
-    gap: 12px;
+    gap: 6px;
+    flex-shrink: 0;
+    min-height: 34px;
+    overflow: hidden;
+}
+
+.local-header {
+    border-right: 1px solid var(--vscode-panel-border);
 }
 
 .header-title {
@@ -66,15 +73,6 @@ body {
     background-color: var(--vscode-button-secondaryBackground);
 }
 
-.panel-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-    min-width: 0;
-    max-width: 50%;
-}
-
 .panel-header .header-title {
     flex: 1;
     min-width: 0;
@@ -86,7 +84,9 @@ body {
 
 /* ===== Search Input ===== */
 .search-input {
-    width: 120px;
+    width: 100px;
+    min-width: 60px;
+    max-width: 160px;
     padding: 2px 6px;
     background-color: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
@@ -96,7 +96,7 @@ body {
     font-family: var(--vscode-font-family);
     outline: none;
     transition: border-color 0.15s, width 0.15s;
-    flex-shrink: 0;
+    flex-shrink: 1;
 }
 
 .search-input::placeholder {
@@ -106,7 +106,7 @@ body {
 
 .search-input:focus {
     border-color: var(--vscode-focusBorder);
-    width: 160px;
+    width: 140px;
 }
 
 /* ===== Breadcrumb Navigation ===== */
@@ -117,11 +117,11 @@ body {
     flex: 1;
     min-width: 0;
     font-size: 12px;
-    overflow-x: auto; /* 允许横向滚动 */
+    overflow-x: auto;
     overflow-y: hidden;
-    flex-direction: row; /* 正常顺序 */
-    scrollbar-width: none; /* Firefox 隐藏滚动条 */
-    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
+    flex-direction: row;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
 }
 
 /* 隐藏滚动条但保留滚动功能 */
@@ -133,19 +133,19 @@ body {
     white-space: nowrap;
     padding: 2px 4px;
     border-radius: 3px;
-    flex-shrink: 0; /* 不压缩,保持完整显示 */
+    flex-shrink: 1; /* 允许适度压缩 */
+    min-width: 20px;
 }
 
 .breadcrumb-root {
     font-weight: 600;
     color: var(--vscode-titleBar-activeForeground);
-    flex-shrink: 0; /* 不压缩 */
+    flex-shrink: 0; /* 根目录不压缩 */
 }
 
 .breadcrumb-clickable {
     cursor: pointer;
     color: var(--vscode-textLink-foreground);
-    flex-shrink: 0; /* 不压缩 */
 }
 
 .breadcrumb-clickable:hover {
@@ -156,7 +156,7 @@ body {
 .breadcrumb-current {
     font-weight: 500;
     color: var(--vscode-titleBar-activeForeground);
-    flex-shrink: 0; /* 不压缩 */
+    flex-shrink: 0; /* 当前路径不压缩 */
 }
 
 .breadcrumb-separator {
@@ -166,11 +166,7 @@ body {
     flex-shrink: 0;
 }
 
-.separator {
-    color: var(--vscode-titleBar-inactiveForeground);
-    font-size: 14px;
-    flex-shrink: 0;
-}
+
 
 /* ===== Dual Panel Layout ===== */
 .dual-panel {

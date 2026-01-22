@@ -10,48 +10,27 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header Bar -->
-        <div class="header-bar">
-            <div class="panel-header local-header">
-                <button class="icon-button" id="back-to-hosts" title="Back to Host Selection">
-                    <span class="codicon codicon-home"></span>
-                </button>
-                <span class="codicon codicon-folder"></span>
-                <div class="breadcrumb" id="local-breadcrumb"></div>
-                <input type="text" class="search-input" id="local-search" placeholder="Filter..." title="Filter files and folders">
-                <button class="icon-button" id="refresh-local" title="Refresh Local">
-                    <span class="codicon codicon-refresh"></span>
-                </button>
-                <button class="icon-button" id="new-local-folder" title="New Folder">
-                    <span class="codicon codicon-new-folder"></span>
-                </button>
-                <button class="icon-button" id="upload-selected" title="Upload Selected">
-                    <span class="codicon codicon-cloud-upload"></span>
-                </button>
-            </div>
-            <div class="separator">
-                <span class="codicon codicon-arrow-both"></span>
-            </div>
-            <div class="panel-header remote-header">
-                <span class="codicon codicon-remote"></span>
-                <div class="breadcrumb" id="remote-breadcrumb"></div>
-                <input type="text" class="search-input" id="remote-search" placeholder="Filter..." title="Filter files and folders">
-                <button class="icon-button" id="refresh-remote" title="Refresh Remote">
-                    <span class="codicon codicon-refresh"></span>
-                </button>
-                <button class="icon-button" id="new-remote-folder" title="New Folder">
-                    <span class="codicon codicon-new-folder"></span>
-                </button>
-                <button class="icon-button" id="download-selected" title="Download Selected">
-                    <span class="codicon codicon-cloud-download"></span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Dual Panel Content -->
+        <!-- Dual Panel Layout -->
         <div class="dual-panel">
-            <!-- Local File Tree -->
+            <!-- Local Panel (Header + Tree) -->
             <div class="panel local-panel">
+                <div class="panel-header local-header">
+                    <button class="icon-button" id="back-to-hosts" title="Back to Host Selection">
+                        <span class="codicon codicon-home"></span>
+                    </button>
+                    <span class="codicon codicon-folder"></span>
+                    <div class="breadcrumb" id="local-breadcrumb"></div>
+                    <input type="text" class="search-input" id="local-search" placeholder="Filter..." title="Filter files and folders">
+                    <button class="icon-button" id="refresh-local" title="Refresh Local">
+                        <span class="codicon codicon-refresh"></span>
+                    </button>
+                    <button class="icon-button" id="new-local-folder" title="New Folder">
+                        <span class="codicon codicon-new-folder"></span>
+                    </button>
+                    <button class="icon-button" id="upload-selected" title="Upload Selected">
+                        <span class="codicon codicon-cloud-upload"></span>
+                    </button>
+                </div>
                 <div class="file-tree" id="local-tree" data-panel="local">
                     <div class="loading">
                         <span class="codicon codicon-loading codicon-modifier-spin"></span>
@@ -63,8 +42,22 @@
             <!-- Resizer -->
             <div class="resizer" id="resizer"></div>
 
-            <!-- Remote File Tree -->
+            <!-- Remote Panel (Header + Tree) -->
             <div class="panel remote-panel">
+                <div class="panel-header remote-header">
+                    <span class="codicon codicon-remote"></span>
+                    <div class="breadcrumb" id="remote-breadcrumb"></div>
+                    <input type="text" class="search-input" id="remote-search" placeholder="Filter..." title="Filter files and folders">
+                    <button class="icon-button" id="refresh-remote" title="Refresh Remote">
+                        <span class="codicon codicon-refresh"></span>
+                    </button>
+                    <button class="icon-button" id="new-remote-folder" title="New Folder">
+                        <span class="codicon codicon-new-folder"></span>
+                    </button>
+                    <button class="icon-button" id="download-selected" title="Download Selected">
+                        <span class="codicon codicon-cloud-download"></span>
+                    </button>
+                </div>
                 <div class="file-tree" id="remote-tree" data-panel="remote">
                     <div class="loading">
                         <span class="codicon codicon-loading codicon-modifier-spin"></span>
