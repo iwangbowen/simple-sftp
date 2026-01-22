@@ -965,12 +965,21 @@
             };
             item.dataset.vscodeContext = JSON.stringify(contextData);
         });
-        // 请求后端显示主机选择页面
+    }
+
+    /**
+     * Navigate back to host selection page
+     */
+    function backToHostSelection() {
         vscode.postMessage({
             command: 'backToHostSelection'
         });
     }
 
+    /**
+     * Refresh panel content
+     * @param {string} panel - 'local' | 'remote'
+     */
     function refreshPanel(panel) {
         // 延迟显示加载状态(500ms后才显示,避免快速加载时的闪烁)
         scheduleLoading(panel);
