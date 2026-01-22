@@ -11,8 +11,6 @@
     let selectedItems = [];
     /** @type {HTMLElement | null} */
     let lastSelectedItem = null;
-    /** @type {HTMLElement | null} */
-    let draggedItem = null;
     /** @type {string} */
     let currentLocalPath = '';
     /** @type {string} */
@@ -36,7 +34,6 @@
 
         initializeEventListeners();
         initializeResizer();
-        initializeDragAndDrop();
 
         // 通知扩展 WebView 已准备就绪
         vscode.postMessage({ command: 'ready' });
@@ -108,25 +105,7 @@
         });
     }
 
-    // ===== Drag and Drop =====
-    function initializeDragAndDrop() {
-        const localTree = document.getElementById('local-tree');
-        const remoteTree = document.getElementById('remote-tree');
 
-        if (!localTree || !remoteTree) return;
-
-        // Local tree events
-        localTree.addEventListener('dragstart', handleDragStart);
-        localTree.addEventListener('dragover', handleDragOver);
-        localTree.addEventListener('drop', handleDrop);
-        localTree.addEventListener('dragend', handleDragEnd);
-
-        // Remote tree events
-        remoteTree.addEventListener('dragstart', handleDragStart);
-        remoteTree.addEventListener('dragover', handleDragOver);
-        remoteTree.addEventListener('drop', handleDrop);
-        remoteTree.addEventListener('dragend', handleDragEnd);
-    }
 
     // ===== 文件树渲染 =====
     /**
@@ -206,7 +185,6 @@
         item.dataset.path = node.path;
         item.dataset.isDir = node.isDirectory.toString();
         item.dataset.panel = panel;
-        item.draggable = true;
 
         // VS Code Native Context Menu
         const contextData = {
@@ -591,80 +569,7 @@
         return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 
-    // ===== 拖拽处理 =====
-    function handleDragStart(e) {
-        const target = /** @type {HTMLElement} */ (e.target)?.closest('.tree-item');
-        if (!target || target.classList.contains('back-item')) return;
 
-        draggedItem = target;
-        target.classList.add('dragging');
-
-        if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'copy';
-            e.dataTransfer.setData('text/plain', target.dataset.path || '');
-            e.dataTransfer.setData('source-panel', target.dataset.panel || '');
-        }
-    }
-
-    function handleDragOver(e) {
-        e.preventDefault();
-        const target = /** @type {HTMLElement} */ (e.target)?.closest('.tree-item');
-        if (!target || target.classList.contains('back-item')) return;
-
-        // 只允许拖拽到对面的面板
-        const dragPanel = draggedItem?.dataset.panel;
-        const targetPanel = target.dataset.panel;
-
-        if (dragPanel !== targetPanel) {
-            if (e.dataTransfer) {
-                e.dataTransfer.dropEffect = 'copy';
-            }
-            target.classList.add('drop-target');
-        }
-    }
-
-    function handleDrop(e) {
-        e.preventDefault();
-        const target = /** @type {HTMLElement} */ (e.target)?.closest('.tree-item');
-        if (!target || target.classList.contains('back-item')) return;
-
-        target.classList.remove('drop-target');
-
-        const sourcePath = e.dataTransfer?.getData('text/plain');
-        const sourcePanel = e.dataTransfer?.getData('source-panel');
-        const targetPanel = target.dataset.panel;
-
-        if (!sourcePath || sourcePanel === targetPanel) return;
-
-        // 获取目标路径
-        const targetPath = target.dataset.isDir === 'true'
-            ? target.dataset.path
-            : (targetPanel === 'local' ? currentLocalPath : currentRemotePath);
-
-        // 执行传输
-        if (sourcePanel === 'local' && targetPanel === 'remote') {
-            vscode.postMessage({
-                command: 'upload',
-                data: { localPath: sourcePath, remotePath: targetPath }
-            });
-        } else if (sourcePanel === 'remote' && targetPanel === 'local') {
-            vscode.postMessage({
-                command: 'download',
-                data: { remotePath: sourcePath, localPath: targetPath }
-            });
-        }
-    }
-
-    function handleDragEnd(e) {
-        if (draggedItem) {
-            draggedItem.classList.remove('dragging');
-            draggedItem = null;
-        }
-
-        document.querySelectorAll('.drop-target').forEach(el => {
-            el.classList.remove('drop-target');
-        });
-    }
 
     // ===== 其他交互 =====
     /**

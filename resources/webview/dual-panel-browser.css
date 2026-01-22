@@ -279,15 +279,7 @@ body {
     color: var(--vscode-list-activeSelectionForeground);
 }
 
-.tree-item.dragging {
-    opacity: 0.5;
-}
 
-.tree-item.drop-target {
-    background-color: var(--vscode-list-dropBackground);
-    outline: 2px dashed var(--vscode-focusBorder);
-    outline-offset: -2px;
-}
 
 /* Tree Item 结构 */
 .tree-item-icon {
@@ -627,17 +619,4 @@ body {
     padding: 40px;
     color: var(--vscode-descriptionForeground);
     font-style: italic;
-}
-
-/* ===== Drag and Drop 视觉反馈 ===== */
-.drag-source {
-    opacity: 0.6;
-}
-
-.drop-allowed {
-    cursor: copy !important;
-}
-
-.drop-forbidden {
-    cursor: not-allowed !important;
 }
