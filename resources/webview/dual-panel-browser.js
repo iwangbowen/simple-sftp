@@ -93,6 +93,11 @@
             tree.addEventListener('click', (e) => {
                 const panel = treeId === 'local-tree' ? 'local' : 'remote';
                 lastActivePanel = panel;
+
+                // Deselect all when clicking empty area
+                if (e.target.id === treeId || e.target.classList.contains('file-tree')) {
+                    clearSelection();
+                }
             });
 
             tree.addEventListener('contextmenu', (e) => {
@@ -861,6 +866,16 @@
         // Update last selected item
         lastSelectedItem = visibleItems.length > 0 ? visibleItems[visibleItems.length - 1] : null;
         selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
+    }
+
+    /**
+     * Clear all selections
+     */
+    function clearSelection() {
+        selectedItems.forEach(i => i.classList.remove('selected'));
+        selectedItems = [];
+        selectedItem = null;
+        lastSelectedItem = null;
     }
 
     // ===== Commands =====
