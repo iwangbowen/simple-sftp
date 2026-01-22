@@ -15,6 +15,7 @@ body {
     background-color: var(--vscode-editor-background);
     height: 100vh;
     overflow: hidden;
+    user-select: none;
 }
 
 .container {
