@@ -11,6 +11,7 @@ import { HelpFeedbackTreeProvider } from './ui/helpFeedbackTreeProvider';
 import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { DualPanelEditorManager } from './ui/dualPanelEditorProvider';
 import { TransferQueueCommands } from './integrations/transferQueueCommands';
+import { SftpFileSystemProvider } from './sftpFileSystemProvider';
 import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
 
@@ -27,6 +28,16 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize auth manager (local SecretStorage, not synced)
   const authManager = new AuthManager(context);
   logger.info('Auth manager initialized (local storage, not synced)');
+
+  // Register SFTP FileSystem Provider
+  const sftpFsProvider = new SftpFileSystemProvider(hostManager, authManager);
+  context.subscriptions.push(
+    vscode.workspace.registerFileSystemProvider('sftp', sftpFsProvider, {
+      isCaseSensitive: true,
+      isReadonly: false
+    })
+  );
+  logger.info('SFTP FileSystem Provider registered');
 
   // Initialize transfer queue services
   const transferQueueService = TransferQueueService.getInstance();
