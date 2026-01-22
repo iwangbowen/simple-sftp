@@ -481,7 +481,7 @@ describe('BookmarkService', () => {
         .mockResolvedValueOnce('/remote/path')
         .mockResolvedValueOnce(''); // Empty name
 
-      await bookmarkService.addBookmark({ type: 'host', data: mockHost });
+      await bookmarkService.addBookmark({ type: 'host', data: mockHost } as any);
 
       expect(mockHostManager.addBookmark).not.toHaveBeenCalled();
     });
