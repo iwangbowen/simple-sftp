@@ -749,12 +749,102 @@ export abstract class DualPanelBase {
                 const doc = await vscode.workspace.openTextDocument(filePath);
                 await vscode.window.showTextDocument(doc);
             } else if (panel === 'remote') {
-                vscode.window.showInformationMessage('Opening remote files not yet implemented');
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
+
+                // Show loading message
+                await vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: `Opening remote file: ${path.basename(filePath)}`,
+                    cancellable: false
+                }, async () => {
+                    // Read remote file content
+                    const content = await SshConnectionManager.readRemoteFile(
+                        this._currentHost!,
+                        this._currentAuthConfig,
+                        filePath
+                    );
+
+                    // Create a unique URI for the remote file
+                    const fileName = path.basename(filePath);
+                    const uri = vscode.Uri.parse(
+                        `sftp-readonly:${this._currentHost!.name}${filePath}`
+                    ).with({
+                        scheme: 'sftp-readonly',
+                        path: filePath,
+                        query: `host=${this._currentHost!.id}`
+                    });
+
+                    // Register a text document content provider for this file
+                    const disposable = vscode.workspace.registerTextDocumentContentProvider('sftp-readonly', {
+                        provideTextDocumentContent: () => {
+                            return content.toString('utf-8');
+                        }
+                    });
+
+                    // Open the document
+                    const doc = await vscode.workspace.openTextDocument(uri);
+
+                    // Show the document in editor
+                    await vscode.window.showTextDocument(doc, {
+                        preview: false,
+                        preserveFocus: false
+                    });
+
+                    // Set the language mode based on file extension
+                    const languageId = this.getLanguageIdFromFileName(fileName);
+                    if (languageId) {
+                        await vscode.languages.setTextDocumentLanguage(doc, languageId);
+                    }
+
+                    // Store disposable to clean up later (optional)
+                    // You might want to track these and dispose when no longer needed
+                    setTimeout(() => disposable.dispose(), 100);
+                });
             }
         } catch (error) {
             logger.error(`Open file failed: ${error}`);
             vscode.window.showErrorMessage(`Open file failed: ${error}`);
         }
+    }
+
+    /**
+     * Get language ID from file name
+     */
+    private getLanguageIdFromFileName(fileName: string): string | undefined {
+        const ext = path.extname(fileName).toLowerCase();
+        const languageMap: { [key: string]: string } = {
+            '.js': 'javascript',
+            '.ts': 'typescript',
+            '.jsx': 'javascriptreact',
+            '.tsx': 'typescriptreact',
+            '.json': 'json',
+            '.html': 'html',
+            '.css': 'css',
+            '.scss': 'scss',
+            '.less': 'less',
+            '.xml': 'xml',
+            '.md': 'markdown',
+            '.py': 'python',
+            '.java': 'java',
+            '.c': 'c',
+            '.cpp': 'cpp',
+            '.cs': 'csharp',
+            '.php': 'php',
+            '.rb': 'ruby',
+            '.go': 'go',
+            '.rs': 'rust',
+            '.sh': 'shellscript',
+            '.yaml': 'yaml',
+            '.yml': 'yaml',
+            '.sql': 'sql',
+            '.txt': 'plaintext',
+            '.log': 'log'
+        };
+
+        return languageMap[ext];
     }
 
     // ===== UI Updates =====

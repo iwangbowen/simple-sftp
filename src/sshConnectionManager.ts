@@ -136,11 +136,16 @@ export class SshConnectionManager {
           .map(async (item: any) => {
             const itemPath = `${remotePath}/${item.name}`.replaceAll('//', '/');
             try {
-              const stats = await sftp.stat(itemPath);
-              logger.debug(`File: ${item.name}, stats mode: ${stats.mode}, type: ${stats.type}`);
+              const stats: any = await sftp.stat(itemPath);
+              // Check if it's a directory using isDirectory property or method
+              const isDirectory = (typeof stats.isDirectory === 'function' && stats.isDirectory()) ||
+                                 (stats.isDirectory === true) ||
+                                 (item.type === 'd');
+
+              logger.debug(`File: ${item.name}, stats mode: ${stats.mode}, isDirectory: ${isDirectory}`);
               return {
                 name: item.name,
-                type: (stats.type === 'd' || item.type === 'd') ? 'directory' as const : 'file' as const,
+                type: isDirectory ? 'directory' as const : 'file' as const,
                 size: stats.size || item.size || 0,
                 mode: stats.mode,
                 permissions: stats.mode ? this.formatPermissions(stats.mode) : undefined,
@@ -951,6 +956,29 @@ export class SshConnectionManager {
     return this.withConnection(config, authConfig, async (sftp) => {
       await sftp.chmod(remotePath, mode);
       logger.info(`Changed permissions for ${remotePath} to ${mode.toString(8)}`);
+    });
+  }
+
+  /**
+   * Read remote file content
+   */
+  static async readRemoteFile(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string
+  ): Promise<Buffer> {
+    return this.withConnection(config, authConfig, async (sftp) => {
+      logger.info(`Reading remote file: ${remotePath}`);
+      const result = await sftp.get(remotePath);
+
+      // Ensure we return a Buffer
+      if (Buffer.isBuffer(result)) {
+        return result;
+      } else if (typeof result === 'string') {
+        return Buffer.from(result, 'utf-8');
+      } else {
+        throw new TypeError('Unexpected response type from sftp.get()');
+      }
     });
   }
 
