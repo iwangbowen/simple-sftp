@@ -1002,6 +1002,11 @@
 
             breadcrumb.appendChild(segment);
         }
+
+        // 滚动到最右边,显示当前路径
+        setTimeout(() => {
+            breadcrumb.scrollLeft = breadcrumb.scrollWidth;
+        }, 0);
     }
 
     // ===== 键盘快捷键 =====

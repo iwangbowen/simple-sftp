@@ -117,31 +117,35 @@ body {
     flex: 1;
     min-width: 0;
     font-size: 12px;
-    overflow: hidden;
+    overflow-x: auto; /* 允许横向滚动 */
+    overflow-y: hidden;
+    flex-direction: row; /* 正常顺序 */
+    scrollbar-width: none; /* Firefox 隐藏滚动条 */
+    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
+}
+
+/* 隐藏滚动条但保留滚动功能 */
+.breadcrumb::-webkit-scrollbar {
+    display: none;
 }
 
 .breadcrumb-segment {
     white-space: nowrap;
     padding: 2px 4px;
     border-radius: 3px;
+    flex-shrink: 0; /* 不压缩,保持完整显示 */
 }
 
 .breadcrumb-root {
     font-weight: 600;
     color: var(--vscode-titleBar-activeForeground);
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 999; /* 优先隐藏 root */
+    flex-shrink: 0; /* 不压缩 */
 }
 
 .breadcrumb-clickable {
     cursor: pointer;
     color: var(--vscode-textLink-foreground);
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 100; /* 按顺序隐藏,越前面的 flex-shrink 越大 */
+    flex-shrink: 0; /* 不压缩 */
 }
 
 .breadcrumb-clickable:hover {
@@ -152,7 +156,7 @@ body {
 .breadcrumb-current {
     font-weight: 500;
     color: var(--vscode-titleBar-activeForeground);
-    flex-shrink: 0; /* 当前目录始终显示,不隐藏 */
+    flex-shrink: 0; /* 不压缩 */
 }
 
 .breadcrumb-separator {
