@@ -1,5 +1,41 @@
 # Change Log
 
+## 3.4.0 - 2026-01-22
+
+### Removed
+
+- **Drag and Drop File Transfer**: Removed drag-and-drop functionality between local and remote panels to simplify the UI
+  - File transfers are now only available through toolbar buttons (Upload/Download)
+
+### Added
+
+- **Local File Permissions Support**: Local files now display and support permission editing on Linux/macOS systems
+  - Permission information (rwx format) displayed for local files
+  - Right-click context menu "Change Permissions" now works for both local and remote files
+  - Visual permissions editor with checkboxes for Owner/Group/Others × Read/Write/Execute
+
+- **Visual Permissions Editor**: Replaced text input with an in-webview modal dialog
+  - Interactive checkbox grid for easy permission editing
+  - Real-time display of octal (e.g., 755) and symbolic (e.g., rwxr-xr-x) formats
+  - Custom-styled checkboxes matching VS Code theme
+  - Modal dialog appears within the current webview instead of opening a new panel
+
+### Improved
+
+- **Breadcrumb Navigation**: Optimized path display for long paths
+  - All path segments now display completely without truncation
+  - Supports horizontal scrolling for long paths
+  - Auto-scrolls to the right to show the current directory
+  - No more ellipsis (...) in path names
+
+- **Permissions Editor UI**: Cleaner, more compact design
+  - Flat design without rounded corners or shadows
+  - Reduced spacing and padding
+  - Smaller font sizes for a more professional look
+  - Better alignment with VS Code's design language
+
+---
+
 ## 3.3.0 - 2026-01-21
 
 ### Added
