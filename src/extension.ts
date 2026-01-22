@@ -296,24 +296,39 @@ export async function activate(context: vscode.ExtensionContext) {
         .getConfiguration('simpleSftp.browser')
         .get('openInEditor', false);
 
-      const filePath = args?.filePath;
-      if (!filePath) {
-        vscode.window.showErrorMessage('No file path provided');
+      // Get path from args
+      let targetPath = args?.filePath;
+
+      // If no filePath (empty area), use currentPath
+      if (!targetPath && args?.currentPath) {
+        targetPath = args.currentPath;
+      }
+
+      if (!targetPath) {
+        vscode.window.showErrorMessage('No path available to bookmark');
         return;
       }
 
+      // For files (not directories), use parent path instead
+      // But for directories, use the directory itself
+      const isDirectory = args?.isDirectory !== false; // Default to true if not specified
+      const bookmarkPath = isDirectory ? targetPath : require('path').dirname(targetPath);
+
       // Post message to webview to add bookmark
       if (openInEditor) {
-        dualPanelEditorManager.postMessageToWebview({
+        await dualPanelEditorManager.postMessageToWebview({
           command: 'addBookmark',
-          data: { path: filePath }
+          data: { path: bookmarkPath }
         });
       } else {
-        dualPanelProvider.postMessageToWebview({
+        await dualPanelProvider.postMessageToWebview({
           command: 'addBookmark',
-          data: { path: filePath }
+          data: { path: bookmarkPath }
         });
       }
+
+      // Refresh tree view to show new bookmark
+      treeProvider.refresh();
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', async (args) => {
       const openInEditor = vscode.workspace
