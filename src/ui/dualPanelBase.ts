@@ -1057,13 +1057,12 @@ export abstract class DualPanelBase {
         }
 
         try {
-            // Use the existing bookmark service command
-            await vscode.commands.executeCommand('simpleSftp.addBookmark', {
-                data: this._currentHost,
-                type: 'host',
-                path: data.path,
-                name: name.trim()
-            });
+            // Directly add bookmark using hostManager (no path selection needed)
+            await this.hostManager.addBookmark(
+                this._currentHost.id,
+                name.trim(),
+                data.path
+            );
 
             vscode.window.showInformationMessage(`Bookmark "${name}" added`);
 
