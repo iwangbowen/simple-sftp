@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.6.0 - 2026-01-23
+
+### Added
+
+- **File Comparison**: Context menu based file diff comparison
+  - "Select for Compare" and "Compare with Selected" options
+  - Supports local-local, remote-remote, and local-remote comparisons
+
+---
+
 ## 3.5.0 - 2026-01-22
 
 ### Added

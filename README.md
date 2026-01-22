@@ -61,6 +61,7 @@ If you find this extension helpful, consider buying me a coffee!
   - Transfer history with statistics
   - Priority-based queue (small files first)
 - **Advanced Features**:
+  - **File Comparison**: Compare any two files via context menu
   - Parallel chunk transfer for large files (100MB+)
   - File integrity verification (MD5/SHA256)
   - Preserve file permissions and timestamps
