@@ -291,6 +291,30 @@ export async function activate(context: vscode.ExtensionContext) {
         await dualPanelProvider.executeCreateFolder(args);
       }
     }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.addBookmark', async (args) => {
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      const filePath = args?.filePath;
+      if (!filePath) {
+        vscode.window.showErrorMessage('No file path provided');
+        return;
+      }
+
+      // Post message to webview to add bookmark
+      if (openInEditor) {
+        dualPanelEditorManager.postMessageToWebview({
+          command: 'addBookmark',
+          data: { path: filePath }
+        });
+      } else {
+        dualPanelProvider.postMessageToWebview({
+          command: 'addBookmark',
+          data: { path: filePath }
+        });
+      }
+    }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', async (args) => {
       const openInEditor = vscode.workspace
         .getConfiguration('simpleSftp.browser')

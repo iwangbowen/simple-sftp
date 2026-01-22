@@ -51,7 +51,18 @@
             <!-- Remote Panel (Header + Tree) -->
             <div class="panel remote-panel">
                 <div class="panel-header remote-header">
-                    <span class="codicon codicon-remote"></span>
+                    <div class="bookmark-dropdown-container">
+                        <button class="icon-button bookmark-toggle-btn" id="bookmark-toggle" title="Show Bookmarks">
+                            <span class="codicon codicon-remote"></span>
+                            <span class="codicon codicon-chevron-down"></span>
+                        </button>
+                        <div class="bookmark-dropdown" id="bookmark-dropdown">
+                            <div class="bookmark-dropdown-header">Bookmarks</div>
+                            <div class="bookmark-dropdown-list" id="bookmark-list">
+                                <div class="bookmark-dropdown-empty">No bookmarks</div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="breadcrumb" id="remote-breadcrumb"></div>
                     <input type="text" class="search-input" id="remote-search" placeholder="Filter..." title="Filter files and folders">
                     <button class="icon-button" id="refresh-remote" title="Refresh Remote">

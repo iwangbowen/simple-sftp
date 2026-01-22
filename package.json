@@ -441,6 +441,12 @@
         "title": "Refresh",
         "category": "Simple SFTP",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.addBookmark",
+        "title": "Add to Bookmarks",
+        "category": "Simple SFTP",
+        "icon": "$(bookmark)"
       }
     ],
     "menus": {
@@ -474,6 +480,11 @@
           "command": "simpleSftp.dualPanel.changePermissions",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
           "group": "2_operations@4"
+        },
+        {
+          "command": "simpleSftp.dualPanel.addBookmark",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'",
+          "group": "2_operations@5"
         },
         {
           "command": "simpleSftp.dualPanel.delete",

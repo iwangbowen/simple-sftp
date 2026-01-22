@@ -15,6 +15,10 @@
     let currentLocalPath = '';
     /** @type {string} */
     let currentRemotePath = '';
+    /** @type {string} */
+    let currentHostId = '';
+    /** @type {Array<{name: string, path: string}>} */
+    let currentBookmarks = [];
     /** @type {Object.<string, number>} */
     let loadingTimers = {};
     /** @type {number | null} */
@@ -59,6 +63,20 @@
         // Search inputs - Enter key handling
         document.getElementById('local-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'local'));
         document.getElementById('remote-search')?.addEventListener('keydown', (e) => handleSearchKeydown(e, 'remote'));
+
+        // Bookmark dropdown toggle
+        document.getElementById('bookmark-toggle')?.addEventListener('click', toggleBookmarkDropdown);
+
+        // Click outside to close bookmark dropdown
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('bookmark-dropdown');
+            const toggleBtn = document.getElementById('bookmark-toggle');
+            if (dropdown && toggleBtn &&
+                !dropdown.contains(e.target) &&
+                !toggleBtn.contains(e.target)) {
+                closeBookmarkDropdown();
+            }
+        });
     }
 
     // ===== Panel Resizer =====
@@ -616,7 +634,97 @@
 
 
 
-    // ===== 其他交互 =====
+    // ===== Bookmark Dropdown =====
+    /**
+     * Toggle bookmark dropdown visibility
+     */
+    function toggleBookmarkDropdown() {
+        const dropdown = document.getElementById('bookmark-dropdown');
+        const toggleBtn = document.getElementById('bookmark-toggle');
+        if (!dropdown || !toggleBtn) return;
+
+        const isVisible = dropdown.classList.contains('show');
+        if (isVisible) {
+            closeBookmarkDropdown();
+        } else {
+            openBookmarkDropdown();
+        }
+    }
+
+    /**
+     * Open bookmark dropdown
+     */
+    function openBookmarkDropdown() {
+        const dropdown = document.getElementById('bookmark-dropdown');
+        const toggleBtn = document.getElementById('bookmark-toggle');
+        if (!dropdown || !toggleBtn) return;
+
+        dropdown.classList.add('show');
+        toggleBtn.classList.add('active');
+
+        // Request bookmarks from backend
+        vscode.postMessage({
+            command: 'getBookmarks'
+        });
+    }
+
+    /**
+     * Close bookmark dropdown
+     */
+    function closeBookmarkDropdown() {
+        const dropdown = document.getElementById('bookmark-dropdown');
+        const toggleBtn = document.getElementById('bookmark-toggle');
+        if (!dropdown || !toggleBtn) return;
+
+        dropdown.classList.remove('show');
+        toggleBtn.classList.remove('active');
+    }
+
+    /**
+     * Render bookmarks in dropdown
+     * @param {Array<{name: string, path: string}>} bookmarks
+     */
+    function renderBookmarks(bookmarks) {
+        currentBookmarks = bookmarks || [];
+        const listContainer = document.getElementById('bookmark-list');
+        if (!listContainer) return;
+
+        if (currentBookmarks.length === 0) {
+            listContainer.innerHTML = '<div class=\"bookmark-dropdown-empty\">No bookmarks</div>';
+            return;
+        }
+
+        listContainer.innerHTML = '';
+        currentBookmarks.forEach(bookmark => {
+            const item = document.createElement('div');
+            item.className = 'bookmark-dropdown-item';
+            item.innerHTML = `
+                <span class=\"codicon codicon-bookmark\"></span>
+                <div class=\"bookmark-dropdown-item-content\">
+                    <div class=\"bookmark-dropdown-item-name\">${escapeHtml(bookmark.name)}</div>
+                    <div class=\"bookmark-dropdown-item-path\">${escapeHtml(bookmark.path)}</div>
+                </div>
+            `;
+            item.addEventListener('click', () => {
+                loadDirectory('remote', bookmark.path);
+                closeBookmarkDropdown();
+            });
+            listContainer.appendChild(item);
+        });
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text
+     * @returns {string}
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ===== Other Interactions =====
     /**
      * Select one or multiple items
      * @param {HTMLElement} item - Item to select
@@ -1185,8 +1293,33 @@
                     message.data.mode
                 );
                 break;
+
+            case 'updateBookmarks':
+                // Update bookmarks list
+                renderBookmarks(message.data.bookmarks);
+                break;
+
+            case 'addBookmark':
+                // Add bookmark for current remote path
+                addCurrentPathToBookmark();
+                break;
         }
     });
+
+    /**
+     * Add current remote path to bookmarks
+     */
+    function addCurrentPathToBookmark() {
+        if (!currentRemotePath) {
+            console.warn('No remote path selected');
+            return;
+        }
+
+        vscode.postMessage({
+            command: 'addBookmark',
+            data: { path: currentRemotePath }
+        });
+    }
 
     /**
      * 渲染主机选择界面

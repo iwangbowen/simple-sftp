@@ -82,6 +82,132 @@ body {
     flex-shrink: 0;
 }
 
+/* ===== Bookmark Dropdown ===== */
+.bookmark-dropdown-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.bookmark-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 8px;
+}
+
+.bookmark-toggle-btn .codicon-chevron-down {
+    font-size: 12px;
+    opacity: 0.7;
+    transition: transform 0.2s;
+}
+
+.bookmark-toggle-btn.active .codicon-chevron-down {
+    transform: rotate(180deg);
+}
+
+.bookmark-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    min-width: 250px;
+    max-width: 350px;
+    max-height: 400px;
+    background-color: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 4px;
+    box-shadow: var(--vscode-widget-shadow) 0px 2px 8px;
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.bookmark-dropdown.show {
+    display: flex;
+}
+
+.bookmark-dropdown-header {
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground);
+    border-bottom: 1px solid var(--vscode-dropdown-border);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bookmark-dropdown-list {
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 350px;
+}
+
+.bookmark-dropdown-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.bookmark-dropdown-list::-webkit-scrollbar-track {
+    background: var(--vscode-scrollbarSlider-background);
+}
+
+.bookmark-dropdown-list::-webkit-scrollbar-thumb {
+    background: var(--vscode-scrollbarSlider-hoverBackground);
+    border-radius: 4px;
+}
+
+.bookmark-dropdown-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    border-left: 3px solid transparent;
+}
+
+.bookmark-dropdown-item:hover {
+    background-color: var(--vscode-list-hoverBackground);
+    border-left-color: var(--vscode-focusBorder);
+}
+
+.bookmark-dropdown-item .codicon {
+    font-size: 14px;
+    color: var(--vscode-symbolIcon-colorForeground);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.bookmark-dropdown-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.bookmark-dropdown-item-name {
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bookmark-dropdown-item-path {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bookmark-dropdown-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--vscode-descriptionForeground);
+    font-size: 12px;
+    font-style: italic;
+}
+
 /* ===== Search Input ===== */
 .search-input {
     width: 100px;

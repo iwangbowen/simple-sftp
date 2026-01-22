@@ -214,6 +214,14 @@ export abstract class DualPanelBase {
             case 'applyPermissions':
                 await this.applyPermissions(message.data);
                 break;
+
+            case 'getBookmarks':
+                await this.handleGetBookmarks();
+                break;
+
+            case 'addBookmark':
+                await this.handleAddBookmark(message.data);
+                break;
         }
     }
 
@@ -1005,6 +1013,64 @@ export abstract class DualPanelBase {
         this.postMessage({
             command: 'getSelectedForDownload'
         });
+    }
+
+    protected async handleGetBookmarks(): Promise<void> {
+        if (!this._currentHost) {
+            this.postMessage({
+                command: 'updateBookmarks',
+                data: { bookmarks: [] }
+            });
+            return;
+        }
+
+        // Get bookmarks from bookmark service
+        const bookmarks = this._currentHost.bookmarks || [];
+        this.postMessage({
+            command: 'updateBookmarks',
+            data: { bookmarks }
+        });
+    }
+
+    protected async handleAddBookmark(data: { path: string }): Promise<void> {
+        if (!this._currentHost) {
+            vscode.window.showErrorMessage('No host selected');
+            return;
+        }
+
+        // Prompt for bookmark name
+        const name = await vscode.window.showInputBox({
+            prompt: 'Enter bookmark name',
+            value: path.basename(data.path),
+            validateInput: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return 'Bookmark name cannot be empty';
+                }
+                return null;
+            }
+        });
+
+        if (!name) {
+            return; // User cancelled
+        }
+
+        try {
+            // Use the existing bookmark service command
+            await vscode.commands.executeCommand('simpleSftp.addBookmark', {
+                data: this._currentHost,
+                type: 'host',
+                path: data.path,
+                name: name.trim()
+            });
+
+            vscode.window.showInformationMessage(`Bookmark "${name}" added`);
+
+            // Refresh bookmarks list
+            await this.handleGetBookmarks();
+        } catch (error: any) {
+            logger.error(`Failed to add bookmark: ${error}`);
+            vscode.window.showErrorMessage(`Failed to add bookmark: ${error.message}`);
+        }
     }
 
     // ===== HTML Generation =====

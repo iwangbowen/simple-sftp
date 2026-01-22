@@ -72,6 +72,13 @@ export class DualPanelViewProvider extends DualPanelBase implements vscode.Webvi
     }
 
     /**
+     * Post message to webview
+     */
+    public postMessageToWebview(message: any): void {
+        this._view?.webview.postMessage(message);
+    }
+
+    /**
      * Override openForHost to ensure panel is visible
      */
     public async openForHost(host: HostConfig, initialPath?: string): Promise<void> {

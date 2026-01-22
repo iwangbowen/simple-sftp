@@ -181,8 +181,13 @@ export class DualPanelEditorManager extends DualPanelBase {
         return this.panels.size;
     }
 
-    /**
-     * Close all panels
+    /**     * Post message to current active panel
+     */
+    public postMessageToWebview(message: any): void {
+        this.currentPanel?.webview.postMessage(message);
+    }
+
+    /**     * Close all panels
      */
     public dispose(): void {
         for (const [, panel] of this.panels) {
