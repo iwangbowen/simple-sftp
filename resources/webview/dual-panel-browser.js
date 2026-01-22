@@ -1234,9 +1234,6 @@
             // Make all but last segment clickable
             if (i < segments.length - 1) {
                 segment.classList.add('breadcrumb-clickable');
-                // 动态设置 flex-shrink: 越前面的值越大,越容易被隐藏
-                const shrinkValue = segments.length - i;
-                segment.style.flexShrink = shrinkValue;
                 segment.addEventListener('click', function() {
                     loadDirectory(panel, this.dataset.path);
                 });
@@ -1248,9 +1245,35 @@
         }
 
         // 滚动到最右边,显示当前路径
-        setTimeout(() => {
-            breadcrumb.scrollLeft = breadcrumb.scrollWidth;
-        }, 0);
+        const scrollToEnd = () => {
+            const maxScroll = Math.max(0, breadcrumb.scrollWidth - breadcrumb.clientWidth);
+            breadcrumb.scrollLeft = maxScroll;
+        };
+
+        // 使用requestAnimationFrame确保DOM已经渲染
+        requestAnimationFrame(() => {
+            requestAnimationFrame(scrollToEnd);
+        });
+    }
+
+    // 监听breadcrumb容器大小变化，自动滚动到最右边
+    const localBreadcrumb = document.getElementById('local-breadcrumb');
+    const remoteBreadcrumb = document.getElementById('remote-breadcrumb');
+
+    if (localBreadcrumb && globalThis.ResizeObserver) {
+        const localResizeObserver = new ResizeObserver(() => {
+            const maxScroll = Math.max(0, localBreadcrumb.scrollWidth - localBreadcrumb.clientWidth);
+            localBreadcrumb.scrollLeft = maxScroll;
+        });
+        localResizeObserver.observe(localBreadcrumb);
+    }
+
+    if (remoteBreadcrumb && globalThis.ResizeObserver) {
+        const remoteResizeObserver = new ResizeObserver(() => {
+            const maxScroll = Math.max(0, remoteBreadcrumb.scrollWidth - remoteBreadcrumb.clientWidth);
+            remoteBreadcrumb.scrollLeft = maxScroll;
+        });
+        remoteResizeObserver.observe(remoteBreadcrumb);
     }
 
     // ===== 键盘快捷键 =====

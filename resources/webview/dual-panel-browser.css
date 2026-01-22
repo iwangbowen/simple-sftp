@@ -48,8 +48,11 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    direction: rtl;
+    direction: ltr;
     text-align: left;
+    flex: 1;
+    min-width: 80px;
+    max-width: 100%;
 }
 
 /* ===== Icon Buttons (in header) ===== */
@@ -224,11 +227,12 @@ body {
     flex: 1;
     min-width: 0;
     font-size: 12px;
-    overflow-x: auto;
+    overflow-x: auto; /* 允许横向滚动 */
     overflow-y: hidden;
-    flex-direction: row;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+    flex-direction: row; /* 保持正常顺序 */
+    flex-wrap: nowrap;
+    scrollbar-width: none; /* Firefox - 隐藏滚动条 */
+    -ms-overflow-style: none; /* IE/Edge - 隐藏滚动条 */
 }
 
 /* 隐藏滚动条但保留滚动功能 */
@@ -240,14 +244,12 @@ body {
     white-space: nowrap;
     padding: 2px 4px;
     border-radius: 3px;
-    flex-shrink: 1; /* 允许适度压缩 */
-    min-width: 20px;
+    flex-shrink: 0; /* 不压缩，保持完整显示 */
 }
 
 .breadcrumb-root {
     font-weight: 600;
     color: var(--vscode-titleBar-activeForeground);
-    flex-shrink: 0; /* 根目录不压缩 */
 }
 
 .breadcrumb-clickable {
@@ -263,14 +265,14 @@ body {
 .breadcrumb-current {
     font-weight: 500;
     color: var(--vscode-titleBar-activeForeground);
-    flex-shrink: 0; /* 当前路径不压缩 */
 }
 
 .breadcrumb-separator {
     color: var(--vscode-titleBar-inactiveForeground);
     font-size: 11px;
     opacity: 0.7;
-    flex-shrink: 0;
+    flex-shrink: 0; /* 分隔符不压缩 */
+    padding: 0 2px;
 }
 
 
