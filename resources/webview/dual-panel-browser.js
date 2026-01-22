@@ -23,6 +23,8 @@
     let loadingTimers = {};
     /** @type {number | null} */
     let clickTimer = null;
+    /** @type {string} */
+    let lastActivePanel = 'remote';
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -87,10 +89,19 @@
             const tree = document.getElementById(treeId);
             if (!tree) return;
 
+            // Track which panel was last clicked/focused
+            tree.addEventListener('click', (e) => {
+                const panel = treeId === 'local-tree' ? 'local' : 'remote';
+                lastActivePanel = panel;
+            });
+
             tree.addEventListener('contextmenu', (e) => {
+                // Update active panel on right-click too
+                const panel = treeId === 'local-tree' ? 'local' : 'remote';
+                lastActivePanel = panel;
+
                 // Only handle if clicked directly on tree container (not on items)
                 if (e.target.id === treeId || e.target.classList.contains('file-tree')) {
-                    const panel = treeId === 'local-tree' ? 'local' : 'remote';
                     const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
 
                     // Set context data for empty area
@@ -102,6 +113,15 @@
                     });
                 }
             });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+A / Cmd+A: Select all visible items in focused panel
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                selectAllInPanel(lastActivePanel);
+            }
         });
     }
 
@@ -812,6 +832,34 @@
         }
 
         // 更新 selectedItem (保持向后兼容)
+        selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
+    }
+
+    /**
+     * Select all visible items in a panel
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function selectAllInPanel(panel) {
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+
+        // Get all visible file items (excluding back button and new folder items)
+        const visibleItems = Array.from(
+            treeContainer.querySelectorAll('.tree-item:not(.back-item):not(.new-folder-item)')
+        ).filter(item => item.style.display !== 'none');
+
+        // Clear current selection
+        selectedItems.forEach(i => i.classList.remove('selected'));
+        selectedItems = [];
+
+        // Select all visible items
+        visibleItems.forEach(item => {
+            item.classList.add('selected');
+            selectedItems.push(item);
+        });
+
+        // Update last selected item
+        lastSelectedItem = visibleItems.length > 0 ? visibleItems[visibleItems.length - 1] : null;
         selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
     }
 
