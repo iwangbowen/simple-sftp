@@ -783,33 +783,50 @@ export abstract class DualPanelBase {
     }
 
     /**
-     * Handle diff comparison between local and remote files
+     * Handle diff comparison between any two files
      */
     protected async handleDiffFiles(data: any): Promise<void> {
-        const { localPath, remotePath, localName, remoteName } = data;
+        const { firstPath, secondPath, firstPanel, secondPanel } = data;
 
         try {
-            if (!this._currentHost || !this._currentAuthConfig) {
-                vscode.window.showErrorMessage('No host selected');
-                return;
+            // Create URIs for both files based on their panels
+            let firstUri: vscode.Uri;
+            let secondUri: vscode.Uri;
+
+            if (firstPanel === 'local') {
+                firstUri = vscode.Uri.file(firstPath);
+            } else {
+                if (!this._currentHost) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
+                firstUri = vscode.Uri.parse(`sftp://${this._currentHost.id}${firstPath}`);
             }
 
-            // Create URIs for both files
-            const localUri = vscode.Uri.file(localPath);
-            const remoteUri = vscode.Uri.parse(`sftp://${this._currentHost.id}${remotePath}`);
+            if (secondPanel === 'local') {
+                secondUri = vscode.Uri.file(secondPath);
+            } else {
+                if (!this._currentHost) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
+                secondUri = vscode.Uri.parse(`sftp://${this._currentHost.id}${secondPath}`);
+            }
 
-            // Create descriptive title for diff editor
-            const title = `${localName} ↔ ${remoteName}`;
+            // Create descriptive title
+            const firstName = path.basename(firstPath);
+            const secondName = path.basename(secondPath);
+            const title = `${firstName} ↔ ${secondName}`;
 
             // Open diff editor
             await vscode.commands.executeCommand(
                 'vscode.diff',
-                localUri,
-                remoteUri,
+                firstUri,
+                secondUri,
                 title
             );
 
-            logger.info(`Diff comparison opened: ${localPath} ↔ ${remotePath}`);
+            logger.info(`Diff comparison opened: ${firstPath} (${firstPanel}) ↔ ${secondPath} (${secondPanel})`);
         } catch (error) {
             logger.error(`Diff files failed: ${error}`);
             vscode.window.showErrorMessage(`Diff comparison failed: ${error}`);
@@ -1228,5 +1245,38 @@ export abstract class DualPanelBase {
             text += possible.charAt(Math.floor(Math.random() * possible.length));
         }
         return text;
+    }
+
+    /**
+     * Select file for comparison (context menu command)
+     */
+    public selectFileForCompare(context: any): void {
+        if (context && context.filePath && context.fileName && context.panel && context.isFile) {
+            this.postMessage({
+                command: 'selectFileForCompare',
+                data: {
+                    path: context.filePath,
+                    name: context.fileName,
+                    panel: context.panel
+                }
+            });
+            vscode.window.showInformationMessage(`Selected ${context.fileName} for comparison`);
+        }
+    }
+
+    /**
+     * Compare with previously selected file (context menu command)
+     */
+    public compareWithSelected(context: any): void {
+        if (context && context.filePath && context.fileName && context.panel && context.isFile) {
+            this.postMessage({
+                command: 'compareWithSelected',
+                data: {
+                    path: context.filePath,
+                    name: context.fileName,
+                    panel: context.panel
+                }
+            });
+        }
     }
 }

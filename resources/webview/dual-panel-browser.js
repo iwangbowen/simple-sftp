@@ -19,6 +19,8 @@
     let currentHostId = '';
     /** @type {Array<{name: string, path: string}>} */
     let currentBookmarks = [];
+    /** @type {{path: string, panel: string, name: string} | null} */
+    let fileSelectedForCompare = null;
     /** @type {Object.<string, number>} */
     let loadingTimers = {};
     /** @type {number | null} */
@@ -57,7 +59,6 @@
         document.getElementById('new-remote-folder')?.addEventListener('click', () => createFolder('remote'));
         document.getElementById('upload-selected')?.addEventListener('click', uploadSelected);
         document.getElementById('download-selected')?.addEventListener('click', downloadSelected);
-        document.getElementById('diff-selected')?.addEventListener('click', diffSelected);
 
         // Search inputs
         document.getElementById('local-search')?.addEventListener('input', (e) => filterTree('local', e.target.value));
@@ -321,13 +322,19 @@
         item.dataset.path = node.path;
         item.dataset.isDir = node.isDirectory.toString();
         item.dataset.panel = panel;
+        item.dataset.name = node.name;
+        item.dataset.type = node.isDirectory ? 'directory' : 'file';
 
         // VS Code Native Context Menu
         const contextData = {
             webviewSection: panel === 'local' ? 'localFile' : 'remoteFile',
             filePath: node.path,
+            fileName: node.name,
             isDirectory: node.isDirectory,
+            isFile: !node.isDirectory,
             panel: panel,
+            hasFileSelectedForCompare: fileSelectedForCompare !== null,
+            isFileSelectedForCompare: fileSelectedForCompare?.path === node.path,
             preventDefaultContextMenuItems: true
         };
         item.dataset.vscodeContext = JSON.stringify(contextData);
@@ -887,13 +894,10 @@
 
         // 更新 selectedItem (保持向后兼容)
         selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
-
-        // 更新diff按钮状态
-        updateDiffButtonState();
     }
 
     /**
-     * Select all visible items in a panel
+     * Select all items in a panel
      * @param {string} panel - 'local' | 'remote'
      */
     function selectAllInPanel(panel) {
@@ -918,9 +922,6 @@
         // Update last selected item
         lastSelectedItem = visibleItems.length > 0 ? visibleItems[visibleItems.length - 1] : null;
         selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
-
-        // 更新diff按钮状态
-        updateDiffButtonState();
     }
 
     /**
@@ -931,35 +932,39 @@
         selectedItems = [];
         selectedItem = null;
         lastSelectedItem = null;
-        updateDiffButtonState();
     }
 
     /**
      * Update diff button visibility based on selection
      */
     function updateDiffButtonState() {
-        const diffBtn = document.getElementById('diff-selected');
-        if (!diffBtn) return;
-
-        // Count local and remote selections
-        const localFiles = selectedItems.filter(item =>
-            item.dataset.panel === 'local' && item.dataset.type === 'file'
-        );
-        const remoteFiles = selectedItems.filter(item =>
-            item.dataset.panel === 'remote' && item.dataset.type === 'file'
-        );
-
-        // Show diff button only when exactly one local file and one remote file are selected
-        if (localFiles.length === 1 && remoteFiles.length === 1) {
-            diffBtn.style.display = 'inline-flex';
-            diffBtn.title = `Compare ${localFiles[0].dataset.name} ↔ ${remoteFiles[0].dataset.name}`;
-        } else {
-            diffBtn.style.display = 'none';
-        }
+        // Deprecated - using context menu instead
     }
 
-    // ===== Commands =====
-    function backToHostSelection() {
+    /**
+     * Update all tree items' vscodeContext to reflect current compare selection state
+     */
+    function updateTreeItemsContext() {
+        const allItems = document.querySelectorAll('.tree-item:not(.back-item)');
+        allItems.forEach(item => {
+            const isDirectory = item.dataset.isDir === 'true';
+            const panel = item.dataset.panel;
+            const filePath = item.dataset.path;
+            const fileName = item.dataset.name;
+
+            const contextData = {
+                webviewSection: panel === 'local' ? 'localFile' : 'remoteFile',
+                filePath: filePath,
+                fileName: fileName,
+                isDirectory: isDirectory,
+                isFile: !isDirectory,
+                panel: panel,
+                hasFileSelectedForCompare: fileSelectedForCompare !== null,
+                isFileSelectedForCompare: fileSelectedForCompare?.path === filePath,
+                preventDefaultContextMenuItems: true
+            };
+            item.dataset.vscodeContext = JSON.stringify(contextData);
+        });
         // 请求后端显示主机选择页面
         vscode.postMessage({
             command: 'backToHostSelection'
@@ -1187,38 +1192,6 @@
                 data: { remotePaths: paths, localPath: currentLocalPath }
             });
         }
-    }
-
-    /**
-     * Compare selected local and remote files using VS Code diff editor
-     */
-    function diffSelected() {
-        const localFiles = selectedItems.filter(item =>
-            item.dataset.panel === 'local' && item.dataset.type === 'file'
-        );
-        const remoteFiles = selectedItems.filter(item =>
-            item.dataset.panel === 'remote' && item.dataset.type === 'file'
-        );
-
-        if (localFiles.length !== 1 || remoteFiles.length !== 1) {
-            console.warn('Diff requires exactly one local file and one remote file selected');
-            return;
-        }
-
-        const localFile = localFiles[0];
-        const remoteFile = remoteFiles[0];
-
-        console.log(`Comparing ${localFile.dataset.path} ↔ ${remoteFile.dataset.path}`);
-
-        vscode.postMessage({
-            command: 'diffFiles',
-            data: {
-                localPath: localFile.dataset.path,
-                remotePath: remoteFile.dataset.path,
-                localName: localFile.dataset.name,
-                remoteName: remoteFile.dataset.name
-            }
-        });
     }
 
     /**
@@ -1486,6 +1459,35 @@
             case 'getSelectedForDownload':
                 // Download selected remote files
                 downloadSelected();
+                break;
+
+            case 'selectFileForCompare':
+                // Select file for comparison
+                fileSelectedForCompare = message.data;
+                // Update all tree items' context to reflect the selection
+                updateTreeItemsContext();
+                break;
+
+            case 'compareWithSelected':
+                // Compare current file with previously selected file
+                if (fileSelectedForCompare) {
+                    vscode.postMessage({
+                        command: 'diffFiles',
+                        data: {
+                            localPath: fileSelectedForCompare.panel === 'local' ? fileSelectedForCompare.path : message.data.path,
+                            remotePath: fileSelectedForCompare.panel === 'remote' ? fileSelectedForCompare.path : message.data.path,
+                            localName: fileSelectedForCompare.panel === 'local' ? fileSelectedForCompare.name : message.data.name,
+                            remoteName: fileSelectedForCompare.panel === 'remote' ? fileSelectedForCompare.name : message.data.name,
+                            firstPath: fileSelectedForCompare.path,
+                            secondPath: message.data.path,
+                            firstPanel: fileSelectedForCompare.panel,
+                            secondPanel: message.data.panel
+                        }
+                    });
+                    // Clear selection after comparison
+                    fileSelectedForCompare = null;
+                    updateTreeItemsContext();
+                }
                 break;
 
             case 'showRemoteLoading': {

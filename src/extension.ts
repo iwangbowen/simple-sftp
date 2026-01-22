@@ -34,7 +34,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.registerFileSystemProvider('sftp', sftpFsProvider, {
       isCaseSensitive: true,
-      isReadonly: false
+      isReadonly: true  // Set to read-only to prevent editing
     })
   );
   logger.info('SFTP FileSystem Provider registered');
