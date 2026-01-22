@@ -309,12 +309,15 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      // For files (not directories), use parent path instead
-      // But for directories, use the directory itself
-      const isDirectory = args?.isDirectory !== false; // Default to true if not specified
+      // For files (not directories), use parent directory
+      // For directories or empty area, use the path itself
+      const isDirectory = args?.isDirectory === true || !args?.filePath; // True if directory or empty area
       const bookmarkPath = isDirectory ? targetPath : require('path').dirname(targetPath);
 
+      logger.info(`Add bookmark: filePath=${args?.filePath}, currentPath=${args?.currentPath}, isDirectory=${args?.isDirectory}, bookmarkPath=${bookmarkPath}`);
+
       // Post message to webview to add bookmark
+      // The webview handler will refresh tree view after adding
       if (openInEditor) {
         await dualPanelEditorManager.postMessageToWebview({
           command: 'addBookmark',
@@ -326,9 +329,6 @@ export async function activate(context: vscode.ExtensionContext) {
           data: { path: bookmarkPath }
         });
       }
-
-      // Refresh tree view to show new bookmark
-      treeProvider.refresh();
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', async (args) => {
       const openInEditor = vscode.workspace

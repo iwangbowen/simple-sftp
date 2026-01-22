@@ -1066,8 +1066,11 @@ export abstract class DualPanelBase {
 
             vscode.window.showInformationMessage(`Bookmark "${name}" added`);
 
-            // Refresh bookmarks list
+            // Refresh bookmarks list in webview
             await this.handleGetBookmarks();
+
+            // Trigger tree view refresh via command
+            await vscode.commands.executeCommand('simpleSftp.refresh');
         } catch (error: any) {
             logger.error(`Failed to add bookmark: ${error}`);
             vscode.window.showErrorMessage(`Failed to add bookmark: ${error.message}`);
