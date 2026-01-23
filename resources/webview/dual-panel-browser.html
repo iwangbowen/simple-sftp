@@ -83,11 +83,110 @@
                     <button class="icon-button" id="download-selected" title="Download Selected">
                         <span class="codicon codicon-cloud-download"></span>
                     </button>
+                    <button class="icon-button" id="toggle-search-view" title="Search Files">
+                        <span class="codicon codicon-search"></span>
+                    </button>
                 </div>
                 <div class="file-tree" id="remote-tree" data-panel="remote">
                     <div class="loading">
                         <span class="codicon codicon-loading codicon-modifier-spin"></span>
                         Loading remote files...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search View -->
+        <div class="search-view" id="search-view" style="display: none;">
+            <div class="search-view-header">
+                <span class="codicon codicon-search"></span>
+                <h3>Search in Remote Files</h3>
+                <button class="icon-button" id="close-search-view" title="Close Search">
+                    <span class="codicon codicon-close"></span>
+                </button>
+            </div>
+
+            <!-- Search Path Navigation -->
+            <div class="search-path-bar">
+                <span class="codicon codicon-folder"></span>
+                <input type="text"
+                       id="search-path-input"
+                       class="search-path-input"
+                       placeholder="Enter path to search..."
+                       spellcheck="false">
+            </div>
+
+            <div class="search-inputs-container">
+                <!-- Search Query Input -->
+                <div class="search-input-wrapper">
+                    <input type="text"
+                           id="search-query-input"
+                           class="search-query-input"
+                           placeholder="Search (e.g., *.ts, test*)"
+                           spellcheck="false">
+                    <div class="search-input-actions">
+                        <button class="search-toggle-button" id="search-match-case" title="Match Case">
+                            <span class="codicon codicon-case-sensitive"></span>
+                        </button>
+                        <button class="search-toggle-button" id="search-match-whole-word" title="Match Whole Word">
+                            <span class="codicon codicon-whole-word"></span>
+                        </button>
+                        <button class="search-toggle-button" id="search-use-regex" title="Use Regular Expression">
+                            <span class="codicon codicon-regex"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Files to Include Input -->
+                <div class="search-input-wrapper">
+                    <input type="text"
+                           id="search-files-include"
+                           class="search-files-input"
+                           placeholder="Files to include (e.g., *.ts, src/**)"
+                           spellcheck="false">
+                </div>
+
+                <!-- Files to Exclude Input -->
+                <div class="search-input-wrapper">
+                    <input type="text"
+                           id="search-files-exclude"
+                           class="search-files-input"
+                           placeholder="Files to exclude (e.g., node_modules/**, *.log)"
+                           spellcheck="false">
+                </div>
+
+                <!-- Search Options -->
+                <div class="search-options">
+                    <label class="search-option-checkbox">
+                        <input type="checkbox" id="search-filename-only">
+                        <span>Search by filename only</span>
+                    </label>
+                    <label class="search-option-checkbox">
+                        <input type="checkbox" id="search-case-sensitive">
+                        <span>Case sensitive</span>
+                    </label>
+                </div>
+
+                <!-- Search Button -->
+                <button class="search-button" id="start-search-button">
+                    <span class="codicon codicon-search"></span>
+                    Search
+                </button>
+            </div>
+
+            <!-- Search Results -->
+            <div class="search-results-container" id="search-results-container">
+                <div class="search-results-header">
+                    <div class="search-results-count" id="search-results-count">
+                        No results
+                    </div>
+                    <button class="icon-button" id="clear-search-results" title="Clear Results">
+                        <span class="codicon codicon-clear-all"></span>
+                    </button>
+                </div>
+                <div class="search-results-list" id="search-results-list">
+                    <div class="search-empty-message">
+                        Enter a search query and press Search
                     </div>
                 </div>
             </div>

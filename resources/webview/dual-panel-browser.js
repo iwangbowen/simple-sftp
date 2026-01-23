@@ -42,6 +42,7 @@
 
         initializeEventListeners();
         initializeResizer();
+        initializeSearchView();
 
         // 通知扩展 WebView 已准备就绪
         vscode.postMessage({ command: 'ready' });
@@ -1548,6 +1549,16 @@
                     addCurrentPathToBookmark();
                 }
                 break;
+
+            case 'searchResults':
+                // Display search results
+                displaySearchResults(message.data);
+                break;
+
+            case 'searchError':
+                // Show search error
+                showSearchError(message.data.error);
+                break;
         }
     });
 
@@ -1798,5 +1809,363 @@
         document.addEventListener('DOMContentLoaded', initializePermissionsEditor);
     } else {
         initializePermissionsEditor();
+    }
+
+    // ===== Search View =====
+    let isSearchViewVisible = false;
+    let currentSearchResults = [];
+    let currentSearchPath = '/';
+
+    /**
+     * Initialize search view event listeners
+     */
+    function initializeSearchView() {
+        // Toggle search view button
+        const toggleButton = document.getElementById('toggle-search-view');
+        toggleButton?.addEventListener('click', toggleSearchView);
+
+        // Close search view button
+        const closeButton = document.getElementById('close-search-view');
+        closeButton?.addEventListener('click', closeSearchView);
+
+        // Start search button
+        const searchButton = document.getElementById('start-search-button');
+        searchButton?.addEventListener('click', performSearch);
+
+        // Clear results button
+        const clearButton = document.getElementById('clear-search-results');
+        clearButton?.addEventListener('click', clearSearchResults);
+
+        // Toggle buttons
+        const matchCaseBtn = document.getElementById('search-match-case');
+        const wholeWordBtn = document.getElementById('search-match-whole-word');
+        const regexBtn = document.getElementById('search-use-regex');
+
+        matchCaseBtn?.addEventListener('click', () => matchCaseBtn.classList.toggle('active'));
+        wholeWordBtn?.addEventListener('click', () => wholeWordBtn.classList.toggle('active'));
+        regexBtn?.addEventListener('click', () => regexBtn.classList.toggle('active'));
+
+        // Path input handling
+        const pathInput = document.getElementById('search-path-input');
+        pathInput?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const newPath = pathInput.value.trim();
+                if (newPath) {
+                    currentSearchPath = newPath;
+                }
+            }
+        });
+
+        // Enter key to search
+        const searchInput = document.getElementById('search-query-input');
+        searchInput?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performSearch();
+            }
+        });
+
+        // Filename-only checkbox changes
+        const filenameOnlyCheckbox = document.getElementById('search-filename-only');
+        filenameOnlyCheckbox?.addEventListener('change', (e) => {
+            const searchQueryInput = document.getElementById('search-query-input');
+            if (e.target.checked) {
+                // Filename search
+                searchQueryInput.placeholder = 'Search by filename (e.g., *.ts, test*)';
+            } else {
+                // Content search
+                searchQueryInput.placeholder = 'Search in file contents';
+            }
+        });
+    }
+
+    /**
+     * Toggle search view visibility
+     */
+    function toggleSearchView() {
+        if (isSearchViewVisible) {
+            closeSearchView();
+        } else {
+            openSearchView();
+        }
+    }
+
+    /**
+     * Open search view
+     */
+    function openSearchView() {
+        const searchView = document.getElementById('search-view');
+        const dualPanel = document.querySelector('.dual-panel');
+
+        if (searchView && dualPanel) {
+            searchView.style.display = 'flex';
+            dualPanel.style.display = 'none';
+            isSearchViewVisible = true;
+
+            // Initialize search path with current remote path
+            currentSearchPath = currentRemotePath || '/';
+            const pathInput = document.getElementById('search-path-input');
+            if (pathInput) {
+                pathInput.value = currentSearchPath;
+            }
+
+            // Focus on search input
+            const searchInput = document.getElementById('search-query-input');
+            if (searchInput) {
+                setTimeout(() => searchInput.focus(), 100);
+            }
+        }
+    }
+
+    /**
+     * Close search view
+     */
+    function closeSearchView() {
+        const searchView = document.getElementById('search-view');
+        const dualPanel = document.querySelector('.dual-panel');
+
+        if (searchView && dualPanel) {
+            searchView.style.display = 'none';
+            dualPanel.style.display = 'flex';
+            isSearchViewVisible = false;
+        }
+    }
+
+    /**
+     * Perform search based on current inputs
+     */
+    function performSearch() {
+        const queryInput = document.getElementById('search-query-input');
+        const includeInput = document.getElementById('search-files-include');
+        const excludeInput = document.getElementById('search-files-exclude');
+        const pathInput = document.getElementById('search-path-input');
+        const filenameOnlyCheckbox = document.getElementById('search-filename-only');
+        const caseSensitiveCheckbox = document.getElementById('search-case-sensitive');
+        const matchCaseBtn = document.getElementById('search-match-case');
+        const wholeWordBtn = document.getElementById('search-match-whole-word');
+        const regexBtn = document.getElementById('search-use-regex');
+
+        const query = queryInput?.value?.trim();
+        if (!query) {
+            vscode.postMessage({
+                command: 'showError',
+                message: 'Please enter a search query'
+            });
+            return;
+        }
+
+        // Get search path from input
+        const searchPath = pathInput?.value?.trim() || currentSearchPath || '/';
+
+        // Show loading state
+        showSearchLoading();
+
+        // Collect search options
+        const searchOptions = {
+            query: query,
+            filesInclude: includeInput?.value?.trim() || '',
+            filesExclude: excludeInput?.value?.trim() || '',
+            filenameOnly: filenameOnlyCheckbox?.checked || false,
+            caseSensitive: caseSensitiveCheckbox?.checked || matchCaseBtn?.classList.contains('active') || false,
+            wholeWord: wholeWordBtn?.classList.contains('active') || false,
+            useRegex: regexBtn?.classList.contains('active') || false,
+            basePath: searchPath
+        };
+
+        // Send search request to backend
+        vscode.postMessage({
+            command: 'performSearch',
+            data: searchOptions
+        });
+    }
+
+    /**
+     * Show loading state in search results
+     */
+    function showSearchLoading() {
+        const resultsList = document.getElementById('search-results-list');
+        if (resultsList) {
+            resultsList.innerHTML = `
+                <div class="search-loading">
+                    <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                    <span>Searching...</span>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Display search results
+     * @param {Object} results - Search results from backend
+     */
+    function displaySearchResults(results) {
+        currentSearchResults = results;
+        const resultsList = document.getElementById('search-results-list');
+        const resultsCount = document.getElementById('search-results-count');
+
+        if (!resultsList || !resultsCount) return;
+
+        if (!results || !results.files || results.files.length === 0) {
+            resultsList.innerHTML = '<div class="search-empty-message">No results found</div>';
+            resultsCount.textContent = 'No results';
+            return;
+        }
+
+        // Update count
+        const totalMatches = results.files.reduce((sum, file) => sum + (file.matches?.length || 0), 0);
+        resultsCount.textContent = `${totalMatches} results in ${results.files.length} files`;
+
+        // Render results
+        resultsList.innerHTML = '';
+        results.files.forEach(file => {
+            const fileElement = createSearchResultFileElement(file);
+            resultsList.appendChild(fileElement);
+        });
+    }
+
+    /**
+     * Create search result file element
+     * @param {Object} file - File result object
+     * @returns {HTMLElement}
+     */
+    function createSearchResultFileElement(file) {
+        const fileDiv = document.createElement('div');
+        fileDiv.className = 'search-result-file';
+
+        // File header
+        const header = document.createElement('div');
+        header.className = 'search-result-file-header';
+
+        const chevron = document.createElement('span');
+        chevron.className = 'codicon codicon-chevron-right';
+
+        const fileName = document.createElement('span');
+        fileName.className = 'search-result-file-name';
+        fileName.textContent = file.name || file.path.split('/').pop();
+
+        const filePath = document.createElement('span');
+        filePath.className = 'search-result-file-path';
+        filePath.textContent = file.path;
+
+        const count = document.createElement('span');
+        count.className = 'search-result-file-count';
+        count.textContent = file.matches?.length || 1;
+
+        header.appendChild(chevron);
+        header.appendChild(fileName);
+        header.appendChild(filePath);
+        header.appendChild(count);
+
+        // Toggle expand/collapse
+        header.addEventListener('click', () => {
+            fileDiv.classList.toggle('expanded');
+        });
+
+        // Double-click to open file
+        header.addEventListener('dblclick', () => {
+            vscode.postMessage({
+                command: 'openFile',
+                data: { path: file.path, panel: 'remote' }
+            });
+        });
+
+        fileDiv.appendChild(header);
+
+        // Matches container
+        if (file.matches && file.matches.length > 0) {
+            const matchesDiv = document.createElement('div');
+            matchesDiv.className = 'search-result-matches';
+
+            file.matches.forEach(match => {
+                const matchElement = createSearchResultMatchElement(match, file.path);
+                matchesDiv.appendChild(matchElement);
+            });
+
+            fileDiv.appendChild(matchesDiv);
+        }
+
+        return fileDiv;
+    }
+
+    /**
+     * Create search result match element
+     * @param {Object} match - Match object
+     * @param {string} filePath - File path
+     * @returns {HTMLElement}
+     */
+    function createSearchResultMatchElement(match, filePath) {
+        const matchDiv = document.createElement('div');
+        matchDiv.className = 'search-result-match';
+
+        const lineNumber = document.createElement('span');
+        lineNumber.className = 'search-result-match-line-number';
+        lineNumber.textContent = match.line || '';
+
+        const matchText = document.createElement('span');
+        matchText.className = 'search-result-match-text';
+
+        // Highlight matched text
+        if (match.text && match.matchStart !== undefined && match.matchEnd !== undefined) {
+            const before = match.text.substring(0, match.matchStart);
+            const matched = match.text.substring(match.matchStart, match.matchEnd);
+            const after = match.text.substring(match.matchEnd);
+
+            matchText.innerHTML =
+                escapeHtml(before) +
+                '<span class="search-result-match-highlight">' + escapeHtml(matched) + '</span>' +
+                escapeHtml(after);
+        } else {
+            matchText.textContent = match.text || '';
+        }
+
+        matchDiv.appendChild(lineNumber);
+        matchDiv.appendChild(matchText);
+
+        // Click to open file at specific line
+        matchDiv.addEventListener('click', () => {
+            vscode.postMessage({
+                command: 'openFileAtLine',
+                data: {
+                    path: filePath,
+                    panel: 'remote',
+                    line: match.line || 1
+                }
+            });
+        });
+
+        return matchDiv;
+    }
+
+    /**
+     * Clear search results
+     */
+    function clearSearchResults() {
+        currentSearchResults = [];
+        const resultsList = document.getElementById('search-results-list');
+        const resultsCount = document.getElementById('search-results-count');
+
+        if (resultsList) {
+            resultsList.innerHTML = '<div class="search-empty-message">Enter a search query and press Search</div>';
+        }
+        if (resultsCount) {
+            resultsCount.textContent = 'No results';
+        }
+    }
+
+    /**
+     * Show search error
+     * @param {string} errorMessage
+     */
+    function showSearchError(errorMessage) {
+        const resultsList = document.getElementById('search-results-list');
+        if (resultsList) {
+            resultsList.innerHTML = `
+                <div class="search-error">
+                    <strong>Search Error:</strong><br>
+                    ${escapeHtml(errorMessage)}
+                </div>
+            `;
+        }
     }
 })();

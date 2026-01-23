@@ -226,6 +226,10 @@ export abstract class DualPanelBase {
             case 'addBookmark':
                 await this.handleAddBookmark(message.data);
                 break;
+
+            case 'performSearch':
+                await this.performSearch(message.data);
+                break;
         }
     }
 
@@ -1277,6 +1281,299 @@ export abstract class DualPanelBase {
                     panel: context.panel
                 }
             });
+        }
+    }
+
+    // ===== Search Operations =====
+
+    /**
+     * Perform remote file search (filename or content)
+     */
+    protected async performSearch(options: {
+        query: string;
+        filesInclude: string;
+        filesExclude: string;
+        filenameOnly: boolean;
+        caseSensitive: boolean;
+        wholeWord: boolean;
+        useRegex: boolean;
+        basePath: string;
+    }): Promise<void> {
+        if (!this._currentHost || !this._currentAuthConfig) {
+            this.postMessage({
+                command: 'searchError',
+                data: { error: 'No host connected. Please select a host first.' }
+            });
+            return;
+        }
+
+        try {
+            let results;
+
+            if (options.filenameOnly) {
+                // Filename search
+                results = await this.searchByFilename(options);
+            } else {
+                // Content search
+                results = await this.searchByContent(options);
+            }
+
+            this.postMessage({
+                command: 'searchResults',
+                data: results
+            });
+        } catch (error: any) {
+            logger.error(`Search failed: ${error}`);
+            this.postMessage({
+                command: 'searchError',
+                data: { error: error.message || 'Search failed' }
+            });
+        }
+    }
+
+    /**
+     * Execute SSH command and return output
+     */
+    private async executeSSHCommand(client: any, command: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            let output = '';
+            let errorOutput = '';
+
+            client.exec(command, (err: Error | undefined, stream: any) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+
+                stream.on('data', (data: Buffer) => {
+                    output += data.toString();
+                });
+
+                stream.stderr.on('data', (data: Buffer) => {
+                    errorOutput += data.toString();
+                });
+
+                stream.on('close', (code: number) => {
+                    if (code !== 0 && errorOutput) {
+                        reject(new Error(errorOutput));
+                    } else {
+                        resolve(output);
+                    }
+                });
+
+                stream.on('error', (error: Error) => {
+                    reject(error);
+                });
+            });
+        });
+    }
+
+    /**
+     * Search files by filename pattern using SSH find command
+     */
+    protected async searchByFilename(options: {
+        query: string;
+        filesInclude: string;
+        filesExclude: string;
+        caseSensitive: boolean;
+        useRegex: boolean;
+        basePath: string;
+    }): Promise<{ files: Array<{ path: string; name: string; matches?: any[] }> }> {
+
+        // Build find command
+        let findCmd = `find "${options.basePath}" -type f`;
+
+        // Add name pattern
+        if (options.useRegex) {
+            // Use regex pattern
+            findCmd += ` -regex '${options.query}'`;
+            if (!options.caseSensitive) {
+                findCmd += ` -iregex '${options.query}'`;
+            }
+        } else {
+            // Convert glob to find pattern
+            const pattern = options.query;
+            const caseFlag = options.caseSensitive ? '-name' : '-iname';
+            findCmd += ` ${caseFlag} '${pattern}'`;
+        }
+
+        // Add exclude patterns
+        if (options.filesExclude) {
+            const excludePatterns = options.filesExclude.split(',').map(p => p.trim()).filter(Boolean);
+            for (const exclude of excludePatterns) {
+                if (exclude.includes('/')) {
+                    // Path-based exclusion
+                    findCmd += ` -not -path '*/${exclude}'`;
+                } else {
+                    // Name-based exclusion
+                    findCmd += ` -not -name '${exclude}'`;
+                }
+            }
+        }
+
+        // Limit results to prevent overwhelming output
+        findCmd += ` 2>/dev/null | head -n 1000`;
+
+        // Execute command via SSH
+        const pool = (SshConnectionManager as any).connectionPool;
+        const buildConfig = (SshConnectionManager as any).buildConnectConfig;
+        const connectConfig = buildConfig.call(SshConnectionManager, this._currentHost, this._currentAuthConfig);
+        const { client } = await pool.getConnection(
+            this._currentHost,
+            this._currentAuthConfig,
+            connectConfig
+        );
+
+        try {
+            const output = await this.executeSSHCommand(client, findCmd);
+            const matchedFiles: Array<{ path: string; name: string }> = [];
+
+            // Parse output
+            const lines = output.split('\n').filter(l => l.trim());
+            for (const line of lines) {
+                const fullPath = line.trim();
+                if (fullPath) {
+                    matchedFiles.push({
+                        path: fullPath,
+                        name: path.basename(fullPath)
+                    });
+                }
+            }
+
+            return { files: matchedFiles };
+        } catch (error: any) {
+            // Check if command not found
+            if (error.message && error.message.includes('command not found')) {
+                throw new Error('The "find" command is not available on the remote server. Please ensure it is installed or use a different search method.');
+            }
+            throw error;
+        } finally {
+            pool.releaseConnection(this._currentHost);
+        }
+    }
+
+    /**
+     * Search files by content using SSH grep command
+     */
+    protected async searchByContent(options: {
+        query: string;
+        filesInclude: string;
+        filesExclude: string;
+        caseSensitive: boolean;
+        wholeWord: boolean;
+        useRegex: boolean;
+        basePath: string;
+    }): Promise<{ files: Array<{ path: string; name: string; matches: any[] }> }> {
+
+        // Build grep command
+        let grepCmd = 'grep -rn';
+
+        // Add options
+        if (!options.caseSensitive) {
+            grepCmd += ' -i';
+        }
+        if (options.wholeWord) {
+            grepCmd += ' -w';
+        }
+        if (!options.useRegex) {
+            grepCmd += ' -F'; // Fixed string (not regex)
+        }
+
+        // Add include patterns
+        if (options.filesInclude) {
+            const includePatterns = options.filesInclude.split(',').map(p => p.trim()).filter(Boolean);
+            for (const include of includePatterns) {
+                grepCmd += ` --include='${include}'`;
+            }
+        }
+
+        // Add exclude patterns
+        if (options.filesExclude) {
+            const excludePatterns = options.filesExclude.split(',').map(p => p.trim()).filter(Boolean);
+            for (const exclude of excludePatterns) {
+                if (exclude.endsWith('/**')) {
+                    // Directory exclusion
+                    const dir = exclude.replace('/**', '');
+                    grepCmd += ` --exclude-dir='${dir}'`;
+                } else {
+                    grepCmd += ` --exclude='${exclude}'`;
+                }
+            }
+        }
+
+        // Add default exclusions
+        grepCmd += ` --exclude-dir='.git' --exclude-dir='node_modules' --exclude-dir='.svn'`;
+
+        // Add query and path
+        const escapedQuery = options.query.replace(/'/g, "'\\''"); // Escape single quotes
+        grepCmd += ` '${escapedQuery}' "${options.basePath}"`;
+
+        // Limit output and suppress errors
+        grepCmd += ` 2>/dev/null | head -n 2000`;
+
+        // Execute command via SSH
+        const pool = (SshConnectionManager as any).connectionPool;
+        const buildConfig = (SshConnectionManager as any).buildConnectConfig;
+        const connectConfig = buildConfig.call(SshConnectionManager, this._currentHost, this._currentAuthConfig);
+        const { client } = await pool.getConnection(
+            this._currentHost,
+            this._currentAuthConfig,
+            connectConfig
+        );
+
+        try {
+            const output = await this.executeSSHCommand(client, grepCmd);
+
+            // Parse grep output: filepath:line_number:matched_line
+            const fileMatches = new Map<string, { name: string; matches: any[] }>();
+            const lines = output.split('\n').filter(l => l.trim());
+
+            for (const line of lines) {
+                const match = line.match(/^([^:]+):(\d+):(.*)$/);
+                if (match) {
+                    const [, filePath, lineNum, matchedLine] = match;
+
+                    if (!fileMatches.has(filePath)) {
+                        fileMatches.set(filePath, {
+                            name: path.basename(filePath),
+                            matches: []
+                        });
+                    }
+
+                    // Find match position in line
+                    const searchPattern = options.useRegex
+                        ? new RegExp(options.query, options.caseSensitive ? 'g' : 'gi')
+                        : new RegExp(options.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), options.caseSensitive ? 'g' : 'gi');
+
+                    const lineMatch = searchPattern.exec(matchedLine);
+                    const matchStart = lineMatch ? lineMatch.index : 0;
+                    const matchEnd = lineMatch ? matchStart + lineMatch[0].length : 0;
+
+                    fileMatches.get(filePath)!.matches.push({
+                        line: parseInt(lineNum, 10),
+                        text: matchedLine,
+                        matchStart,
+                        matchEnd
+                    });
+                }
+            }
+
+            // Convert to array
+            const matchedFiles = Array.from(fileMatches.entries()).map(([filePath, data]) => ({
+                path: filePath,
+                name: data.name,
+                matches: data.matches
+            }));
+
+            return { files: matchedFiles };
+        } catch (error: any) {
+            // Check if command not found
+            if (error.message && error.message.includes('command not found')) {
+                throw new Error('The "grep" command is not available on the remote server. Please ensure it is installed or use a different search method.');
+            }
+            throw error;
+        } finally {
+            pool.releaseConnection(this._currentHost);
         }
     }
 }
