@@ -1895,12 +1895,13 @@
      * Open search view
      */
     function openSearchView() {
-        const searchView = document.getElementById('search-view');
-        const dualPanel = document.querySelector('.dual-panel');
+        const searchView = document.getElementById('panel-search-view');
+        const remoteTree = document.getElementById('remote-tree');
 
-        if (searchView && dualPanel) {
+        if (searchView && remoteTree) {
+            // Hide file tree, show search view
+            remoteTree.style.display = 'none';
             searchView.style.display = 'flex';
-            dualPanel.style.display = 'none';
             isSearchViewVisible = true;
 
             // Initialize search path with current remote path
@@ -1922,12 +1923,13 @@
      * Close search view
      */
     function closeSearchView() {
-        const searchView = document.getElementById('search-view');
-        const dualPanel = document.querySelector('.dual-panel');
+        const searchView = document.getElementById('panel-search-view');
+        const remoteTree = document.getElementById('remote-tree');
 
-        if (searchView && dualPanel) {
+        if (searchView && remoteTree) {
+            // Show file tree, hide search view
             searchView.style.display = 'none';
-            dualPanel.style.display = 'flex';
+            remoteTree.style.display = 'flex';
             isSearchViewVisible = false;
         }
     }

@@ -1015,34 +1015,13 @@ body {
     transform: translateY(-1px);
 }
 
-/* ===== Search View Styles ===== */
-.search-view {
+/* ===== Panel Search View Styles ===== */
+.panel-search-view {
     display: flex;
     flex-direction: column;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 35px; /* Leave space for footer */
+    height: 100%;
     background-color: var(--vscode-editor-background);
-    z-index: 1000;
-}
-
-.search-view-header {
-    display: flex;
-    align-items: center;
-    padding: 10px 16px;
-    background-color: var(--vscode-titleBar-activeBackground);
-    color: var(--vscode-titleBar-activeForeground);
-    border-bottom: 1px solid var(--vscode-panel-border);
-    gap: 8px;
-}
-
-.search-view-header h3 {
-    flex: 1;
-    font-size: 13px;
-    font-weight: 500;
-    margin: 0;
+    overflow: hidden;
 }
 
 /* Search Path Navigation Bar */
