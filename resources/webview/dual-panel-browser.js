@@ -1931,7 +1931,7 @@
         if (searchView && remoteTree) {
             // Show file tree, hide search view
             searchView.style.display = 'none';
-            remoteTree.style.display = 'flex';
+            remoteTree.style.display = ''; // Reset to default (uses CSS flex)
             isSearchViewVisible = false;
         }
     }
