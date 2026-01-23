@@ -2122,14 +2122,16 @@
         matchDiv.appendChild(lineNumber);
         matchDiv.appendChild(matchText);
 
-        // Click to open file at specific line
+        // Click to open file at specific line with highlighting
         matchDiv.addEventListener('click', () => {
             vscode.postMessage({
                 command: 'openFileAtLine',
                 data: {
                     path: filePath,
                     panel: 'remote',
-                    line: match.line || 1
+                    line: match.line || 1,
+                    matchStart: match.matchStart,
+                    matchEnd: match.matchEnd
                 }
             });
         });

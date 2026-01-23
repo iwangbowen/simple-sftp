@@ -183,6 +183,10 @@ export abstract class DualPanelBase {
                 await this.handleOpenFile(message.data);
                 break;
 
+            case 'openFileAtLine':
+                await this.handleOpenFileAtLine(message.data);
+                break;
+
             case 'refreshLocal': {
                 const localPath = message.path || this._localRootPath;
                 if (localPath) {
@@ -783,6 +787,69 @@ export abstract class DualPanelBase {
         } catch (error) {
             logger.error(`Open file failed: ${error}`);
             vscode.window.showErrorMessage(`Open file failed: ${error}`);
+        }
+    }
+
+    /**
+     * Handle opening file at specific line with highlighting
+     */
+    protected async handleOpenFileAtLine(data: any): Promise<void> {
+        const { path: filePath, panel, line, matchStart, matchEnd } = data;
+
+        try {
+            let doc: vscode.TextDocument;
+
+            if (panel === 'local') {
+                doc = await vscode.workspace.openTextDocument(filePath);
+            } else if (panel === 'remote') {
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
+
+                const uri = vscode.Uri.parse(`sftp://${this._currentHost.id}${filePath}`);
+                doc = await vscode.workspace.openTextDocument(uri);
+
+                // Set language mode
+                const fileName = path.basename(filePath);
+                const languageId = this.getLanguageIdFromFileName(fileName);
+                if (languageId) {
+                    await vscode.languages.setTextDocumentLanguage(doc, languageId);
+                }
+            } else {
+                return;
+            }
+
+            // Calculate line number (1-based to 0-based)
+            const lineNumber = Math.max(0, (line || 1) - 1);
+
+            // Show the document and position at the line
+            const editor = await vscode.window.showTextDocument(doc, {
+                preview: false,
+                preserveFocus: false,
+                selection: new vscode.Range(lineNumber, 0, lineNumber, 0)
+            });
+
+            // Highlight the match if matchStart and matchEnd are provided
+            if (matchStart !== undefined && matchEnd !== undefined) {
+                const selection = new vscode.Selection(
+                    lineNumber,
+                    matchStart,
+                    lineNumber,
+                    matchEnd
+                );
+                editor.selection = selection;
+                editor.revealRange(selection, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+            } else {
+                // Just reveal the line
+                const range = new vscode.Range(lineNumber, 0, lineNumber, 0);
+                editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+            }
+
+            logger.info(`Opened file at line ${line}: ${filePath}`);
+        } catch (error) {
+            logger.error(`Open file at line failed: ${error}`);
+            vscode.window.showErrorMessage(`Open file at line failed: ${error}`);
         }
     }
 
