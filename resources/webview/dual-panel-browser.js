@@ -1820,13 +1820,15 @@
      * Initialize search view event listeners
      */
     function initializeSearchView() {
-        // Toggle search view button
+        // Toggle search view button (toggle between file tree and search)
         const toggleButton = document.getElementById('toggle-search-view');
-        toggleButton?.addEventListener('click', toggleSearchView);
-
-        // Close search view button
-        const closeButton = document.getElementById('close-search-view');
-        closeButton?.addEventListener('click', closeSearchView);
+        toggleButton?.addEventListener('click', () => {
+            if (isSearchViewVisible) {
+                closeSearchView();
+            } else {
+                openSearchView();
+            }
+        });
 
         // Start search button
         const searchButton = document.getElementById('start-search-button');
@@ -1835,6 +1837,17 @@
         // Clear results button
         const clearButton = document.getElementById('clear-search-results');
         clearButton?.addEventListener('click', clearSearchResults);
+
+        // Toggle search details (include/exclude)
+        const toggleDetailsBtn = document.getElementById('toggle-search-details');
+        const searchDetails = document.getElementById('search-details');
+        toggleDetailsBtn?.addEventListener('click', () => {
+            if (searchDetails) {
+                const isHidden = searchDetails.style.display === 'none';
+                searchDetails.style.display = isHidden ? 'block' : 'none';
+                toggleDetailsBtn.classList.toggle('active', isHidden);
+            }
+        });
 
         // Toggle buttons
         const matchCaseBtn = document.getElementById('search-match-case');
@@ -1878,17 +1891,6 @@
                 searchQueryInput.placeholder = 'Search in file contents';
             }
         });
-    }
-
-    /**
-     * Toggle search view visibility
-     */
-    function toggleSearchView() {
-        if (isSearchViewVisible) {
-            closeSearchView();
-        } else {
-            openSearchView();
-        }
     }
 
     /**
@@ -2042,9 +2044,15 @@
         const chevron = document.createElement('span');
         chevron.className = 'codicon codicon-chevron-right';
 
+        // File icon
+        const icon = document.createElement('span');
+        const filename = file.name || file.path.split('/').pop();
+        const iconClass = getFileIcon({ name: filename, isDirectory: false });
+        icon.className = `codicon tree-item-icon ${iconClass}`;
+
         const fileName = document.createElement('span');
         fileName.className = 'search-result-file-name';
-        fileName.textContent = file.name || file.path.split('/').pop();
+        fileName.textContent = filename;
 
         const filePath = document.createElement('span');
         filePath.className = 'search-result-file-path';
@@ -2055,6 +2063,7 @@
         count.textContent = file.matches?.length || 1;
 
         header.appendChild(chevron);
+        header.appendChild(icon);
         header.appendChild(fileName);
         header.appendChild(filePath);
         header.appendChild(count);

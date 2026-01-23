@@ -126,25 +126,31 @@
                                 <button class="search-toggle-button" id="search-use-regex" title="Use Regular Expression">
                                     <span class="codicon codicon-regex"></span>
                                 </button>
+                                <button class="search-toggle-button" id="toggle-search-details" title="Toggle Search Details">
+                                    <span class="codicon codicon-ellipsis"></span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Files to Include Input -->
-                        <div class="search-input-wrapper">
-                            <input type="text"
-                                   id="search-files-include"
-                                   class="search-files-input"
-                                   placeholder="Files to include (e.g., *.ts, src/**)"
-                                   spellcheck="false">
-                        </div>
+                        <!-- Collapsible Files Filter Section -->
+                        <div class="search-details" id="search-details" style="display: none;">
+                            <!-- Files to Include Input -->
+                            <div class="search-input-wrapper">
+                                <input type="text"
+                                       id="search-files-include"
+                                       class="search-files-input"
+                                       placeholder="files to include"
+                                       spellcheck="false">
+                            </div>
 
-                        <!-- Files to Exclude Input -->
-                        <div class="search-input-wrapper">
-                            <input type="text"
-                                   id="search-files-exclude"
-                                   class="search-files-input"
-                                   placeholder="Files to exclude (e.g., node_modules/**, *.log)"
-                                   spellcheck="false">
+                            <!-- Files to Exclude Input -->
+                            <div class="search-input-wrapper">
+                                <input type="text"
+                                       id="search-files-exclude"
+                                       class="search-files-input"
+                                       placeholder="files to exclude"
+                                       spellcheck="false">
+                            </div>
                         </div>
 
                         <!-- Search Options -->
