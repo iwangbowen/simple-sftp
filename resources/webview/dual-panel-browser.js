@@ -2068,9 +2068,9 @@
         header.appendChild(filePath);
         header.appendChild(count);
 
-        // Toggle expand/collapse
+        // Toggle expand/collapse (use collapsed class instead of expanded)
         header.addEventListener('click', () => {
-            fileDiv.classList.toggle('expanded');
+            fileDiv.classList.toggle('collapsed');
         });
 
         // Double-click to open file

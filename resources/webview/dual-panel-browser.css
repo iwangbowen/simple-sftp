@@ -1212,16 +1212,17 @@ body {
 }
 
 .search-result-file {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .search-result-file-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 16px;
+    gap: 4px;
+    padding: 2px 12px;
     cursor: pointer;
     background-color: var(--vscode-sideBar-background);
+    font-size: 12px;
 }
 
 .search-result-file-header:hover {
@@ -1233,48 +1234,60 @@ body {
 }
 
 .search-result-file-name {
-    flex: 1;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--vscode-foreground);
     font-weight: 500;
+    margin-right: 6px;
 }
 
 .search-result-file-path {
+    flex: 1;
     font-size: 11px;
     color: var(--vscode-descriptionForeground);
-    margin-right: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .search-result-file-count {
-    font-size: 11px;
-    padding: 2px 6px;
+    font-size: 10px;
+    padding: 1px 5px;
     background-color: var(--vscode-badge-background);
     color: var(--vscode-badge-foreground);
     border-radius: 10px;
     font-weight: 600;
+    margin-left: 6px;
 }
 
+/* Default to expanded - show matches by default */
 .search-result-matches {
-    display: none;
-    padding-left: 32px;
-}
-
-.search-result-file.expanded .search-result-matches {
     display: block;
+    padding-left: 24px;
 }
 
-.search-result-file.expanded .search-result-file-header .codicon-chevron-right {
+/* Only hide when explicitly collapsed */
+.search-result-file.collapsed .search-result-matches {
+    display: none;
+}
+
+.search-result-file.collapsed .search-result-file-header .codicon-chevron-right {
+    transform: rotate(0deg);
+}
+
+/* Default state - chevron points down (expanded) */
+.search-result-file-header .codicon-chevron-right {
     transform: rotate(90deg);
+    transition: transform 0.1s ease;
 }
 
 .search-result-match {
     display: flex;
     align-items: flex-start;
-    padding: 3px 16px 3px 8px;
+    padding: 2px 12px 2px 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     font-family: 'Courier New', Courier, monospace;
-    line-height: 18px;
+    line-height: 16px;
 }
 
 .search-result-match:hover {
@@ -1282,11 +1295,12 @@ body {
 }
 
 .search-result-match-line-number {
-    min-width: 40px;
+    min-width: 35px;
     color: var(--vscode-descriptionForeground);
     text-align: right;
-    padding-right: 12px;
+    padding-right: 10px;
     user-select: none;
+    font-size: 10px;
 }
 
 .search-result-match-text {
