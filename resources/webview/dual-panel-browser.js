@@ -1561,6 +1561,12 @@
                 // Show search error
                 showSearchError(message.data.error);
                 break;
+
+            case 'searchHistory':
+                // Update search history
+                searchHistory = message.data || [];
+                searchHistoryIndex = -1;
+                break;
         }
     });
 
@@ -1817,6 +1823,8 @@
     let isSearchViewVisible = false;
     let currentSearchResults = [];
     let currentSearchPath = '/';
+    let searchHistory = [];
+    let searchHistoryIndex = -1;
 
     /**
      * Initialize search view event listeners
@@ -1878,6 +1886,33 @@
             if (e.key === 'Enter') {
                 e.preventDefault();
                 performSearch();
+                // Reset history index when performing new search
+                searchHistoryIndex = -1;
+                hideSearchHistoryDropdown();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                navigateSearchHistory('up');
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                navigateSearchHistory('down');
+            } else if (e.key === 'Escape') {
+                hideSearchHistoryDropdown();
+            }
+        });
+
+        // Show history dropdown when focused
+        searchInput?.addEventListener('focus', () => {
+            if (searchHistory.length > 0) {
+                showSearchHistoryDropdown();
+            }
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('search-history-dropdown');
+            const searchInput = document.getElementById('search-query-input');
+            if (dropdown && searchInput && e.target !== searchInput && !dropdown.contains(e.target)) {
+                hideSearchHistoryDropdown();
             }
         });
 
@@ -1915,11 +1950,78 @@
                 pathInput.value = currentSearchPath;
             }
 
+            // Request search history from backend
+            vscode.postMessage({ command: 'getSearchHistory' });
+
             // Focus on search input
             const searchInput = document.getElementById('search-query-input');
             if (searchInput) {
                 setTimeout(() => searchInput.focus(), 100);
             }
+        }
+    }
+
+    /**
+     * Navigate search history with arrow keys
+     */
+    function navigateSearchHistory(direction) {
+        if (searchHistory.length === 0) return;
+
+        const searchInput = document.getElementById('search-query-input');
+        if (!searchInput) return;
+
+        if (direction === 'up') {
+            // Go to older entries
+            if (searchHistoryIndex < searchHistory.length - 1) {
+                searchHistoryIndex++;
+                searchInput.value = searchHistory[searchHistoryIndex];
+            }
+        } else if (direction === 'down') {
+            // Go to newer entries
+            if (searchHistoryIndex > 0) {
+                searchHistoryIndex--;
+                searchInput.value = searchHistory[searchHistoryIndex];
+            } else if (searchHistoryIndex === 0) {
+                // Clear when going past newest
+                searchHistoryIndex = -1;
+                searchInput.value = '';
+            }
+        }
+    }
+
+    /**
+     * Show search history dropdown
+     */
+    function showSearchHistoryDropdown() {
+        const dropdown = document.getElementById('search-history-dropdown');
+        if (!dropdown || searchHistory.length === 0) return;
+
+        dropdown.innerHTML = '';
+        searchHistory.forEach((query, index) => {
+            const item = document.createElement('div');
+            item.className = 'search-history-item';
+            item.textContent = query;
+            item.addEventListener('click', () => {
+                const searchInput = document.getElementById('search-query-input');
+                if (searchInput) {
+                    searchInput.value = query;
+                    searchHistoryIndex = index;
+                }
+                hideSearchHistoryDropdown();
+            });
+            dropdown.appendChild(item);
+        });
+
+        dropdown.style.display = 'block';
+    }
+
+    /**
+     * Hide search history dropdown
+     */
+    function hideSearchHistoryDropdown() {
+        const dropdown = document.getElementById('search-history-dropdown');
+        if (dropdown) {
+            dropdown.style.display = 'none';
         }
     }
 

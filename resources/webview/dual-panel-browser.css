@@ -1072,6 +1072,43 @@ body {
     margin-bottom: 12px;
 }
 
+.search-history-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-top: none;
+    border-radius: 0 0 3px 3px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.search-history-item {
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--vscode-dropdown-foreground);
+    cursor: pointer;
+    border-bottom: 1px solid var(--vscode-widget-border);
+}
+
+.search-history-item:last-child {
+    border-bottom: none;
+}
+
+.search-history-item:hover,
+.search-history-item.selected {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.search-history-item.selected {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+}
+
 .search-query-input,
 .search-files-input {
     width: 100%;

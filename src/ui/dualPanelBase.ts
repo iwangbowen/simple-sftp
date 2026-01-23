@@ -31,6 +31,8 @@ export abstract class DualPanelBase {
     protected _currentAuthConfig?: any;
     protected _localRootPath?: string;
     protected _remoteRootPath?: string;
+    protected _searchHistory: string[] = [];
+    protected readonly MAX_SEARCH_HISTORY = 20;
 
     constructor(
         protected readonly _extensionUri: vscode.Uri,
@@ -233,6 +235,13 @@ export abstract class DualPanelBase {
 
             case 'performSearch':
                 await this.performSearch(message.data);
+                break;
+
+            case 'getSearchHistory':
+                this.postMessage({
+                    command: 'searchHistory',
+                    data: this._searchHistory
+                });
                 break;
         }
     }
@@ -1374,6 +1383,11 @@ export abstract class DualPanelBase {
             return;
         }
 
+        // Add to search history
+        if (options.query && options.query.trim()) {
+            this.addToSearchHistory(options.query.trim());
+        }
+
         try {
             let results;
 
@@ -1395,6 +1409,25 @@ export abstract class DualPanelBase {
                 command: 'searchError',
                 data: { error: error.message || 'Search failed' }
             });
+        }
+    }
+
+    /**
+     * Add query to search history (most recent first, avoid duplicates)
+     */
+    protected addToSearchHistory(query: string): void {
+        // Remove if already exists
+        const index = this._searchHistory.indexOf(query);
+        if (index !== -1) {
+            this._searchHistory.splice(index, 1);
+        }
+
+        // Add to front
+        this._searchHistory.unshift(query);
+
+        // Keep only max items
+        if (this._searchHistory.length > this.MAX_SEARCH_HISTORY) {
+            this._searchHistory = this._searchHistory.slice(0, this.MAX_SEARCH_HISTORY);
         }
     }
 
