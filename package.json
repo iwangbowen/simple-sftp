@@ -2,7 +2,7 @@
   "name": "simple-sftp",
   "displayName": "Simple SFTP",
   "description": "Lightweight SFTP file upload and download tool with cross-device host configuration sync",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
   "license": "MIT",

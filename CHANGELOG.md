@@ -1,5 +1,27 @@
 # Change Log
 
+## 3.7.0 - 2026-01-23
+
+### Added
+
+- **Search History Navigation**: Keyboard-based search history navigation
+  - Press ↑ key to browse older search queries
+  - Press ↓ key to browse newer search queries
+  - Automatically saves up to 20 recent search queries
+  - Most recent searches appear first
+  - Auto-deduplicates repeated queries
+
+### Fixed
+
+- **Search View Input Issues**: Fixed Backspace key behavior in search view
+  - Backspace key now works correctly in all search input fields
+  - Fixed issue where Backspace triggered "go up one level" in local panel
+  - Applied to search query, path, include, and exclude input fields
+- **Search View Toggle**: Fixed ability to return to directory view from search view
+  - Toggle button now correctly switches between search and file tree views
+
+---
+
 ## 3.6.0 - 2026-01-23
 
 ### Added
