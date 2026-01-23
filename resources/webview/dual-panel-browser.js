@@ -1400,7 +1400,9 @@
             const isInInput = activeElement && (
                 activeElement.id === 'local-search' ||
                 activeElement.id === 'remote-search' ||
-                activeElement.classList.contains('tree-item-input')
+                activeElement.classList.contains('tree-item-input') ||
+                // 检查是否在搜索视图的任何输入框中
+                activeElement.closest('.panel-search-view')
             );
 
             // 只有当不在输入框中时才返回上一级
