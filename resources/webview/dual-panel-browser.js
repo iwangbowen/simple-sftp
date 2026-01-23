@@ -1888,31 +1888,12 @@
                 performSearch();
                 // Reset history index when performing new search
                 searchHistoryIndex = -1;
-                hideSearchHistoryDropdown();
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 navigateSearchHistory('up');
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 navigateSearchHistory('down');
-            } else if (e.key === 'Escape') {
-                hideSearchHistoryDropdown();
-            }
-        });
-
-        // Show history dropdown when focused
-        searchInput?.addEventListener('focus', () => {
-            if (searchHistory.length > 0) {
-                showSearchHistoryDropdown();
-            }
-        });
-
-        // Hide dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            const dropdown = document.getElementById('search-history-dropdown');
-            const searchInput = document.getElementById('search-query-input');
-            if (dropdown && searchInput && e.target !== searchInput && !dropdown.contains(e.target)) {
-                hideSearchHistoryDropdown();
             }
         });
 
@@ -1986,42 +1967,6 @@
                 searchHistoryIndex = -1;
                 searchInput.value = '';
             }
-        }
-    }
-
-    /**
-     * Show search history dropdown
-     */
-    function showSearchHistoryDropdown() {
-        const dropdown = document.getElementById('search-history-dropdown');
-        if (!dropdown || searchHistory.length === 0) return;
-
-        dropdown.innerHTML = '';
-        searchHistory.forEach((query, index) => {
-            const item = document.createElement('div');
-            item.className = 'search-history-item';
-            item.textContent = query;
-            item.addEventListener('click', () => {
-                const searchInput = document.getElementById('search-query-input');
-                if (searchInput) {
-                    searchInput.value = query;
-                    searchHistoryIndex = index;
-                }
-                hideSearchHistoryDropdown();
-            });
-            dropdown.appendChild(item);
-        });
-
-        dropdown.style.display = 'block';
-    }
-
-    /**
-     * Hide search history dropdown
-     */
-    function hideSearchHistoryDropdown() {
-        const dropdown = document.getElementById('search-history-dropdown');
-        if (dropdown) {
-            dropdown.style.display = 'none';
         }
     }
 
