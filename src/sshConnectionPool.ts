@@ -3,7 +3,7 @@ import { Client, ConnectConfig } from 'ssh2';
 import SftpClient from 'ssh2-sftp-client';
 import { HostConfig, HostAuthConfig } from './types';
 import { logger } from './logger';
-import { establishJumpHostConnection } from './utils/jumpHostHelper';
+import { establishMultiHopConnection } from './utils/jumpHostHelper';
 
 /**
  * SSH 连接池条目
@@ -23,8 +23,8 @@ interface PooledConnection {
   inUse: boolean;
   /** 连接状态 */
   isReady: boolean;
-  /** 跳板机连接 (如果使用跳板机) */
-  jumpConn?: Client;
+  /** 跳板机连接 (如果使用跳板机,支持多跳) */
+  jumpConns?: Client[];
 }
 
 /**
@@ -132,18 +132,18 @@ export class SshConnectionPool {
     logger.info(`[ConnectionPool] Creating new connection for ${config.name} (${connIndex}/${this.MAX_CONNECTIONS_PER_HOST})`);
 
     try {
-      // If jump host is configured, establish jump host connection first
-      let jumpConn: Client | undefined;
-      if (config.jumpHost) {
-        logger.info(`[ConnectionPool] Establishing jump host connection for ${config.name}...`);
-        const jumpResult = await establishJumpHostConnection(
-          config.jumpHost,
+      // If jump hosts are configured, establish multi-hop connection first
+      let jumpConns: Client[] | undefined;
+      if (config.jumpHosts && config.jumpHosts.length > 0) {
+        logger.info(`[ConnectionPool] Establishing connection through ${config.jumpHosts.length} jump host(s) for ${config.name}...`);
+        const jumpResult = await establishMultiHopConnection(
+          config.jumpHosts,
           config.host,
           config.port
         );
-        jumpConn = jumpResult.jumpConn;
+        jumpConns = jumpResult.jumpConns;
         connectConfig.sock = jumpResult.stream;
-        logger.info('[ConnectionPool] Jump host connection established, forwarding to target server');
+        logger.info('[ConnectionPool] Jump host connection chain established, forwarding to target server');
       }
 
       // 创建新连接
@@ -157,8 +157,7 @@ export class SshConnectionPool {
       placeholder.client = client;
       placeholder.sftpClient = sftpClient;
       placeholder.isReady = true;
-      placeholder.jumpConn = jumpConn;  // Store jump connection for cleanup
-
+      placeholder.jumpConns = jumpConns;  // Store jump connections for cleanup
       logger.info(`[ConnectionPool] Connection ${connIndex} ready for ${config.name}. Total: ${connections.length}`);
 
       return {
@@ -341,10 +340,10 @@ export class SshConnectionPool {
             (conn.sftpClient as any).end?.();
           }
           conn.client.end();
-          // Clean up jump host connection if exists
-          if (conn.jumpConn) {
-            logger.info('[ConnectionPool] Closing jump host connection');
-            conn.jumpConn.end();
+          // Clean up jump host connections if exist
+          if (conn.jumpConns) {
+            logger.info(`[ConnectionPool] Closing ${conn.jumpConns.length} jump host connection(s)`);
+            conn.jumpConns.forEach(jc => jc.end());
           }
         } catch (error) {
           logger.error('[ConnectionPool] Error closing connection', error as Error);
@@ -364,10 +363,10 @@ export class SshConnectionPool {
             (conn.sftpClient as any).end?.();
           }
           conn.client.end();
-          // Clean up jump host connection if exists
-          if (conn.jumpConn) {
-            logger.info('[ConnectionPool] Closing jump host connection');
-            conn.jumpConn.end();
+          // Clean up jump host connections if exist
+          if (conn.jumpConns) {
+            logger.info(`[ConnectionPool] Closing ${conn.jumpConns.length} jump host connection(s)`);
+            conn.jumpConns.forEach(jc => jc.end());
           }
         } catch (error) {
           logger.error('[ConnectionPool] Error closing connection', error as Error);

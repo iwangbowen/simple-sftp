@@ -82,6 +82,78 @@ body {
     border-top: 1px solid var(--vscode-panel-border);
 }
 
+/* Jump Host Card */
+.jump-host-card {
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background-color: var(--vscode-input-background);
+    position: relative;
+}
+
+.jump-host-card:last-child {
+    margin-bottom: 16px;
+}
+
+.jump-host-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.jump-host-title {
+    font-weight: 500;
+    color: var(--vscode-foreground);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.jump-host-title i {
+    font-size: 14px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.jump-host-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.icon-button-small {
+    background: none;
+    border: none;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    transition: background-color 0.1s ease;
+}
+
+.icon-button-small:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.icon-button-small.danger:hover {
+    background-color: var(--vscode-inputValidation-errorBackground);
+    color: var(--vscode-errorForeground);
+}
+
+.add-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
 /* Form Elements */
 .form-group {
     margin-bottom: 16px;

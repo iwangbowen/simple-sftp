@@ -12,7 +12,7 @@ import { PARALLEL_TRANSFER, DELTA_SYNC, getParallelTransferConfig } from './cons
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
 import { DeltaSyncManager } from './services/deltaSyncManager';
 import { AttributePreservingTransfer } from './attributePreservingTransfer';
-import { establishJumpHostConnection, addAuthToConnectConfig } from './utils/jumpHostHelper';
+import { establishMultiHopConnection, addAuthToConnectConfig } from './utils/jumpHostHelper';
 
 /**
  * Download file options
@@ -69,20 +69,20 @@ export class SshConnectionManager {
    * 测试连接
    */
   static async testConnection(config: HostConfig, authConfig: HostAuthConfig): Promise<boolean> {
-    let jumpConn: Client | null = null;
+    let jumpConns: Client[] | null = null;
     const conn = new Client();
     const connectConfig = this.buildConnectConfig(config, authConfig);
 
     try {
-      // If jump host is configured, establish jump host connection first
-      if (config.jumpHost) {
-        logger.info(`Testing connection through jump host: ${config.jumpHost.username}@${config.jumpHost.host}:${config.jumpHost.port}`);
-        const jumpResult = await establishJumpHostConnection(
-          config.jumpHost,
+      // If jump hosts are configured, establish multi-hop connection first
+      if (config.jumpHosts && config.jumpHosts.length > 0) {
+        logger.info(`Testing connection through ${config.jumpHosts.length} jump host(s)`);
+        const jumpResult = await establishMultiHopConnection(
+          config.jumpHosts,
           config.host,
           config.port
         );
-        jumpConn = jumpResult.jumpConn;
+        jumpConns = jumpResult.jumpConns;
         connectConfig.sock = jumpResult.stream;
       }
 
@@ -90,14 +90,14 @@ export class SshConnectionManager {
         conn
           .on('ready', () => {
             conn.end();
-            if (jumpConn) {
-              jumpConn.end();
+            if (jumpConns) {
+              jumpConns.forEach(jc => jc.end());
             }
             resolve(true);
           })
           .on('error', err => {
-            if (jumpConn) {
-              jumpConn.end();
+            if (jumpConns) {
+              jumpConns.forEach(jc => jc.end());
             }
             reject(err);
           })
@@ -106,15 +106,15 @@ export class SshConnectionManager {
         // 30秒超时
         setTimeout(() => {
           conn.end();
-          if (jumpConn) {
-            jumpConn.end();
+          if (jumpConns) {
+            jumpConns.forEach(jc => jc.end());
           }
           reject(new Error('Connection timeout'));
         }, 30000);
       });
     } catch (error) {
-      if (jumpConn) {
-        jumpConn.end();
+      if (jumpConns) {
+        jumpConns.forEach(jc => jc.end());
       }
       throw error;
     }

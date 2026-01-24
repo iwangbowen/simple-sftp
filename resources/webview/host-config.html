@@ -109,69 +109,23 @@
                 <div class="section-header" id="jumpHostToggle">
                     <i class="codicon codicon-chevron-right toggle-icon"></i>
                     <span class="section-title">Jump Host Configuration</span>
-                    <span class="section-hint">Access target via proxy server</span>
+                    <span class="section-hint">Access target via proxy server(s)</span>
                 </div>
 
                 <div id="jumpHostConfig" class="section-content" style="display: none;">
-                    <div class="form-row">
-                        <div class="form-group flex-2">
-                            <label for="jumpHost">Jump Host</label>
-                            <input type="text" id="jumpHost" placeholder="jump.example.com" />
-                        </div>
-                        <div class="form-group flex-1">
-                            <label for="jumpPort">Port</label>
-                            <input type="number" id="jumpPort" value="22" min="1" max="65535" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="jumpUsername">Username</label>
-                        <input type="text" id="jumpUsername" placeholder="admin" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="jumpAuthType">Auth Type</label>
-                        <select id="jumpAuthType">
-                            <option value="password">Password</option>
-                            <option value="privateKey">Private Key</option>
-                            <option value="agent">SSH Agent</option>
-                        </select>
-                    </div>
-
-                    <!-- Password auth -->
-                    <div class="form-group auth-option" id="jumpPasswordAuth">
-                        <label for="jumpPassword">Password</label>
-                        <input type="password" id="jumpPassword" placeholder="Jump host password" />
-                    </div>
-
-                    <!-- Private Key auth -->
-                    <div class="form-group auth-option" id="jumpPrivateKeyAuth" style="display: none;">
-                        <label for="jumpPrivateKeyPath">Private Key Path</label>
-                        <div class="input-group">
-                            <input type="text" id="jumpPrivateKeyPath" placeholder="~/.ssh/id_rsa" />
-                            <button type="button" id="jumpBrowseKey" class="icon-button">
-                                <i class="codicon codicon-folder-opened"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="form-group auth-option" id="jumpPassphraseAuth" style="display: none;">
-                        <label for="jumpPassphrase">Passphrase <span class="optional">(Optional)</span></label>
-                        <input type="password" id="jumpPassphrase" placeholder="If private key is encrypted" />
-                    </div>
-
-                    <!-- SSH Agent auth -->
-                    <div class="form-group auth-option" id="jumpAgentAuth" style="display: none;">
-                        <div class="info-note">
-                            <i class="codicon codicon-info"></i>
-                            <span>Use system SSH Agent for authentication</span>
-                        </div>
-                    </div>
-
-                    <div class="info-note">
+                    <div class="info-note" id="jumpHostInfo">
                         <i class="codicon codicon-info"></i>
-                        <span>Leave empty if you don't need a jump host</span>
+                        <span>Configure one or more jump hosts to access the target server</span>
                     </div>
+
+                    <!-- Jump Hosts List Container -->
+                    <div id="jumpHostsList"></div>
+
+                    <!-- Add Jump Host Button -->
+                    <button type="button" id="addJumpHost" class="button-secondary add-button">
+                        <i class="codicon codicon-add"></i>
+                        <span>Add Jump Host</span>
+                    </button>
                 </div>
             </div>
 

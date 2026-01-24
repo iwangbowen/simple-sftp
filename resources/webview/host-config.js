@@ -1,418 +1,433 @@
 // @ts-check
 (function () {
+    // @ts-ignore
     const vscode = acquireVsCodeApi();
 
-    // Get DOM elements
-    const elements = {
-        // Basic settings
-        name: document.getElementById('name'),
-        host: document.getElementById('host'),
-        port: document.getElementById('port'),
-        username: document.getElementById('username'),
-        authType: document.getElementById('authType'),
-        password: document.getElementById('password'),
-        privateKeyPath: document.getElementById('privateKeyPath'),
-        passphrase: document.getElementById('passphrase'),
-        browseKey: document.getElementById('browseKey'),
-        defaultRemotePath: document.getElementById('defaultRemotePath'),
-        color: document.getElementById('color'),
-        starred: document.getElementById('starred'),
+    let jumpHostsData = []; // Array of jump host configurations
+    let jumpHostIdCounter = 0;
 
-        // Jump host settings
-        jumpHost: document.getElementById('jumpHost'),
-        jumpPort: document.getElementById('jumpPort'),
-        jumpUsername: document.getElementById('jumpUsername'),
-        jumpAuthType: document.getElementById('jumpAuthType'),
-        jumpPassword: document.getElementById('jumpPassword'),
-        jumpPrivateKeyPath: document.getElementById('jumpPrivateKeyPath'),
-        jumpPassphrase: document.getElementById('jumpPassphrase'),
-        jumpBrowseKey: document.getElementById('jumpBrowseKey'),
+    // DOM Elements
+    const form = document.getElementById('hostConfigForm');
+    const pageTitleEl = document.getElementById('pageTitle');
+    const authTypeSelect = document.getElementById('authType');
+    const jumpHostToggle = document.getElementById('jumpHostToggle');
+    const jumpHostConfig = document.getElementById('jumpHostConfig');
+    const jumpHostsList = document.getElementById('jumpHostsList');
+    const addJumpHostBtn = document.getElementById('addJumpHost');
+    const testConnectionBtn = document.getElementById('testConnection');
+    const cancelBtn = document.getElementById('cancel');
+    const browseKeyBtn = document.getElementById('browseKey');
 
-        // Buttons
-        testConnection: document.getElementById('testConnection'),
-        cancel: document.getElementById('cancel'),
-        save: document.getElementById('save'),
-
-        // Page elements
-        pageTitle: document.getElementById('pageTitle')
-    };
-
-    // State
-    let isEditMode = false;
-
-    // Collapsible section toggle
-    const sectionHeader = document.querySelector('.section-header');
-    const sectionContent = document.querySelector('.section-content');
-
-    if (sectionHeader) {
-        sectionHeader.addEventListener('click', () => {
-            const isExpanded = sectionHeader.classList.contains('expanded');
-
-            if (isExpanded) {
-                sectionHeader.classList.remove('expanded');
-                if (sectionContent) sectionContent.style.display = 'none';
-            } else {
-                sectionHeader.classList.add('expanded');
-                if (sectionContent) sectionContent.style.display = 'block';
-            }
-        });
-    }
-
-    // Jump host auth type change
-    if (elements.authType) {
-        elements.authType.addEventListener('change', () => {
-            updateAuthVisibility();
-        });
-    }
-
-    if (elements.jumpAuthType) {
-        elements.jumpAuthType.addEventListener('change', () => {
-            updateJumpAuthVisibility();
-        });
-    }
-
-    function updateAuthVisibility() {
-        if (!elements.authType) return;
-
-        const authType = elements.authType.value;
-
-        // Hide all auth options
-        const passwordAuth = document.getElementById('passwordAuth');
-        const privateKeyAuth = document.getElementById('privateKeyAuth');
-        const passphraseAuth = document.getElementById('passphraseAuth');
-        const agentAuth = document.getElementById('agentAuth');
-
-        if (passwordAuth) passwordAuth.style.display = 'none';
-        if (privateKeyAuth) privateKeyAuth.style.display = 'none';
-        if (passphraseAuth) passphraseAuth.style.display = 'none';
-        if (agentAuth) agentAuth.style.display = 'none';
-
-        // Show relevant auth options
-        if (authType === 'password') {
-            if (passwordAuth) passwordAuth.style.display = 'block';
-        } else if (authType === 'privateKey') {
-            if (privateKeyAuth) privateKeyAuth.style.display = 'block';
-            if (passphraseAuth) passphraseAuth.style.display = 'block';
-        } else if (authType === 'agent') {
-            if (agentAuth) agentAuth.style.display = 'block';
+    // Initialize
+    window.addEventListener('message', event => {
+        const message = event.data;
+        switch (message.command || message.type) {
+            case 'loadConfig':
+                loadHostConfig(message.config);
+                break;
+            case 'testResult':
+            case 'testConnectionResult':
+                if (!message.success) {
+                    vscode.postMessage({ type: 'error', message: message.message });
+                }
+                break;
+            case 'privateKeyPath':
+                const pathInput = message.isJumpHost
+                    ? document.querySelector(`#jump-${message.jumpHostId}-privateKeyPath`)
+                    : document.getElementById('privateKeyPath');
+                if (pathInput) {
+                    pathInput.value = message.path;
+                }
+                break;
         }
-    }
+    });
 
-    function updateJumpAuthVisibility() {
-        if (!elements.jumpAuthType) return;
+    // Auth type change handler for main host
+    authTypeSelect.addEventListener('change', () => {
+        updateAuthFields('');
+    });
 
-        const authType = elements.jumpAuthType.value;
+    // Jump host toggle
+    jumpHostToggle.addEventListener('click', () => {
+        const isExpanded = jumpHostConfig.style.display === 'block';
+        jumpHostConfig.style.display = isExpanded ? 'none' : 'block';
+        jumpHostToggle.classList.toggle('expanded', !isExpanded);
+    });
 
-        //Hide all auth options
-        const passwordAuth = document.getElementById('jumpPasswordAuth');
-        const privateKeyAuth = document.getElementById('jumpPrivateKeyAuth');
-        const passphraseAuth = document.getElementById('jumpPassphraseAuth');
-        const agentAuth = document.getElementById('jumpAgentAuth');
+    // Add jump host
+    addJumpHostBtn.addEventListener('click', () => {
+        addJumpHostCard();
+    });
 
-        if (passwordAuth) passwordAuth.style.display = 'none';
-        if (privateKeyAuth) privateKeyAuth.style.display = 'none';
-        if (passphraseAuth) passphraseAuth.style.display = 'none';
-        if (agentAuth) agentAuth.style.display = 'none';
-
-        // Show relevant auth options
-        if (authType === 'password') {
-            if (passwordAuth) passwordAuth.style.display = 'block';
-        } else if (authType === 'privateKey') {
-            if (privateKeyAuth) privateKeyAuth.style.display = 'block';
-            if (passphraseAuth) passphraseAuth.style.display = 'block';
-        } else if (authType === 'agent') {
-            if (agentAuth) agentAuth.style.display = 'block';
-        }
-    }
-
-    // Browse for private key
-    if (elements.browseKey) {
-        elements.browseKey.addEventListener('click', () => {
-            vscode.postMessage({
-                command: 'browsePrivateKey',
-                context: 'host'
-            });
-        });
-    }
-
-    if (elements.jumpBrowseKey) {
-        elements.jumpBrowseKey.addEventListener('click', () => {
-            vscode.postMessage({
-                command: 'browsePrivateKey',
-                context: 'jumpHost'
-            });
-        });
-    }
+    // Browse private key for main host
+    browseKeyBtn.addEventListener('click', () => {
+        vscode.postMessage({ type: 'browsePrivateKey', isJumpHost: false });
+    });
 
     // Test connection
-    if (elements.testConnection) {
-        elements.testConnection.addEventListener('click', async () => {
-            const config = collectFormData();
+    testConnectionBtn.addEventListener('click', async () => {
+        if (!validate()) {
+            return;
+        }
 
-            if (!validateBasicFields(config)) {
-                return;
-            }
-
-            elements.testConnection.disabled = true;
-            elements.testConnection.innerHTML = '<i class="codicon codicon-loading codicon-modifier-spin"></i> Testing...';
-
-            vscode.postMessage({
-                command: 'testConnection',
-                config: config
-            });
-        });
-    }
-
-    // Save configuration
-    if (elements.save) {
-        elements.save.addEventListener('click', (e) => {
-            e.preventDefault();
-            const config = collectFormData();
-
-            if (!validateBasicFields(config)) {
-                return;
-            }
-
-            if (config.jumpHost && !validateJumpHostFields(config.jumpHost)) {
-                return;
-            }
-
-            vscode.postMessage({
-                command: 'save',
-                config: config,
-                isEditMode: isEditMode
-            });
-        });
-    }
+        const config = collectFormData();
+        vscode.postMessage({ type: 'testConnection', config });
+    });
 
     // Cancel
-    if (elements.cancel) {
-        elements.cancel.addEventListener('click', () => {
-            vscode.postMessage({
-                command: 'cancel'
+    cancelBtn.addEventListener('click', () => {
+        vscode.postMessage({ type: 'cancel' });
+    });
+
+    // Form submit
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!validate()) {
+            return;
+        }
+
+        const config = collectFormData();
+        vscode.postMessage({ type: 'save', config });
+    });
+
+    /**
+     * Add a jump host card to the list
+     * @param {any} [jumpHostData] - Optional data to pre-fill
+     */
+    function addJumpHostCard(jumpHostData) {
+        const id = ++jumpHostIdCounter;
+        const jumpHost = jumpHostData || {
+            host: '',
+            port: 22,
+            username: '',
+            authType: 'password',
+            password: '',
+            privateKeyPath: '',
+            passphrase: ''
+        };
+
+        const card = document.createElement('div');
+        card.className = 'jump-host-card';
+        card.id = `jump-host-${id}`;
+        card.dataset.id = id.toString();
+
+        card.innerHTML = `
+            <div class="jump-host-header">
+                <div class="jump-host-title">
+                    <i class="codicon codicon-vm-connect"></i>
+                    <span>Jump Host ${jumpHostsData.length + 1}</span>
+                </div>
+                <div class="jump-host-actions">
+                    ${jumpHostsData.length > 0 ? `
+                        <button type="button" class="icon-button-small move-up" title="Move up">
+                            <i class="codicon codicon-arrow-up"></i>
+                        </button>
+                        <button type="button" class="icon-button-small move-down" title="Move down">
+                            <i class="codicon codicon-arrow-down"></i>
+                        </button>
+                    ` : ''}
+                    <button type="button" class="icon-button-small danger remove" title="Remove">
+                        <i class="codicon codicon-trash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group flex-2">
+                    <label for="jump-${id}-host">Host</label>
+                    <input type="text" id="jump-${id}-host" placeholder="jump.example.com" value="${jumpHost.host || ''}" />
+                </div>
+                <div class="form-group flex-1">
+                    <label for="jump-${id}-port">Port</label>
+                    <input type="number" id="jump-${id}-port" value="${jumpHost.port || 22}" min="1" max="65535" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="jump-${id}-username">Username</label>
+                <input type="text" id="jump-${id}-username" placeholder="admin" value="${jumpHost.username || ''}" />
+            </div>
+
+            <div class="form-group">
+                <label for="jump-${id}-authType">Auth Type</label>
+                <select id="jump-${id}-authType">
+                    <option value="password" ${jumpHost.authType === 'password' ? 'selected' : ''}>Password</option>
+                    <option value="privateKey" ${jumpHost.authType === 'privateKey' ? 'selected' : ''}>Private Key</option>
+                    <option value="agent" ${jumpHost.authType === 'agent' ? 'selected' : ''}>SSH Agent</option>
+                </select>
+            </div>
+
+            <!-- Password auth -->
+            <div class="form-group auth-option" id="jump-${id}-passwordAuth">
+                <label for="jump-${id}-password">Password</label>
+                <input type="password" id="jump-${id}-password" placeholder="Jump host password" value="${jumpHost.password || ''}" />
+            </div>
+
+            <!-- Private Key auth -->
+            <div class="form-group auth-option" id="jump-${id}-privateKeyAuth" style="display: none;">
+                <label for="jump-${id}-privateKeyPath">Private Key Path</label>
+                <div class="input-group">
+                    <input type="text" id="jump-${id}-privateKeyPath" placeholder="~/.ssh/id_rsa" value="${jumpHost.privateKeyPath || ''}" />
+                    <button type="button" class="icon-button browse-jump-key" data-id="${id}">
+                        <i class="codicon codicon-folder-opened"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group auth-option" id="jump-${id}-passphraseAuth" style="display: none;">
+                <label for="jump-${id}-passphrase">Passphrase <span class="optional">(Optional)</span></label>
+                <input type="password" id="jump-${id}-passphrase" placeholder="If private key is encrypted" value="${jumpHost.passphrase || ''}" />
+            </div>
+
+            <!-- SSH Agent auth -->
+            <div class="form-group auth-option" id="jump-${id}-agentAuth" style="display: none;">
+                <div class="info-note">
+                    <i class="codicon codicon-info"></i>
+                    <span>Use system SSH Agent for authentication</span>
+                </div>
+            </div>
+        `;
+
+        jumpHostsList.appendChild(card);
+        jumpHostsData.push({ id, ...jumpHost });
+
+        // Add event listeners
+        const authTypeSelect = document.getElementById(`jump-${id}-authType`);
+        authTypeSelect.addEventListener('change', () => {
+            updateAuthFields(`jump-${id}-`);
+        });
+
+        const browseBtn = card.querySelector('.browse-jump-key');
+        browseBtn.addEventListener('click', () => {
+            vscode.postMessage({ type: 'browsePrivateKey', isJumpHost: true, jumpHostId: id });
+        });
+
+        const removeBtn = card.querySelector('.remove');
+        removeBtn.addEventListener('click', () => {
+            removeJumpHostCard(id);
+        });
+
+        const moveUpBtn = card.querySelector('.move-up');
+        if (moveUpBtn) {
+            moveUpBtn.addEventListener('click', () => {
+                moveJumpHostCard(id, 'up');
             });
+        }
+
+        const moveDownBtn = card.querySelector('.move-down');
+        if (moveDownBtn) {
+            moveDownBtn.addEventListener('click', () => {
+                moveJumpHostCard(id, 'down');
+            });
+        }
+
+        // Update auth fields
+        updateAuthFields(`jump-${id}-`);
+        updateJumpHostTitles();
+    }
+
+    /**
+     * Remove a jump host card
+     * @param {number} id
+     */
+    function removeJumpHostCard(id) {
+        const card = document.getElementById(`jump-host-${id}`);
+        if (card) {
+            card.remove();
+        }
+        jumpHostsData = jumpHostsData.filter(jh => jh.id !== id);
+        updateJumpHostTitles();
+    }
+
+    /**
+     * Move a jump host card up or down
+     * @param {number} id
+     * @param {'up'|'down'} direction
+     */
+    function moveJumpHostCard(id, direction) {
+        const index = jumpHostsData.findIndex(jh => jh.id === id);
+        if (index === -1) return;
+
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= jumpHostsData.length) return;
+
+        // Swap in data array
+        [jumpHostsData[index], jumpHostsData[newIndex]] = [jumpHostsData[newIndex], jumpHostsData[index]];
+
+        // Re-render all cards
+        renderJumpHosts();
+    }
+
+    /**
+     * Re-render all jump host cards
+     */
+    function renderJumpHosts() {
+        jumpHostsList.innerHTML = '';
+        const tempData = [...jumpHostsData];
+        jumpHostsData = [];
+        jumpHostIdCounter = 0;
+        tempData.forEach(jh => {
+            const { id, ...data } = jh;
+            addJumpHostCard(data);
         });
     }
 
-    // Collect form data
+    /**
+     * Update jump host titles (Jump Host 1, 2, 3, ...)
+     */
+    function updateJumpHostTitles() {
+        const cards = jumpHostsList.querySelectorAll('.jump-host-card');
+        cards.forEach((card, index) => {
+            const titleSpan = card.querySelector('.jump-host-title span');
+            if (titleSpan) {
+                titleSpan.textContent = `Jump Host ${index + 1}`;
+            }
+        });
+    }
+
+    /**
+     * Update authentication fields visibility
+     * @param {string} prefix - Field prefix ('' for main host, 'jump-{id}-' for jump hosts)
+     */
+    function updateAuthFields(prefix) {
+        const authType = document.getElementById(`${prefix}authType`)?.value;
+
+        const passwordAuth = document.getElementById(`${prefix}passwordAuth`);
+        const privateKeyAuth = document.getElementById(`${prefix}privateKeyAuth`);
+        const passphraseAuth = document.getElementById(`${prefix}passphraseAuth`);
+        const agentAuth = document.getElementById(`${prefix}agentAuth`);
+
+        if (!authType) return;
+
+        // Hide all
+        if (passwordAuth) passwordAuth.style.display = 'none';
+        if (privateKeyAuth) privateKeyAuth.style.display = 'none';
+        if (passphraseAuth) passphraseAuth.style.display = 'none';
+        if (agentAuth) agentAuth.style.display = 'none';
+
+        // Show relevant fields
+        if (authType === 'password' && passwordAuth) {
+            passwordAuth.style.display = 'block';
+        } else if (authType === 'privateKey') {
+            if (privateKeyAuth) privateKeyAuth.style.display = 'block';
+            if (passphraseAuth) passphraseAuth.style.display = 'block';
+        } else if (authType === 'agent' && agentAuth) {
+            agentAuth.style.display = 'block';
+        }
+    }
+
+    /**
+     * Load host configuration
+     * @param {any} config
+     */
+    function loadHostConfig(config) {
+        if (config.id) {
+            pageTitleEl.textContent = `Edit Host: ${config.name || config.host}`;
+        }
+
+        // Basic fields
+        document.getElementById('name').value = config.name || '';
+        document.getElementById('host').value = config.host || '';
+        document.getElementById('port').value = config.port || 22;
+        document.getElementById('username').value = config.username || '';
+        document.getElementById('defaultRemotePath').value = config.defaultRemotePath || '';
+        document.getElementById('color').value = config.color || '';
+        document.getElementById('starred').checked = config.starred || false;
+
+        // Auth fields
+        document.getElementById('authType').value = config.authType || 'password';
+        document.getElementById('password').value = config.password || '';
+        document.getElementById('privateKeyPath').value = config.privateKeyPath || '';
+        document.getElementById('passphrase').value = config.passphrase || '';
+
+        updateAuthFields('');
+
+        // Load jump hosts
+        jumpHostsList.innerHTML = '';
+        jumpHostsData = [];
+        jumpHostIdCounter = 0;
+
+        if (config.jumpHosts && Array.isArray(config.jumpHosts)) {
+            config.jumpHosts.forEach(jh => {
+                addJumpHostCard(jh);
+            });
+        } else if (config.jumpHost) {
+            // Backward compatibility: single jumpHost
+            addJumpHostCard(config.jumpHost);
+        }
+    }
+
+    /**
+     * Collect form data
+     * @returns {any}
+     */
     function collectFormData() {
         const config = {
-            name: elements.name?.value.trim() || '',
-            host: elements.host?.value.trim() || '',
-            port: Number.parseInt(elements.port?.value || '22'),
-            username: elements.username?.value.trim() || '',
-            authType: elements.authType?.value || 'password',
-            defaultRemotePath: elements.defaultRemotePath?.value.trim() || undefined,
-            color: elements.color?.value || undefined,
-            starred: elements.starred?.checked || false
+            name: document.getElementById('name').value.trim(),
+            host: document.getElementById('host').value.trim(),
+            port: parseInt(document.getElementById('port').value, 10),
+            username: document.getElementById('username').value.trim(),
+            defaultRemotePath: document.getElementById('defaultRemotePath').value.trim(),
+            color: document.getElementById('color').value,
+            starred: document.getElementById('starred').checked,
+            authType: document.getElementById('authType').value,
+            password: document.getElementById('password').value,
+            privateKeyPath: document.getElementById('privateKeyPath').value.trim(),
+            passphrase: document.getElementById('passphrase').value
         };
 
-        // Add auth credentials based on type
-        if (config.authType === 'password') {
-            config.password = elements.password?.value || '';
-        } else if (config.authType === 'privateKey') {
-            config.privateKeyPath = elements.privateKeyPath?.value.trim() || '';
-            if (elements.passphrase?.value) {
-                config.passphrase = elements.passphrase.value;
-            }
-        }
-
-        // Collect jump host config if filled
-        const jumpHostValue = elements.jumpHost?.value.trim();
-        if (jumpHostValue) {
-            const jumpHost = {
-                host: jumpHostValue,
-                port: Number.parseInt(elements.jumpPort?.value || '22'),
-                username: elements.jumpUsername?.value.trim() || '',
-                authType: elements.jumpAuthType?.value || 'password'
+        // Collect jump hosts
+        const jumpHosts = jumpHostsData.map(jh => {
+            const id = jh.id;
+            return {
+                host: document.getElementById(`jump-${id}-host`)?.value.trim() || '',
+                port: parseInt(document.getElementById(`jump-${id}-port`)?.value || '22', 10),
+                username: document.getElementById(`jump-${id}-username`)?.value.trim() || '',
+                authType: document.getElementById(`jump-${id}-authType`)?.value || 'password',
+                password: document.getElementById(`jump-${id}-password`)?.value || '',
+                privateKeyPath: document.getElementById(`jump-${id}-privateKeyPath`)?.value.trim() || '',
+                passphrase: document.getElementById(`jump-${id}-passphrase`)?.value || ''
             };
+        }).filter(jh => jh.host); // Filter out empty jump hosts
 
-            // Add auth credentials based on type
-            if (jumpHost.authType === 'password') {
-                jumpHost.password = elements.jumpPassword?.value || '';
-            } else if (jumpHost.authType === 'privateKey') {
-                jumpHost.privateKeyPath = elements.jumpPrivateKeyPath?.value.trim() || '';
-                if (elements.jumpPassphrase?.value) {
-                    jumpHost.passphrase = elements.jumpPassphrase.value;
-                }
-            }
-
-            config.jumpHost = jumpHost;
-        }
+        config.jumpHosts = jumpHosts.length > 0 ? jumpHosts : undefined;
 
         return config;
     }
 
-    // Validate basic fields
-    function validateBasicFields(config) {
-        if (!config.name) {
-            showError('Please enter host name');
+    /**
+     * Validate form
+     * @returns {boolean}
+     */
+    function validate() {
+        const name = document.getElementById('name').value.trim();
+        const host = document.getElementById('host').value.trim();
+        const port = parseInt(document.getElementById('port').value, 10);
+        const username = document.getElementById('username').value.trim();
+
+        if (!name) {
+            vscode.postMessage({ type: 'error', message: 'Please provide a name for the host' });
             return false;
         }
 
-        if (!config.host) {
-            showError('Please enter host address');
+        if (!host) {
+            vscode.postMessage({ type: 'error', message: 'Please provide a host address' });
             return false;
         }
 
-        if (!config.port || config.port < 1 || config.port > 65535) {
-            showError('Please enter valid port number (1-65535)');
+        if (!port || port < 1 || port > 65535) {
+            vscode.postMessage({ type: 'error', message: 'Please provide a valid port number (1-65535)' });
             return false;
         }
 
-        if (!config.username) {
-            showError('Please enter username');
-            return false;
-        }
-
-        return true;
-    }
-
-    // Validate jump host fields
-    function validateJumpHostFields(jumpHost) {
-        if (!jumpHost.host) {
-            showError('Please enter jump host address');
-            return false;
-        }
-
-        if (!jumpHost.port || jumpHost.port < 1 || jumpHost.port > 65535) {
-            showError('Please enter valid jump host port (1-65535)');
-            return false;
-        }
-
-        if (!jumpHost.username) {
-            showError('Please enter jump host username');
-            return false;
-        }
-
-        if (jumpHost.authType === 'password' && !jumpHost.password) {
-            showError('Please enter jump host password');
-            return false;
-        }
-
-        if (jumpHost.authType === 'privateKey' && !jumpHost.privateKeyPath) {
-            showError('Please select jump host private key file');
+        if (!username) {
+            vscode.postMessage({ type: 'error', message: 'Please provide a username' });
             return false;
         }
 
         return true;
     }
 
-    // Show error message
-    function showError(message) {
-        vscode.postMessage({
-            command: 'showError',
-            message: message
-        });
-    }
-
-    // Load configuration into form
-    function loadConfig(config) {
-        isEditMode = !!config?.id;
-
-        // Update page title
-        if (elements.pageTitle) {
-            elements.pageTitle.textContent = isEditMode ? 'Edit Host Configuration' : 'Add Host';
-        }
-
-        if (!config) {
-            return;
-        }
-
-        // Load basic settings
-        if (elements.name) elements.name.value = config.name || '';
-        if (elements.host) elements.host.value = config.host || '';
-        if (elements.port) elements.port.value = config.port || 22;
-        if (elements.username) elements.username.value = config.username || '';
-        if (elements.authType) elements.authType.value = config.authType || 'password';
-
-        // Load auth credentials
-        if (config.authType === 'password') {
-            if (elements.password) elements.password.value = config.password || '';
-        } else if (config.authType === 'privateKey') {
-            if (elements.privateKeyPath) elements.privateKeyPath.value = config.privateKeyPath || '';
-            if (elements.passphrase) elements.passphrase.value = config.passphrase || '';
-        }
-
-        updateAuthVisibility();
-
-        if (elements.defaultRemotePath) elements.defaultRemotePath.value = config.defaultRemotePath || '';
-        if (elements.color) elements.color.value = config.color || '';
-        if (elements.starred) elements.starred.checked = config.starred || false;
-
-        // Load jump host settings
-        if (config.jumpHost) {
-            // Expand jump host section
-            if (sectionHeader && sectionContent) {
-                sectionHeader.classList.add('expanded');
-                sectionContent.style.display = 'block';
-            }
-
-            if (elements.jumpHost) elements.jumpHost.value = config.jumpHost.host || '';
-            if (elements.jumpPort) elements.jumpPort.value = config.jumpHost.port || 22;
-            if (elements.jumpUsername) elements.jumpUsername.value = config.jumpHost.username || '';
-            if (elements.jumpAuthType) elements.jumpAuthType.value = config.jumpHost.authType || 'password';
-
-            if (config.jumpHost.authType === 'password') {
-                if (elements.jumpPassword) elements.jumpPassword.value = config.jumpHost.password || '';
-            } else if (config.jumpHost.authType === 'privateKey') {
-                if (elements.jumpPrivateKeyPath) elements.jumpPrivateKeyPath.value = config.jumpHost.privateKeyPath || '';
-                if (elements.jumpPassphrase) elements.jumpPassphrase.value = config.jumpHost.passphrase || '';
-            }
-
-            updateJumpAuthVisibility();
-        } else {
-            // Collapse jump host section if not configured
-            if (sectionHeader && sectionContent) {
-                sectionHeader.classList.remove('expanded');
-                sectionContent.style.display = 'none';
-            }
-        }
-    }
-
-    // Handle messages from extension
-    window.addEventListener('message', event => {
-        const message = event.data;
-
-        switch (message.command) {
-            case 'loadConfig':
-                loadConfig(message.config);
-                break;
-
-            case 'testConnectionResult':
-                if (elements.testConnection) {
-                    elements.testConnection.disabled = false;
-                    elements.testConnection.innerHTML = '<i class="codicon codicon-debug-disconnect"></i> Test Connection';
-                }
-
-                if (message.success) {
-                    vscode.postMessage({
-                        command: 'showInfo',
-                        message: 'Connection test successful!'
-                    });
-                }
-                break;
-
-            case 'privateKeyPath':
-                if (message.context === 'jumpHost') {
-                    if (elements.jumpPrivateKeyPath) {
-                        elements.jumpPrivateKeyPath.value = message.path;
-                    }
-                } else if (message.context === 'host') {
-                    if (elements.privateKeyPath) {
-                        elements.privateKeyPath.value = message.path;
-                    }
-                }
-                break;
-        }
-    });
-
-    // Initialize
-    updateAuthVisibility();
-    updateJumpAuthVisibility();
-
-    // Request initial configuration
-    vscode.postMessage({
-        command: 'ready'
-    });
+    // Initialize auth fields
+    updateAuthFields('');
 })();

@@ -56,8 +56,8 @@ export interface HostConfig {
   recentPaths?: string[];
   /** 路径书签列表 */
   bookmarks?: PathBookmark[];
-  /** 跳板机配置 */
-  jumpHost?: JumpHostConfig;
+  /** 跳板机配置列表 (支持多跳) */
+  jumpHosts?: JumpHostConfig[];
 }
 
 /**

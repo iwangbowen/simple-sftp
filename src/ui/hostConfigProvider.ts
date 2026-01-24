@@ -137,13 +137,30 @@ export class HostConfigProvider {
 
         // Merge with auth config if available
         const authConfig = await this.authManager.getAuth(hostId);
+
+        // Load auth for jump hosts too
+        const jumpHostsWithAuth = host.jumpHosts ? await Promise.all(
+            host.jumpHosts.map(async (jh, index) => {
+                const jumpAuthConfig = await this.authManager.getAuth(`${hostId}_jump_${index}`);
+                return {
+                    ...jh,
+                    authType: jumpAuthConfig?.authType || jh.authType || 'password',
+                    password: jumpAuthConfig?.password,
+                    privateKeyPath: jumpAuthConfig?.privateKeyPath,
+                    passphrase: jumpAuthConfig?.passphrase
+                };
+            })
+        ) : undefined;
+
         const fullConfig = {
             ...host,
             // Include auth config in the form
             authType: authConfig?.authType || 'password',
             password: authConfig?.password,
             privateKeyPath: authConfig?.privateKeyPath,
-            passphrase: authConfig?.passphrase
+            passphrase: authConfig?.passphrase,
+            // Pass the full jumpHosts array with auth
+            jumpHosts: jumpHostsWithAuth
         };
 
         this.panel.webview.postMessage({
@@ -156,7 +173,8 @@ export class HostConfigProvider {
      * Handle messages from webview
      */
     private async handleMessage(message: any): Promise<void> {
-        switch (message.command) {
+        const action = message.command || message.type;
+        switch (action) {
             case 'ready':
                 // Webview is ready, load config if editing
                 if (this.currentHostId) {
@@ -165,7 +183,7 @@ export class HostConfigProvider {
                 break;
 
             case 'save':
-                await this.handleSave(message.config, message.isEditMode);
+                await this.handleSave(message.config);
                 break;
 
             case 'cancel':
@@ -180,10 +198,12 @@ export class HostConfigProvider {
                 await this.handleBrowsePrivateKey(message.context);
                 break;
 
+            case 'error':
             case 'showError':
                 vscode.window.showErrorMessage(message.message);
                 break;
 
+            case 'info':
             case 'showInfo':
                 vscode.window.showInformationMessage(message.message);
                 break;
@@ -193,8 +213,15 @@ export class HostConfigProvider {
     /**
      * Handle save configuration
      */
-    private async handleSave(config: any, isEditMode: boolean): Promise<void> {
+    private async handleSave(config: any): Promise<void> {
         try {
+            // Extract jumpHosts with auth removed (will be stored separately)
+            const jumpHostsWithoutAuth = config.jumpHosts?.map((jh: any) => ({
+                host: jh.host,
+                port: jh.port,
+                username: jh.username
+            }));
+
             // Separate host config and auth config
             const hostConfig: Partial<HostConfig> = {
                 name: config.name,
@@ -205,13 +232,13 @@ export class HostConfigProvider {
                 color: config.color,
                 starred: config.starred,
                 group: config.group,
-                jumpHost: config.jumpHost
+                jumpHosts: jumpHostsWithoutAuth
             };
 
             let hostId: string;
 
-            if (isEditMode && this.currentHostId) {
-                // Update existing host
+            if (this.currentHostId) {
+                // Update existing host (Edit mode - currentHostId is set)
                 await this.hostManager.updateHost(this.currentHostId, hostConfig);
                 hostId = this.currentHostId;
                 vscode.window.showInformationMessage(`Host configuration updated: ${config.name}`);
@@ -223,7 +250,7 @@ export class HostConfigProvider {
                 vscode.window.showInformationMessage(`Host added: ${config.name}`);
             }
 
-            // Save authentication config separately
+            // Save authentication config for main host
             if (config.authType) {
                 const authConfig: any = {
                     hostId: hostId,
@@ -233,6 +260,23 @@ export class HostConfigProvider {
                     passphrase: config.passphrase
                 };
                 await this.authManager.saveAuth(authConfig);
+            }
+
+            // Save authentication config for each jump host
+            if (config.jumpHosts && Array.isArray(config.jumpHosts)) {
+                for (let i = 0; i < config.jumpHosts.length; i++) {
+                    const jh = config.jumpHosts[i];
+                    if (jh.authType) {
+                        const jumpAuthConfig: any = {
+                            hostId: `${hostId}_jump_${i}`,
+                            authType: jh.authType,
+                            password: jh.password,
+                            privateKeyPath: jh.privateKeyPath,
+                            passphrase: jh.passphrase
+                        };
+                        await this.authManager.saveAuth(jumpAuthConfig);
+                    }
+                }
             }
 
             // Trigger callback if provided
@@ -253,9 +297,13 @@ export class HostConfigProvider {
      * Handle test connection
      */
     private async handleTestConnection(config: any): Promise<void> {
+        logger.info('[HostConfigProvider] Test connection requested');
+        logger.info(`[HostConfigProvider] Config: ${JSON.stringify({ host: config.host, port: config.port, username: config.username, authType: config.authType })}`);
+
         try {
             // Validate required fields
             if (!config.host || !config.port || !config.username) {
+                logger.error('[HostConfigProvider] Missing required fields');
                 vscode.window.showErrorMessage('Please fill in complete connection information');
                 this.panel.webview.postMessage({
                     command: 'testConnectionResult',
@@ -266,6 +314,7 @@ export class HostConfigProvider {
 
             // Validate authentication info
             if (!config.authType) {
+                logger.error('[HostConfigProvider] Missing auth type');
                 vscode.window.showErrorMessage('Please select authentication method');
                 this.panel.webview.postMessage({
                     command: 'testConnectionResult',
@@ -320,9 +369,15 @@ export class HostConfigProvider {
                 }
             }
 
-            // Test connection (with jump host if configured)
+            // Test connection (with jump hosts if configured)
+            const testConfig: HostConfig = {
+                ...config as HostConfig,
+                id: 'test',
+                jumpHosts: config.jumpHosts // Direct use of jumpHosts array
+            };
+
             await SshConnectionManager.testConnection(
-                config as HostConfig,
+                testConfig,
                 authConfig
             );
 
