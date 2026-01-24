@@ -12,6 +12,7 @@ import { PARALLEL_TRANSFER, DELTA_SYNC, getParallelTransferConfig } from './cons
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
 import { DeltaSyncManager } from './services/deltaSyncManager';
 import { AttributePreservingTransfer } from './attributePreservingTransfer';
+import { establishJumpHostConnection, addAuthToConnectConfig } from './utils/jumpHostHelper';
 
 /**
  * Download file options
@@ -76,7 +77,7 @@ export class SshConnectionManager {
       // If jump host is configured, establish jump host connection first
       if (config.jumpHost) {
         logger.info(`Testing connection through jump host: ${config.jumpHost.username}@${config.jumpHost.host}:${config.jumpHost.port}`);
-        const jumpResult = await this.establishJumpHostConnection(
+        const jumpResult = await establishJumpHostConnection(
           config.jumpHost,
           config.host,
           config.port
@@ -1102,120 +1103,15 @@ export class SshConnectionManager {
     };
 
     // Add authentication configuration
-    this.addAuthToConnectConfig(connectConfig, authConfig);
+    addAuthToConnectConfig(connectConfig, authConfig);
 
     // Note: Jump host is handled separately in connectWithJumpHost method
-    // Do NOT add sock here as it requires async connection establishment
+    // DO NOT add sock here as it requires async connection establishment
 
     return connectConfig;
   }
 
-  /**
-   * Add authentication configuration to ConnectConfig
-   */
-  private static addAuthToConnectConfig(connectConfig: ConnectConfig, authConfig: HostAuthConfig): void {
-    if (authConfig.authType === 'password' && authConfig.password) {
-      connectConfig.password = authConfig.password;
-    } else if (authConfig.authType === 'privateKey' && authConfig.privateKeyPath) {
-      const privateKeyPath = authConfig.privateKeyPath.replace('~', os.homedir());
-      if (fs.existsSync(privateKeyPath)) {
-        connectConfig.privateKey = fs.readFileSync(privateKeyPath);
-        if (authConfig.passphrase) {
-          connectConfig.passphrase = authConfig.passphrase;
-        }
-      }
-    } else if (authConfig.authType === 'agent') {
-      // SSH Agent support
-      // On Windows, try named pipe first, then environment variable
-      // On Unix, use SSH_AUTH_SOCK environment variable
-      if (process.platform === 'win32') {
-        // Windows: Try named pipe for SSH Agent
-        const agentPath = String.raw`\\.\pipe\openssh-ssh-agent`;
-        connectConfig.agent = agentPath;
-      } else {
-        // Unix/WSL: Use SSH_AUTH_SOCK
-        if (!process.env.SSH_AUTH_SOCK) {
-          throw new Error(
-            'SSH Agent not running. Please start SSH Agent:\n\n' +
-            '  eval "$(ssh-agent -s)"\n' +
-            '  ssh-add ~/.ssh/id_rsa\n\n' +
-            'Or use "Private Key" authentication instead.'
-          );
-        }
-        connectConfig.agent = process.env.SSH_AUTH_SOCK;
-      }
-    }
-  }
 
-  /**
-   * Create a socket through jump host for proxying connections
-   * Returns a function that will create the socket when called
-   */
-  /**
-   * Establish connection through jump host (async)
-   * Returns a stream that can be used as sock for the target connection
-   */
-  private static async establishJumpHostConnection(
-    jumpHost: any,
-    targetHost: string,
-    targetPort: number
-  ): Promise<{ stream: any; jumpConn: Client }> {
-    return new Promise((resolve, reject) => {
-      const jumpConn = new Client();
-
-      // Build jump host connection config
-      const jumpConfig: ConnectConfig = {
-        host: jumpHost.host,
-        port: jumpHost.port,
-        username: jumpHost.username,
-        readyTimeout: 30000,
-        keepaliveInterval: 10000,
-        keepaliveCountMax: 3,
-      };
-
-      // Add jump host authentication
-      const jumpAuthConfig = {
-        hostId: 'jump',
-        authType: jumpHost.authType,
-        password: jumpHost.password,
-        privateKeyPath: jumpHost.privateKeyPath,
-        passphrase: jumpHost.passphrase
-      };
-      this.addAuthToConnectConfig(jumpConfig, jumpAuthConfig);
-
-      jumpConn.on('ready', () => {
-        logger.info(`Jump host connection established, forwarding to ${targetHost}:${targetPort}`);
-
-        // Create forwarding stream through jump host to target server
-        jumpConn.forwardOut(
-          '127.0.0.1',  // Source address (arbitrary local address)
-          0,            // Source port (arbitrary)
-          targetHost,   // Target server address
-          targetPort,   // Target server port
-          (err, stream) => {
-            if (err) {
-              logger.error(`Failed to create forwarding stream: ${err.message}`);
-              jumpConn.end();
-              reject(err);
-              return;
-            }
-
-            logger.info('Forwarding stream created successfully');
-            // Return both the stream and jump connection
-            resolve({ stream, jumpConn });
-          }
-        );
-      });
-
-      jumpConn.on('error', (err) => {
-        logger.error(`Jump host connection error: ${err.message}`);
-        reject(err);
-      });
-
-      logger.info(`Connecting to jump host: ${jumpHost.username}@${jumpHost.host}:${jumpHost.port}`);
-      jumpConn.connect(jumpConfig);
-    });
-  }
 
   /**
    * 递归获取目录下所有文件
