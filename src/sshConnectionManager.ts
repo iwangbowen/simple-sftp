@@ -1072,6 +1072,22 @@ export class SshConnectionManager {
       keepaliveCountMax: 3,       // Disconnect after 3 failed keepalive attempts
     };
 
+    // Add authentication configuration
+    this.addAuthToConnectConfig(connectConfig, authConfig);
+
+    // Add jump host configuration if present
+    if (config.jumpHost) {
+      logger.info(`Using jump host: ${config.jumpHost.username}@${config.jumpHost.host}:${config.jumpHost.port} -> ${config.host}:${config.port}`);
+      connectConfig.sock = this.createJumpHostSock(config.jumpHost, config.host, config.port);
+    }
+
+    return connectConfig;
+  }
+
+  /**
+   * Add authentication configuration to ConnectConfig
+   */
+  private static addAuthToConnectConfig(connectConfig: ConnectConfig, authConfig: HostAuthConfig): void {
     if (authConfig.authType === 'password' && authConfig.password) {
       connectConfig.password = authConfig.password;
     } else if (authConfig.authType === 'privateKey' && authConfig.privateKeyPath) {
@@ -1103,8 +1119,68 @@ export class SshConnectionManager {
         connectConfig.agent = process.env.SSH_AUTH_SOCK;
       }
     }
+  }
 
-    return connectConfig;
+  /**
+   * Create a socket through jump host for proxying connections
+   * Returns a function that will create the socket when called
+   */
+  private static createJumpHostSock(jumpHost: any, targetHost: string, targetPort: number): (callback: (err: Error | null, sock?: any) => void) => void {
+    return (callback: (err: Error | null, sock?: any) => void) => {
+      const jumpConn = new Client();
+
+      // Build jump host connection config
+      const jumpConfig: ConnectConfig = {
+        host: jumpHost.host,
+        port: jumpHost.port,
+        username: jumpHost.username,
+        readyTimeout: 30000,
+        keepaliveInterval: 10000,
+        keepaliveCountMax: 3,
+      };
+
+      // Add jump host authentication
+      const jumpAuthConfig = {
+        hostId: 'jump',
+        authType: jumpHost.authType,
+        password: jumpHost.password,
+        privateKeyPath: jumpHost.privateKeyPath,
+        passphrase: jumpHost.passphrase
+      };
+      this.addAuthToConnectConfig(jumpConfig, jumpAuthConfig);
+
+      jumpConn.on('ready', () => {
+        logger.info(`Jump host connection established, forwarding to ${targetHost}:${targetPort}`);
+
+        // Create forwarding stream through jump host to target server
+        jumpConn.forwardOut(
+          '127.0.0.1',  // Source address (arbitrary local address)
+          0,            // Source port (arbitrary)
+          targetHost,   // Target server address
+          targetPort,   // Target server port
+          (err, stream) => {
+            if (err) {
+              logger.error(`Failed to create forwarding stream: ${err.message}`);
+              jumpConn.end();
+              callback(err);
+              return;
+            }
+
+            logger.info('Forwarding stream created successfully');
+            // Return the stream as the socket
+            callback(null, stream);
+          }
+        );
+      });
+
+      jumpConn.on('error', (err) => {
+        logger.error(`Jump host connection error: ${err.message}`);
+        callback(err);
+      });
+
+      logger.info(`Connecting to jump host: ${jumpHost.username}@${jumpHost.host}:${jumpHost.port}`);
+      jumpConn.connect(jumpConfig);
+    };
   }
 
   /**

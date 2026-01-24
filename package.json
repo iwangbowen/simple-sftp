@@ -115,6 +115,12 @@
         "icon": "$(edit)"
       },
       {
+        "command": "simpleSftp.configureHostAdvanced",
+        "title": "Advanced Configuration",
+        "category": "Simple SFTP",
+        "icon": "$(settings-gear)"
+      },
+      {
         "command": "simpleSftp.duplicateHost",
         "title": "Duplicate Host",
         "category": "Simple SFTP",
@@ -575,6 +581,10 @@
           "when": "false"
         },
         {
+          "command": "simpleSftp.configureHostAdvanced",
+          "when": "false"
+        },
+        {
           "command": "simpleSftp.duplicateHost",
           "when": "false"
         },
@@ -793,19 +803,24 @@
           "group": "inline@3"
         },
         {
-          "command": "simpleSftp.duplicateHost",
+          "command": "simpleSftp.configureHostAdvanced",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@1"
         },
         {
-          "command": "simpleSftp.moveHostToGroup",
+          "command": "simpleSftp.duplicateHost",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@2"
         },
         {
-          "command": "simpleSftp.toggleStar",
+          "command": "simpleSftp.moveHostToGroup",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@3"
+        },
+        {
+          "command": "simpleSftp.toggleStar",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "1_host@4"
         },
         {
           "command": "simpleSftp.openSshTerminal",

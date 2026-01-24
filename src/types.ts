@@ -11,6 +11,31 @@ export interface PathBookmark {
 }
 
 /**
+ * 认证方式类型
+ */
+export type AuthType = 'password' | 'privateKey' | 'agent';
+
+/**
+ * 跳板机(Jump Host/Proxy)配置接口
+ */
+export interface JumpHostConfig {
+  /** 跳板机主机地址 */
+  host: string;
+  /** 跳板机端口 */
+  port: number;
+  /** 跳板机用户名 */
+  username: string;
+  /** 跳板机认证方式 */
+  authType: AuthType;
+  /** 跳板机密码 */
+  password?: string;
+  /** 跳板机私钥路径 */
+  privateKeyPath?: string;
+  /** 跳板机私钥密码 */
+  passphrase?: string;
+}
+
+/**
  * 主机配置接口 (同步信息)
  */
 export interface HostConfig {
@@ -31,6 +56,8 @@ export interface HostConfig {
   recentPaths?: string[];
   /** 路径书签列表 */
   bookmarks?: PathBookmark[];
+  /** 跳板机配置 */
+  jumpHost?: JumpHostConfig;
 }
 
 /**
@@ -40,7 +67,7 @@ export interface HostAuthConfig {
   /** 主机 ID */
   hostId: string;
   /** 认证方式 */
-  authType: 'password' | 'privateKey' | 'agent';
+  authType: AuthType;
   /** 密码（仅当 authType 为 password 时使用） */
   password?: string;
   /** 私钥路径（仅当 authType 为 privateKey 时使用） */
@@ -53,7 +80,7 @@ export interface HostAuthConfig {
  * 完整的主机配置 (包含同步和本地信息)
  */
 export interface FullHostConfig extends HostConfig {
-  authType?: 'password' | 'privateKey' | 'agent';
+  authType?: AuthType;
   password?: string;
   privateKeyPath?: string;
   passphrase?: string;

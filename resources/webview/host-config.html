@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src {{cspSource}} 'unsafe-inline'; font-src {{cspSource}};">
+    <link href="{{codiconsUri}}" rel="stylesheet" />
+    <link href="{{styleUri}}" rel="stylesheet" />
+    <title>Host Configuration</title>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">
+            <i class="codicon codicon-server"></i>
+            <span id="pageTitle">Host Configuration</span>
+        </h1>
+
+        <form id="hostConfigForm">
+            <!-- Basic Settings -->
+            <div class="section">
+                <div class="form-group">
+                    <label for="name">Name <span class="required">*</span></label>
+                    <input type="text" id="name" placeholder="Production Server" required />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group flex-2">
+                        <label for="host">Host <span class="required">*</span></label>
+                        <input type="text" id="host" placeholder="192.168.1.100" required />
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="port">Port <span class="required">*</span></label>
+                        <input type="number" id="port" value="22" min="1" max="65535" required />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username <span class="required">*</span></label>
+                    <input type="text" id="username" placeholder="root" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="defaultRemotePath">Default Remote Path <span class="optional">(Optional)</span></label>
+                    <input type="text" id="defaultRemotePath" placeholder="/var/www/html" />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="color">Color</label>
+                        <select id="color">
+                            <option value="">Default</option>
+                            <option value="blue">Blue</option>
+                            <option value="green">Green</option>
+                            <option value="orange">Orange</option>
+                            <option value="red">Red</option>
+                            <option value="purple">Purple</option>
+                        </select>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="starred" />
+                            <span>Starred</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jump Host Settings (Collapsible) -->
+            <div class="section section-collapsible">
+                <div class="section-header" id="jumpHostToggle">
+                    <i class="codicon codicon-chevron-right toggle-icon"></i>
+                    <span class="section-title">Jump Host Configuration</span>
+                    <span class="section-hint">Access target via proxy server</span>
+                </div>
+
+                <div id="jumpHostConfig" class="section-content" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group flex-2">
+                            <label for="jumpHost">Jump Host</label>
+                            <input type="text" id="jumpHost" placeholder="jump.example.com" />
+                        </div>
+                        <div class="form-group flex-1">
+                            <label for="jumpPort">Port</label>
+                            <input type="number" id="jumpPort" value="22" min="1" max="65535" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jumpUsername">Username</label>
+                        <input type="text" id="jumpUsername" placeholder="admin" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jumpAuthType">Auth Type</label>
+                        <select id="jumpAuthType">
+                            <option value="password">Password</option>
+                            <option value="privateKey">Private Key</option>
+                            <option value="agent">SSH Agent</option>
+                        </select>
+                    </div>
+
+                    <!-- Password auth -->
+                    <div class="form-group auth-option" id="jumpPasswordAuth">
+                        <label for="jumpPassword">Password</label>
+                        <input type="password" id="jumpPassword" placeholder="Jump host password" />
+                    </div>
+
+                    <!-- Private Key auth -->
+                    <div class="form-group auth-option" id="jumpPrivateKeyAuth" style="display: none;">
+                        <label for="jumpPrivateKeyPath">Private Key Path</label>
+                        <div class="input-group">
+                            <input type="text" id="jumpPrivateKeyPath" placeholder="~/.ssh/id_rsa" />
+                            <button type="button" id="jumpBrowseKey" class="icon-button">
+                                <i class="codicon codicon-folder-opened"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group auth-option" id="jumpPassphraseAuth" style="display: none;">
+                        <label for="jumpPassphrase">Passphrase <span class="optional">(Optional)</span></label>
+                        <input type="password" id="jumpPassphrase" placeholder="If private key is encrypted" />
+                    </div>
+
+                    <!-- SSH Agent auth -->
+                    <div class="form-group auth-option" id="jumpAgentAuth" style="display: none;">
+                        <div class="info-note">
+                            <i class="codicon codicon-info"></i>
+                            <span>Use system SSH Agent for authentication</span>
+                        </div>
+                    </div>
+
+                    <div class="info-note">
+                        <i class="codicon codicon-info"></i>
+                        <span>Leave empty if you don't need a jump host</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions">
+                <button type="button" id="testConnection" class="button-secondary">
+                    <i class="codicon codicon-debug-disconnect"></i>
+                    <span>Test Connection</span>
+                </button>
+                <div class="actions-right">
+                    <button type="button" id="cancel" class="button-secondary">Cancel</button>
+                    <button type="submit" id="save" class="button-primary">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="{{scriptUri}}"></script>
+</body>
+</html>

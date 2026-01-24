@@ -14,12 +14,14 @@ import { BookmarkService } from './services/bookmarkService';
 import { RemoteBrowserService } from './services/remoteBrowserService';
 import { TransferQueueService } from './services/transferQueueService';
 import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
+import { HostConfigProvider } from './ui/hostConfigProvider';
 import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS } from './constants';
 
 export class CommandHandler {
   private readonly downloadStatusBar: vscode.StatusBarItem;
   private readonly bookmarkService: BookmarkService;
   private readonly remoteBrowserService: RemoteBrowserService;
+  private extensionContext?: vscode.ExtensionContext;
 
   constructor(
     private readonly hostManager: HostManager,
@@ -52,6 +54,8 @@ export class CommandHandler {
   }
 
   registerCommands(context: vscode.ExtensionContext): void {
+    this.extensionContext = context;
+
     context.subscriptions.push(
       vscode.commands.registerCommand('simpleSftp.addHost', () => this.addHost()),
       vscode.commands.registerCommand('simpleSftp.addHostToGroup', (item: HostTreeItem) =>
@@ -59,6 +63,9 @@ export class CommandHandler {
       ),
       vscode.commands.registerCommand('simpleSftp.editHost', (item: HostTreeItem) =>
         this.editHost(item)
+      ),
+      vscode.commands.registerCommand('simpleSftp.configureHostAdvanced', (item: HostTreeItem) =>
+        this.configureHostAdvanced(item)
       ),
       vscode.commands.registerCommand('simpleSftp.duplicateHost', (item: HostTreeItem) =>
         this.duplicateHost(item)
@@ -485,6 +492,31 @@ export class CommandHandler {
     } catch (error) {
       vscode.window.showErrorMessage(MESSAGES.updateFailed(error));
     }
+  }
+
+  /**
+   * Configure host advanced settings (jump host, etc.) using webview
+   */
+  private async configureHostAdvanced(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {
+      return;
+    }
+
+    if (!this.extensionContext) {
+      vscode.window.showErrorMessage('Extension context not available');
+      return;
+    }
+
+    const { HostConfigProvider } = await import('./ui/hostConfigProvider');
+    HostConfigProvider.createOrShow(
+      this.extensionContext.extensionUri,
+      this.hostManager,
+      this.authManager,
+      (item.data as HostConfig).id,
+      () => {
+        this.treeProvider.refresh();
+      }
+    );
   }
 
   /**
