@@ -103,7 +103,7 @@ export class HostConfigProvider {
         const provider = new HostConfigProvider(panel, extensionUri, hostManager, authManager);
         provider.currentHostId = hostId;
         provider.onSaveCallback = onSave;
-        
+
         // Store in panels map
         HostConfigProvider.panels.set(panelKey, provider);
 

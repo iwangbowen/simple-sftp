@@ -68,26 +68,55 @@ export class SshConnectionManager {
    * 测试连接
    */
   static async testConnection(config: HostConfig, authConfig: HostAuthConfig): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const conn = new Client();
-      const connectConfig = this.buildConnectConfig(config, authConfig);
+    let jumpConn: Client | null = null;
+    const conn = new Client();
+    const connectConfig = this.buildConnectConfig(config, authConfig);
 
-      conn
-        .on('ready', () => {
+    try {
+      // If jump host is configured, establish jump host connection first
+      if (config.jumpHost) {
+        logger.info(`Testing connection through jump host: ${config.jumpHost.username}@${config.jumpHost.host}:${config.jumpHost.port}`);
+        const jumpResult = await this.establishJumpHostConnection(
+          config.jumpHost,
+          config.host,
+          config.port
+        );
+        jumpConn = jumpResult.jumpConn;
+        connectConfig.sock = jumpResult.stream;
+      }
+
+      return new Promise((resolve, reject) => {
+        conn
+          .on('ready', () => {
+            conn.end();
+            if (jumpConn) {
+              jumpConn.end();
+            }
+            resolve(true);
+          })
+          .on('error', err => {
+            if (jumpConn) {
+              jumpConn.end();
+            }
+            reject(err);
+          })
+          .connect(connectConfig);
+
+        // 30秒超时
+        setTimeout(() => {
           conn.end();
-          resolve(true);
-        })
-        .on('error', err => {
-          reject(err);
-        })
-        .connect(connectConfig);
-
-      // 30秒超时
-      setTimeout(() => {
-        conn.end();
-        reject(new Error('连接超时'));
-      }, 30000);
-    });
+          if (jumpConn) {
+            jumpConn.end();
+          }
+          reject(new Error('Connection timeout'));
+        }, 30000);
+      });
+    } catch (error) {
+      if (jumpConn) {
+        jumpConn.end();
+      }
+      throw error;
+    }
   }
 
   /**
@@ -1075,11 +1104,8 @@ export class SshConnectionManager {
     // Add authentication configuration
     this.addAuthToConnectConfig(connectConfig, authConfig);
 
-    // Add jump host configuration if present
-    if (config.jumpHost) {
-      logger.info(`Using jump host: ${config.jumpHost.username}@${config.jumpHost.host}:${config.jumpHost.port} -> ${config.host}:${config.port}`);
-      connectConfig.sock = this.createJumpHostSock(config.jumpHost, config.host, config.port);
-    }
+    // Note: Jump host is handled separately in connectWithJumpHost method
+    // Do NOT add sock here as it requires async connection establishment
 
     return connectConfig;
   }
@@ -1125,8 +1151,16 @@ export class SshConnectionManager {
    * Create a socket through jump host for proxying connections
    * Returns a function that will create the socket when called
    */
-  private static createJumpHostSock(jumpHost: any, targetHost: string, targetPort: number): (callback: (err: Error | null, sock?: any) => void) => void {
-    return (callback: (err: Error | null, sock?: any) => void) => {
+  /**
+   * Establish connection through jump host (async)
+   * Returns a stream that can be used as sock for the target connection
+   */
+  private static async establishJumpHostConnection(
+    jumpHost: any,
+    targetHost: string,
+    targetPort: number
+  ): Promise<{ stream: any; jumpConn: Client }> {
+    return new Promise((resolve, reject) => {
       const jumpConn = new Client();
 
       // Build jump host connection config
@@ -1162,25 +1196,25 @@ export class SshConnectionManager {
             if (err) {
               logger.error(`Failed to create forwarding stream: ${err.message}`);
               jumpConn.end();
-              callback(err);
+              reject(err);
               return;
             }
 
             logger.info('Forwarding stream created successfully');
-            // Return the stream as the socket
-            callback(null, stream);
+            // Return both the stream and jump connection
+            resolve({ stream, jumpConn });
           }
         );
       });
 
       jumpConn.on('error', (err) => {
         logger.error(`Jump host connection error: ${err.message}`);
-        callback(err);
+        reject(err);
       });
 
       logger.info(`Connecting to jump host: ${jumpHost.username}@${jumpHost.host}:${jumpHost.port}`);
       jumpConn.connect(jumpConfig);
-    };
+    });
   }
 
   /**
