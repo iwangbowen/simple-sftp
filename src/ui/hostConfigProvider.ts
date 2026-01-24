@@ -11,7 +11,7 @@ import { logger } from '../logger';
  * Handles basic settings and jump host configuration
  */
 export class HostConfigProvider {
-    private static currentPanel: HostConfigProvider | undefined;
+    private static readonly panels: Map<string, HostConfigProvider> = new Map();
     private readonly panel: vscode.WebviewPanel;
     private readonly extensionUri: vscode.Uri;
     private disposables: vscode.Disposable[] = [];
@@ -42,7 +42,12 @@ export class HostConfigProvider {
         // Clean up when panel is closed
         this.panel.onDidDispose(
             () => {
-                HostConfigProvider.currentPanel = undefined;
+                // Remove from panels map
+                if (this.currentHostId) {
+                    HostConfigProvider.panels.delete(this.currentHostId);
+                } else {
+                    HostConfigProvider.panels.delete('__new__');
+                }
                 this.dispose();
             },
             null,
@@ -64,13 +69,17 @@ export class HostConfigProvider {
             ? vscode.window.activeTextEditor.viewColumn
             : undefined;
 
-        // If panel already exists, reveal it
-        if (HostConfigProvider.currentPanel) {
-            HostConfigProvider.currentPanel.panel.reveal(column);
-            HostConfigProvider.currentPanel.currentHostId = hostId;
-            HostConfigProvider.currentPanel.onSaveCallback = onSave;
-            HostConfigProvider.currentPanel.loadHostConfig(hostId);
-            return HostConfigProvider.currentPanel;
+        // Determine panel key
+        const panelKey = hostId || '__new__';
+
+        // If panel already exists for this host, reveal it
+        const existingPanel = HostConfigProvider.panels.get(panelKey);
+        if (existingPanel) {
+            existingPanel.panel.reveal(column);
+            existingPanel.currentHostId = hostId;
+            existingPanel.onSaveCallback = onSave;
+            existingPanel.loadHostConfig(hostId);
+            return existingPanel;
         }
 
         // Create new panel
@@ -94,7 +103,9 @@ export class HostConfigProvider {
         const provider = new HostConfigProvider(panel, extensionUri, hostManager, authManager);
         provider.currentHostId = hostId;
         provider.onSaveCallback = onSave;
-        HostConfigProvider.currentPanel = provider;
+        
+        // Store in panels map
+        HostConfigProvider.panels.set(panelKey, provider);
 
         // Load configuration if editing
         if (hostId) {
