@@ -66,11 +66,16 @@
 
     // Test connection
     testConnectionBtn.addEventListener('click', async () => {
+        console.log('[WebView] Test button clicked');
+
         if (!validate()) {
+            console.log('[WebView] Validation failed');
             return;
         }
 
+        console.log('[WebView] Validation passed, collecting form data');
         const config = collectFormData();
+        console.log('[WebView] Sending test connection request with config:', config);
         vscode.postMessage({ type: 'testConnection', config });
     });
 
@@ -333,6 +338,7 @@
         document.getElementById('defaultRemotePath').value = config.defaultRemotePath || '';
         document.getElementById('color').value = config.color || '';
         document.getElementById('starred').checked = config.starred || false;
+        document.getElementById('group').value = config.group || '';
 
         // Auth fields
         document.getElementById('authType').value = config.authType || 'password';
@@ -370,6 +376,7 @@
             defaultRemotePath: document.getElementById('defaultRemotePath').value.trim(),
             color: document.getElementById('color').value,
             starred: document.getElementById('starred').checked,
+            group: document.getElementById('group').value,
             authType: document.getElementById('authType').value,
             password: document.getElementById('password').value,
             privateKeyPath: document.getElementById('privateKeyPath').value.trim(),
