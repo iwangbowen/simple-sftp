@@ -9,6 +9,11 @@
         host: document.getElementById('host'),
         port: document.getElementById('port'),
         username: document.getElementById('username'),
+        authType: document.getElementById('authType'),
+        password: document.getElementById('password'),
+        privateKeyPath: document.getElementById('privateKeyPath'),
+        passphrase: document.getElementById('passphrase'),
+        browseKey: document.getElementById('browseKey'),
         defaultRemotePath: document.getElementById('defaultRemotePath'),
         color: document.getElementById('color'),
         starred: document.getElementById('starred'),
@@ -42,7 +47,7 @@
     if (sectionHeader) {
         sectionHeader.addEventListener('click', () => {
             const isExpanded = sectionHeader.classList.contains('expanded');
-            
+
             if (isExpanded) {
                 sectionHeader.classList.remove('expanded');
                 if (sectionContent) sectionContent.style.display = 'none';
@@ -54,15 +59,48 @@
     }
 
     // Jump host auth type change
+    if (elements.authType) {
+        elements.authType.addEventListener('change', () => {
+            updateAuthVisibility();
+        });
+    }
+
     if (elements.jumpAuthType) {
         elements.jumpAuthType.addEventListener('change', () => {
             updateJumpAuthVisibility();
         });
     }
 
+    function updateAuthVisibility() {
+        if (!elements.authType) return;
+
+        const authType = elements.authType.value;
+
+        // Hide all auth options
+        const passwordAuth = document.getElementById('passwordAuth');
+        const privateKeyAuth = document.getElementById('privateKeyAuth');
+        const passphraseAuth = document.getElementById('passphraseAuth');
+        const agentAuth = document.getElementById('agentAuth');
+
+        if (passwordAuth) passwordAuth.style.display = 'none';
+        if (privateKeyAuth) privateKeyAuth.style.display = 'none';
+        if (passphraseAuth) passphraseAuth.style.display = 'none';
+        if (agentAuth) agentAuth.style.display = 'none';
+
+        // Show relevant auth options
+        if (authType === 'password') {
+            if (passwordAuth) passwordAuth.style.display = 'block';
+        } else if (authType === 'privateKey') {
+            if (privateKeyAuth) privateKeyAuth.style.display = 'block';
+            if (passphraseAuth) passphraseAuth.style.display = 'block';
+        } else if (authType === 'agent') {
+            if (agentAuth) agentAuth.style.display = 'block';
+        }
+    }
+
     function updateJumpAuthVisibility() {
         if (!elements.jumpAuthType) return;
-        
+
         const authType = elements.jumpAuthType.value;
 
         //Hide all auth options
@@ -88,6 +126,15 @@
     }
 
     // Browse for private key
+    if (elements.browseKey) {
+        elements.browseKey.addEventListener('click', () => {
+            vscode.postMessage({
+                command: 'browsePrivateKey',
+                context: 'host'
+            });
+        });
+    }
+
     if (elements.jumpBrowseKey) {
         elements.jumpBrowseKey.addEventListener('click', () => {
             vscode.postMessage({
@@ -154,10 +201,21 @@
             host: elements.host?.value.trim() || '',
             port: Number.parseInt(elements.port?.value || '22'),
             username: elements.username?.value.trim() || '',
+            authType: elements.authType?.value || 'password',
             defaultRemotePath: elements.defaultRemotePath?.value.trim() || undefined,
             color: elements.color?.value || undefined,
             starred: elements.starred?.checked || false
         };
+
+        // Add auth credentials based on type
+        if (config.authType === 'password') {
+            config.password = elements.password?.value || '';
+        } else if (config.authType === 'privateKey') {
+            config.privateKeyPath = elements.privateKeyPath?.value.trim() || '';
+            if (elements.passphrase?.value) {
+                config.passphrase = elements.passphrase.value;
+            }
+        }
 
         // Collect jump host config if filled
         const jumpHostValue = elements.jumpHost?.value.trim();
@@ -266,6 +324,18 @@
         if (elements.host) elements.host.value = config.host || '';
         if (elements.port) elements.port.value = config.port || 22;
         if (elements.username) elements.username.value = config.username || '';
+        if (elements.authType) elements.authType.value = config.authType || 'password';
+
+        // Load auth credentials
+        if (config.authType === 'password') {
+            if (elements.password) elements.password.value = config.password || '';
+        } else if (config.authType === 'privateKey') {
+            if (elements.privateKeyPath) elements.privateKeyPath.value = config.privateKeyPath || '';
+            if (elements.passphrase) elements.passphrase.value = config.passphrase || '';
+        }
+
+        updateAuthVisibility();
+
         if (elements.defaultRemotePath) elements.defaultRemotePath.value = config.defaultRemotePath || '';
         if (elements.color) elements.color.value = config.color || '';
         if (elements.starred) elements.starred.checked = config.starred || false;
@@ -328,12 +398,17 @@
                     if (elements.jumpPrivateKeyPath) {
                         elements.jumpPrivateKeyPath.value = message.path;
                     }
+                } else if (message.context === 'host') {
+                    if (elements.privateKeyPath) {
+                        elements.privateKeyPath.value = message.path;
+                    }
                 }
                 break;
         }
     });
 
     // Initialize
+    updateAuthVisibility();
     updateJumpAuthVisibility();
 
     // Request initial configuration

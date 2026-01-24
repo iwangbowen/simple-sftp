@@ -40,6 +40,45 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="authType">Authentication</label>
+                    <select id="authType">
+                        <option value="password">Password</option>
+                        <option value="privateKey">Private Key</option>
+                        <option value="agent">SSH Agent</option>
+                    </select>
+                </div>
+
+                <!-- Password auth -->
+                <div class="form-group auth-option" id="passwordAuth">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Host password" />
+                </div>
+
+                <!-- Private Key auth -->
+                <div class="form-group auth-option" id="privateKeyAuth" style="display: none;">
+                    <label for="privateKeyPath">Private Key Path</label>
+                    <div class="input-group">
+                        <input type="text" id="privateKeyPath" placeholder="~/.ssh/id_rsa" />
+                        <button type="button" id="browseKey" class="icon-button">
+                            <i class="codicon codicon-folder-opened"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group auth-option" id="passphraseAuth" style="display: none;">
+                    <label for="passphrase">Passphrase <span class="optional">(Optional)</span></label>
+                    <input type="password" id="passphrase" placeholder="If private key is encrypted" />
+                </div>
+
+                <!-- SSH Agent auth -->
+                <div class="form-group auth-option" id="agentAuth" style="display: none;">
+                    <div class="info-note">
+                        <i class="codicon codicon-info"></i>
+                        <span>Use system SSH Agent for authentication</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label for="defaultRemotePath">Default Remote Path <span class="optional">(Optional)</span></label>
                     <input type="text" id="defaultRemotePath" placeholder="/var/www/html" />
                 </div>

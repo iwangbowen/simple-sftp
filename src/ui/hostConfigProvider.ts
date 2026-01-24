@@ -76,7 +76,7 @@ export class HostConfigProvider {
         // Create new panel
         const panel = vscode.window.createWebviewPanel(
             'simpleSftpHostConfig',
-            hostId ? '编辑主机配置' : '添加主机',
+            hostId ? 'Edit Host Configuration' : 'Add Host',
             column || vscode.ViewColumn.One,
             {
                 enableScripts: true,
@@ -125,8 +125,11 @@ export class HostConfigProvider {
         const authConfig = await this.authManager.getAuth(hostId);
         const fullConfig = {
             ...host,
-            // Don't include auth config in the main form
-            // Jump host auth is already in jumpHost object
+            // Include auth config in the form
+            authType: authConfig?.authType || 'password',
+            password: authConfig?.password,
+            privateKeyPath: authConfig?.privateKeyPath,
+            passphrase: authConfig?.passphrase
         };
 
         this.panel.webview.postMessage({
@@ -181,12 +184,12 @@ export class HostConfigProvider {
             if (isEditMode && this.currentHostId) {
                 // Update existing host
                 await this.hostManager.updateHost(this.currentHostId, config);
-                vscode.window.showInformationMessage(`主机配置已更新: ${config.name}`);
+                vscode.window.showInformationMessage(`Host configuration updated: ${config.name}`);
             } else {
                 // Add new host
                 const newHost = await this.hostManager.addHost(config as Omit<HostConfig, 'id'>);
                 this.currentHostId = newHost.id;
-                vscode.window.showInformationMessage(`主机已添加: ${config.name}`);
+                vscode.window.showInformationMessage(`Host added: ${config.name}`);
             }
 
             // Trigger callback if provided
@@ -199,18 +202,18 @@ export class HostConfigProvider {
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error(`Failed to save host configuration: ${errorMessage}`);
-            vscode.window.showErrorMessage(`保存失败: ${errorMessage}`);
+            vscode.window.showErrorMessage(`Failed to save: ${errorMessage}`);
         }
     }
 
     /**
      * Handle test connection
      */
-    private async handleTestConnection(config: Partial<HostConfig>): Promise<void> {
+    private async handleTestConnection(config: any): Promise<void> {
         try {
             // Validate required fields
             if (!config.host || !config.port || !config.username) {
-                vscode.window.showErrorMessage('请填写完整的连接信息');
+                vscode.window.showErrorMessage('Please fill in complete connection information');
                 this.panel.webview.postMessage({
                     command: 'testConnectionResult',
                     success: false
@@ -218,20 +221,9 @@ export class HostConfigProvider {
                 return;
             }
 
-            // For testing, we need auth config
-            // Show a quick pick to select auth method for testing
-            const authType = await vscode.window.showQuickPick(
-                [
-                    { label: 'Password', value: 'password' },
-                    { label: 'Private Key', value: 'privateKey' },
-                    { label: 'SSH Agent', value: 'agent' }
-                ],
-                {
-                    placeHolder: '选择测试连接的认证方式'
-                }
-            );
-
-            if (!authType) {
+            // Validate authentication info
+            if (!config.authType) {
+                vscode.window.showErrorMessage('Please select authentication method');
                 this.panel.webview.postMessage({
                     command: 'testConnectionResult',
                     success: false
@@ -239,14 +231,19 @@ export class HostConfigProvider {
                 return;
             }
 
+            // Use auth config from the form
             const authConfig: any = {
                 hostId: 'test',
-                authType: authType.value
+                authType: config.authType,
+                password: config.password,
+                privateKeyPath: config.privateKeyPath,
+                passphrase: config.passphrase
             };
 
-            if (authType.value === 'password') {
+            // Prompt for password if needed and not provided
+            if (config.authType === 'password' && !config.password) {
                 const password = await vscode.window.showInputBox({
-                    prompt: '请输入密码',
+                    prompt: 'Enter password for testing',
                     password: true
                 });
                 if (!password) {
@@ -257,9 +254,9 @@ export class HostConfigProvider {
                     return;
                 }
                 authConfig.password = password;
-            } else if (authType.value === 'privateKey') {
+            } else if (config.authType === 'privateKey' && !config.privateKeyPath) {
                 const privateKeyPath = await vscode.window.showInputBox({
-                    prompt: '请输入私钥路径',
+                    prompt: 'Enter private key path',
                     value: '~/.ssh/id_rsa'
                 });
                 if (!privateKeyPath) {
@@ -272,7 +269,7 @@ export class HostConfigProvider {
                 authConfig.privateKeyPath = privateKeyPath;
 
                 const passphrase = await vscode.window.showInputBox({
-                    prompt: '请输入私钥密码 (可选)',
+                    prompt: 'Enter passphrase (optional)',
                     password: true
                 });
                 if (passphrase) {
@@ -286,7 +283,7 @@ export class HostConfigProvider {
                 authConfig
             );
 
-            vscode.window.showInformationMessage('连接测试成功!');
+            vscode.window.showInformationMessage('Connection test succeeded!');
             this.panel.webview.postMessage({
                 command: 'testConnectionResult',
                 success: true
@@ -294,7 +291,7 @@ export class HostConfigProvider {
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error(`Connection test failed: ${errorMessage}`);
-            vscode.window.showErrorMessage(`连接测试失败: ${errorMessage}`);
+            vscode.window.showErrorMessage(`Connection test failed: ${errorMessage}`);
             this.panel.webview.postMessage({
                 command: 'testConnectionResult',
                 success: false
@@ -314,7 +311,7 @@ export class HostConfigProvider {
                 'Private Key': ['*'],
                 'All Files': ['*']
             },
-            title: '选择私钥文件'
+            title: 'Select Private Key File'
         });
 
         if (result && result[0]) {
