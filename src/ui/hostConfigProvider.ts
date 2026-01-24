@@ -193,17 +193,46 @@ export class HostConfigProvider {
     /**
      * Handle save configuration
      */
-    private async handleSave(config: Partial<HostConfig>, isEditMode: boolean): Promise<void> {
+    private async handleSave(config: any, isEditMode: boolean): Promise<void> {
         try {
+            // Separate host config and auth config
+            const hostConfig: Partial<HostConfig> = {
+                name: config.name,
+                host: config.host,
+                port: config.port,
+                username: config.username,
+                defaultRemotePath: config.defaultRemotePath,
+                color: config.color,
+                starred: config.starred,
+                group: config.group,
+                jumpHost: config.jumpHost
+            };
+
+            let hostId: string;
+
             if (isEditMode && this.currentHostId) {
                 // Update existing host
-                await this.hostManager.updateHost(this.currentHostId, config);
+                await this.hostManager.updateHost(this.currentHostId, hostConfig);
+                hostId = this.currentHostId;
                 vscode.window.showInformationMessage(`Host configuration updated: ${config.name}`);
             } else {
                 // Add new host
-                const newHost = await this.hostManager.addHost(config as Omit<HostConfig, 'id'>);
+                const newHost = await this.hostManager.addHost(hostConfig as Omit<HostConfig, 'id'>);
+                hostId = newHost.id;
                 this.currentHostId = newHost.id;
                 vscode.window.showInformationMessage(`Host added: ${config.name}`);
+            }
+
+            // Save authentication config separately
+            if (config.authType) {
+                const authConfig: any = {
+                    hostId: hostId,
+                    authType: config.authType,
+                    password: config.password,
+                    privateKeyPath: config.privateKeyPath,
+                    passphrase: config.passphrase
+                };
+                await this.authManager.saveAuth(authConfig);
             }
 
             // Trigger callback if provided
