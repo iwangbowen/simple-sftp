@@ -1,9 +1,10 @@
 import { Client, ConnectConfig } from 'ssh2';
 // @ts-ignore
 import SftpClient from 'ssh2-sftp-client';
-import { HostConfig, HostAuthConfig } from './types';
+import { HostConfig, HostAuthConfig, JumpHostConfig } from './types';
 import { logger } from './logger';
 import { establishMultiHopConnection } from './utils/jumpHostHelper';
+import type { AuthManager } from './authManager';
 
 /**
  * SSH 连接池条目
@@ -34,6 +35,7 @@ interface PooledConnection {
 export class SshConnectionPool {
   private static instance: SshConnectionPool;
   private pool: Map<string, PooledConnection[]> = new Map();
+  private authManager?: AuthManager;
 
   /** 每个主机的最大连接数 (略大于并发数,预留2个作为buffer) */
   private readonly MAX_CONNECTIONS_PER_HOST = 7;
@@ -59,6 +61,37 @@ export class SshConnectionPool {
       SshConnectionPool.instance = new SshConnectionPool();
     }
     return SshConnectionPool.instance;
+  }
+
+  /**
+   * Set the AuthManager instance for loading jump host credentials
+   */
+  setAuthManager(authManager: AuthManager): void {
+    this.authManager = authManager;
+  }
+
+  /**
+   * Load jump host authentication from AuthManager
+   */
+  private async loadJumpHostAuth(hostId: string, jumpHosts: JumpHostConfig[]): Promise<JumpHostConfig[]> {
+    if (!this.authManager || !jumpHosts || jumpHosts.length === 0) {
+      return jumpHosts;
+    }
+
+    const jumpHostsWithAuth: JumpHostConfig[] = [];
+    for (let i = 0; i < jumpHosts.length; i++) {
+      const jh = jumpHosts[i];
+      const jumpAuthConfig = await this.authManager.getAuth(`${hostId}_jump_${i}`);
+
+      jumpHostsWithAuth.push({
+        ...jh,
+        authType: jumpAuthConfig?.authType || jh.authType || 'password',
+        password: jumpAuthConfig?.password,
+        privateKeyPath: jumpAuthConfig?.privateKeyPath,
+        passphrase: jumpAuthConfig?.passphrase
+      });
+    }
+    return jumpHostsWithAuth;
   }
 
   /**
@@ -135,9 +168,12 @@ export class SshConnectionPool {
       // If jump hosts are configured, establish multi-hop connection first
       let jumpConns: Client[] | undefined;
       if (config.jumpHosts && config.jumpHosts.length > 0) {
-        logger.info(`[ConnectionPool] Establishing connection through ${config.jumpHosts.length} jump host(s) for ${config.name}...`);
+        // Load jump host authentication credentials
+        const jumpHostsWithAuth = await this.loadJumpHostAuth(config.id, config.jumpHosts);
+
+        logger.info(`[ConnectionPool] Establishing connection through ${jumpHostsWithAuth.length} jump host(s) for ${config.name}...`);
         const jumpResult = await establishMultiHopConnection(
-          config.jumpHosts,
+          jumpHostsWithAuth,
           config.host,
           config.port
         );

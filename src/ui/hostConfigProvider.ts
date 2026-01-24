@@ -215,11 +215,13 @@ export class HostConfigProvider {
      */
     private async handleSave(config: any): Promise<void> {
         try {
-            // Extract jumpHosts with auth removed (will be stored separately)
+            // Extract jumpHosts with sensitive auth data removed (will be stored separately)
+            // Keep authType as it's needed for connection logic
             const jumpHostsWithoutAuth = config.jumpHosts?.map((jh: any) => ({
                 host: jh.host,
                 port: jh.port,
-                username: jh.username
+                username: jh.username,
+                authType: jh.authType  // Keep authType for connection logic
             }));
 
             // Separate host config and auth config

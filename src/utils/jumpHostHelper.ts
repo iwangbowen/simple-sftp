@@ -86,12 +86,14 @@ export async function establishJumpHostConnection(
     jumpConn.on('ready', () => {
       logger.info(`Jump host connection established, forwarding to ${targetHost}:${targetPort}`);
 
+      logger.debug(`[JumpHost] Calling forwardOut to ${targetHost}:${targetPort}...`);
       jumpConn.forwardOut(
         '127.0.0.1',
         0,
         targetHost,
         targetPort,
         (err, stream) => {
+          logger.debug(`[JumpHost] forwardOut callback received, err=${err ? err.message : 'none'}`);
           if (err) {
             logger.error(`Failed to create forwarding stream: ${err.message}`);
             jumpConn.end();

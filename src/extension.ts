@@ -12,6 +12,7 @@ import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { DualPanelEditorManager } from './ui/dualPanelEditorProvider';
 import { TransferQueueCommands } from './integrations/transferQueueCommands';
 import { SftpFileSystemProvider } from './sftpFileSystemProvider';
+import { SshConnectionPool } from './sshConnectionPool';
 import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
 
@@ -28,6 +29,9 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize auth manager (local SecretStorage, not synced)
   const authManager = new AuthManager(context);
   logger.info('Auth manager initialized (local storage, not synced)');
+
+  // Set auth manager for connection pool to enable jump host authentication
+  SshConnectionPool.getInstance().setAuthManager(authManager);
 
   // Register SFTP FileSystem Provider
   const sftpFsProvider = new SftpFileSystemProvider(hostManager, authManager);
