@@ -283,7 +283,7 @@ export class HostConfigProvider {
                 authConfig
             );
 
-            vscode.window.showInformationMessage('Connection test succeeded!');
+            // Send success result to webview (webview will show the message)
             this.panel.webview.postMessage({
                 command: 'testConnectionResult',
                 success: true
