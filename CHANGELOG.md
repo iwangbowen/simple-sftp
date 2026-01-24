@@ -1,5 +1,27 @@
 # Change Log
 
+## 3.8.0 - 2026-01-25
+
+### Added
+
+- **Jump Host (Proxy) Configuration**: Full support for multi-hop SSH connections
+  - New "Advanced Configuration" webview for configuring jump hosts
+  - Support for multiple jump hosts in chain (multi-hop)
+  - Each jump host supports password, private key, or SSH agent authentication
+  - Dynamic add/remove jump host cards in the UI
+  - Test connection validates entire hop chain
+
+### Fixed
+
+- **Jump Host Authentication**: Connection pool now properly loads jump host credentials
+  - AuthManager integration for secure credential storage
+  - Automatic loading of jump host auth from AuthManager on connection
+  - Fixed "Invalid or incomplete authentication configuration" error when browsing through proxy
+
+- **Test Connection Feedback**: Success message now displays properly after test connection completes
+
+---
+
 ## 3.7.0 - 2026-01-23
 
 ### Added
