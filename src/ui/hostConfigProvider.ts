@@ -88,6 +88,9 @@ export class HostConfigProvider {
             }
         );
 
+        // Set icon for the webview tab using VS Code's built-in theme icon
+        panel.iconPath = new vscode.ThemeIcon('server-process');
+
         const provider = new HostConfigProvider(panel, extensionUri, hostManager, authManager);
         provider.currentHostId = hostId;
         provider.onSaveCallback = onSave;
