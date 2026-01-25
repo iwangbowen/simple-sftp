@@ -119,7 +119,6 @@
         card.innerHTML = `
             <div class="jump-host-header">
                 <div class="jump-host-title">
-                    <i class="codicon codicon-vm-connect"></i>
                     <span>Jump Host ${jumpHostsData.length + 1}</span>
                 </div>
                 <div class="jump-host-actions">
