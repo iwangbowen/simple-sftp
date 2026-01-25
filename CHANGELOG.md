@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.9.0 - 2026-01-25
+
+### Added
+
+- **Jump Host Single Test Feature**:
+  - Each Jump Host card now has a "Test" button in the top right corner, allowing you to test the connectivity of that individual jump host
+
 ## 3.8.0 - 2026-01-25
 
 ### Added
