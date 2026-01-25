@@ -70,8 +70,12 @@ export class HostTreeItem extends vscode.TreeItem {
 
       this.description = `${host.username}@${host.host}:${host.port}`;
       this.tooltip = this.generateTooltip(host, hasAuth);
-      // Remove command so clicking host doesn't open edit dialog
-      // User can still edit via context menu
+      // Click host opens advanced configuration webview
+      this.command = {
+        command: 'simpleSftp.configureHostAdvanced',
+        title: 'Advanced Configuration',
+        arguments: [this]
+      };
     } else if (type === 'bookmark') {
       const bookmark = data as PathBookmark;
       this.contextValue = 'bookmark';
