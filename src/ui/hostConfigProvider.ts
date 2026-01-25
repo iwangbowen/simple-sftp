@@ -194,6 +194,10 @@ export class HostConfigProvider {
                 await this.handleTestConnection(message.config);
                 break;
 
+            case 'testSingleJumpHost':
+                await this.handleTestSingleJumpHost(message.jumpHostId, message.jumpHostConfig);
+                break;
+
             case 'browsePrivateKey':
                 await this.handleBrowsePrivateKey(message.context);
                 break;
@@ -396,6 +400,82 @@ export class HostConfigProvider {
             this.panel.webview.postMessage({
                 command: 'testConnectionResult',
                 success: false
+            });
+        }
+    }
+
+    /**
+     * Handle test single jump host connection
+     */
+    private async handleTestSingleJumpHost(jumpHostId: number, jumpHostConfig: any): Promise<void> {
+        logger.info(`[HostConfigProvider] Testing single jump host ${jumpHostId}`);
+        logger.info(`[HostConfigProvider] Jump Host Config: ${JSON.stringify({ host: jumpHostConfig.host, port: jumpHostConfig.port, username: jumpHostConfig.username })}`);
+
+        try {
+            // Validate required fields
+            if (! jumpHostConfig.host || !jumpHostConfig.port || !jumpHostConfig.username) {
+                logger.error('[HostConfigProvider] Missing required jump host fields');
+                this.panel.webview.postMessage({
+                    command: 'singleJumpHostTestResult',
+                    jumpHostId: jumpHostId,
+                    success: false,
+                    message: 'Missing required fields'
+                });
+                return;
+            }
+
+            // Create auth config for this jump host
+            const authConfig: any = {
+                hostId: 'test-jump',
+                authType: jumpHostConfig.authType || 'password',
+                password: jumpHostConfig.password,
+                privateKeyPath: jumpHostConfig.privateKeyPath,
+                passphrase: jumpHostConfig.passphrase
+            };
+
+            // Prompt for password if needed and not provided
+            if (jumpHostConfig.authType === 'password' && !jumpHostConfig.password) {
+                const password = await vscode.window.showInputBox({
+                    prompt: `Enter password for ${jumpHostConfig.username}@${jumpHostConfig.host}`,
+                    password: true
+                });
+                if (!password) {
+                    this.panel.webview.postMessage({
+                        command: 'singleJumpHostTestResult',
+                        jumpHostId: jumpHostId,
+                        success: false
+                    });
+                    return;
+                }
+                authConfig.password = password;
+            }
+
+            // Create a minimal host config to test this jump host
+            const testHostConfig: HostConfig = {
+                id: 'test-jump',
+                name: 'Test Jump Host',
+                host: jumpHostConfig.host,
+                port: jumpHostConfig.port,
+                username: jumpHostConfig.username
+            };
+
+            // Test the connection
+            await SshConnectionManager.testConnection(testHostConfig, authConfig);
+
+            logger.info(`[HostConfigProvider] Jump host ${jumpHostId} test successful`);
+            this.panel.webview.postMessage({
+                command: 'singleJumpHostTestResult',
+                jumpHostId: jumpHostId,
+                success: true
+            });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.error(`[HostConfigProvider] Jump host ${jumpHostId} test failed: ${errorMessage}`);
+            this.panel.webview.postMessage({
+                command: 'singleJumpHostTestResult',
+                jumpHostId: jumpHostId,
+                success: false,
+                message: errorMessage
             });
         }
     }

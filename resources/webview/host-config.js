@@ -31,6 +31,33 @@
                     vscode.postMessage({ type: 'error', message: message.message });
                 }
                 break;
+            case 'singleJumpHostTestResult':
+                // Handle single jump host test result
+                const jumpHostId = message.jumpHostId;
+                const card = document.getElementById(`jump-host-${jumpHostId}`);
+                if (card) {
+                    const testBtn = card.querySelector('.test-jump');
+                    const icon = testBtn?.querySelector('i');
+
+                    if (icon && testBtn) {
+                        if (message.success) {
+                            icon.className = 'codicon codicon-pass';
+                            icon.style.color = 'var(--vscode-testing-iconPassed)';
+                        } else {
+                            icon.className = 'codicon codicon-error';
+                            icon.style.color = 'var(--vscode-testing-iconFailed)';
+                        }
+
+                        testBtn.disabled = false;
+
+                        // Reset after 3 seconds
+                        setTimeout(() => {
+                            icon.className = 'codicon codicon-debug-disconnect';
+                            icon.style.color = '';
+                        }, 3000);
+                    }
+                }
+                break;
             case 'privateKeyPath':
                 const pathInput = message.isJumpHost
                     ? document.querySelector(`#jump-${message.jumpHostId}-privateKeyPath`)
@@ -122,6 +149,9 @@
                     <span>Jump Host ${jumpHostsData.length + 1}</span>
                 </div>
                 <div class="jump-host-actions">
+                    <button type="button" class="icon-button-small test-jump" title="Test this jump host" data-id="${id}">
+                        <i class="codicon codicon-debug-disconnect"></i>
+                    </button>
                     ${jumpHostsData.length > 0 ? `
                         <button type="button" class="icon-button-small move-up" title="Move up">
                             <i class="codicon codicon-arrow-up"></i>
@@ -206,6 +236,11 @@
             vscode.postMessage({ type: 'browsePrivateKey', isJumpHost: true, jumpHostId: id });
         });
 
+        const testBtn = card.querySelector('.test-jump');
+        testBtn.addEventListener('click', () => {
+            testSingleJumpHost(id);
+        });
+
         const removeBtn = card.querySelector('.remove');
         removeBtn.addEventListener('click', () => {
             removeJumpHostCard(id);
@@ -228,6 +263,50 @@
         // Update auth fields
         updateAuthFields(`jump-${id}-`);
         updateJumpHostTitles();
+    }
+
+    /**
+     * Test a single jump host connection
+     * @param {number} id
+     */
+    function testSingleJumpHost(id) {
+        const card = document.getElementById(`jump-host-${id}`);
+        if (!card) return;
+
+        const testBtn = card.querySelector('.test-jump');
+        const icon = testBtn.querySelector('i');
+
+        // Show loading state
+        icon.className = 'codicon codicon-loading codicon-modifier-spin';
+        testBtn.disabled = true;
+
+        // Collect jump host data
+        const jumpHostConfig = {
+            host: document.getElementById(`jump-${id}-host`)?.value || '',
+            port: Number.parseInt(document.getElementById(`jump-${id}-port`)?.value || '22', 10),
+            username: document.getElementById(`jump-${id}-username`)?.value || '',
+            authType: document.getElementById(`jump-${id}-authType`)?.value || 'password',
+            password: document.getElementById(`jump-${id}-password`)?.value || '',
+            privateKeyPath: document.getElementById(`jump-${id}-privateKeyPath`)?.value || '',
+            passphrase: document.getElementById(`jump-${id}-passphrase`)?.value || ''
+        };
+
+        // Validate
+        if (!jumpHostConfig.host || !jumpHostConfig.username) {
+            icon.className = 'codicon codicon-error';
+            testBtn.disabled = false;
+            setTimeout(() => {
+                icon.className = 'codicon codicon-debug-disconnect';
+            }, 2000);
+            return;
+        }
+
+        // Send test request
+        vscode.postMessage({
+            type: 'testSingleJumpHost',
+            jumpHostId: id,
+            jumpHostConfig
+        });
     }
 
     /**
