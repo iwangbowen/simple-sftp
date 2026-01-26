@@ -21,6 +21,7 @@ If you find this extension helpful, consider buying me a coffee!
 ### Features
 
 #### File Management
+- **Direct Remote File Editing**: Edit remote files directly in VS Code
 - **Dual-Panel File Browser**: Visual interface with side-by-side local and remote file views
   - **Breadcrumb Navigation**: Clickable path segments for quick directory navigation
     - Click any path segment to jump to that directory
@@ -372,6 +373,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 #### 文件管理
 
+- **远程文件直接编辑**: 直接在 VS Code 中编辑远程文件
 - **双面板文件浏览器**: 本地和远程文件系统并列可视化界面
   - **面包屑导航**: 可点击的路径段，快速跳转目录
     - 点击任意路径段跳转到对应目录
