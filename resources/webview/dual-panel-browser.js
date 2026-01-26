@@ -1458,17 +1458,22 @@
             refreshPanel('local');
             refreshPanel('remote');
         } else if (e.key === 'Backspace') {
-            // 检查是否在搜索框或新建文件夹输入框中
+            // 检查是否在搜索框、新建文件夹输入框或批量重命名模态对话框中
             const activeElement = document.activeElement;
             const isInInput = activeElement && (
                 activeElement.id === 'local-search' ||
                 activeElement.id === 'remote-search' ||
                 activeElement.classList.contains('tree-item-input') ||
+                activeElement.classList.contains('rename-input') ||
                 // 检查是否在搜索视图的任何输入框中
-                activeElement.closest('.panel-search-view')
+                activeElement.closest('.panel-search-view') ||
+                // 检查是否在批量重命名模态对话框中
+                activeElement.closest('#batch-rename-modal') ||
+                // 检查是否在任何模态对话框中
+                activeElement.closest('.modal')
             );
 
-            // 只有当不在输入框中时才返回上一级
+            // 只有当不在输入框或模态对话框中时才返回上一级
             if (!isInInput) {
                 // 返回上一级
                 e.preventDefault();
