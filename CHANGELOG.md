@@ -1,5 +1,21 @@
 # Change Log
 
+## 3.10.0 - 2026-01-26
+
+### Added
+
+- **Batch Rename Feature**: Powerful file batch renaming with intuitive preview
+  - Batch rename multiple files simultaneously in dual-panel browser
+  - Two rename modes:
+    - **Find & Replace**: Simple text or regex-based find and replace
+    - **Pattern Rename**: Use placeholders like `{name}`, `{n}`, `{NN}`, `{NNN}` for sequential naming
+  - Real-time preview with visual feedback (✓ for changes, - for unchanged, ✗ for errors)
+  - Error detection: duplicate names, empty names, invalid characters
+  - Progress indicator for batch operations
+  - Available via toolbar button (✏️ icon) when files are selected
+  - Supports both local and remote panels
+  - Automatically refreshes affected directories after rename
+
 ## 3.9.0 - 2026-01-25
 
 ### Added

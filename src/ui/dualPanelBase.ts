@@ -181,6 +181,10 @@ export abstract class DualPanelBase {
                 await this.handleRename(message.data);
                 break;
 
+            case 'batchRename':
+                await this.handleBatchRename(message.data);
+                break;
+
             case 'openFile':
                 await this.handleOpenFile(message.data);
                 break;
@@ -762,6 +766,105 @@ export abstract class DualPanelBase {
         }
     }
 
+    /**
+     * Handle batch rename operation
+     */
+    protected async handleBatchRename(data: any): Promise<void> {
+        const { files } = data;
+
+        if (!files || files.length === 0) {
+            vscode.window.showErrorMessage('No files to rename');
+            return;
+        }
+
+        // Show progress
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Renaming ${files.length} ${files.length === 1 ? 'file' : 'files'}...`,
+                cancellable: false
+            },
+            async (progress) => {
+                let successCount = 0;
+                let failCount = 0;
+                const errors: string[] = [];
+
+                // Group files by panel and parent directory for efficient refresh
+                const localParents = new Set<string>();
+                const remoteParents = new Set<string>();
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const { oldPath, newName, panel } = file;
+
+                    progress.report({
+                        increment: (1 / files.length) * 100,
+                        message: `${i + 1}/${files.length}: ${newName}`
+                    });
+
+                    try {
+                        const parentPath = panel === 'local'
+                            ? path.dirname(oldPath)
+                            : path.posix.dirname(oldPath);
+                        const newPath = panel === 'local'
+                            ? path.join(parentPath, newName)
+                            : path.posix.join(parentPath, newName);
+
+                        if (panel === 'local') {
+                            await fs.promises.rename(oldPath, newPath);
+                            localParents.add(parentPath);
+                        } else if (panel === 'remote') {
+                            if (!this._currentHost || !this._currentAuthConfig) {
+                                throw new Error('No host selected');
+                            }
+
+                            await SshConnectionManager.renameRemoteFile(
+                                this._currentHost,
+                                this._currentAuthConfig,
+                                oldPath,
+                                newPath
+                            );
+                            remoteParents.add(parentPath);
+                        }
+
+                        successCount++;
+                        logger.info(`Renamed: ${oldPath} -> ${newName}`);
+                    } catch (error) {
+                        failCount++;
+                        const errorMsg = `Failed to rename ${path.basename(oldPath)}: ${error}`;
+                        errors.push(errorMsg);
+                        logger.error(errorMsg);
+                    }
+                }
+
+                // Refresh affected directories
+                for (const parentPath of localParents) {
+                    await this.loadLocalDirectory(parentPath);
+                }
+                for (const parentPath of remoteParents) {
+                    await this.loadRemoteDirectory(parentPath);
+                }
+
+                // Show summary
+                if (successCount > 0 && failCount === 0) {
+                    this.updateStatus(`Successfully renamed ${successCount} ${successCount === 1 ? 'file' : 'files'}`);
+                    vscode.window.showInformationMessage(`Successfully renamed ${successCount} ${successCount === 1 ? 'file' : 'files'}`);
+                } else if (successCount > 0 && failCount > 0) {
+                    this.updateStatus(`Renamed ${successCount} files, ${failCount} failed`);
+                    vscode.window.showWarningMessage(
+                        `Renamed ${successCount} files, ${failCount} failed. Check output for details.`
+                    );
+                    // Log errors
+                    errors.forEach(err => logger.error(err));
+                } else {
+                    this.updateStatus(`Batch rename failed`);
+                    vscode.window.showErrorMessage(`Batch rename failed. Check output for details.`);
+                    errors.forEach(err => logger.error(err));
+                }
+            }
+        );
+    }
+
     protected async handleOpenFile(data: any): Promise<void> {
         const { path: filePath, panel } = data;
 
@@ -1053,6 +1156,23 @@ export abstract class DualPanelBase {
         }
 
         await this.handleRename({ path: filePath, newName, panel });
+    }
+
+    public async executeBatchRename(args: any): Promise<void> {
+        // Extract panel from args based on webviewSection
+        // webviewSection can be 'localFile' or 'remoteFile'
+        let panel = 'remote'; // default
+
+        if (args?.webviewSection) {
+            panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+        } else if (args?.panel) {
+            panel = args.panel;
+        }
+        // Send message to webview to trigger batch rename with current selection
+        this.postMessage({
+            command: 'triggerBatchRename',
+            panel: panel
+        });
     }
 
     public async executeDelete(args: any): Promise<void> {

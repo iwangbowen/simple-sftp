@@ -295,6 +295,17 @@ export async function activate(context: vscode.ExtensionContext) {
         await dualPanelProvider.executeRename(args);
       }
     }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.batchRename', async (args) => {
+      const openInEditor = vscode.workspace
+        .getConfiguration('simpleSftp.browser')
+        .get('openInEditor', false);
+
+      if (openInEditor) {
+        await dualPanelEditorManager.executeBatchRename(args);
+      } else {
+        await dualPanelProvider.executeBatchRename(args);
+      }
+    }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.createFolder', async (args) => {
       const openInEditor = vscode.workspace
         .getConfiguration('simpleSftp.browser')

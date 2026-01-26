@@ -1339,3 +1339,298 @@ body {
     color: var(--vscode-errorForeground);
     font-size: 12px;
 }
+
+/* ===== Batch Rename Modal ===== */
+.batch-rename-modal-content {
+    max-width: 600px;
+    width: 90%;
+}
+
+/* Rename Mode Tabs */
+.rename-mode-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.rename-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--vscode-foreground);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.15s ease;
+}
+
+.rename-tab:hover {
+    opacity: 1;
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.rename-tab.active {
+    opacity: 1;
+    border-bottom-color: var(--vscode-focusBorder);
+}
+
+.rename-tab .codicon {
+    font-size: 14px;
+}
+
+/* Rename Mode Panels */
+.rename-mode-panel {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.rename-mode-panel.active {
+    display: flex;
+}
+
+/* Rename Input Groups */
+.rename-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rename-input-group label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--vscode-foreground);
+    opacity: 0.9;
+}
+
+.rename-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rename-input {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: var(--vscode-font-family);
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.rename-input:focus {
+    border-color: var(--vscode-focusBorder);
+}
+
+.rename-input::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+    opacity: 0.7;
+}
+
+/* Rename Toggle Buttons */
+.rename-toggle-button {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+    cursor: pointer;
+    color: var(--vscode-icon-foreground);
+    font-size: 14px;
+    padding: 0;
+    opacity: 0.7;
+    transition: all 0.15s ease;
+}
+
+.rename-toggle-button:hover {
+    opacity: 1;
+    background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.rename-toggle-button.active {
+    opacity: 1;
+    background-color: var(--vscode-button-secondaryBackground);
+    border-color: var(--vscode-button-secondaryForeground);
+    color: var(--vscode-button-secondaryForeground);
+}
+
+/* Pattern Help */
+.rename-pattern-help {
+    padding: 10px 12px;
+    background-color: var(--vscode-textBlockQuote-background);
+    border-left: 3px solid var(--vscode-focusBorder);
+    border-radius: 2px;
+    font-size: 11px;
+}
+
+.help-item {
+    margin-bottom: 4px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.help-item:last-child {
+    margin-bottom: 0;
+}
+
+.help-item code {
+    padding: 2px 4px;
+    background-color: var(--vscode-textCodeBlock-background);
+    border-radius: 2px;
+    font-family: 'Courier New', Courier, monospace;
+    color: var(--vscode-textLink-foreground);
+    font-size: 11px;
+}
+
+/* Rename Preview */
+.rename-preview-container {
+    margin-top: 16px;
+}
+
+.rename-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background-color: var(--vscode-sideBar-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--vscode-foreground);
+}
+
+.rename-preview-count {
+    color: var(--vscode-descriptionForeground);
+    font-weight: normal;
+}
+
+.rename-preview-list {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 0 0 4px 4px;
+    background-color: var(--vscode-editor-background);
+}
+
+.rename-preview-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.rename-preview-list::-webkit-scrollbar-track {
+    background: var(--vscode-scrollbarSlider-background);
+}
+
+.rename-preview-list::-webkit-scrollbar-thumb {
+    background: var(--vscode-scrollbarSlider-hoverBackground);
+    border-radius: 4px;
+}
+
+.rename-preview-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    transition: background-color 0.1s;
+}
+
+.rename-preview-item:last-child {
+    border-bottom: none;
+}
+
+.rename-preview-item:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.rename-preview-item .codicon {
+    margin-right: 8px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.rename-preview-item.changed .codicon {
+    color: var(--vscode-gitDecoration-modifiedResourceForeground);
+}
+
+.rename-preview-item.unchanged .codicon {
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.5;
+}
+
+.rename-preview-item.error .codicon {
+    color: var(--vscode-errorForeground);
+}
+
+.rename-preview-old {
+    flex: 1;
+    color: var(--vscode-descriptionForeground);
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rename-preview-arrow {
+    margin: 0 12px;
+    color: var(--vscode-descriptionForeground);
+    flex-shrink: 0;
+}
+
+.rename-preview-item.unchanged .rename-preview-arrow {
+    opacity: 0.5;
+}
+
+.rename-preview-new {
+    flex: 1;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rename-preview-item.changed .rename-preview-new {
+    color: var(--vscode-gitDecoration-modifiedResourceForeground);
+}
+
+.rename-preview-item.unchanged .rename-preview-new {
+    color: var(--vscode-descriptionForeground);
+    font-weight: normal;
+    opacity: 0.7;
+}
+
+.rename-preview-item.error .rename-preview-new {
+    color: var(--vscode-errorForeground);
+}
+
+.rename-preview-error {
+    margin-left: 8px;
+    font-size: 10px;
+    color: var(--vscode-errorForeground);
+    font-style: italic;
+}
+
+.rename-preview-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--vscode-descriptionForeground);
+    font-size: 12px;
+    font-style: italic;
+}

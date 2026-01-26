@@ -437,6 +437,12 @@
         "icon": "$(edit)"
       },
       {
+        "command": "simpleSftp.dualPanel.batchRename",
+        "title": "Batch Rename",
+        "category": "Simple SFTP",
+        "icon": "$(edit)"
+      },
+      {
         "command": "simpleSftp.dualPanel.createFolder",
         "title": "New Folder",
         "category": "Simple SFTP",
@@ -490,14 +496,14 @@
           "group": "2_operations@2"
         },
         {
-          "command": "simpleSftp.dualPanel.rename",
+          "command": "simpleSftp.dualPanel.batchRename",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
-          "group": "2_operations@3"
+          "group": "2_operations@4"
         },
         {
           "command": "simpleSftp.dualPanel.changePermissions",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
-          "group": "2_operations@4"
+          "group": "2_operations@5"
         },
         {
           "command": "simpleSftp.dualPanel.addBookmark",

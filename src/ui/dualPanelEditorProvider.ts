@@ -142,6 +142,14 @@ export class DualPanelEditorManager extends DualPanelBase {
         await super.executeRename(args);
     }
 
+    public async executeBatchRename(args: any): Promise<void> {
+        if (!this.currentPanel) {
+            vscode.window.showWarningMessage('No active file browser panel');
+            return;
+        }
+        await super.executeBatchRename(args);
+    }
+
     public async executeDelete(args: any): Promise<void> {
         if (!this.currentPanel) {
             vscode.window.showWarningMessage('No active file browser panel');

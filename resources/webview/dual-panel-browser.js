@@ -895,6 +895,9 @@
 
         // 更新 selectedItem (保持向后兼容)
         selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
+
+        // Update context variables for menu visibility
+        updateContextVariables();
     }
 
     /**
@@ -923,6 +926,9 @@
         // Update last selected item
         lastSelectedItem = visibleItems.length > 0 ? visibleItems[visibleItems.length - 1] : null;
         selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
+
+        // Update context variables for menu visibility
+        updateContextVariables();
     }
 
     /**
@@ -933,6 +939,23 @@
         selectedItems = [];
         selectedItem = null;
         lastSelectedItem = null;
+
+        // Update context variables for menu visibility
+        updateContextVariables();
+    }
+
+    /**
+     * Update context variables for webview context menu
+     */
+    function updateContextVariables() {
+        const hasMultiple = selectedItems.length > 1;
+
+        // Update data-vscode-context on all selected items
+        selectedItems.forEach(item => {
+            const currentContext = item.dataset.vscodeContext ? JSON.parse(item.dataset.vscodeContext) : {};
+            currentContext.hasMultipleSelection = hasMultiple;
+            item.dataset.vscodeContext = JSON.stringify(currentContext);
+        });
     }
 
     /**
@@ -1205,6 +1228,46 @@
     }
 
     /**
+     * Batch rename selected files
+     * @param {string} panel - 'local' or 'remote'
+     */
+    function batchRenameSelected(panel) {
+        console.log(`batchRenameSelected called with panel: ${panel}`);
+        console.log(`selectedItems count: ${selectedItems.length}`);
+        console.log('selectedItems:', selectedItems.map(item => ({
+            panel: item.dataset.panel,
+            path: item.dataset.path,
+            name: item.querySelector('.tree-item-label')?.textContent
+        })));
+
+        // Filter selected items by panel (both files and folders)
+        const items = selectedItems.filter(item =>
+            item.dataset.panel === panel
+        );
+
+        console.log(`filtered items count: ${items.length}`);
+
+        if (items.length === 0) {
+            vscode.postMessage({
+                command: 'showError',
+                message: 'No items selected for batch rename'
+            });
+            return;
+        }
+
+        // Collect file and folder information
+        const files = items.map(item => ({
+            path: item.dataset.path,
+            name: item.querySelector('.tree-item-label')?.textContent || '',
+            panel: panel,
+            isDirectory: item.dataset.isDir === 'true'
+        }));
+
+        // Open batch rename modal
+        openBatchRenameModal(files);
+    }
+
+    /**
      * Show delete confirmation dialog with list of files to delete
      */
     function showDeleteConfirmation() {
@@ -1448,6 +1511,11 @@
             case 'triggerDelete':
                 // Trigger delete confirmation with current selection
                 showDeleteConfirmation();
+                break;
+
+            case 'triggerBatchRename':
+                // Trigger batch rename with current selection
+                batchRenameSelected(message.panel);
                 break;
 
             case 'deleteConfirmationResult':
@@ -2230,4 +2298,391 @@
             `;
         }
     }
+
+    // ===== Batch Rename Functionality =====
+
+    /** @type {Array<{oldPath: string, oldName: string, newName: string, panel: string}>} */
+    let batchRenameFiles = [];
+
+    /**
+     * Initialize batch rename modal
+     */
+    function initializeBatchRename() {
+        // Close button
+        document.getElementById('batch-rename-close')?.addEventListener('click', closeBatchRenameModal);
+        document.getElementById('batch-rename-cancel')?.addEventListener('click', closeBatchRenameModal);
+
+        // Mode tabs
+        document.querySelectorAll('.rename-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                switchRenameMode(tab.dataset.mode);
+            });
+        });
+
+        // Find & Replace inputs
+        document.getElementById('find-input')?.addEventListener('input', updateBatchRenamePreview);
+        document.getElementById('replace-input')?.addEventListener('input', updateBatchRenamePreview);
+        document.getElementById('find-regex-toggle')?.addEventListener('click', function() {
+            this.classList.toggle('active');
+            updateBatchRenamePreview();
+        });
+        document.getElementById('find-case-toggle')?.addEventListener('click', function() {
+            this.classList.toggle('active');
+            updateBatchRenamePreview();
+        });
+
+        // Pattern input
+        document.getElementById('pattern-input')?.addEventListener('input', updateBatchRenamePreview);
+
+        // Apply button
+        document.getElementById('batch-rename-apply')?.addEventListener('click', applyBatchRename);
+
+        // Close on background click
+        document.getElementById('batch-rename-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'batch-rename-modal') {
+                closeBatchRenameModal();
+            }
+        });
+    }
+
+    /**
+     * Open batch rename modal with selected files
+     * @param {Array<{path: string, name: string, panel: string}>} files
+     */
+    function openBatchRenameModal(files) {
+        if (!files || files.length === 0) {
+            return;
+        }
+
+        batchRenameFiles = files.map(f => ({
+            oldPath: f.path,
+            oldName: f.name,
+            newName: f.name,
+            panel: f.panel
+        }));
+
+        // Update title
+        const title = document.getElementById('batch-rename-title');
+        if (title) {
+            title.textContent = `Batch Rename (${files.length} ${files.length === 1 ? 'file' : 'files'})`;
+        }
+
+        // Reset form
+        const findInput = document.getElementById('find-input');
+        const replaceInput = document.getElementById('replace-input');
+        const patternInput = document.getElementById('pattern-input');
+        if (findInput) findInput.value = '';
+        if (replaceInput) replaceInput.value = '';
+        if (patternInput) patternInput.value = '';
+
+        // Reset toggles
+        document.getElementById('find-regex-toggle')?.classList.remove('active');
+        document.getElementById('find-case-toggle')?.classList.remove('active');
+
+        // Switch to find & replace mode
+        switchRenameMode('find-replace');
+
+        // Update preview
+        updateBatchRenamePreview();
+
+        // Show modal
+        const modal = document.getElementById('batch-rename-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    /**
+     * Close batch rename modal
+     */
+    function closeBatchRenameModal() {
+        const modal = document.getElementById('batch-rename-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        batchRenameFiles = [];
+    }
+
+    /**
+     * Switch rename mode
+     * @param {string} mode - 'find-replace' | 'pattern'
+     */
+    function switchRenameMode(mode) {
+        // Update tabs
+        document.querySelectorAll('.rename-tab').forEach(tab => {
+            if (tab.dataset.mode === mode) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        // Update panels
+        document.querySelectorAll('.rename-mode-panel').forEach(panel => {
+            if (panel.id === `${mode}-panel`) {
+                panel.classList.add('active');
+            } else {
+                panel.classList.remove('active');
+            }
+        });
+
+        // Update preview
+        updateBatchRenamePreview();
+    }
+
+    /**
+     * Update batch rename preview
+     */
+    function updateBatchRenamePreview() {
+        const activeMode = document.querySelector('.rename-tab.active')?.dataset.mode || 'find-replace';
+
+        if (activeMode === 'find-replace') {
+            updateFindReplacePreview();
+        } else if (activeMode === 'pattern') {
+            updatePatternPreview();
+        }
+    }
+
+    /**
+     * Update find & replace preview
+     */
+    function updateFindReplacePreview() {
+        const findInput = document.getElementById('find-input')?.value || '';
+        const replaceInput = document.getElementById('replace-input')?.value || '';
+        const useRegex = document.getElementById('find-regex-toggle')?.classList.contains('active');
+        const caseSensitive = document.getElementById('find-case-toggle')?.classList.contains('active');
+
+        // Update file new names
+        batchRenameFiles.forEach(file => {
+            if (!findInput) {
+                file.newName = file.oldName;
+                return;
+            }
+
+            try {
+                if (useRegex) {
+                    const flags = caseSensitive ? 'g' : 'gi';
+                    const regex = new RegExp(findInput, flags);
+                    file.newName = file.oldName.replace(regex, replaceInput);
+                } else {
+                    const searchStr = caseSensitive ? findInput : findInput.toLowerCase();
+                    const oldNameStr = caseSensitive ? file.oldName : file.oldName.toLowerCase();
+
+                    if (oldNameStr.includes(searchStr)) {
+                        // Simple string replacement
+                        if (caseSensitive) {
+                            file.newName = file.oldName.split(findInput).join(replaceInput);
+                        } else {
+                            // Case-insensitive replacement
+                            const regex = new RegExp(escapeRegExp(findInput), 'gi');
+                            file.newName = file.oldName.replace(regex, replaceInput);
+                        }
+                    } else {
+                        file.newName = file.oldName;
+                    }
+                }
+            } catch (error) {
+                // Invalid regex, keep original name
+                file.newName = file.oldName;
+            }
+        });
+
+        renderBatchRenamePreview();
+    }
+
+    /**
+     * Update pattern preview
+     */
+    function updatePatternPreview() {
+        const pattern = document.getElementById('pattern-input')?.value || '';
+
+        if (!pattern) {
+            batchRenameFiles.forEach(file => {
+                file.newName = file.oldName;
+            });
+        } else {
+            batchRenameFiles.forEach((file, index) => {
+                let newName = pattern;
+
+                // Replace {name} with original filename (without extension)
+                const nameWithoutExt = file.oldName.replace(/\.[^.]+$/, '');
+                const ext = file.oldName.match(/\.[^.]+$/)?.[0] || '';
+                newName = newName.replace(/{name}/g, nameWithoutExt);
+
+                // Replace {n} with number
+                newName = newName.replace(/{n}/g, (index + 1).toString());
+
+                // Replace {NN} with zero-padded number (2 digits)
+                newName = newName.replace(/{NN}/g, (index + 1).toString().padStart(2, '0'));
+
+                // Replace {NNN} with zero-padded number (3 digits)
+                newName = newName.replace(/{NNN}/g, (index + 1).toString().padStart(3, '0'));
+
+                // Add extension if pattern doesn't already have one
+                if (!newName.includes('.') && ext) {
+                    newName += ext;
+                }
+
+                file.newName = newName;
+            });
+        }
+
+        renderBatchRenamePreview();
+    }
+
+    /**
+     * Render batch rename preview list
+     */
+    function renderBatchRenamePreview() {
+        const previewList = document.getElementById('rename-preview-list');
+        const previewCount = document.getElementById('rename-preview-count');
+
+        if (!previewList) return;
+
+        // Check for duplicates and empty names
+        const newNames = new Set();
+        const errors = new Map();
+
+        batchRenameFiles.forEach((file, index) => {
+            if (!file.newName || file.newName.trim() === '') {
+                errors.set(index, 'Empty name');
+            } else if (newNames.has(file.newName)) {
+                errors.set(index, 'Duplicate name');
+            } else if (file.newName.includes('/') || file.newName.includes('\\')) {
+                errors.set(index, 'Invalid characters');
+            } else {
+                newNames.add(file.newName);
+            }
+        });
+
+        // Count changes
+        const changedCount = batchRenameFiles.filter(f => f.oldName !== f.newName && !errors.has(batchRenameFiles.indexOf(f))).length;
+        if (previewCount) {
+            previewCount.textContent = `${changedCount} of ${batchRenameFiles.length} will be renamed`;
+        }
+
+        // Render preview items
+        previewList.innerHTML = '';
+
+        if (batchRenameFiles.length === 0) {
+            previewList.innerHTML = '<div class="rename-preview-empty">No files selected</div>';
+            return;
+        }
+
+        batchRenameFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            const hasError = errors.has(index);
+            const isChanged = file.oldName !== file.newName && !hasError;
+
+            item.className = `rename-preview-item ${hasError ? 'error' : isChanged ? 'changed' : 'unchanged'}`;
+
+            // Icon
+            const icon = document.createElement('span');
+            icon.className = hasError ? 'codicon codicon-error' : isChanged ? 'codicon codicon-check' : 'codicon codicon-dash';
+            item.appendChild(icon);
+
+            // Old name
+            const oldName = document.createElement('span');
+            oldName.className = 'rename-preview-old';
+            oldName.textContent = file.oldName;
+            oldName.title = file.oldName;
+            item.appendChild(oldName);
+
+            // Arrow
+            const arrow = document.createElement('span');
+            arrow.className = 'rename-preview-arrow';
+            arrow.textContent = '→';
+            item.appendChild(arrow);
+
+            // New name
+            const newName = document.createElement('span');
+            newName.className = 'rename-preview-new';
+            newName.textContent = file.newName || '(empty)';
+            newName.title = file.newName;
+            item.appendChild(newName);
+
+            // Error message
+            if (hasError) {
+                const errorMsg = document.createElement('span');
+                errorMsg.className = 'rename-preview-error';
+                errorMsg.textContent = `(${errors.get(index)})`;
+                item.appendChild(errorMsg);
+            }
+
+            previewList.appendChild(item);
+        });
+    }
+
+    /**
+     * Apply batch rename
+     */
+    function applyBatchRename() {
+        // Filter out files that won't be renamed or have errors
+        const filesToRename = batchRenameFiles.filter(file => {
+            if (!file.newName || file.newName.trim() === '') return false;
+            if (file.newName === file.oldName) return false;
+            if (file.newName.includes('/') || file.newName.includes('\\')) return false;
+            return true;
+        });
+
+        if (filesToRename.length === 0) {
+            vscode.postMessage({
+                command: 'showError',
+                message: 'No valid files to rename'
+            });
+            return;
+        }
+
+        // Check for duplicates
+        const newNames = new Set();
+        for (const file of filesToRename) {
+            if (newNames.has(file.newName)) {
+                vscode.postMessage({
+                    command: 'showError',
+                    message: `Duplicate name detected: ${file.newName}`
+                });
+                return;
+            }
+            newNames.add(file.newName);
+        }
+
+        // Send batch rename request
+        vscode.postMessage({
+            command: 'batchRename',
+            data: {
+                files: filesToRename.map(f => ({
+                    oldPath: f.oldPath,
+                    newName: f.newName,
+                    panel: f.panel
+                }))
+            }
+        });
+
+        closeBatchRenameModal();
+    }
+
+    /**
+     * Escape string for use in RegExp
+     */
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Initialize batch rename when DOM is ready
+    initializeBatchRename();
+
+    // ===== Message Handling from Extension =====
+
+    // Listen for messages from extension to trigger batch rename
+    window.addEventListener('message', event => {
+        const message = event.data;
+        switch (message.command) {
+            case 'openBatchRename':
+                if (message.files) {
+                    openBatchRenameModal(message.files);
+                }
+                break;
+        }
+    });
+
 })();

@@ -271,6 +271,79 @@
         </div>
     </div>
 
+    <!-- Batch Rename Modal -->
+    <div id="batch-rename-modal" class="modal" style="display: none;">
+        <div class="modal-content batch-rename-modal-content">
+            <div class="modal-header">
+                <h3 id="batch-rename-title">Batch Rename</h3>
+                <span class="modal-close" id="batch-rename-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Mode Tabs -->
+                <div class="rename-mode-tabs">
+                    <button class="rename-tab active" data-mode="find-replace">
+                        <span class="codicon codicon-search-replace"></span>
+                        Find & Replace
+                    </button>
+                    <button class="rename-tab" data-mode="pattern">
+                        <span class="codicon codicon-symbol-string"></span>
+                        Pattern
+                    </button>
+                </div>
+
+                <!-- Find & Replace Mode -->
+                <div class="rename-mode-panel active" id="find-replace-panel">
+                    <div class="rename-input-group">
+                        <label>Find:</label>
+                        <div class="rename-input-wrapper">
+                            <input type="text" id="find-input" class="rename-input" placeholder="Text to find">
+                            <button class="rename-toggle-button" id="find-regex-toggle" title="Use Regular Expression">
+                                <span class="codicon codicon-regex"></span>
+                            </button>
+                            <button class="rename-toggle-button" id="find-case-toggle" title="Match Case">
+                                <span class="codicon codicon-case-sensitive"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="rename-input-group">
+                        <label>Replace:</label>
+                        <input type="text" id="replace-input" class="rename-input" placeholder="Replacement text">
+                    </div>
+                </div>
+
+                <!-- Pattern Mode -->
+                <div class="rename-mode-panel" id="pattern-panel">
+                    <div class="rename-input-group">
+                        <label>Pattern:</label>
+                        <input type="text" id="pattern-input" class="rename-input" placeholder="e.g., photo-{NN}">
+                    </div>
+                    <div class="rename-pattern-help">
+                        <div class="help-item"><code>{name}</code> - Original filename</div>
+                        <div class="help-item"><code>{n}</code> - Number (1, 2, 3...)</div>
+                        <div class="help-item"><code>{NN}</code> - Number with zeros (01, 02, 03...)</div>
+                    </div>
+                </div>
+
+                <!-- Preview List -->
+                <div class="rename-preview-container">
+                    <div class="rename-preview-header">
+                        <span>Preview</span>
+                        <span id="rename-preview-count" class="rename-preview-count">0 files</span>
+                    </div>
+                    <div class="rename-preview-list" id="rename-preview-list">
+                        <!-- Preview items will be dynamically added -->
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="button-group">
+                    <button class="apply-button" id="batch-rename-apply">Apply</button>
+                    <button class="cancel-button" id="batch-rename-cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
 </body>
 </html>
