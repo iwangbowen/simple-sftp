@@ -1342,15 +1342,15 @@ body {
 
 /* ===== Batch Rename Modal ===== */
 .batch-rename-modal-content {
-    max-width: 600px;
+    max-width: 480px;
     width: 90%;
 }
 
 /* Rename Mode Tabs */
 .rename-mode-tabs {
     display: flex;
-    gap: 4px;
-    margin-bottom: 16px;
+    gap: 2px;
+    margin-bottom: 12px;
     border-bottom: 1px solid var(--vscode-panel-border);
 }
 
@@ -1359,13 +1359,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: 4px;
+    padding: 6px 10px;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--vscode-foreground);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     opacity: 0.7;
@@ -1383,15 +1383,15 @@ body {
 }
 
 .rename-tab .codicon {
-    font-size: 14px;
+    font-size: 13px;
 }
 
 /* Rename Mode Panels */
 .rename-mode-panel {
     display: none;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px 0;
+    gap: 10px;
+    padding: 8px 0;
 }
 
 .rename-mode-panel.active {
@@ -1402,11 +1402,11 @@ body {
 .rename-input-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .rename-input-group label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     color: var(--vscode-foreground);
     opacity: 0.9;
@@ -1420,8 +1420,8 @@ body {
 
 .rename-input {
     flex: 1;
-    padding: 6px 10px;
-    font-size: 13px;
+    padding: 4px 8px;
+    font-size: 12px;
     font-family: var(--vscode-font-family);
     background-color: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
@@ -1442,8 +1442,8 @@ body {
 
 /* Rename Toggle Buttons */
 .rename-toggle-button {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1452,7 +1452,7 @@ body {
     border-radius: 2px;
     cursor: pointer;
     color: var(--vscode-icon-foreground);
-    font-size: 14px;
+    font-size: 12px;
     padding: 0;
     opacity: 0.7;
     transition: all 0.15s ease;
@@ -1472,15 +1472,15 @@ body {
 
 /* Pattern Help */
 .rename-pattern-help {
-    padding: 10px 12px;
+    padding: 8px 10px;
     background-color: var(--vscode-textBlockQuote-background);
-    border-left: 3px solid var(--vscode-focusBorder);
+    border-left: 2px solid var(--vscode-focusBorder);
     border-radius: 2px;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .help-item {
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     color: var(--vscode-descriptionForeground);
 }
 
@@ -1489,29 +1489,29 @@ body {
 }
 
 .help-item code {
-    padding: 2px 4px;
+    padding: 1px 3px;
     background-color: var(--vscode-textCodeBlock-background);
     border-radius: 2px;
     font-family: 'Courier New', Courier, monospace;
     color: var(--vscode-textLink-foreground);
-    font-size: 11px;
+    font-size: 10px;
 }
 
 /* Rename Preview */
 .rename-preview-container {
-    margin-top: 16px;
+    margin-top: 12px;
 }
 
 .rename-preview-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 8px;
+    padding: 4px 8px;
     background-color: var(--vscode-sideBar-background);
     border: 1px solid var(--vscode-panel-border);
     border-bottom: none;
     border-radius: 4px 4px 0 0;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     color: var(--vscode-foreground);
 }
@@ -1522,7 +1522,7 @@ body {
 }
 
 .rename-preview-list {
-    max-height: 250px;
+    max-height: 180px;
     overflow-y: auto;
     border: 1px solid var(--vscode-panel-border);
     border-radius: 0 0 4px 4px;
@@ -1530,7 +1530,7 @@ body {
 }
 
 .rename-preview-list::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 .rename-preview-list::-webkit-scrollbar-track {
@@ -1545,8 +1545,8 @@ body {
 .rename-preview-item {
     display: flex;
     align-items: center;
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 4px 8px;
+    font-size: 11px;
     border-bottom: 1px solid var(--vscode-panel-border);
     transition: background-color 0.1s;
 }
@@ -1560,8 +1560,8 @@ body {
 }
 
 .rename-preview-item .codicon {
-    margin-right: 8px;
-    font-size: 14px;
+    margin-right: 6px;
+    font-size: 13px;
     flex-shrink: 0;
 }
 
@@ -1588,7 +1588,7 @@ body {
 }
 
 .rename-preview-arrow {
-    margin: 0 12px;
+    margin: 0 8px;
     color: var(--vscode-descriptionForeground);
     flex-shrink: 0;
 }
