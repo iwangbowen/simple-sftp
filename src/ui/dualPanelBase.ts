@@ -1135,27 +1135,21 @@ export abstract class DualPanelBase {
     }
 
     public async executeRename(args: any): Promise<void> {
-        const { filePath, panel } = args;
-        const oldName = path.basename(filePath);
-        const newName = await vscode.window.showInputBox({
-            prompt: 'Enter new name',
-            value: oldName,
-            validateInput: (value) => {
-                if (!value) {
-                    return 'Name cannot be empty';
-                }
-                if (value.includes('/') || value.includes('\\')) {
-                    return 'Invalid characters in name';
-                }
-                return null;
-            }
-        });
+        // Trigger inline rename in webview instead of showing input box
+        // Extract panel from args based on webviewSection
+        let panel = 'remote'; // default
 
-        if (!newName || newName === oldName) {
-            return;
+        if (args?.webviewSection) {
+            panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+        } else if (args?.panel) {
+            panel = args.panel;
         }
 
-        await this.handleRename({ path: filePath, newName, panel });
+        // Send message to webview to trigger inline rename
+        this.postMessage({
+            command: 'triggerRename',
+            panel: panel
+        });
     }
 
     public async executeBatchRename(args: any): Promise<void> {

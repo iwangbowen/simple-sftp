@@ -489,6 +489,25 @@ body {
     min-width: 100px;
 }
 
+/* Inline rename input */
+.tree-item-rename-input {
+    flex: 1;
+    min-width: 100px;
+    padding: 0 2px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-focusBorder);
+    border-radius: 2px;
+    font-size: 13px;
+    font-family: var(--vscode-font-family);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+.tree-item-rename-input:focus {
+    background-color: var(--vscode-input-background);
+}
+
 .tree-item-time {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;

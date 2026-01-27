@@ -506,6 +506,11 @@
           "group": "2_operations@2"
         },
         {
+          "command": "simpleSftp.dualPanel.rename",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
+          "group": "2_operations@3"
+        },
+        {
           "command": "simpleSftp.dualPanel.batchRename",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
           "group": "2_operations@4"

@@ -1429,6 +1429,130 @@
     }
 
     /**
+     * Start inline rename for selected item (similar to VS Code Explorer)
+     */
+    function startInlineRename() {
+        // Check if exactly one item is selected
+        if (selectedItems.length !== 1) {
+            if (selectedItems.length === 0) {
+                vscode.postMessage({
+                    command: 'showError',
+                    message: 'Please select a file or folder to rename'
+                });
+            } else {
+                vscode.postMessage({
+                    command: 'showError',
+                    message: 'Please select only one item to rename'
+                });
+            }
+            return;
+        }
+
+        const item = selectedItems[0];
+        const label = item.querySelector('.tree-item-label');
+        if (!label) return;
+
+        const originalName = label.textContent || '';
+        const isDirectory = item.dataset.isDir === 'true';
+        const panel = item.dataset.panel;
+
+        // Create input element
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'tree-item-rename-input';
+        input.value = originalName;
+
+        // Replace label with input
+        label.style.display = 'none';
+        label.parentElement?.insertBefore(input, label);
+
+        // Select appropriate part of filename
+        input.focus();
+        if (isDirectory) {
+            // For directories, select entire name
+            input.select();
+        } else {
+            // For files, select name without extension
+            const lastDot = originalName.lastIndexOf('.');
+            if (lastDot > 0) {
+                // Has extension, select name part only
+                input.setSelectionRange(0, lastDot);
+            } else {
+                // No extension, select all
+                input.select();
+            }
+        }
+
+        // Finish rename function
+        const finishRename = (save) => {
+            if (save) {
+                const newName = input.value.trim();
+
+                // Validate new name
+                if (!newName) {
+                    vscode.postMessage({
+                        command: 'showError',
+                        message: 'Name cannot be empty'
+                    });
+                    input.focus();
+                    return;
+                }
+
+                if (newName.includes('/') || newName.includes('\\')) {
+                    vscode.postMessage({
+                        command: 'showError',
+                        message: 'Name cannot contain path separators'
+                    });
+                    input.focus();
+                    return;
+                }
+
+                if (newName !== originalName) {
+                    // Send rename request
+                    vscode.postMessage({
+                        command: 'rename',
+                        data: {
+                            path: item.dataset.path,
+                            newName: newName,
+                            panel: panel
+                        }
+                    });
+                }
+            }
+
+            // Restore label
+            input.remove();
+            label.style.display = '';
+        };
+
+        // Handle keyboard events
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishRename(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finishRename(false);
+            }
+        });
+
+        // Handle blur (click outside)
+        input.addEventListener('blur', () => {
+            // Small delay to allow Enter key to process first
+            setTimeout(() => {
+                if (input.parentElement) {
+                    finishRename(true);
+                }
+            }, 100);
+        });
+
+        // Prevent item deselection when clicking on input
+        input.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
+
+    /**
      * Show delete confirmation dialog with list of files to delete
      */
     function showDeleteConfirmation() {
@@ -1609,6 +1733,12 @@
                 e.preventDefault();
                 downloadSelected();
             }
+        } else if (e.key === 'F2') {
+            // F2: Inline rename
+            if (selectedItems.length === 1) {
+                e.preventDefault();
+                startInlineRename();
+            }
         } else if (e.key === 'Delete') {
             if (selectedItems.length > 0) {
                 e.preventDefault();
@@ -1682,6 +1812,11 @@
             case 'triggerBatchRename':
                 // Trigger batch rename with current selection
                 batchRenameSelected(message.panel);
+                break;
+
+            case 'triggerRename':
+                // Trigger inline rename for single file/folder
+                startInlineRename();
                 break;
 
             case 'deleteConfirmationResult':
