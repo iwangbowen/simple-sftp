@@ -1834,8 +1834,17 @@ export abstract class DualPanelBase {
     }
 
     protected async handleStartPortForward(config: PortForwardConfig): Promise<void> {
+        logger.info(`[Port Forward] Starting port forwarding: ${JSON.stringify(config)}`);
+
         if (!this._currentHost || !this._currentAuthConfig) {
-            vscode.window.showErrorMessage('No remote host connected');
+            const errorMsg = 'No remote host connected';
+            logger.error(`[Port Forward] ${errorMsg}`);
+            vscode.window.showErrorMessage(errorMsg);
+
+            this.postMessage({
+                command: 'portForwardingError',
+                error: errorMsg
+            });
             return;
         }
 
@@ -1846,6 +1855,8 @@ export abstract class DualPanelBase {
                 this._currentAuthConfig,
                 config
             );
+
+            logger.info(`[Port Forward] Successfully started: ${JSON.stringify(forwarding)}`);
 
             vscode.window.showInformationMessage(
                 `Port forwarding started: localhost:${forwarding.localPort} → ${this._currentHost.host}:${forwarding.remotePort}`
@@ -1859,7 +1870,7 @@ export abstract class DualPanelBase {
             // Refresh list
             await this.handleGetPortForwardings();
         } catch (error: any) {
-            logger.error(`Failed to start port forwarding: ${error.message}`);
+            logger.error(`[Port Forward] Failed to start port forwarding: ${error.message}`, error);
             vscode.window.showErrorMessage(`Failed to start port forwarding: ${error.message}`);
 
             this.postMessage({

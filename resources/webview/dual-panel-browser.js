@@ -1823,6 +1823,8 @@
     window.addEventListener('message', event => {
         const message = event.data;
 
+        console.log('[Port Forward] Received message:', message.command, message);
+
         switch (message.command) {
             case 'showHostSelection':
                 renderHostSelection(message.hosts);
@@ -2450,28 +2452,32 @@
     }
 
     function handleAddPort() {
-        const remotePort = parseInt(document.getElementById('port-remote-port').value);
+        const remotePort = Number.parseInt(document.getElementById('port-remote-port').value, 10);
         const localPort = document.getElementById('port-local-port').value;
         const label = document.getElementById('port-label').value;
         const remoteHost = document.getElementById('port-remote-host').value || 'localhost';
 
         if (!remotePort || remotePort < 1 || remotePort > 65535) {
-            alert('Please enter a valid remote port (1-65535)');
+            showNotification('Please enter a valid remote port (1-65535)', 'error');
             return;
         }
 
         const config = {
             remotePort,
-            localPort: localPort ? parseInt(localPort) : undefined,
+            localPort: localPort ? Number.parseInt(localPort, 10) : undefined,
             label,
             remoteHost
         };
+
+        console.log('[Port Forward] Sending startPortForward command:', config);
 
         vscode.postMessage({
             command: 'startPortForward',
             config
         });
 
+        // Show loading notification
+        showNotification('Starting port forwarding...', 'info');
         hideAddPortModal();
     }
 

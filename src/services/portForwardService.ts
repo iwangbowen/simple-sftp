@@ -62,60 +62,74 @@ export class PortForwardService {
         };
 
         try {
-            // Create SSH client
+            // Create SSH client (already in 'ready' state when returned)
             const client = await this.createSSHClient(hostConfig, authConfig);
             this.sshClients.set(id, client);
 
-            // Request port forwarding
+            logger.debug(`[Port Forward] SSH client ready, creating local server...`);
+
+            // Create local server for port forwarding
+            const net = require('net');
+            const server = net.createServer((socket: any) => {
+                logger.debug(`[Port Forward] New connection on local port ${forwarding.localPort}`);
+                // Forward connections to remote
+                client.forwardOut(
+                    localHost,
+                    forwarding.localPort,
+                    remoteHost,
+                    config.remotePort,
+                    (err: Error, stream: any) => {
+                        if (err) {
+                            logger.error(`Port forward error: ${err.message}`);
+                            socket.end();
+                            return;
+                        }
+                        socket.pipe(stream).pipe(socket);
+
+                        socket.on('error', (sockErr: Error) => {
+                            logger.error(`Socket error: ${sockErr.message}`);
+                        });
+
+                        stream.on('error', (streamErr: Error) => {
+                            logger.error(`Stream error: ${streamErr.message}`);
+                        });
+                    }
+                );
+            });
+
+            // Listen on local port
             await new Promise<void>((resolve, reject) => {
-                client.on('ready', () => {
-                    // Use forwardIn for reverse port forwarding (remote -> local)
-                    // or use local port forwarding (local -> remote)
-                    // For most use cases, we want local port forwarding
-                    const net = require('net');
-                    const server = net.createServer((socket: any) => {
-                        // Forward connections to remote
-                        client.forwardOut(
-                            localHost,
-                            forwarding.localPort,
-                            remoteHost,
-                            config.remotePort,
-                            (err: Error, stream: any) => {
-                                if (err) {
-                                    logger.error(`Port forward error: ${err.message}`);
-                                    socket.end();
-                                    return;
-                                }
-                                socket.pipe(stream).pipe(socket);
-                            }
-                        );
-                    });
-
-                    server.listen(config.localPort || 0, localHost, () => {
-                        const addr = server.address() as any;
-                        forwarding.localPort = addr.port;
-                        forwarding.status = 'active';
-                        logger.info(`Port forwarding started: ${localHost}:${forwarding.localPort} -> ${remoteHost}:${config.remotePort}`);
-                        resolve();
-                    });
-
-                    server.on('error', (err: Error) => {
-                        logger.error(`Port forward server error: ${err.message}`);
-                        forwarding.status = 'error';
-                        forwarding.error = err.message;
-                        reject(err);
-                    });
-
-                    // Store server reference for cleanup
-                    (client as any)._forwardServer = server;
-                });
-
-                client.on('error', (err: Error) => {
-                    logger.error(`SSH client error during port forwarding: ${err.message}`);
+                server.on('error', (err: Error) => {
+                    logger.error(`Port forward server error: ${err.message}`);
                     forwarding.status = 'error';
                     forwarding.error = err.message;
                     reject(err);
                 });
+
+                server.listen(config.localPort || 0, localHost, () => {
+                    const addr = server.address() as any;
+                    forwarding.localPort = addr.port;
+                    forwarding.status = 'active';
+                    logger.info(`Port forwarding started: ${localHost}:${forwarding.localPort} -> ${remoteHost}:${config.remotePort}`);
+                    resolve();
+                });
+            });
+
+            // Store server reference for cleanup
+            (client as any)._forwardServer = server;
+
+            // Handle SSH client errors
+            client.on('error', (err: Error) => {
+                logger.error(`SSH client error during port forwarding: ${err.message}`);
+                forwarding.status = 'error';
+                forwarding.error = err.message;
+                server.close();
+            });
+
+            client.on('close', () => {
+                logger.info(`SSH client connection closed for port forwarding ${id}`);
+                server.close();
+                forwarding.status = 'inactive';
             });
 
             this.forwardings.set(id, forwarding);
