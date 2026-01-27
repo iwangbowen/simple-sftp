@@ -2,9 +2,11 @@ import * as vscode from 'vscode';
 import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
 import { HostTreeProvider } from './hostTreeProvider';
+import { PortForwardingTreeProvider } from './portForwardingTreeProvider';
 import { CommandHandler } from './commandHandler';
 import { TransferQueueService } from './services/transferQueueService';
 import { PortForwardService } from './services/portForwardService';
+import { PortForwarding } from './types/portForward.types';
 import { TransferHistoryService } from './services/transferHistoryService';
 import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
 import { TransferHistoryTreeProvider } from './ui/transferHistoryTreeProvider';
@@ -102,6 +104,16 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(helpFeedbackView);
   logger.info('Help and feedback tree view registered');
+
+  // Create port forwarding TreeView provider
+  const portForwardService = PortForwardService.getInstance();
+  const portForwardingTreeProvider = new PortForwardingTreeProvider(hostManager, portForwardService);
+  const portForwardingView = vscode.window.createTreeView('simpleSftp.portForwardings', {
+    treeDataProvider: portForwardingTreeProvider,
+    showCollapseAll: true
+  });
+  context.subscriptions.push(portForwardingView);
+  logger.info('Port forwarding tree view registered');
 
   // Register Dual Panel WebviewView provider (Panel mode)
   const dualPanelProvider = new DualPanelViewProvider(
@@ -224,6 +236,35 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('simpleSftp.openGitHubRepo', () => {
       vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-sftp'));
+    }),
+
+    // Port forwarding commands
+    vscode.commands.registerCommand('simpleSftp.refreshPortForwardings', () => {
+      portForwardingTreeProvider.refresh();
+    }),
+    vscode.commands.registerCommand('simpleSftp.stopPortForward', async (treeItem) => {
+      if (!treeItem || treeItem.type !== 'forwarding') {
+        return;
+      }
+      const forwarding = treeItem.data as PortForwarding;
+      try {
+        await portForwardService.stopForwarding(forwarding.id);
+        vscode.window.showInformationMessage(`已停止端口转发: ${forwarding.remotePort} → ${forwarding.localPort}`);
+      } catch (error: any) {
+        vscode.window.showErrorMessage(`停止端口转发失败: ${error.message}`);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.deletePortForward', async (treeItem) => {
+      if (!treeItem || treeItem.type !== 'forwarding') {
+        return;
+      }
+      const forwarding = treeItem.data as PortForwarding;
+      try {
+        await portForwardService.deleteForwarding(forwarding.id);
+        vscode.window.showInformationMessage(`已删除端口转发: ${forwarding.remotePort} → ${forwarding.localPort}`);
+      } catch (error: any) {
+        vscode.window.showErrorMessage(`删除端口转发失败: ${error.message}`);
+      }
     }),
 
     // View control commands
