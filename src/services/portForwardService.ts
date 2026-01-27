@@ -39,7 +39,7 @@ export class PortForwardService {
 
         // Check if forwarding already exists for this remote port
         const existing = Array.from(this.forwardings.values()).find(
-            f => f.hostId === hostConfig.name &&
+            f => f.hostId === hostConfig.id &&
                 f.remotePort === config.remotePort &&
                 f.status === 'active'
         );
@@ -50,7 +50,7 @@ export class PortForwardService {
 
         const forwarding: PortForwarding = {
             id,
-            hostId: hostConfig.name,
+            hostId: hostConfig.id,
             remotePort: config.remotePort,
             localPort: config.localPort || 0, // Will be assigned by system if 0
             localHost,
