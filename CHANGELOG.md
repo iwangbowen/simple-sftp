@@ -1,5 +1,37 @@
 # Change Log
 
+## 3.11.0 - 2026-01-27
+
+### Added
+
+- **Extended File Icon Support**: Expanded file icon recognition to 200+ file types
+  - Added special filename recognition (package.json, tsconfig.json, webpack.config.js, etc.)
+  - Added more programming languages (Lua, Dart, Elixir, Erlang, Clojure, Haskell, F#, R, etc.)
+  - Added media file types (audio: mp3, wav, flac; video: mp4, avi, mov, mkv)
+  - Added font files (ttf, otf, woff, woff2)
+  - Added certificate and key files (cert, pem, key, pub, crt)
+  - Added binary files (exe, dll, so, dylib)
+  - Added document formats (doc, docx, odt, rtf)
+  - More appropriate Codicon mappings for better visual representation
+
+- **Resource Label Formatter**: Fixed editor tab title display for remote files
+  - Tab titles now correctly show only filename (e.g., `tsconfig.json` instead of `\opt\app\chestnut\tsconfig.json`)
+  - Uses VS Code's official `resourceLabelFormatters` API
+  - Proper forward slash separator for SFTP URI paths
+  - Full path still visible in breadcrumb navigation and hover tooltip
+
+### Changed
+
+- **UI Improvements**:
+  - Moved "Browse Files (QuickPick)" from inline button to context menu for cleaner interface
+  - Changed `openInEditor` default value to `true` for better multi-instance support
+  - Redesigned Activity Bar icon with modern minimalist style
+    - Larger, clearer vertical arrows (upload ↑ / download ↓)
+    - Refined folder outline with better proportions
+    - Enhanced visibility with thicker strokes (5px arrows, 3.2px folder)
+
+---
+
 ## 3.10.0 - 2026-01-26
 
 ### Added
