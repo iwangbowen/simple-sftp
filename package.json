@@ -51,6 +51,16 @@
         }
       ]
     },
+    "resourceLabelFormatters": [
+      {
+        "scheme": "sftp",
+        "formatting": {
+          "label": "${path}",
+          "separator": "/",
+          "workspaceSuffix": "SFTP"
+        }
+      }
+    ],
     "views": {
       "simpleSftp": [
         {
