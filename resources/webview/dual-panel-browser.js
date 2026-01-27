@@ -2510,28 +2510,22 @@
             let actions = '';
             if (status === 'forwarded' && forwarding) {
                 actions = `
-                    <button class="port-forward-action-btn stop" data-action="stop" data-id="${forwarding.id}">
-                        <span class="codicon codicon-debug-stop"></span> Stop
-                    </button>
-                    <button class="port-forward-action-btn delete" data-action="delete" data-id="${forwarding.id}">
-                        <span class="codicon codicon-trash"></span> Delete
-                    </button>
+                    <button class="port-forward-action-btn stop" data-action="stop" data-id="${forwarding.id}">Stop</button>
+                    <button class="port-forward-action-btn delete" data-action="delete" data-id="${forwarding.id}">Delete</button>
                 `;
             } else {
                 // For available ports, show inline local port input + forward button
                 actions = `
-                    <div class="quick-forward-container">
+                    <div class="quick-forward-group">
                         <input type="number"
-                               class="quick-forward-port"
+                               class="quick-forward-input"
                                id="quick-port-${port}"
                                value="${port}"
                                min="1"
                                max="65535"
                                placeholder="${port}"
                                title="Local Port" />
-                        <button class="port-forward-action-btn forward" data-action="quick-forward" data-port="${port}">
-                            <span class="codicon codicon-debug-start"></span> Forward
-                        </button>
+                        <button class="port-forward-action-btn forward" data-action="quick-forward" data-port="${port}">Forward</button>
                     </div>
                 `;
             }

@@ -1915,13 +1915,13 @@ body {
 }
 
 /* ===== Quick Forward for Port Forwarding ===== */
-.quick-forward-container {
+.quick-forward-group {
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
-.quick-forward-port {
+.quick-forward-input {
     width: 70px;
     padding: 4px 6px;
     font-size: 12px;
@@ -1933,13 +1933,13 @@ body {
     box-sizing: border-box;
 }
 
-.quick-forward-port:focus {
+.quick-forward-input:focus {
     outline: none;
     border-color: var(--vscode-focusBorder);
     background-color: var(--vscode-input-background);
 }
 
-.quick-forward-port::placeholder {
+.quick-forward-input::placeholder {
     color: var(--vscode-input-placeholderForeground);
 }
 
@@ -1949,9 +1949,4 @@ body {
 
 .port-forward-action-btn.forward:hover {
     color: var(--vscode-textLink-activeForeground);
-}
-
-.port-forward-action-btn .codicon {
-    margin-right: 3px;
-    font-size: 13px;
 }
