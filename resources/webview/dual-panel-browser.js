@@ -624,6 +624,78 @@
             return 'codicon-folder';
         }
 
+        // 特殊文件名匹配
+        const fileName = node.name.toLowerCase();
+        const specialFiles = {
+            // Package managers
+            'package.json': 'codicon-extensions',
+            'package-lock.json': 'codicon-lock',
+            'yarn.lock': 'codicon-lock',
+            'pnpm-lock.yaml': 'codicon-lock',
+            'composer.json': 'codicon-extensions',
+            'composer.lock': 'codicon-lock',
+            'gemfile': 'codicon-ruby',
+            'gemfile.lock': 'codicon-lock',
+            'cargo.toml': 'codicon-package',
+            'cargo.lock': 'codicon-lock',
+            'go.mod': 'codicon-package',
+            'go.sum': 'codicon-lock',
+            'requirements.txt': 'codicon-package',
+            'pipfile': 'codicon-package',
+            'pipfile.lock': 'codicon-lock',
+
+            // Config files
+            'tsconfig.json': 'codicon-settings-gear',
+            'jsconfig.json': 'codicon-settings-gear',
+            'webpack.config.js': 'codicon-settings-gear',
+            'vite.config.js': 'codicon-settings-gear',
+            'vite.config.ts': 'codicon-settings-gear',
+            'rollup.config.js': 'codicon-settings-gear',
+            'babel.config.js': 'codicon-settings-gear',
+            '.babelrc': 'codicon-settings-gear',
+            'eslint.config.js': 'codicon-checklist',
+            '.eslintrc': 'codicon-checklist',
+            '.eslintrc.js': 'codicon-checklist',
+            '.eslintrc.json': 'codicon-checklist',
+            '.prettierrc': 'codicon-symbol-color',
+            '.editorconfig': 'codicon-settings-gear',
+            'docker-compose.yml': 'codicon-vm-active',
+            'docker-compose.yaml': 'codicon-vm-active',
+            'dockerfile': 'codicon-vm',
+            '.dockerignore': 'codicon-vm',
+
+            // README and docs
+            'readme.md': 'codicon-book',
+            'readme': 'codicon-book',
+            'changelog.md': 'codicon-versions',
+            'changelog': 'codicon-versions',
+            'license': 'codicon-law',
+            'license.md': 'codicon-law',
+            'contributing.md': 'codicon-organization',
+
+            // Git
+            '.gitignore': 'codicon-git-commit',
+            '.gitattributes': 'codicon-git-commit',
+            '.gitmodules': 'codicon-git-commit',
+            '.gitkeep': 'codicon-git-commit',
+
+            // CI/CD
+            '.travis.yml': 'codicon-build',
+            'jenkinsfile': 'codicon-build',
+            '.gitlab-ci.yml': 'codicon-build',
+            'azure-pipelines.yml': 'codicon-build',
+
+            // Environment
+            '.env': 'codicon-settings',
+            '.env.local': 'codicon-settings',
+            '.env.development': 'codicon-settings',
+            '.env.production': 'codicon-settings',
+        };
+
+        if (specialFiles[fileName]) {
+            return specialFiles[fileName];
+        }
+
         const ext = node.name.split('.').pop()?.toLowerCase();
         const iconMap = {
             // JavaScript/TypeScript
@@ -633,6 +705,7 @@
             'tsx': 'codicon-symbol-interface',
             'mjs': 'codicon-symbol-namespace',
             'cjs': 'codicon-symbol-namespace',
+            'vue': 'codicon-symbol-namespace',
 
             // Data formats
             'json': 'codicon-json',
@@ -642,28 +715,42 @@
             'toml': 'codicon-symbol-key',
             'ini': 'codicon-symbol-key',
             'csv': 'codicon-graph',
+            'tsv': 'codicon-graph',
 
             // Markup/Documentation
             'md': 'codicon-markdown',
             'markdown': 'codicon-markdown',
             'html': 'codicon-code',
             'htm': 'codicon-code',
+            'xhtml': 'codicon-code',
             'txt': 'codicon-file-text',
             'pdf': 'codicon-file-pdf',
+            'doc': 'codicon-file-text',
+            'docx': 'codicon-file-text',
+            'odt': 'codicon-file-text',
+            'rtf': 'codicon-file-text',
 
             // Styling
             'css': 'codicon-symbol-color',
             'scss': 'codicon-symbol-color',
             'sass': 'codicon-symbol-color',
             'less': 'codicon-symbol-color',
+            'styl': 'codicon-symbol-color',
 
             // Programming languages
             'py': 'codicon-snake',
+            'pyc': 'codicon-file-binary',
+            'pyd': 'codicon-file-binary',
             'java': 'codicon-symbol-class',
+            'class': 'codicon-file-binary',
+            'jar': 'codicon-file-zip',
             'c': 'codicon-symbol-method',
             'cpp': 'codicon-symbol-method',
+            'cc': 'codicon-symbol-method',
+            'cxx': 'codicon-symbol-method',
             'h': 'codicon-symbol-method',
             'hpp': 'codicon-symbol-method',
+            'hxx': 'codicon-symbol-method',
             'cs': 'codicon-symbol-class',
             'go': 'codicon-symbol-namespace',
             'rs': 'codicon-symbol-struct',
@@ -671,13 +758,31 @@
             'rb': 'codicon-ruby',
             'swift': 'codicon-symbol-class',
             'kt': 'codicon-symbol-class',
+            'kts': 'codicon-symbol-class',
             'scala': 'codicon-symbol-class',
+            'lua': 'codicon-symbol-namespace',
+            'pl': 'codicon-symbol-namespace',
+            'pm': 'codicon-symbol-namespace',
+            'r': 'codicon-graph',
+            'dart': 'codicon-symbol-class',
+            'elm': 'codicon-symbol-namespace',
+            'ex': 'codicon-symbol-namespace',
+            'exs': 'codicon-symbol-namespace',
+            'erl': 'codicon-symbol-namespace',
+            'hrl': 'codicon-symbol-namespace',
+            'clj': 'codicon-symbol-namespace',
+            'cljs': 'codicon-symbol-namespace',
+            'hs': 'codicon-symbol-namespace',
+            'ml': 'codicon-symbol-namespace',
+            'fs': 'codicon-symbol-namespace',
 
             // Shell/Scripts
             'sh': 'codicon-terminal',
             'bash': 'codicon-terminal',
             'zsh': 'codicon-terminal',
+            'fish': 'codicon-terminal',
             'ps1': 'codicon-terminal-powershell',
+            'psm1': 'codicon-terminal-powershell',
             'bat': 'codicon-terminal-cmd',
             'cmd': 'codicon-terminal-cmd',
 
@@ -689,23 +794,79 @@
             'svg': 'codicon-file-media',
             'ico': 'codicon-file-media',
             'webp': 'codicon-file-media',
+            'bmp': 'codicon-file-media',
+            'tiff': 'codicon-file-media',
+            'tif': 'codicon-file-media',
+            'psd': 'codicon-file-media',
+            'ai': 'codicon-file-media',
+            'eps': 'codicon-file-media',
+            'raw': 'codicon-file-media',
+
+            // Audio/Video
+            'mp3': 'codicon-music',
+            'wav': 'codicon-music',
+            'flac': 'codicon-music',
+            'aac': 'codicon-music',
+            'ogg': 'codicon-music',
+            'wma': 'codicon-music',
+            'm4a': 'codicon-music',
+            'mp4': 'codicon-play',
+            'avi': 'codicon-play',
+            'mov': 'codicon-play',
+            'mkv': 'codicon-play',
+            'webm': 'codicon-play',
+            'flv': 'codicon-play',
+            'wmv': 'codicon-play',
 
             // Archives
             'zip': 'codicon-file-zip',
             'tar': 'codicon-file-zip',
             'gz': 'codicon-file-zip',
+            'bz2': 'codicon-file-zip',
+            'xz': 'codicon-file-zip',
             'rar': 'codicon-file-zip',
             '7z': 'codicon-file-zip',
+            'tgz': 'codicon-file-zip',
+            'tbz': 'codicon-file-zip',
+            'deb': 'codicon-package',
+            'rpm': 'codicon-package',
+            'apk': 'codicon-package',
+            'dmg': 'codicon-package',
+            'iso': 'codicon-file-zip',
 
-            // Others
+            // Fonts
+            'ttf': 'codicon-symbol-color',
+            'otf': 'codicon-symbol-color',
+            'woff': 'codicon-symbol-color',
+            'woff2': 'codicon-symbol-color',
+            'eot': 'codicon-symbol-color',
+
+            // Database
             'sql': 'codicon-database',
             'db': 'codicon-database',
             'sqlite': 'codicon-database',
+            'sqlite3': 'codicon-database',
+            'mdb': 'codicon-database',
+
+            // Binary/Executables
+            'exe': 'codicon-file-binary',
+            'dll': 'codicon-file-binary',
+            'so': 'codicon-file-binary',
+            'dylib': 'codicon-file-binary',
+            'o': 'codicon-file-binary',
+            'a': 'codicon-file-binary',
+            'lib': 'codicon-file-binary',
+            'bin': 'codicon-file-binary',
+
+            // Others
             'log': 'codicon-output',
-            'env': 'codicon-symbol-key',
-            'git': 'codicon-git-commit',
-            'gitignore': 'codicon-symbol-event',
-            'dockerfile': 'codicon-vm',
+            'lock': 'codicon-lock',
+            'pid': 'codicon-symbol-numeric',
+            'cert': 'codicon-shield',
+            'pem': 'codicon-shield',
+            'key': 'codicon-key',
+            'pub': 'codicon-key',
+            'crt': 'codicon-shield',
         };
 
         return iconMap[ext || ''] || 'codicon-file';
