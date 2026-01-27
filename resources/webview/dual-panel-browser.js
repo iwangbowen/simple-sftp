@@ -2361,6 +2361,9 @@
 
             // Request port forwarding list from backend
             vscode.postMessage({ command: 'getPortForwardings' });
+
+            // Auto-scan remote ports on view open
+            handleScanRemotePorts();
         }
     }
 
@@ -2510,9 +2513,11 @@
                 ? '<span class="port-status-badge forwarded">Forwarded</span>'
                 : '<span class="port-status-badge available">Available</span>';
 
-            const processInfo = p.processName
-                ? `${p.processName}${p.pid ? ` (${p.pid})` : ''}`
-                : (p.pid ?String(p.pid) : '-');
+            const processInfo = p.command
+                ? `<span title="${p.command.replace(/"/g, '&quot;')}">${p.processName || 'Unknown'}${p.pid ? ` (${p.pid})` : ''}</span>`
+                : (p.processName
+                    ? `${p.processName}${p.pid ? ` (${p.pid})` : ''}`
+                    : (p.pid ? String(p.pid) : '-'));
 
             const forwardButton = p.isForwarded
                 ? ''

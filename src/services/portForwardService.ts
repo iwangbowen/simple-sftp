@@ -294,6 +294,10 @@ export class PortForwardService {
                 const command = `ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || echo "UNSUPPORTED"`;
                 const output = await this.executeSSHCommand(client, command);
 
+                // Get process command details for PIDs
+                const portsWithPids = this.parseListeningPorts(output);
+                const enrichedPorts = await this.enrichProcessInfo(client, portsWithPids);
+
                 client.end();
 
                 if (output.includes('UNSUPPORTED')) {
@@ -301,7 +305,7 @@ export class PortForwardService {
                     return [];
                 }
 
-                return this.parseListeningPorts(output);
+                return enrichedPorts;
             } catch (error: any) {
                 client.end();
                 throw error;
@@ -346,6 +350,55 @@ export class PortForwardService {
     }
 
     /**
+     * Enrich port information with full process command details
+     */
+    private async enrichProcessInfo(
+        client: any,
+        ports: import('../types/portForward.types').RemoteListeningPort[]
+    ): Promise<import('../types/portForward.types').RemoteListeningPort[]> {
+        const pidsToQuery = ports.filter(p => p.pid).map(p => p.pid!);
+        if (pidsToQuery.length === 0) {
+            return ports;
+        }
+
+        try {
+            // Query process command for all PIDs in batch
+            const pidsStr = pidsToQuery.join(' ');
+            const command = String.raw`for pid in ${pidsStr}; do if [ -f /proc/$pid/cmdline ]; then echo "PID:$pid"; tr '\0' ' ' < /proc/$pid/cmdline 2>/dev/null; echo; fi; done`;
+            const output = await this.executeSSHCommand(client, command);
+
+            // Parse output to map PID -> command
+            const pidToCommand = new Map<number, string>();
+            const lines = output.split('\n');
+            let currentPid: number | null = null;
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('PID:')) {
+                    currentPid = Number.parseInt(trimmedLine.substring(4), 10);
+                } else if (currentPid !== null && trimmedLine) {
+                    pidToCommand.set(currentPid, trimmedLine);
+                    currentPid = null;
+                }
+            }
+
+            // Enrich ports with command info
+            return ports.map(port => {
+                if (port.pid && pidToCommand.has(port.pid)) {
+                    return {
+                        ...port,
+                        command: pidToCommand.get(port.pid)
+                    };
+                }
+                return port;
+            });
+        } catch (error: any) {
+            logger.warn(`Failed to enrich process info: ${error.message}`);
+            return ports; // Return original ports if enrichment fails
+        }
+    }
+
+    /**
      * Parse ss or netstat output to extract listening ports
      */
     private parseListeningPorts(output: string): import('../types/portForward.types').RemoteListeningPort[] {
@@ -364,11 +417,12 @@ export class PortForwardService {
             // or netstat format:
             // tcp 0 0 0.0.0.0:8080 0.0.0.0:* LISTEN 1234/node
 
-            const ssMatch = line.match(/LISTEN\s+\S+\s+\S+\s+([\d.a-f:]+):(\d+).*?users:\(\("([^"]+)",pid=(\d+)/);
+            const ssRegex = /LISTEN\s+\S+\s+\S+\s+([\d.a-f:]+):(\d+).*?users:\(\("([^"]+)",pid=(\d+)/;
+            const ssMatch = ssRegex.exec(line);
             if (ssMatch) {
                 const [, listenAddr, portStr, processName, pidStr] = ssMatch;
-                const port = parseInt(portStr, 10);
-                const pid = parseInt(pidStr, 10);
+                const port = Number.parseInt(portStr, 10);
+                const pid = Number.parseInt(pidStr, 10);
 
                 if (!portMap.has(port)) {
                     portMap.set(port, {
@@ -382,11 +436,12 @@ export class PortForwardService {
                 continue;
             }
 
-            const netstatMatch = line.match(/tcp\s+\S+\s+\S+\s+([\d.a-f:]+):(\d+).*?LISTEN\s+(\d+)\/(\S+)/);
+            const netstatRegex = /tcp\s+\S+\s+\S+\s+([\d.a-f:]+):(\d+).*?LISTEN\s+(\d+)\/(\S+)/;
+            const netstatMatch = netstatRegex.exec(line);
             if (netstatMatch) {
                 const [, listenAddr, portStr, pidStr, processName] = netstatMatch;
-                const port = parseInt(portStr, 10);
-                const pid = parseInt(pidStr, 10);
+                const port = Number.parseInt(portStr, 10);
+                const pid = Number.parseInt(pidStr, 10);
 
                 if (!portMap.has(port)) {
                     portMap.set(port, {
