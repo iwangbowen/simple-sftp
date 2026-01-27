@@ -1942,7 +1942,8 @@
 
             case 'portForwardings':
                 // Update port forwarding list
-                renderPortForwardings(message.data);
+                currentForwardings = message.data || [];
+                renderUnifiedPorts();
                 break;
 
             case 'portForwardingStarted':
@@ -2430,8 +2431,7 @@
             config
         });
 
-        currentForwardings = forwardings || [];
-        renderUnifiedPorts();
+        hideAddPortModal();
     }
 
     function renderUnifiedPorts() {
