@@ -225,7 +225,8 @@ export class PortForwardService {
      * Get all port forwardings
      */
     public getAllForwardings(): PortForwarding[] {
-        return Array.from(this.forwardings.values());
+        return Array.from(this.forwardings.values())
+            .filter(f => f.status === 'active');
     }
 
     /**
@@ -233,7 +234,7 @@ export class PortForwardService {
      */
     public getForwardingsForHost(hostId: string): PortForwarding[] {
         return Array.from(this.forwardings.values())
-            .filter(f => f.hostId === hostId);
+            .filter(f => f.hostId === hostId && f.status === 'active');
     }
 
     /**
