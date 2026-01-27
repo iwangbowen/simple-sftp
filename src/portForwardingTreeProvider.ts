@@ -46,7 +46,7 @@ export class PortForwardTreeItem extends vscode.TreeItem {
       // Description: 状态 + 进程名
       const descParts: string[] = [];
       if (forwarding.status === 'inactive') {
-        descParts.push('(已停止)');
+        descParts.push('Stopped');
       }
       if (forwarding.runningProcess) {
         descParts.push(forwarding.runningProcess);
