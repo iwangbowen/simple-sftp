@@ -222,7 +222,7 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
 - **simpleSftp.showDotFiles** (boolean, default: `true`)
   Show hidden files and directories (dot files) in remote file browser
 
-- **simpleSftp.browser.openInEditor** (boolean, default: `false`)
+- **simpleSftp.browser.openInEditor** (boolean, default: `true`)
   Open file browser in editor area instead of panel. When enabled, supports multiple browser instances for different hosts.
 
 #### Transfer Queue
@@ -578,7 +578,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 - **simpleSftp.showDotFiles** (布尔值,默认: `true`)
   在远程文件浏览器中显示隐藏文件和目录(点文件)
 
-- **simpleSftp.browser.openInEditor** (布尔值,默认: `false`)
+- **simpleSftp.browser.openInEditor** (布尔值,默认: `true`)
   在编辑器区域而不是面板中打开文件浏览器。启用后,支持为不同主机打开多个浏览器实例。
 
 #### 传输队列

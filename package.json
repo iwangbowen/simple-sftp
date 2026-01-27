@@ -1093,7 +1093,7 @@
         },
         "simpleSftp.browser.openInEditor": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Open file browser in editor area instead of panel area. When enabled, allows opening multiple browser instances for different hosts."
         }
       }
