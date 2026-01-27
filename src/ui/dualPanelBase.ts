@@ -1825,7 +1825,7 @@ export abstract class DualPanelBase {
         }
 
         const service = PortForwardService.getInstance();
-        const forwardings = service.getForwardingsForHost(this._currentHost.name);
+        const forwardings = service.getForwardingsForHost(this._currentHost.id);
 
         this.postMessage({
             command: 'portForwardings',
