@@ -230,6 +230,12 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "simpleSftp.startPortForward",
+        "title": "Start Port Forward",
+        "category": "Simple SFTP",
+        "icon": "$(debug-start)"
+      },
+      {
         "command": "simpleSftp.stopPortForward",
         "title": "Stop Port Forward",
         "category": "Simple SFTP",
@@ -938,22 +944,32 @@
         },
         {
           "command": "simpleSftp.stopPortForward",
-          "when": "view == simpleSftp.portForwardings && viewItem == portForwarding",
+          "when": "view == simpleSftp.portForwardings && viewItem == portForwardingActive",
           "group": "inline@1"
         },
         {
           "command": "simpleSftp.deletePortForward",
-          "when": "view == simpleSftp.portForwardings && viewItem == portForwarding",
+          "when": "view == simpleSftp.portForwardings && (viewItem == portForwardingActive || viewItem == portForwardingInactive)",
           "group": "inline@2"
         },
         {
+          "command": "simpleSftp.startPortForward",
+          "when": "view == simpleSftp.portForwardings && viewItem == portForwardingInactive",
+          "group": "inline@1"
+        },
+        {
           "command": "simpleSftp.stopPortForward",
-          "when": "view == simpleSftp.portForwardings && viewItem == portForwarding",
+          "when": "view == simpleSftp.portForwardings && viewItem == portForwardingActive",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "simpleSftp.startPortForward",
+          "when": "view == simpleSftp.portForwardings && viewItem == portForwardingInactive",
           "group": "1_actions@1"
         },
         {
           "command": "simpleSftp.deletePortForward",
-          "when": "view == simpleSftp.portForwardings && viewItem == portForwarding",
+          "when": "view == simpleSftp.portForwardings && (viewItem == portForwardingActive || viewItem == portForwardingInactive)",
           "group": "9_danger@1"
         },
         {

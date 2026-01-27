@@ -29,19 +29,35 @@ export class PortForwardTreeItem extends vscode.TreeItem {
       this.tooltip = `Host: ${host.name}\n${host.username}@${host.host}:${host.port}`;
     } else {
       const forwarding = data as PortForwarding;
-      this.contextValue = 'portForwarding';
-      this.iconPath = new vscode.ThemeIcon('arrow-both');
+
+      // contextValue根据状态设置，用于控制菜单显示
+      this.contextValue = forwarding.status === 'active' ? 'portForwardingActive' : 'portForwardingInactive';
+
+      // 根据状态设置不同的图标
+      if (forwarding.status === 'active') {
+        this.iconPath = new vscode.ThemeIcon('arrow-both', new vscode.ThemeColor('charts.green'));
+      } else {
+        this.iconPath = new vscode.ThemeIcon('debug-disconnect', new vscode.ThemeColor('descriptionForeground'));
+      }
 
       // Label: 远程端口 → 本地端口
       this.label = `${forwarding.remotePort} → ${forwarding.localHost}:${forwarding.localPort}`;
 
-      // Description: 进程名
+      // Description: 状态 + 进程名
+      const descParts: string[] = [];
+      if (forwarding.status === 'inactive') {
+        descParts.push('(已停止)');
+      }
       if (forwarding.runningProcess) {
-        this.description = forwarding.runningProcess;
+        descParts.push(forwarding.runningProcess);
+      }
+      if (descParts.length > 0) {
+        this.description = descParts.join(' ');
       }
 
       // Tooltip: 详细信息
       const tooltipParts = [
+        `Status: ${forwarding.status === 'active' ? 'Active' : 'Stopped'}`,
         `Remote Port: ${forwarding.remotePort}`,
         `Local: ${forwarding.localHost}:${forwarding.localPort}`,
         `Remote Host: ${forwarding.remoteHost || '0.0.0.0'}`

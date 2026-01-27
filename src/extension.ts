@@ -6,7 +6,7 @@ import { PortForwardingTreeProvider } from './portForwardingTreeProvider';
 import { CommandHandler } from './commandHandler';
 import { TransferQueueService } from './services/transferQueueService';
 import { PortForwardService } from './services/portForwardService';
-import { PortForwarding } from './types/portForward.types';
+import { PortForwarding, PortForwardConfig } from './types/portForward.types';
 import { TransferHistoryService } from './services/transferHistoryService';
 import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
 import { TransferHistoryTreeProvider } from './ui/transferHistoryTreeProvider';
@@ -107,6 +107,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Create port forwarding TreeView provider
   const portForwardService = PortForwardService.getInstance();
+  portForwardService.initialize(context); // Initialize with context for globalState persistence
+  logger.info('Port forwarding service initialized with globalState persistence');
+
   const portForwardingTreeProvider = new PortForwardingTreeProvider(hostManager, portForwardService);
   const portForwardingView = vscode.window.createTreeView('simpleSftp.portForwardings', {
     treeDataProvider: portForwardingTreeProvider,
@@ -241,6 +244,48 @@ export async function activate(context: vscode.ExtensionContext) {
     // Port forwarding commands
     vscode.commands.registerCommand('simpleSftp.refreshPortForwardings', () => {
       portForwardingTreeProvider.refresh();
+    }),
+    vscode.commands.registerCommand('simpleSftp.startPortForward', async (treeItem) => {
+      if (!treeItem || treeItem.type !== 'forwarding') {
+        return;
+      }
+      const forwarding = treeItem.data as PortForwarding;
+      if (forwarding.status === 'active') {
+        vscode.window.showWarningMessage('端口转发已在运行中');
+        return;
+      }
+
+      // 从PortForwarding提取配置信息
+      const config: PortForwardConfig = {
+        remotePort: forwarding.remotePort,
+        localPort: forwarding.localPort,
+        localHost: forwarding.localHost,
+        remoteHost: forwarding.remoteHost,
+        label: forwarding.label
+      };
+
+      try {
+        // 先删除旧的转发记录
+        await portForwardService.deleteForwarding(forwarding.id);
+
+        // 重新启动转发 - 需要获取主机配置和认证配置
+        // 但这里没有dualPanelBase的实例，无法访问它的_currentHost和_currentAuthConfig
+        // 所以需要从hostManager获取主机配置，并重新构建认证配置
+        const host = hostManager.getHostsSync().find(h => h.id === forwarding.hostId);
+        if (!host) {
+          throw new Error('Host configuration not found');
+        }
+
+        // 构建认证配置 - 需要重新实现addAuthToConnectConfig的逻辑
+        const authConfig = await authManager.addAuthToConnectConfig(host, {} as any);
+
+        // 重新启动转发
+        await portForwardService.startForwarding(host, authConfig, config);
+        vscode.window.showInformationMessage(`已启动端口转发: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        portForwardingTreeProvider.refresh();
+      } catch (error: any) {
+        vscode.window.showErrorMessage(`启动端口转发失败: ${error.message}`);
+      }
     }),
     vscode.commands.registerCommand('simpleSftp.stopPortForward', async (treeItem) => {
       if (!treeItem || treeItem.type !== 'forwarding') {

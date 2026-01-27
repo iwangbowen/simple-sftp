@@ -12,6 +12,8 @@ export class PortForwardService {
     private sshClients: Map<string, Client> = new Map();
     private eventEmitter: vscode.EventEmitter<PortForwardingEvent>;
     public readonly onPortForwardingEvent: vscode.Event<PortForwardingEvent>;
+    private context?: vscode.ExtensionContext;
+    private static readonly STORAGE_KEY = 'portForwardings';
 
     private constructor() {
         this.eventEmitter = new vscode.EventEmitter<PortForwardingEvent>();
@@ -23,6 +25,54 @@ export class PortForwardService {
             PortForwardService.instance = new PortForwardService();
         }
         return PortForwardService.instance;
+    }
+
+    /**
+     * Initialize service with context and restore saved forwardings
+     */
+    public initialize(context: vscode.ExtensionContext): void {
+        this.context = context;
+        this.loadFromGlobalState();
+    }
+
+    /**
+     * Save forwardings to globalState
+     */
+    private async saveToGlobalState(): Promise<void> {
+        if (!this.context) {
+            return;
+        }
+
+        // Convert Map to array for serialization (exclude SSH clients)
+        const forwardingsArray = Array.from(this.forwardings.values()).map(f => ({
+            ...f,
+            // Reset status to inactive when saving (SSH clients are not persisted)
+            status: 'inactive' as const
+        }));
+
+        await this.context.globalState.update(PortForwardService.STORAGE_KEY, forwardingsArray);
+        logger.debug(`[Port Forward] Saved ${forwardingsArray.length} forwarding configs to globalState`);
+    }
+
+    /**
+     * Load forwardings from globalState
+     */
+    private loadFromGlobalState(): void {
+        if (!this.context) {
+            return;
+        }
+
+        const saved = this.context.globalState.get<PortForwarding[]>(PortForwardService.STORAGE_KEY, []);
+
+        // Restore forwardings to Map (all as inactive since SSH connections are not persisted)
+        for (const forwarding of saved) {
+            this.forwardings.set(forwarding.id, {
+                ...forwarding,
+                status: 'inactive'
+            });
+        }
+
+        logger.info(`[Port Forward] Restored ${saved.length} forwarding configs from globalState`);
     }
 
     /**
@@ -139,6 +189,9 @@ export class PortForwardService {
                 forwarding
             });
 
+            // Save to globalState for persistence
+            await this.saveToGlobalState();
+
             return forwarding;
 
         } catch (error: any) {
@@ -187,6 +240,9 @@ export class PortForwardService {
         });
 
         logger.info(`Port forwarding stopped: ${forwarding.localHost}:${forwarding.localPort} -> ${forwarding.remoteHost}:${forwarding.remotePort}`);
+
+        // Save to globalState for persistence
+        await this.saveToGlobalState();
     }
 
     /**
@@ -225,8 +281,7 @@ export class PortForwardService {
      * Get all port forwardings
      */
     public getAllForwardings(): PortForwarding[] {
-        return Array.from(this.forwardings.values())
-            .filter(f => f.status === 'active');
+        return Array.from(this.forwardings.values());
     }
 
     /**
@@ -234,7 +289,7 @@ export class PortForwardService {
      */
     public getForwardingsForHost(hostId: string): PortForwarding[] {
         return Array.from(this.forwardings.values())
-            .filter(f => f.hostId === hostId && f.status === 'active');
+            .filter(f => f.hostId === hostId);
     }
 
     /**
@@ -258,6 +313,9 @@ export class PortForwardService {
         }
 
         this.forwardings.delete(id);
+
+        // Save to globalState for persistence
+        await this.saveToGlobalState();
     }
 
     /**
