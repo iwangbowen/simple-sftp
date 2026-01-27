@@ -43,6 +43,7 @@
         initializeEventListeners();
         initializeResizer();
         initializeSearchView();
+        initPortForwardView();
 
         // 通知扩展 WebView 已准备就绪
         vscode.postMessage({ command: 'ready' });
@@ -1936,6 +1937,27 @@
                 searchHistory = message.data || [];
                 searchHistoryIndex = -1;
                 break;
+
+            case 'portForwardings':
+                // Update port forwarding list
+                renderPortForwardings(message.data);
+                break;
+
+            case 'portForwardingStarted':
+                // Refresh port forwarding list
+                vscode.postMessage({ command: 'getPortForwardings' });
+                break;
+
+            case 'portForwardingStopped':
+                // Refresh port forwarding list
+                vscode.postMessage({ command: 'getPortForwardings' });
+                break;
+
+            case 'portForwardingError':
+                // Show error message
+                alert(`Port Forwarding Error: ${message.error || 'Unknown error'}`);
+                vscode.postMessage({ command: 'getPortForwardings' });
+                break;
         }
     });
 
@@ -2190,6 +2212,8 @@
 
     // ===== Search View =====
     let isSearchViewVisible = false;
+    let isPortForwardViewVisible = false;
+    let currentForwardings = [];
     let currentSearchResults = [];
     let currentSearchPath = '/';
     let searchHistory = [];
@@ -2279,6 +2303,168 @@
             }
         });
     }
+
+    // ===== Port Forwarding View =====
+
+    function initPortForwardView() {
+        // Toggle port forwarding view button
+        const toggleButton = document.getElementById('toggle-port-forward-view');
+        toggleButton?.addEventListener('click', () => {
+            if (isPortForwardViewVisible) {
+                closePortForwardView();
+            } else {
+                openPortForwardView();
+            }
+        });
+
+        // Add port button
+        const addPortButton = document.getElementById('add-port-forward');
+        addPortButton?.addEventListener('click', showAddPortModal);
+
+        // Add port modal close buttons
+        const addPortClose = document.getElementById('add-port-close');
+        const cancelAddPort = document.getElementById('cancel-add-port');
+        const confirmAddPort = document.getElementById('confirm-add-port');
+
+        addPortClose?.addEventListener('click', hideAddPortModal);
+        cancelAddPort?.addEventListener('click', hideAddPortModal);
+        confirmAddPort?.addEventListener('click', handleAddPort);
+    }
+
+    function openPortForwardView() {
+        const portForwardView = document.getElementById('panel-port-forward-view');
+        const remoteTree = document.getElementById('remote-tree');
+        const searchView = document.getElementById('panel-search-view');
+
+        if (portForwardView && remoteTree) {
+            // Close search view if open
+            if (isSearchViewVisible) {
+                closeSearchView();
+            }
+
+            // Hide file tree, show port forward view
+            remoteTree.style.display = 'none';
+            if (searchView) {
+                searchView.style.display = 'none';
+            }
+            portForwardView.style.display = 'flex';
+            isPortForwardViewVisible = true;
+
+            // Request port forwarding list from backend
+            vscode.postMessage({ command: 'getPortForwardings' });
+        }
+    }
+
+    function closePortForwardView() {
+        const portForwardView = document.getElementById('panel-port-forward-view');
+        const remoteTree = document.getElementById('remote-tree');
+
+        if (portForwardView && remoteTree) {
+            portForwardView.style.display = 'none';
+            remoteTree.style.display = 'block';
+            isPortForwardViewVisible = false;
+        }
+    }
+
+    function showAddPortModal() {
+        const modal = document.getElementById('add-port-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            // Focus on remote port input
+            const remotePortInput = document.getElementById('port-remote-port');
+            setTimeout(() => remotePortInput?.focus(), 100);
+        }
+    }
+
+    function hideAddPortModal() {
+        const modal = document.getElementById('add-port-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            // Clear inputs
+            document.getElementById('port-remote-port').value = '';
+            document.getElementById('port-local-port').value = '';
+            document.getElementById('port-label').value = '';
+            document.getElementById('port-remote-host').value = 'localhost';
+        }
+    }
+
+    function handleAddPort() {
+        const remotePort = parseInt(document.getElementById('port-remote-port').value);
+        const localPort = document.getElementById('port-local-port').value;
+        const label = document.getElementById('port-label').value;
+        const remoteHost = document.getElementById('port-remote-host').value || 'localhost';
+
+        if (!remotePort || remotePort < 1 || remotePort > 65535) {
+            alert('Please enter a valid remote port (1-65535)');
+            return;
+        }
+
+        const config = {
+            remotePort,
+            localPort: localPort ? parseInt(localPort) : undefined,
+            label,
+            remoteHost
+        };
+
+        vscode.postMessage({
+            command: 'startPortForward',
+            config
+        });
+
+        hideAddPortModal();
+    }
+
+    function renderPortForwardings(forwardings) {
+        currentForwardings = forwardings || [];
+        const tbody = document.getElementById('port-forward-table-body');
+        if (!tbody) return;
+
+        if (currentForwardings.length === 0) {
+            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5">No port forwardings configured</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = currentForwardings.map(f => {
+            const statusClass = f.status === 'active' ? 'active' : f.status === 'error' ? 'error' : 'inactive';
+            const forwardedAddress = `${f.localHost}:${f.localPort}`;
+            const process = f.runningProcess || '-';
+            const origin = f.origin || 'manual';
+
+            return `
+                <tr data-id="${f.id}">
+                    <td>${f.remotePort}</td>
+                    <td>${forwardedAddress}</td>
+                    <td>${process}</td>
+                    <td>${origin}</td>
+                    <td>
+                        <div class="port-forward-actions">
+                            ${f.status === 'active' ?
+                                `<button class="port-forward-action-btn stop" onclick="stopPortForward('${f.id}')">Stop</button>` :
+                                ''}
+                            <button class="port-forward-action-btn delete" onclick="deletePortForward('${f.id}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Make these functions global so they can be called from inline onclick
+    window.stopPortForward = function(id) {
+        vscode.postMessage({
+            command: 'stopPortForward',
+            id
+        });
+    };
+
+    window.deletePortForward = function(id) {
+        if (confirm('Are you sure you want to delete this port forwarding?')) {
+            vscode.postMessage({
+                command: 'deletePortForward',
+                id
+            });
+        }
+    };
 
     /**
      * Open search view

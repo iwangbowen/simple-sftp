@@ -7,6 +7,8 @@ import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { logger } from '../logger';
+import { PortForwardService } from '../services/portForwardService';
+import { PortForwardConfig } from '../types/portForward.types';
 
 export interface FileNode {
     name: string;
@@ -246,6 +248,22 @@ export abstract class DualPanelBase {
                     command: 'searchHistory',
                     data: this._searchHistory
                 });
+                break;
+
+            case 'getPortForwardings':
+                await this.handleGetPortForwardings();
+                break;
+
+            case 'startPortForward':
+                await this.handleStartPortForward(message.config);
+                break;
+
+            case 'stopPortForward':
+                await this.handleStopPortForward(message.id);
+                break;
+
+            case 'deletePortForward':
+                await this.handleDeletePortForward(message.id);
                 break;
         }
     }
@@ -1788,6 +1806,95 @@ export abstract class DualPanelBase {
             throw error;
         } finally {
             pool.releaseConnection(this._currentHost);
+        }
+    }
+
+    // ===== Port Forwarding Operations =====
+
+    protected async handleGetPortForwardings(): Promise<void> {
+        if (!this._currentHost) {
+            this.postMessage({
+                command: 'portForwardings',
+                data: []
+            });
+            return;
+        }
+
+        const service = PortForwardService.getInstance();
+        const forwardings = service.getForwardingsForHost(this._currentHost.name);
+
+        this.postMessage({
+            command: 'portForwardings',
+            data: forwardings
+        });
+    }
+
+    protected async handleStartPortForward(config: PortForwardConfig): Promise<void> {
+        if (!this._currentHost || !this._currentAuthConfig) {
+            vscode.window.showErrorMessage('No remote host connected');
+            return;
+        }
+
+        try {
+            const service = PortForwardService.getInstance();
+            const forwarding = await service.startForwarding(
+                this._currentHost,
+                this._currentAuthConfig,
+                config
+            );
+
+            vscode.window.showInformationMessage(
+                `Port forwarding started: localhost:${forwarding.localPort} → ${this._currentHost.host}:${forwarding.remotePort}`
+            );
+
+            this.postMessage({
+                command: 'portForwardingStarted',
+                data: forwarding
+            });
+
+            // Refresh list
+            await this.handleGetPortForwardings();
+        } catch (error: any) {
+            logger.error(`Failed to start port forwarding: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to start port forwarding: ${error.message}`);
+
+            this.postMessage({
+                command: 'portForwardingError',
+                error: error.message
+            });
+        }
+    }
+
+    protected async handleStopPortForward(id: string): Promise<void> {
+        try {
+            const service = PortForwardService.getInstance();
+            await service.stopForwarding(id);
+
+            vscode.window.showInformationMessage('Port forwarding stopped');
+
+            this.postMessage({
+                command: 'portForwardingStopped',
+                id
+            });
+
+            // Refresh list
+            await this.handleGetPortForwardings();
+        } catch (error: any) {
+            logger.error(`Failed to stop port forwarding: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to stop port forwarding: ${error.message}`);
+        }
+    }
+
+    protected async handleDeletePortForward(id: string): Promise<void> {
+        try {
+            const service = PortForwardService.getInstance();
+            await service.deleteForwarding(id);
+
+            // Refresh list
+            await this.handleGetPortForwardings();
+        } catch (error: any) {
+            logger.error(`Failed to delete port forwarding: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to delete port forwarding: ${error.message}`);
         }
     }
 }

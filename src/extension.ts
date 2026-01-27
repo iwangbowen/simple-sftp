@@ -4,6 +4,7 @@ import { AuthManager } from './authManager';
 import { HostTreeProvider } from './hostTreeProvider';
 import { CommandHandler } from './commandHandler';
 import { TransferQueueService } from './services/transferQueueService';
+import { PortForwardService } from './services/portForwardService';
 import { TransferHistoryService } from './services/transferHistoryService';
 import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
 import { TransferHistoryTreeProvider } from './ui/transferHistoryTreeProvider';
@@ -525,6 +526,15 @@ export async function activate(context: vscode.ExtensionContext) {
  */
 export function deactivate() {
   logger.info('Extension deactivating...');
+
+  // Clean up port forwarding service
+  try {
+    const portForwardService = PortForwardService.getInstance();
+    portForwardService.dispose();
+    logger.info('Port forwarding service disposed');
+  } catch (error) {
+    logger.error(`Error disposing port forwarding service: ${error}`);
+  }
 
   // Clean up transfer queue service
   try {

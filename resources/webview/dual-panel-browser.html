@@ -83,6 +83,9 @@
                     <button class="icon-button" id="download-selected" title="Download Selected">
                         <span class="codicon codicon-cloud-download"></span>
                     </button>
+                    <button class="icon-button" id="toggle-port-forward-view" title="Port Forwarding">
+                        <span class="codicon codicon-plug"></span>
+                    </button>
                     <button class="icon-button" id="toggle-search-view" title="Search Files">
                         <span class="codicon codicon-search"></span>
                     </button>
@@ -190,6 +193,38 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Port Forwarding View (hidden by default) -->
+                <div class="panel-port-forward-view" id="panel-port-forward-view" style="display: none;">
+                    <!-- Header -->
+                    <div class="port-forward-header">
+                        <h3>Port Forwarding</h3>
+                        <button class="icon-button" id="add-port-forward" title="Add Port">
+                            <span class="codicon codicon-add"></span>
+                            Add Port
+                        </button>
+                    </div>
+
+                    <!-- Port Forwarding Table -->
+                    <div class="port-forward-table-container">
+                        <table class="port-forward-table">
+                            <thead>
+                                <tr>
+                                    <th>Port</th>
+                                    <th>Forwarded Address</th>
+                                    <th>Running Process</th>
+                                    <th>Origin</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="port-forward-table-body">
+                                <tr class="port-forward-empty">
+                                    <td colspan="5">No port forwardings configured</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -267,6 +302,38 @@
                     <button class="apply-button" id="apply-perms-button">Apply</button>
                     <button class="cancel-button" id="cancel-perms-button">Cancel</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Port Forwarding Modal -->
+    <div id="add-port-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Port Forwarding</h3>
+                <span class="modal-close" id="add-port-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="port-remote-port">Remote Port:</label>
+                    <input type="number" id="port-remote-port" class="form-input" placeholder="e.g., 8080" min="1" max="65535" required>
+                </div>
+                <div class="form-group">
+                    <label for="port-local-port">Local Port (optional):</label>
+                    <input type="number" id="port-local-port" class="form-input" placeholder="e.g., 8080 (auto if empty)" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="port-label">Label (optional):</label>
+                    <input type="text" id="port-label" class="form-input" placeholder="e.g., Web Server">
+                </div>
+                <div class="form-group">
+                    <label for="port-remote-host">Remote Host (optional):</label>
+                    <input type="text" id="port-remote-host" class="form-input" placeholder="localhost" value="localhost">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button button-secondary" id="cancel-add-port">Cancel</button>
+                <button class="button button-primary" id="confirm-add-port">Add</button>
             </div>
         </div>
     </div>
