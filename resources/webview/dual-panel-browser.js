@@ -1779,6 +1779,46 @@
         }
     });
 
+    /**
+     * Show notification toast in the UI
+     * @param {string} message - The notification message
+     * @param {string} type - Notification type: 'success', 'error', 'info', 'warning'
+     */
+    function showNotification(message, type = 'info') {
+        // Create notification container if it doesn't exist
+        let notificationContainer = document.getElementById('notification-container');
+        if (!notificationContainer) {
+            notificationContainer = document.createElement('div');
+            notificationContainer.id = 'notification-container';
+            notificationContainer.className = 'notification-container';
+            document.body.appendChild(notificationContainer);
+        }
+
+        // Create notification toast
+        const toast = document.createElement('div');
+        toast.className = `notification-toast notification-${type}`;
+
+        const icon = type === 'success' ? 'check'
+                    : type === 'error' ? 'error'
+                    : type === 'warning' ? 'warning'
+                    : 'info';
+
+        toast.innerHTML = `
+            <span class="codicon codicon-${icon}"></span>
+            <span class="notification-message">${message}</span>
+        `;
+
+        notificationContainer.appendChild(toast);
+
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 3000);
+    }
+
     // ===== 接收扩展消息 =====
     window.addEventListener('message', event => {
         const message = event.data;
@@ -1943,19 +1983,28 @@
                 renderPortForwardings(message.data);
                 break;
 
-            case 'portForwardingStarted':
+            case 'portForwardingStarted': {
+                // Show success feedback in UI
+                const startedFwd = message.data;
+                showNotification(`Port forwarding started: localhost:${startedFwd.localPort} → ${startedFwd.remotePort}`, 'success');
                 // Refresh port forwarding list
                 vscode.postMessage({ command: 'getPortForwardings' });
+                // Also scan remote ports to update the unified table
+                handleScanRemotePorts();
                 break;
+            }
 
             case 'portForwardingStopped':
+                showNotification('Port forwarding stopped', 'info');
                 // Refresh port forwarding list
                 vscode.postMessage({ command: 'getPortForwardings' });
+                // Also scan remote ports to update the unified table
+                handleScanRemotePorts();
                 break;
 
             case 'portForwardingError':
                 // Show error message
-                alert(`Port Forwarding Error: ${message.error || 'Unknown error'}`);
+                showNotification(`Port Forwarding Error: ${message.error || 'Unknown error'}`, 'error');
                 vscode.postMessage({ command: 'getPortForwardings' });
                 break;
 
