@@ -2426,34 +2426,107 @@
         hideAddPortModal();
     }
 
+    // Port forwarding state (initialized earlier)
+    let currentRemotePorts = [];
+
     function renderPortForwardings(forwardings) {
         currentForwardings = forwardings || [];
-        const tbody = document.getElementById('port-forward-table-body');
+        renderUnifiedPorts();
+    }
+
+    function renderUnifiedPorts() {
+        const tbody = document.getElementById('unified-ports-table-body');
         if (!tbody) return;
 
-        if (currentForwardings.length === 0) {
-            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5">No port forwardings configured</td></tr>';
+        // Create a map of all ports (using port number as key)
+        const portsMap = new Map();
+
+        // First, add all remote ports
+        currentRemotePorts.forEach(rp => {
+            portsMap.set(rp.port, {
+                port: rp.port,
+                process: rp.processName,
+                pid: rp.pid,
+                command: rp.command,
+                listenAddress: rp.listenAddress,
+                status: 'available',
+                forwarding: null
+            });
+        });
+
+        // Then, overlay/update with active forwardings
+        currentForwardings.forEach(f => {
+            const existingPort = portsMap.get(f.remotePort);
+            if (existingPort) {
+                existingPort.status = 'forwarded';
+                existingPort.forwarding = f;
+            } else {
+                // Forwarding exists but port not detected (might be stopped process)
+                portsMap.set(f.remotePort, {
+                    port: f.remotePort,
+                    process: f.runningProcess || '-',
+                    pid: null,
+                    command: null,
+                    listenAddress: '-',
+                    status: 'forwarded',
+                    forwarding: f
+                });
+            }
+        });
+
+        // Sort by port number
+        const sortedPorts = Array.from(portsMap.values()).sort((a, b) => a.port - b.port);
+
+        // Render table
+        if (sortedPorts.length === 0) {
+            tbody.innerHTML = '<tr class=\"port-forward-empty\"><td colspan=\"6\">No ports detected</td></tr>';
             return;
         }
 
-        tbody.innerHTML = currentForwardings.map(f => {
-            const statusClass = f.status === 'active' ? 'active' : f.status === 'error' ? 'error' : 'inactive';
-            const forwardedAddress = `${f.localHost}:${f.localPort}`;
-            const process = f.runningProcess || '-';
-            const origin = f.origin || 'manual';
+        tbody.innerHTML = sortedPorts.map(portInfo => {
+            const { port, process, pid, command, listenAddress, status, forwarding } = portInfo;
+
+            // Process info with tooltip
+            const processInfo = command
+                ? `<span title=\"${command.replace(/\"/g, '&quot;')}\">${process || 'Unknown'}${pid ? ` (${pid})` : ''}</span>`
+                : (process
+                    ? `${process}${pid ? ` (${pid})` : ''}`
+                    : '-');
+
+            // Status badge
+            let statusBadge = '';
+            if (status === 'forwarded') {
+                statusBadge = '<span class=\"port-status-badge forwarded\">Forwarded</span>';
+            } else {
+                statusBadge = '<span class=\"port-status-badge available\">Available</span>';
+            }
+
+            // Forwarded address
+            const forwardedTo = forwarding
+                ? `${forwarding.localHost}:${forwarding.localPort}`
+                : '-';
+
+            // Actions
+            let actions = '';
+            if (status === 'forwarded' && forwarding) {
+                actions = `
+                    <button class=\"port-forward-action-btn stop\" onclick=\"stopPortForward('${forwarding.id}')\">Stop</button>
+                    <button class=\"port-forward-action-btn delete\" onclick=\"deletePortForward('${forwarding.id}')\">Delete</button>
+                `;
+            } else {
+                actions = `<button class=\"port-forward-action-btn\" onclick=\"quickForwardPort(${port})\">Forward</button>`;
+            }
 
             return `
-                <tr data-id="${f.id}">
-                    <td>${f.remotePort}</td>
-                    <td>${forwardedAddress}</td>
-                    <td>${process}</td>
-                    <td>${origin}</td>
+                <tr data-port=\"${port}\" class=\"port-row-${status}\">
+                    <td><strong>${port}</strong></td>
+                    <td>${processInfo}</td>
+                    <td>${listenAddress || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td>${forwardedTo}</td>
                     <td>
-                        <div class="port-forward-actions">
-                            ${f.status === 'active' ?
-                                `<button class="port-forward-action-btn stop" onclick="stopPortForward('${f.id}')">Stop</button>` :
-                                ''}
-                            <button class="port-forward-action-btn delete" onclick="deletePortForward('${f.id}')">Delete</button>
+                        <div class=\"port-forward-actions\">
+                            ${actions}
                         </div>
                     </td>
                 </tr>
@@ -2482,61 +2555,15 @@
         vscode.postMessage({ command: 'scanRemotePorts' });
 
         // Show loading state
-        const tbody = document.getElementById('remote-ports-table-body');
+        const tbody = document.getElementById('unified-ports-table-body');
         if (tbody) {
-            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> Scanning remote ports...</td></tr>';
-        }
-
-        // Show remote ports container
-        const container = document.getElementById('remote-ports-container');
-        if (container) {
-            container.style.display = 'block';
+            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="6"><span class="codicon codicon-loading codicon-modifier-spin"></span> Refreshing ports...</td></tr>';
         }
     }
 
     function renderRemotePorts(remotePorts) {
-        const tbody = document.getElementById('remote-ports-table-body');
-        if (!tbody) return;
-
-        const container = document.getElementById('remote-ports-container');
-        if (container && remotePorts && remotePorts.length > 0) {
-            container.style.display = 'block';
-        }
-
-        if (!remotePorts || remotePorts.length === 0) {
-            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5">No listening ports detected</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = remotePorts.map(p => {
-            const statusBadge = p.isForwarded
-                ? '<span class="port-status-badge forwarded">Forwarded</span>'
-                : '<span class="port-status-badge available">Available</span>';
-
-            const processInfo = p.command
-                ? `<span title="${p.command.replace(/"/g, '&quot;')}">${p.processName || 'Unknown'}${p.pid ? ` (${p.pid})` : ''}</span>`
-                : (p.processName
-                    ? `${p.processName}${p.pid ? ` (${p.pid})` : ''}`
-                    : (p.pid ? String(p.pid) : '-'));
-
-            const forwardButton = p.isForwarded
-                ? ''
-                : `<button class="port-forward-action-btn" onclick="quickForwardPort(${p.port})">Forward</button>`;
-
-            return `
-                <tr data-port="${p.port}">
-                    <td><strong>${p.port}</strong></td>
-                    <td>${processInfo}</td>
-                    <td>${p.listenAddress || '-'}</td>
-                    <td>${statusBadge}</td>
-                    <td>
-                        <div class="port-forward-actions">
-                            ${forwardButton}
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        currentRemotePorts = remotePorts || [];
+        renderUnifiedPorts();
     }
 
     window.quickForwardPort = function(port) {

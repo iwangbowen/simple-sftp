@@ -211,30 +211,8 @@
                         </div>
                     </div>
 
-                    <!-- Port Forwarding Table -->
+                    <!-- Unified Port List Table -->
                     <div class="port-forward-table-container">
-                        <h4 class="port-forward-section-title">Active Forwardings</h4>
-                        <table class="port-forward-table">
-                            <thead>
-                                <tr>
-                                    <th>Port</th>
-                                    <th>Forwarded Address</th>
-                                    <th>Running Process</th>
-                                    <th>Origin</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="port-forward-table-body">
-                                <tr class="port-forward-empty">
-                                    <td colspan="5">No port forwardings configured</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Remote Listening Ports Section -->
-                    <div class="remote-ports-container" id="remote-ports-container" style="display: none;">
-                        <h4 class="port-forward-section-title">Detected Remote Ports</h4>
                         <table class="port-forward-table">
                             <thead>
                                 <tr>
@@ -242,12 +220,13 @@
                                     <th>Process</th>
                                     <th>Listen Address</th>
                                     <th>Status</th>
+                                    <th>Forwarded To</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="remote-ports-table-body">
+                            <tbody id="unified-ports-table-body">
                                 <tr class="port-forward-empty">
-                                    <td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading remote ports...</td>
+                                    <td colspan="6"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading ports...</td>
                                 </tr>
                             </tbody>
                         </table>
