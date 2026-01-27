@@ -78,7 +78,7 @@ export class PortForwardService {
                     forwarding.localPort,
                     remoteHost,
                     config.remotePort,
-                    (err: Error, stream: any) => {
+                    (err: Error | undefined, stream: any) => {
                         if (err) {
                             logger.error(`Port forward error: ${err.message}`);
                             socket.end();
