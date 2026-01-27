@@ -1855,27 +1855,30 @@ body {
 }
 
 .port-forward-action-btn {
-    padding: 4px 8px;
+    padding: 3px 8px;
     font-size: 11px;
     background-color: transparent;
-    color: var(--vscode-button-foreground);
-    border: 1px solid var(--vscode-button-border);
+    color: var(--vscode-foreground);
+    border: none;
     cursor: pointer;
     border-radius: 2px;
+    transition: background-color 0.1s ease;
 }
 
 .port-forward-action-btn:hover {
-    background-color: var(--vscode-button-hoverBackground);
+    background-color: var(--vscode-list-hoverBackground);
 }
 
-.port-forward-action-btn.stop {
-    color: var(--vscode-errorForeground);
-    border-color: var(--vscode-errorForeground);
-}
-
+.port-forward-action-btn.stop,
 .port-forward-action-btn.delete {
+    color: var(--vscode-foreground);
+    opacity: 0.7;
+}
+
+.port-forward-action-btn.stop:hover,
+.port-forward-action-btn.delete:hover {
+    opacity: 1;
     color: var(--vscode-errorForeground);
-    border-color: var(--vscode-errorForeground);
 }
 
 /* Form styles for Add Port modal */
@@ -1941,16 +1944,14 @@ body {
 }
 
 .port-forward-action-btn.forward {
-    background-color: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border-color: var(--vscode-button-background);
+    color: var(--vscode-textLink-foreground);
 }
 
 .port-forward-action-btn.forward:hover {
-    background-color: var(--vscode-button-hoverBackground);
+    color: var(--vscode-textLink-activeForeground);
 }
 
 .port-forward-action-btn .codicon {
-    margin-right: 4px;
-    font-size: 14px;
+    margin-right: 3px;
+    font-size: 13px;
 }
