@@ -1958,6 +1958,11 @@
                 alert(`Port Forwarding Error: ${message.error || 'Unknown error'}`);
                 vscode.postMessage({ command: 'getPortForwardings' });
                 break;
+
+            case 'remotePorts':
+                // Update remote ports list
+                renderRemotePorts(message.data);
+                break;
         }
     });
 
@@ -2329,6 +2334,10 @@
         addPortClose?.addEventListener('click', hideAddPortModal);
         cancelAddPort?.addEventListener('click', hideAddPortModal);
         confirmAddPort?.addEventListener('click', handleAddPort);
+
+        // Scan remote ports button
+        const scanPortsButton = document.getElementById('scan-remote-ports');
+        scanPortsButton?.addEventListener('click', handleScanRemotePorts);
     }
 
     function openPortForwardView() {
@@ -2464,6 +2473,72 @@
                 id
             });
         }
+    };
+
+    function handleScanRemotePorts() {
+        vscode.postMessage({ command: 'scanRemotePorts' });
+
+        // Show loading state
+        const tbody = document.getElementById('remote-ports-table-body');
+        if (tbody) {
+            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> Scanning remote ports...</td></tr>';
+        }
+
+        // Show remote ports container
+        const container = document.getElementById('remote-ports-container');
+        if (container) {
+            container.style.display = 'block';
+        }
+    }
+
+    function renderRemotePorts(remotePorts) {
+        const tbody = document.getElementById('remote-ports-table-body');
+        if (!tbody) return;
+
+        const container = document.getElementById('remote-ports-container');
+        if (container && remotePorts && remotePorts.length > 0) {
+            container.style.display = 'block';
+        }
+
+        if (!remotePorts || remotePorts.length === 0) {
+            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5">No listening ports detected</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = remotePorts.map(p => {
+            const statusBadge = p.isForwarded
+                ? '<span class="port-status-badge forwarded">Forwarded</span>'
+                : '<span class="port-status-badge available">Available</span>';
+
+            const processInfo = p.processName
+                ? `${p.processName}${p.pid ? ` (${p.pid})` : ''}`
+                : (p.pid ?String(p.pid) : '-');
+
+            const forwardButton = p.isForwarded
+                ? ''
+                : `<button class="port-forward-action-btn" onclick="quickForwardPort(${p.port})">Forward</button>`;
+
+            return `
+                <tr data-port="${p.port}">
+                    <td><strong>${p.port}</strong></td>
+                    <td>${processInfo}</td>
+                    <td>${p.listenAddress || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="port-forward-actions">
+                            ${forwardButton}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    window.quickForwardPort = function(port) {
+        // Pre-fill add port modal with detected port
+        document.getElementById('port-remote-port').value = port;
+        document.getElementById('port-local-port').value = port;
+        showAddPortModal();
     };
 
     /**

@@ -1695,6 +1695,25 @@ body {
     background-color: var(--vscode-button-hoverBackground);
 }
 
+.port-forward-actions-group {
+    display: flex;
+    gap: 8px;
+}
+
+.port-forward-section-title {
+    margin: 16px 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    opacity: 0.9;
+}
+
+.remote-ports-container {
+    margin-top: 24px;
+    border-top: 1px solid var(--vscode-panel-border);
+    padding-top: 16px;
+}
+
 .port-forward-table-container {
     flex: 1;
     overflow: auto;
@@ -1770,6 +1789,24 @@ body {
 .port-forward-actions {
     display: flex;
     gap: 4px;
+}
+
+.port-status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.port-status-badge.forwarded {
+    background-color: rgba(16, 124, 16, 0.3);
+    color: var(--vscode-testing-iconPassed);
+}
+
+.port-status-badge.available {
+    background-color: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
 }
 
 .port-forward-action-btn {

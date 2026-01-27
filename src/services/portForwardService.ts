@@ -281,6 +281,138 @@ export class PortForwardService {
     }
 
     /**
+     * Scan remote host for listening ports
+     */
+    public async scanRemotePorts(
+        hostConfig: HostConfig,
+        authConfig: HostAuthConfig
+    ): Promise<import('../types/portForward.types').RemoteListeningPort[]> {
+        try {
+            const client = await this.createSSHClient(hostConfig, authConfig);
+
+            try {
+                const command = `ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || echo "UNSUPPORTED"`;
+                const output = await this.executeSSHCommand(client, command);
+
+                client.end();
+
+                if (output.includes('UNSUPPORTED')) {
+                    logger.warn('Neither ss nor netstat command available on remote host');
+                    return [];
+                }
+
+                return this.parseListeningPorts(output);
+            } catch (error: any) {
+                client.end();
+                throw error;
+            }
+        } catch (error: any) {
+            logger.error(`Failed to scan remote ports: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Execute SSH command and return output
+     */
+    private async executeSSHCommand(client: any, command: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            client.exec(command, (err: Error, stream: any) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+
+                let output = '';
+                let errorOutput = '';
+
+                stream.on('data', (data: Buffer) => {
+                    output += data.toString();
+                });
+
+                stream.stderr.on('data', (data: Buffer) => {
+                    errorOutput += data.toString();
+                });
+
+                stream.on('close', (code: number) => {
+                    if (code !== 0 && errorOutput) {
+                        reject(new Error(`Command failed with code ${code}: ${errorOutput}`));
+                    } else {
+                        resolve(output);
+                    }
+                });
+            });
+        });
+    }
+
+    /**
+     * Parse ss or netstat output to extract listening ports
+     */
+    private parseListeningPorts(output: string): import('../types/portForward.types').RemoteListeningPort[] {
+        const ports: import('../types/portForward.types').RemoteListeningPort[] = [];
+        const lines = output.split('\n');
+        const portMap = new Map<number, import('../types/portForward.types').RemoteListeningPort>();
+
+        for (const line of lines) {
+            // Skip header lines
+            if (line.startsWith('State') || line.startsWith('Active') || line.startsWith('Proto') || !line.trim()) {
+                continue;
+            }
+
+            // Parse ss output format:
+            // LISTEN 0 128 0.0.0.0:8080 0.0.0.0:* users:(("node",pid=1234,fd=20))
+            // or netstat format:
+            // tcp 0 0 0.0.0.0:8080 0.0.0.0:* LISTEN 1234/node
+
+            const ssMatch = line.match(/LISTEN\s+\S+\s+\S+\s+([\d.a-f:]+):(\d+).*?users:\(\("([^"]+)",pid=(\d+)/);
+            if (ssMatch) {
+                const [, listenAddr, portStr, processName, pidStr] = ssMatch;
+                const port = parseInt(portStr, 10);
+                const pid = parseInt(pidStr, 10);
+
+                if (!portMap.has(port)) {
+                    portMap.set(port, {
+                        port,
+                        pid,
+                        processName,
+                        listenAddress: listenAddr,
+                        isForwarded: this.isPortForwarded(port)
+                    });
+                }
+                continue;
+            }
+
+            const netstatMatch = line.match(/tcp\s+\S+\s+\S+\s+([\d.a-f:]+):(\d+).*?LISTEN\s+(\d+)\/(\S+)/);
+            if (netstatMatch) {
+                const [, listenAddr, portStr, pidStr, processName] = netstatMatch;
+                const port = parseInt(portStr, 10);
+                const pid = parseInt(pidStr, 10);
+
+                if (!portMap.has(port)) {
+                    portMap.set(port, {
+                        port,
+                        pid,
+                        processName: processName.replace(/^-/, ''),
+                        listenAddress: listenAddr,
+                        isForwarded: this.isPortForwarded(port)
+                    });
+                }
+            }
+        }
+
+        return Array.from(portMap.values()).sort((a, b) => a.port - b.port);
+    }
+
+    /**
+     * Check if a port is already being forwarded
+     */
+    private isPortForwarded(port: number): boolean {
+        return Array.from(this.forwardings.values()).some(
+            f => f.remotePort === port && f.status === 'active'
+        );
+    }
+
+    /**
      * Dispose all resources
      */
     public dispose(): void {

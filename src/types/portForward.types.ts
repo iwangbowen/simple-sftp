@@ -43,3 +43,18 @@ export interface PortForwardingEvent {
     forwarding: PortForwarding;
     error?: string;
 }
+
+export interface RemoteListeningPort {
+    /** Port number */
+    port: number;
+    /** Process ID */
+    pid?: number;
+    /** Process name */
+    processName?: string;
+    /** Process command */
+    command?: string;
+    /** Listen address (e.g., 0.0.0.0, 127.0.0.1, ::) */
+    listenAddress?: string;
+    /** Whether this port is already being forwarded */
+    isForwarded?: boolean;
+}

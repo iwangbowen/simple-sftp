@@ -265,6 +265,10 @@ export abstract class DualPanelBase {
             case 'deletePortForward':
                 await this.handleDeletePortForward(message.id);
                 break;
+
+            case 'scanRemotePorts':
+                await this.handleScanRemotePorts();
+                break;
         }
     }
 
@@ -1895,6 +1899,34 @@ export abstract class DualPanelBase {
         } catch (error: any) {
             logger.error(`Failed to delete port forwarding: ${error.message}`);
             vscode.window.showErrorMessage(`Failed to delete port forwarding: ${error.message}`);
+        }
+    }
+
+    protected async handleScanRemotePorts(): Promise<void> {
+        if (!this._currentHost || !this._currentAuthConfig) {
+            vscode.window.showErrorMessage('No remote host connected');
+            return;
+        }
+
+        try {
+            const service = PortForwardService.getInstance();
+            const remotePorts = await service.scanRemotePorts(
+                this._currentHost,
+                this._currentAuthConfig
+            );
+
+            this.postMessage({
+                command: 'remotePorts',
+                data: remotePorts
+            });
+        } catch (error: any) {
+            logger.error(`Failed to scan remote ports: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to scan remote ports: ${error.message}`);
+
+            this.postMessage({
+                command: 'remotePorts',
+                data: []
+            });
         }
     }
 }

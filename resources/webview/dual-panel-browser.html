@@ -199,14 +199,21 @@
                     <!-- Header -->
                     <div class="port-forward-header">
                         <h3>Port Forwarding</h3>
-                        <button class="icon-button" id="add-port-forward" title="Add Port">
-                            <span class="codicon codicon-add"></span>
-                            Add Port
-                        </button>
+                        <div class="port-forward-actions-group">
+                            <button class="icon-button" id="scan-remote-ports" title="Scan Remote Ports">
+                                <span class="codicon codicon-refresh"></span>
+                                Scan Ports
+                            </button>
+                            <button class="icon-button" id="add-port-forward" title="Add Port">
+                                <span class="codicon codicon-add"></span>
+                                Add Port
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Port Forwarding Table -->
                     <div class="port-forward-table-container">
+                        <h4 class="port-forward-section-title">Active Forwardings</h4>
                         <table class="port-forward-table">
                             <thead>
                                 <tr>
@@ -220,6 +227,27 @@
                             <tbody id="port-forward-table-body">
                                 <tr class="port-forward-empty">
                                     <td colspan="5">No port forwardings configured</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Remote Listening Ports Section -->
+                    <div class="remote-ports-container" id="remote-ports-container" style="display: none;">
+                        <h4 class="port-forward-section-title">Detected Remote Ports</h4>
+                        <table class="port-forward-table">
+                            <thead>
+                                <tr>
+                                    <th>Port</th>
+                                    <th>Process</th>
+                                    <th>Listen Address</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="remote-ports-table-body">
+                                <tr class="port-forward-empty">
+                                    <td colspan="5">Click "Scan Ports" to detect remote listening ports</td>
                                 </tr>
                             </tbody>
                         </table>
