@@ -2510,28 +2510,58 @@
             let actions = '';
             if (status === 'forwarded' && forwarding) {
                 actions = `
-                    <button class=\"port-forward-action-btn stop\" onclick=\"stopPortForward('${forwarding.id}')\">Stop</button>
-                    <button class=\"port-forward-action-btn delete\" onclick=\"deletePortForward('${forwarding.id}')\">Delete</button>
+                    <button class="port-forward-action-btn stop" data-action="stop" data-id="${forwarding.id}">Stop</button>
+                    <button class="port-forward-action-btn delete" data-action="delete" data-id="${forwarding.id}">Delete</button>
                 `;
             } else {
-                actions = `<button class=\"port-forward-action-btn\" onclick=\"quickForwardPort(${port})\">Forward</button>`;
+                actions = `<button class="port-forward-action-btn" data-action="forward" data-port="${port}">Forward</button>`;
             }
 
             return `
-                <tr data-port=\"${port}\" class=\"port-row-${status}\">
+                <tr data-port="${port}" class="port-row-${status}">
                     <td><strong>${port}</strong></td>
                     <td>${processInfo}</td>
                     <td>${listenAddress || '-'}</td>
                     <td>${statusBadge}</td>
                     <td>${forwardedTo}</td>
                     <td>
-                        <div class=\"port-forward-actions\">
+                        <div class="port-forward-actions">
                             ${actions}
                         </div>
                     </td>
                 </tr>
             `;
         }).join('');
+
+        // Add event delegation for action buttons
+        // Remove old listener if exists
+        const existingHandler = tbody._portActionHandler;
+        if (existingHandler) {
+            tbody.removeEventListener('click', existingHandler);
+        }
+
+        // Add new event listener
+        const portActionHandler = (e) => {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+
+            const action = button.getAttribute('data-action');
+            const id = button.getAttribute('data-id');
+            const port = button.getAttribute('data-port');
+
+            if (action === 'stop') {
+                vscode.postMessage({ command: 'stopPortForward', id });
+            } else if (action === 'delete') {
+                if (confirm('Are you sure you want to delete this port forwarding?')) {
+                    vscode.postMessage({ command: 'deletePortForward', id });
+                }
+            } else if (action === 'forward') {
+                quickForwardPort(parseInt(port, 10));
+            }
+        };
+
+        tbody._portActionHandler = portActionHandler;
+        tbody.addEventListener('click', portActionHandler);
     }
 
     // Make these functions global so they can be called from inline onclick
@@ -2551,6 +2581,13 @@
         }
     };
 
+    function quickForwardPort(port) {
+        // Pre-fill add port modal with detected port
+        document.getElementById('port-remote-port').value = port;
+        document.getElementById('port-local-port').value = port;
+        showAddPortModal();
+    }
+
     function handleScanRemotePorts() {
         vscode.postMessage({ command: 'scanRemotePorts' });
 
@@ -2565,13 +2602,6 @@
         currentRemotePorts = remotePorts || [];
         renderUnifiedPorts();
     }
-
-    window.quickForwardPort = function(port) {
-        // Pre-fill add port modal with detected port
-        document.getElementById('port-remote-port').value = port;
-        document.getElementById('port-local-port').value = port;
-        showAddPortModal();
-    };
 
     /**
      * Open search view
