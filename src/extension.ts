@@ -129,6 +129,23 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   logger.info('Dual panel editor manager initialized');
 
+  // Helper function to determine which manager to use based on actual active state
+  const getActiveManager = (): 'editor' | 'panel' | null => {
+    // First check if editor manager has an active panel
+    if (dualPanelEditorManager.hasActivePanel()) {
+      return 'editor';
+    }
+    // Then check if panel provider has an active view
+    if (dualPanelProvider.hasActiveView()) {
+      return 'panel';
+    }
+    // No active instance, fall back to configuration
+    const openInEditor = vscode.workspace
+      .getConfiguration('simpleSftp.browser')
+      .get('openInEditor', false);
+    return openInEditor ? 'editor' : 'panel';
+  };
+
   // Register command handler with transfer queue service and both providers
   const commandHandler = new CommandHandler(
     hostManager,
@@ -241,86 +258,63 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Dual Panel WebView context menu commands - work with both modes
     vscode.commands.registerCommand('simpleSftp.dualPanel.upload', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.executeUpload(args);
       } else {
         await dualPanelProvider.executeUpload(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.download', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.executeDownload(args);
       } else {
         await dualPanelProvider.executeDownload(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.delete', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.executeDelete(args);
       } else {
         await dualPanelProvider.executeDelete(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.changePermissions', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.executeChangePermissions(args);
       } else {
         await dualPanelProvider.executeChangePermissions(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.rename', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.executeRename(args);
       } else {
         await dualPanelProvider.executeRename(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.batchRename', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.executeBatchRename(args);
       } else {
         await dualPanelProvider.executeBatchRename(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.createFolder', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.executeCreateFolder(args);
       } else {
         await dualPanelProvider.executeCreateFolder(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.addBookmark', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
+      const activeManager = getActiveManager();
 
       // Get path from args
       let targetPath = args?.filePath;
@@ -343,40 +337,31 @@ export async function activate(context: vscode.ExtensionContext) {
       // Post message to webview to add bookmark
       // The webview handler will refresh tree view after adding
       const messageData = { command: 'addBookmark', data: { path: bookmarkPath } };
-      if (openInEditor) {
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.postMessageToWebview(messageData);
       } else {
         await dualPanelProvider.postMessageToWebview(messageData);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.selectForCompare', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.selectFileForCompare(args);
       } else {
         await dualPanelProvider.selectFileForCompare(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.compareWithSelected', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.compareWithSelected(args);
       } else {
         await dualPanelProvider.compareWithSelected(args);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.refresh', async (args) => {
-      const openInEditor = vscode.workspace
-        .getConfiguration('simpleSftp.browser')
-        .get('openInEditor', false);
-
-      if (openInEditor) {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
         await dualPanelEditorManager.executeRefresh(args);
       } else {
         await dualPanelProvider.executeRefresh(args);

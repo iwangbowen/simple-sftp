@@ -195,6 +195,13 @@ export class DualPanelEditorManager extends DualPanelBase {
         this.currentPanel?.webview.postMessage(message);
     }
 
+    /**
+     * Check if there is an active panel
+     */
+    public hasActivePanel(): boolean {
+        return this.currentPanel !== undefined;
+    }
+
     /**     * Close all panels
      */
     public dispose(): void {
