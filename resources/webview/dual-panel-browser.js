@@ -2510,11 +2510,30 @@
             let actions = '';
             if (status === 'forwarded' && forwarding) {
                 actions = `
-                    <button class="port-forward-action-btn stop" data-action="stop" data-id="${forwarding.id}">Stop</button>
-                    <button class="port-forward-action-btn delete" data-action="delete" data-id="${forwarding.id}">Delete</button>
+                    <button class="port-forward-action-btn stop" data-action="stop" data-id="${forwarding.id}">
+                        <span class="codicon codicon-debug-stop"></span> Stop
+                    </button>
+                    <button class="port-forward-action-btn delete" data-action="delete" data-id="${forwarding.id}">
+                        <span class="codicon codicon-trash"></span> Delete
+                    </button>
                 `;
             } else {
-                actions = `<button class="port-forward-action-btn" data-action="forward" data-port="${port}">Forward</button>`;
+                // For available ports, show inline local port input + forward button
+                actions = `
+                    <div class="quick-forward-container">
+                        <input type="number"
+                               class="quick-forward-port"
+                               id="quick-port-${port}"
+                               value="${port}"
+                               min="1"
+                               max="65535"
+                               placeholder="${port}"
+                               title="Local Port" />
+                        <button class="port-forward-action-btn forward" data-action="quick-forward" data-port="${port}">
+                            <span class="codicon codicon-debug-start"></span> Forward
+                        </button>
+                    </div>
+                `;
             }
 
             return `
@@ -2555,8 +2574,31 @@
                 if (confirm('Are you sure you want to delete this port forwarding?')) {
                     vscode.postMessage({ command: 'deletePortForward', id });
                 }
-            } else if (action === 'forward') {
-                quickForwardPort(parseInt(port, 10));
+            } else if (action === 'quick-forward') {
+                // Get local port from input
+                const remotePort = Number.parseInt(port, 10);
+                const localPortInput = document.getElementById(`quick-port-${remotePort}`);
+                const localPort = Number.parseInt(localPortInput?.value || remotePort, 10);
+
+                if (!localPort || localPort < 1 || localPort > 65535) {
+                    alert('Please enter a valid local port (1-65535)');
+                    return;
+                }
+
+                const config = {
+                    remotePort,
+                    localPort,
+                    localHost: '127.0.0.1',
+                    remoteHost: 'localhost',
+                    label: ''
+                };
+
+                console.log('[Port Forward] Quick forward:', config);
+
+                vscode.postMessage({
+                    command: 'startPortForward',
+                    config
+                });
             }
         };
 
@@ -2581,13 +2623,9 @@
         }
     };
 
-    function quickForwardPort(port) {
-        // Pre-fill add port modal with detected port
-        document.getElementById('port-remote-port').value = port;
-        document.getElementById('port-local-port').value = port;
-        showAddPortModal();
-    }
-
+    /**
+     * Enable inline editing for port forwarding
+     */
     function handleScanRemotePorts() {
         vscode.postMessage({ command: 'scanRemotePorts' });
 

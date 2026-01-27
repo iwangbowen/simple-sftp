@@ -1910,3 +1910,47 @@ body {
 .form-input::placeholder {
     color: var(--vscode-input-placeholderForeground);
 }
+
+/* ===== Quick Forward for Port Forwarding ===== */
+.quick-forward-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.quick-forward-port {
+    width: 70px;
+    padding: 4px 6px;
+    font-size: 12px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.quick-forward-port:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+    background-color: var(--vscode-input-background);
+}
+
+.quick-forward-port::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+}
+
+.port-forward-action-btn.forward {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-button-background);
+}
+
+.port-forward-action-btn.forward:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+.port-forward-action-btn .codicon {
+    margin-right: 4px;
+    font-size: 14px;
+}
