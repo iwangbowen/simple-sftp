@@ -794,11 +794,6 @@
       ],
       "view/item/context": [
         {
-          "command": "simpleSftp.browseFiles",
-          "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "inline@2"
-        },
-        {
           "command": "simpleSftp.openDualPanelBrowser",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "inline@1"
@@ -806,7 +801,12 @@
         {
           "command": "simpleSftp.editHost",
           "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "inline@3"
+          "group": "inline@2"
+        },
+        {
+          "command": "simpleSftp.browseFiles",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "1_browse@1"
         },
         {
           "command": "simpleSftp.configureHostAdvanced",
@@ -874,14 +874,14 @@
           "group": "inline@1"
         },
         {
-          "command": "simpleSftp.browseBookmark",
+          "command": "simpleSftp.renameBookmark",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "inline@2"
         },
         {
-          "command": "simpleSftp.renameBookmark",
+          "command": "simpleSftp.browseBookmark",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
-          "group": "inline@3"
+          "group": "1_browse@1"
         },
         {
           "command": "simpleSftp.editBookmarkDescription",
