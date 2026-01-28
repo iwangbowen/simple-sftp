@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { Client, ConnectConfig } from 'ssh2';
 import { randomUUID } from 'crypto';
-import { PortForwardConfig, PortForwarding, PortForwardingEvent } from '../types/portForward.types';
+import { PortForwardConfig, PortForwarding, PortForwardingEvent, ForwardType, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
 import { HostConfig, HostAuthConfig } from '../types';
 import { logger } from '../logger';
 import { addAuthToConnectConfig } from '../utils/jumpHostHelper';
@@ -124,7 +124,8 @@ export class PortForwardService {
                 status: 'inactive',
                 label: config.label,
                 origin: 'manual',
-                createdAt: Date.now()
+                createdAt: Date.now(),
+                forwardType: config.forwardType || 'local'
             };
         }
 
@@ -260,6 +261,390 @@ export class PortForwardService {
 
         // Save to globalState for persistence
         await this.saveToGlobalState();
+    }
+
+    /**
+     * Start remote port forwarding (reverse tunnel: -R)
+     * Remote server listens on remotePort and forwards traffic to localHost:localPort
+     */
+    public async startRemoteForwarding(
+        hostConfig: HostConfig,
+        authConfig: HostAuthConfig,
+        config: RemoteForwardConfig
+    ): Promise<PortForwarding> {
+        const id = randomUUID();
+        const localHost = config.localHost || '127.0.0.1';
+        const remoteHost = config.remoteHost || '127.0.0.1';
+
+        // Check if forwarding already exists for this combination
+        const existing = Array.from(this.forwardings.values()).find(
+            f => f.hostId === hostConfig.id &&
+                f.remotePort === config.remotePort &&
+                f.localPort === config.localPort &&
+                f.forwardType === 'remote'
+        );
+
+        // If active forwarding exists, return it
+        if (existing && existing.status === 'active') {
+            logger.info(`Active remote forwarding already exists: ${remoteHost}:${existing.remotePort} -> ${localHost}:${existing.localPort}`);
+            return existing;
+        }
+
+        // If inactive forwarding exists, reuse it
+        let forwarding: PortForwarding;
+        if (existing) {
+            logger.info(`Reusing existing inactive remote forwarding for ${remoteHost}:${existing.remotePort} -> ${localHost}:${existing.localPort}`);
+            forwarding = existing;
+            forwarding.status = 'inactive';
+            forwarding.error = undefined;
+            if (config.label) {
+                forwarding.label = config.label;
+            }
+        } else {
+            forwarding = {
+                id,
+                hostId: hostConfig.id,
+                remotePort: config.remotePort,
+                localPort: config.localPort,
+                localHost,
+                remoteHost,
+                status: 'inactive',
+                label: config.label,
+                origin: 'manual',
+                createdAt: Date.now(),
+                forwardType: 'remote'
+            };
+        }
+
+        try {
+            const client = await this.createSSHClient(hostConfig, authConfig);
+            this.sshClients.set(forwarding.id, client);
+
+            logger.debug(`[Remote Forward] SSH client ready, setting up remote forwarding...`);
+
+            // Set up remote port forwarding using forwardIn
+            await new Promise<void>((resolve, reject) => {
+                client.forwardIn(remoteHost, config.remotePort, (err: Error | undefined) => {
+                    if (err) {
+                        logger.error(`Remote forward error: ${err.message}`);
+                        forwarding.status = 'error';
+                        forwarding.error = err.message;
+                        reject(err);
+                        return;
+                    }
+                    forwarding.status = 'active';
+                    logger.info(`Remote forwarding started: ${remoteHost}:${config.remotePort} -> ${localHost}:${config.localPort}`);
+                    resolve();
+                });
+            });
+
+            // Handle incoming connections from remote
+            const net = require('node:net');
+            client.on('tcp connection', (info: any, accept: () => any, reject: () => void) => {
+                logger.debug(`[Remote Forward] Incoming connection from ${info.srcIP}:${info.srcPort}`);
+
+                const stream = accept();
+                const socket = net.connect(config.localPort, localHost, () => {
+                    logger.debug(`[Remote Forward] Connected to local ${localHost}:${config.localPort}`);
+                    stream.pipe(socket).pipe(stream);
+                });
+
+                socket.on('error', (sockErr: Error) => {
+                    logger.error(`[Remote Forward] Socket error: ${sockErr.message}`);
+                    stream.close();
+                });
+
+                stream.on('error', (streamErr: Error) => {
+                    logger.error(`[Remote Forward] Stream error: ${streamErr.message}`);
+                    socket.destroy();
+                });
+            });
+
+            // Handle SSH client errors
+            client.on('error', (err: Error) => {
+                logger.error(`SSH client error during remote forwarding: ${err.message}`);
+                forwarding.status = 'error';
+                forwarding.error = err.message;
+            });
+
+            client.on('close', () => {
+                logger.info(`SSH client connection closed for remote forwarding ${forwarding.id}`);
+                forwarding.status = 'inactive';
+            });
+
+            this.forwardings.set(forwarding.id, forwarding);
+
+            this.eventEmitter.fire({
+                type: 'started',
+                forwarding
+            });
+
+            await this.saveToGlobalState();
+
+            return forwarding;
+
+        } catch (error: any) {
+            forwarding.status = 'error';
+            forwarding.error = error.message;
+            this.forwardings.set(forwarding.id, forwarding);
+
+            this.eventEmitter.fire({
+                type: 'error',
+                forwarding,
+                error: error.message
+            });
+
+            throw error;
+        }
+    }
+
+    /**
+     * Start dynamic port forwarding (SOCKS5 proxy: -D)
+     * Creates a local SOCKS5 proxy that tunnels traffic through the SSH connection
+     */
+    public async startDynamicForwarding(
+        hostConfig: HostConfig,
+        authConfig: HostAuthConfig,
+        config: DynamicForwardConfig
+    ): Promise<PortForwarding> {
+        const id = randomUUID();
+        const localHost = config.localHost || '127.0.0.1';
+
+        // Check if forwarding already exists for this combination
+        const existing = Array.from(this.forwardings.values()).find(
+            f => f.hostId === hostConfig.id &&
+                f.localPort === config.localPort &&
+                f.forwardType === 'dynamic'
+        );
+
+        // If active forwarding exists, return it
+        if (existing && existing.status === 'active') {
+            logger.info(`Active dynamic forwarding already exists on ${localHost}:${existing.localPort}`);
+            return existing;
+        }
+
+        // If inactive forwarding exists, reuse it
+        let forwarding: PortForwarding;
+        if (existing) {
+            logger.info(`Reusing existing inactive dynamic forwarding on ${localHost}:${existing.localPort}`);
+            forwarding = existing;
+            forwarding.status = 'inactive';
+            forwarding.error = undefined;
+            if (config.label) {
+                forwarding.label = config.label;
+            }
+        } else {
+            forwarding = {
+                id,
+                hostId: hostConfig.id,
+                remotePort: 0, // Not applicable for dynamic forwarding
+                localPort: config.localPort,
+                localHost,
+                remoteHost: '', // Dynamic - routes to any destination
+                status: 'inactive',
+                label: config.label || 'SOCKS5 Proxy',
+                origin: 'manual',
+                createdAt: Date.now(),
+                forwardType: 'dynamic'
+            };
+        }
+
+        try {
+            const client = await this.createSSHClient(hostConfig, authConfig);
+            this.sshClients.set(forwarding.id, client);
+
+            logger.debug(`[Dynamic Forward] SSH client ready, creating SOCKS5 proxy server...`);
+
+            // Create SOCKS5 proxy server
+            const net = require('node:net');
+            const server = net.createServer((socket: any) => {
+                this.handleSocks5Connection(socket, client, forwarding);
+            });
+
+            // Listen on local port
+            await new Promise<void>((resolve, reject) => {
+                server.on('error', (err: Error) => {
+                    logger.error(`SOCKS5 server error: ${err.message}`);
+                    forwarding.status = 'error';
+                    forwarding.error = err.message;
+                    reject(err);
+                });
+
+                server.listen(config.localPort || 0, localHost, () => {
+                    const addr = server.address();
+                    forwarding.localPort = addr.port;
+                    forwarding.status = 'active';
+                    logger.info(`Dynamic forwarding (SOCKS5) started on ${localHost}:${forwarding.localPort}`);
+                    resolve();
+                });
+            });
+
+            // Store server reference for cleanup
+            (client as any)._forwardServer = server;
+
+            // Handle SSH client errors
+            client.on('error', (err: Error) => {
+                logger.error(`SSH client error during dynamic forwarding: ${err.message}`);
+                forwarding.status = 'error';
+                forwarding.error = err.message;
+                server.close();
+            });
+
+            client.on('close', () => {
+                logger.info(`SSH client connection closed for dynamic forwarding ${forwarding.id}`);
+                server.close();
+                forwarding.status = 'inactive';
+            });
+
+            this.forwardings.set(forwarding.id, forwarding);
+
+            this.eventEmitter.fire({
+                type: 'started',
+                forwarding
+            });
+
+            await this.saveToGlobalState();
+
+            return forwarding;
+
+        } catch (error: any) {
+            forwarding.status = 'error';
+            forwarding.error = error.message;
+            this.forwardings.set(forwarding.id, forwarding);
+
+            this.eventEmitter.fire({
+                type: 'error',
+                forwarding,
+                error: error.message
+            });
+
+            throw error;
+        }
+    }
+
+    /**
+     * Handle SOCKS5 connection
+     * Implements basic SOCKS5 protocol for CONNECT requests
+     */
+    private handleSocks5Connection(socket: any, client: Client, forwarding: PortForwarding): void {
+        let stage = 0; // 0: greeting, 1: request, 2: connected
+
+        socket.once('data', (data: Buffer) => {
+            if (stage === 0) {
+                // SOCKS5 greeting
+                if (data[0] !== 0x05) {
+                    logger.error('[SOCKS5] Invalid SOCKS version');
+                    socket.end();
+                    return;
+                }
+
+                // Reply: version 5, no authentication required
+                socket.write(Buffer.from([0x05, 0x00]));
+                stage = 1;
+
+                socket.once('data', (requestData: Buffer) => {
+                    this.handleSocks5Request(socket, requestData, client, forwarding);
+                });
+            }
+        });
+
+        socket.on('error', (err: Error) => {
+            logger.error(`[SOCKS5] Socket error: ${err.message}`);
+        });
+    }
+
+    /**
+     * Handle SOCKS5 CONNECT request
+     */
+    private handleSocks5Request(socket: any, data: Buffer, client: Client, forwarding: PortForwarding): void {
+        // SOCKS5 request format:
+        // +----+-----+-------+------+----------+----------+
+        // |VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
+        // +----+-----+-------+------+----------+----------+
+
+        if (data[0] !== 0x05) {
+            logger.error('[SOCKS5] Invalid request version');
+            socket.end();
+            return;
+        }
+
+        const cmd = data[1];
+        if (cmd !== 0x01) { // Only support CONNECT
+            logger.error(`[SOCKS5] Unsupported command: ${cmd}`);
+            // Reply with command not supported
+            socket.write(Buffer.from([0x05, 0x07, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+            socket.end();
+            return;
+        }
+
+        const atyp = data[3];
+        let destHost: string;
+        let destPort: number;
+        let offset: number;
+
+        if (atyp === 0x01) { // IPv4
+            destHost = `${data[4]}.${data[5]}.${data[6]}.${data[7]}`;
+            offset = 8;
+        } else if (atyp === 0x03) { // Domain name
+            const domainLength = data[4];
+            destHost = data.slice(5, 5 + domainLength).toString();
+            offset = 5 + domainLength;
+        } else if (atyp === 0x04) { // IPv6
+            const ipv6Parts = [];
+            for (let i = 0; i < 8; i++) {
+                ipv6Parts.push(data.readUInt16BE(4 + i * 2).toString(16));
+            }
+            destHost = ipv6Parts.join(':');
+            offset = 20;
+        } else {
+            logger.error(`[SOCKS5] Unsupported address type: ${atyp}`);
+            socket.write(Buffer.from([0x05, 0x08, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+            socket.end();
+            return;
+        }
+
+        destPort = data.readUInt16BE(offset);
+
+        logger.debug(`[SOCKS5] CONNECT request to ${destHost}:${destPort}`);
+
+        // Forward through SSH connection
+        client.forwardOut(
+            forwarding.localHost,
+            forwarding.localPort,
+            destHost,
+            destPort,
+            (err: Error | undefined, stream: any) => {
+                if (err) {
+                    logger.error(`[SOCKS5] Forward error: ${err.message}`);
+                    // Reply with general failure
+                    socket.write(Buffer.from([0x05, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+                    socket.end();
+                    return;
+                }
+
+                // Reply with success
+                const reply = Buffer.alloc(10);
+                reply[0] = 0x05; // Version
+                reply[1] = 0x00; // Success
+                reply[2] = 0x00; // Reserved
+                reply[3] = 0x01; // IPv4
+                // Bind address (0.0.0.0:0)
+                reply.writeUInt32BE(0, 4);
+                reply.writeUInt16BE(0, 8);
+                socket.write(reply);
+
+                // Pipe data
+                socket.pipe(stream).pipe(socket);
+
+                socket.on('error', (sockErr: Error) => {
+                    logger.error(`[SOCKS5] Socket error: ${sockErr.message}`);
+                });
+
+                stream.on('error', (streamErr: Error) => {
+                    logger.error(`[SOCKS5] Stream error: ${streamErr.message}`);
+                });
+            }
+        );
     }
 
     /**

@@ -1973,6 +1973,153 @@ body {
     opacity: 1;
 }
 
+/* Port Forwarding Tabs */
+.port-forward-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 8px;
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.port-forward-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background-color: transparent;
+    color: var(--vscode-foreground);
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: all 0.15s ease;
+}
+
+.port-forward-tab:hover {
+    opacity: 1;
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.port-forward-tab.active {
+    opacity: 1;
+    border-bottom-color: var(--vscode-focusBorder);
+    background-color: var(--vscode-editor-background);
+}
+
+.port-forward-tab .codicon {
+    font-size: 14px;
+}
+
+/* Port Forwarding Panels */
+.port-forward-panel {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.port-forward-panel.active {
+    display: flex;
+}
+
+.port-forward-panel-desc {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    background-color: var(--vscode-editorWidget-background);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.port-forward-panel-desc .codicon {
+    color: var(--vscode-notificationsInfoIcon-foreground);
+}
+
+/* Actions column in tables */
+.port-forward-table th.actions-column,
+.port-forward-table td.actions-column {
+    width: 60px;
+    text-align: center;
+}
+
+/* Add forward row */
+.add-forward-row {
+    background-color: var(--vscode-editorWidget-background);
+}
+
+.add-forward-row:hover {
+    background-color: var(--vscode-editorWidget-background) !important;
+}
+
+/* Forward input in tables */
+.forward-input {
+    width: 100%;
+    max-width: 120px;
+    padding: 3px 6px;
+    font-size: 12px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+}
+
+.forward-input:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+}
+
+.forward-input::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+}
+
+/* Add button in table rows */
+.add-remote-forward-btn,
+.add-dynamic-forward-btn {
+    padding: 4px 8px;
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.add-remote-forward-btn:hover,
+.add-dynamic-forward-btn:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+/* Forward type badge */
+.forward-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.forward-type-badge.local {
+    background-color: rgba(0, 122, 204, 0.2);
+    color: var(--vscode-textLink-foreground);
+}
+
+.forward-type-badge.remote {
+    background-color: rgba(156, 39, 176, 0.2);
+    color: #ce93d8;
+}
+
+.forward-type-badge.dynamic {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: #ffb74d;
+}
+
 /* Local Port Input */
 .local-port-input {
     width: 80px;

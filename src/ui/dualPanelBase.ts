@@ -8,7 +8,7 @@ import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { logger } from '../logger';
 import { PortForwardService } from '../services/portForwardService';
-import { PortForwardConfig } from '../types/portForward.types';
+import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
 
 export interface FileNode {
     name: string;
@@ -263,6 +263,14 @@ export abstract class DualPanelBase {
 
             case 'startPortForward':
                 await this.handleStartPortForward(message.config);
+                break;
+
+            case 'startRemoteForward':
+                await this.handleStartRemoteForward(message.config);
+                break;
+
+            case 'startDynamicForward':
+                await this.handleStartDynamicForward(message.config);
                 break;
 
             case 'stopPortForward':
@@ -1923,6 +1931,100 @@ export abstract class DualPanelBase {
         }
     }
 
+    protected async handleStartRemoteForward(config: RemoteForwardConfig): Promise<void> {
+        logger.info(`[Remote Forward] Starting remote forwarding: ${JSON.stringify(config)}`);
+
+        if (!this._currentHost || !this._currentAuthConfig) {
+            const errorMsg = 'No remote host connected';
+            logger.error(`[Remote Forward] ${errorMsg}`);
+            vscode.window.showErrorMessage(errorMsg);
+
+            this.postMessage({
+                command: 'portForwardingError',
+                error: errorMsg
+            });
+            return;
+        }
+
+        try {
+            const service = PortForwardService.getInstance();
+            const forwarding = await service.startRemoteForwarding(
+                this._currentHost,
+                this._currentAuthConfig,
+                config
+            );
+
+            logger.info(`[Remote Forward] Successfully started: ${JSON.stringify(forwarding)}`);
+
+            vscode.window.showInformationMessage(
+                `远程转发已启动: ${this._currentHost.host}:${forwarding.remotePort} → localhost:${forwarding.localPort}`
+            );
+
+            this.postMessage({
+                command: 'portForwardingStarted',
+                data: forwarding
+            });
+
+            // Refresh list
+            await this.handleGetPortForwardings();
+        } catch (error: any) {
+            logger.error(`[Remote Forward] Failed to start remote forwarding: ${error.message}`, error);
+            vscode.window.showErrorMessage(`远程转发启动失败: ${error.message}`);
+
+            this.postMessage({
+                command: 'portForwardingError',
+                error: error.message
+            });
+        }
+    }
+
+    protected async handleStartDynamicForward(config: DynamicForwardConfig): Promise<void> {
+        logger.info(`[Dynamic Forward] Starting dynamic forwarding: ${JSON.stringify(config)}`);
+
+        if (!this._currentHost || !this._currentAuthConfig) {
+            const errorMsg = 'No remote host connected';
+            logger.error(`[Dynamic Forward] ${errorMsg}`);
+            vscode.window.showErrorMessage(errorMsg);
+
+            this.postMessage({
+                command: 'portForwardingError',
+                error: errorMsg
+            });
+            return;
+        }
+
+        try {
+            const service = PortForwardService.getInstance();
+            const forwarding = await service.startDynamicForwarding(
+                this._currentHost,
+                this._currentAuthConfig,
+                config
+            );
+
+            logger.info(`[Dynamic Forward] Successfully started: ${JSON.stringify(forwarding)}`);
+
+            vscode.window.showInformationMessage(
+                `动态转发 (SOCKS5) 已启动: localhost:${forwarding.localPort}`
+            );
+
+            this.postMessage({
+                command: 'portForwardingStarted',
+                data: forwarding
+            });
+
+            // Refresh list
+            await this.handleGetPortForwardings();
+        } catch (error: any) {
+            logger.error(`[Dynamic Forward] Failed to start dynamic forwarding: ${error.message}`, error);
+            vscode.window.showErrorMessage(`动态转发启动失败: ${error.message}`);
+
+            this.postMessage({
+                command: 'portForwardingError',
+                error: error.message
+            });
+        }
+    }
+
     protected async handleStopPortForward(id: string): Promise<void> {
         try {
             const service = PortForwardService.getInstance();
@@ -1947,6 +2049,12 @@ export abstract class DualPanelBase {
         try {
             const service = PortForwardService.getInstance();
             await service.deleteForwarding(id);
+
+            // Notify frontend about deletion
+            this.postMessage({
+                command: 'portForwardingDeleted',
+                id
+            });
 
             // Refresh list
             await this.handleGetPortForwardings();

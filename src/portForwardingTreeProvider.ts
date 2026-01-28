@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { HostConfig } from './types';
-import { PortForwarding } from './types/portForward.types';
+import { PortForwarding, ForwardType } from './types/portForward.types';
 import { PortForwardService } from './services/portForwardService';
 import { HostManager } from './hostManager';
 
@@ -8,6 +8,22 @@ import { HostManager } from './hostManager';
  * TreeView 项类型
  */
 export type PortForwardTreeItemType = 'host' | 'forwarding';
+
+/**
+ * Get display info for forward type
+ */
+function getForwardTypeInfo(forwardType: ForwardType): { label: string; icon: string; color?: string } {
+  switch (forwardType) {
+    case 'local':
+      return { label: 'Local', icon: 'arrow-down', color: 'charts.blue' };
+    case 'remote':
+      return { label: 'Remote', icon: 'arrow-up', color: 'charts.purple' };
+    case 'dynamic':
+      return { label: 'SOCKS5', icon: 'globe', color: 'charts.orange' };
+    default:
+      return { label: 'Local', icon: 'arrow-down', color: 'charts.blue' };
+  }
+}
 
 /**
  * 端口转发TreeView数据项
@@ -29,46 +45,61 @@ export class PortForwardTreeItem extends vscode.TreeItem {
       this.tooltip = `Host: ${host.name}\n${host.username}@${host.host}:${host.port}`;
     } else {
       const forwarding = data as PortForwarding;
+      const forwardType = forwarding.forwardType || 'local';
+      const typeInfo = getForwardTypeInfo(forwardType);
 
       // contextValue根据状态设置，用于控制菜单显示
       this.contextValue = forwarding.status === 'active' ? 'portForwardingActive' : 'portForwardingInactive';
 
-      // 根据状态设置不同的图标
+      // 根据状态和类型设置不同的图标
       if (forwarding.status === 'active') {
-        this.iconPath = new vscode.ThemeIcon('arrow-both', new vscode.ThemeColor('charts.green'));
+        this.iconPath = new vscode.ThemeIcon(typeInfo.icon, new vscode.ThemeColor('charts.green'));
       } else {
         this.iconPath = new vscode.ThemeIcon('debug-disconnect', new vscode.ThemeColor('descriptionForeground'));
       }
 
-      // Label: 远程端口 → 本地端口
-      this.label = `${forwarding.remotePort} → ${forwarding.localHost}:${forwarding.localPort}`;
+      // Label based on forward type
+      if (forwardType === 'local') {
+        this.label = `${forwarding.remotePort} → ${forwarding.localHost}:${forwarding.localPort}`;
+      } else if (forwardType === 'remote') {
+        this.label = `${forwarding.localPort} → ${forwarding.remoteHost}:${forwarding.remotePort}`;
+      } else if (forwardType === 'dynamic') {
+        this.label = `SOCKS5 :${forwarding.localPort}`;
+      }
 
-      // Description: 状态 + 进程名
-      const descParts: string[] = [];
+      // Description: type badge + 状态 + 进程名
+      const descParts: string[] = [`[${typeInfo.label}]`];
       if (forwarding.status === 'inactive') {
         descParts.push('Stopped');
       }
       if (forwarding.runningProcess) {
         descParts.push(forwarding.runningProcess);
       }
-      if (descParts.length > 0) {
-        this.description = descParts.join(' ');
-      }
+      this.description = descParts.join(' ');
 
       // Tooltip: 详细信息
       const tooltipParts = [
-        `Status: ${forwarding.status === 'active' ? 'Active' : 'Stopped'}`,
-        `Remote Port: ${forwarding.remotePort}`,
-        `Local: ${forwarding.localHost}:${forwarding.localPort}`,
-        `Remote Host: ${forwarding.remoteHost || '0.0.0.0'}`
+        `Type: ${typeInfo.label}`,
+        `Status: ${forwarding.status === 'active' ? 'Active' : 'Stopped'}`
       ];
+
+      if (forwardType === 'local') {
+        tooltipParts.push(`Remote Port: ${forwarding.remotePort}`);
+        tooltipParts.push(`Local: ${forwarding.localHost}:${forwarding.localPort}`);
+      } else if (forwardType === 'remote') {
+        tooltipParts.push(`Local Port: ${forwarding.localPort}`);
+        tooltipParts.push(`Remote: ${forwarding.remoteHost}:${forwarding.remotePort}`);
+      } else if (forwardType === 'dynamic') {
+        tooltipParts.push(`SOCKS5 Proxy: ${forwarding.localHost}:${forwarding.localPort}`);
+      }
+
       if (forwarding.runningProcess) {
         tooltipParts.push(`Process: ${forwarding.runningProcess}`);
       }
       this.tooltip = tooltipParts.join('\n');
 
-      // 如果是 active 状态，添加点击命令打开浏览器
-      if (forwarding.status === 'active') {
+      // If active and is local forwarding, add click command to open browser
+      if (forwarding.status === 'active' && forwardType === 'local') {
         this.command = {
           command: 'simpleSftp.openPortForwardingInBrowser',
           title: 'Open in Browser',

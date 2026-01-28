@@ -218,24 +218,149 @@
                         </div>
                     </div>
 
-                    <!-- Unified Port List Table -->
-                    <div class="port-forward-table-container">
-                        <table class="port-forward-table">
-                            <thead>
-                                <tr>
-                                    <th class="status-column"></th>
-                                    <th>Port</th>
-                                    <th>Process</th>
-                                    <th>Listen Address</th>
-                                    <th>Forwarded To</th>
-                                </tr>
-                            </thead>
-                            <tbody id="unified-ports-table-body">
-                                <tr class="port-forward-empty">
-                                    <td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading ports...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- Forwarding Type Tabs -->
+                    <div class="port-forward-tabs">
+                        <button class="port-forward-tab active" data-tab="local" title="Local Forwarding: Map remote port to local">
+                            <span class="codicon codicon-arrow-down"></span>
+                            Local
+                        </button>
+                        <button class="port-forward-tab" data-tab="remote" title="Remote Forwarding: Map local port to remote">
+                            <span class="codicon codicon-arrow-up"></span>
+                            Remote
+                        </button>
+                        <button class="port-forward-tab" data-tab="dynamic" title="Dynamic Forwarding: SOCKS5 Proxy">
+                            <span class="codicon codicon-globe"></span>
+                            Dynamic
+                        </button>
+                    </div>
+
+                    <!-- Local Forwarding Panel (Default) -->
+                    <div class="port-forward-panel active" id="local-forward-panel">
+                        <div class="port-forward-panel-desc">
+                            <span class="codicon codicon-info"></span>
+                            Map remote port to local, access remote services locally (ssh -L)
+                        </div>
+                        <div class="port-forward-table-container">
+                            <table class="port-forward-table">
+                                <thead>
+                                    <tr>
+                                        <th class="status-column"></th>
+                                        <th>Remote Port</th>
+                                        <th>Process</th>
+                                        <th>Listen Address</th>
+                                        <th>Forward To</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="unified-ports-table-body">
+                                    <tr class="port-forward-empty">
+                                        <td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> 加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Remote Forwarding Panel -->
+                    <div class="port-forward-panel" id="remote-forward-panel">
+                        <div class="port-forward-panel-desc">
+                            <span class="codicon codicon-info"></span>
+                            Map local port to remote server, let remote access local services (ssh -R)
+                        </div>
+                        <div class="port-forward-table-container">
+                            <table class="port-forward-table">
+                                <thead>
+                                    <tr>
+                                        <th class="status-column"></th>
+                                        <th>Local Port</th>
+                                        <th>Local Address</th>
+                                        <th>Remote Port</th>
+                                        <th>Remote Address</th>
+                                        <th class="actions-column">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="remote-forward-table-body">
+                                    <tr class="port-forward-empty">
+                                        <td colspan="6">No remote forwarding configured</td>
+                                    </tr>
+                                    <tr class="add-forward-row">
+                                        <td class="status-column">
+                                            <span class="port-status-indicator available"></span>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="local-port-input" id="remote-new-local-port"
+                                                   placeholder="Local Port" min="1" max="65535" title="Local Port">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="forward-input" id="remote-new-local-host"
+                                                   placeholder="127.0.0.1" value="127.0.0.1" title="Local Address">
+                                        </td>
+                                        <td>
+                                            <input type="number" class="local-port-input" id="remote-new-remote-port"
+                                                   placeholder="Remote Port" min="1" max="65535" title="Remote Port">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="forward-input" id="remote-new-remote-host"
+                                                   placeholder="127.0.0.1" value="127.0.0.1" title="Remote Address">
+                                        </td>
+                                        <td class="actions-column">
+                                            <button class="icon-button add-remote-forward-btn" id="add-remote-forward-btn"
+                                                    title="Add Remote Forwarding">
+                                                <span class="codicon codicon-add"></span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Forwarding Panel (SOCKS5) -->
+                    <div class="port-forward-panel" id="dynamic-forward-panel">
+                        <div class="port-forward-panel-desc">
+                            <span class="codicon codicon-info"></span>
+                            Create SOCKS5 proxy, tunnel all traffic through remote server (ssh -D)
+                        </div>
+                        <div class="port-forward-table-container">
+                            <table class="port-forward-table">
+                                <thead>
+                                    <tr>
+                                        <th class="status-column"></th>
+                                        <th>Proxy Port</th>
+                                        <th>Listen Address</th>
+                                        <th>Label</th>
+                                        <th class="actions-column">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dynamic-forward-table-body">
+                                    <tr class="port-forward-empty">
+                                        <td colspan="5">No dynamic forwarding configured</td>
+                                    </tr>
+                                    <tr class="add-forward-row">
+                                        <td class="status-column">
+                                            <span class="port-status-indicator available"></span>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="local-port-input" id="dynamic-new-local-port"
+                                                   placeholder="1080" min="1" max="65535" title="SOCKS5 Proxy Port">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="forward-input" id="dynamic-new-local-host"
+                                                   placeholder="127.0.0.1" value="127.0.0.1" title="Listen Address">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="forward-input" id="dynamic-new-label"
+                                                   placeholder="SOCKS5 Proxy" title="Label">
+                                        </td>
+                                        <td class="actions-column">
+                                            <button class="icon-button add-dynamic-forward-btn" id="add-dynamic-forward-btn"
+                                                    title="Add Dynamic Forwarding">
+                                                <span class="codicon codicon-add"></span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
