@@ -251,7 +251,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       const forwarding = treeItem.data as PortForwarding;
       if (forwarding.status === 'active') {
-        vscode.window.showWarningMessage('端口转发已在运行中');
+        vscode.window.showWarningMessage('Port forwarding is already running');
         return;
       }
 
@@ -281,10 +281,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // 重新启动转发
         await portForwardService.startForwarding(host, authConfig, config);
-        vscode.window.showInformationMessage(`已启动端口转发: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        vscode.window.showInformationMessage(`Port forwarding started: ${forwarding.remotePort} → ${forwarding.localPort}`);
         portForwardingTreeProvider.refresh();
       } catch (error: any) {
-        vscode.window.showErrorMessage(`启动端口转发失败: ${error.message}`);
+        vscode.window.showErrorMessage(`Failed to start port forwarding: ${error.message}`);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.stopPortForward', async (treeItem) => {
@@ -333,7 +333,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       } catch (error: any) {
         logger.error(`Failed to open browser: ${error.message}`);
-        vscode.window.showErrorMessage(`打开浏览器失败: ${error.message}`);
+        vscode.window.showErrorMessage(`Failed to open browser: ${error.message}`);
       }
     }),
 
@@ -350,7 +350,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Dual Panel Browser - open for selected host
     vscode.commands.registerCommand('simpleSftp.openDualPanelBrowser', async (item) => {
       if (!item?.data) {
-        vscode.window.showErrorMessage('请先选择一个主机');
+        vscode.window.showErrorMessage('Please select a host first');
         return;
       }
 

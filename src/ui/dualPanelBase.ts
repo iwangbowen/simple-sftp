@@ -1961,7 +1961,7 @@ export abstract class DualPanelBase {
             logger.info(`[Remote Forward] Successfully started: ${JSON.stringify(forwarding)}`);
 
             vscode.window.showInformationMessage(
-                `远程转发已启动: ${this._currentHost.host}:${forwarding.remotePort} → localhost:${forwarding.localPort}`
+                `Remote forwarding started: ${this._currentHost.host}:${forwarding.remotePort} → localhost:${forwarding.localPort}`
             );
 
             this.postMessage({
@@ -1973,7 +1973,7 @@ export abstract class DualPanelBase {
             await this.handleGetPortForwardings();
         } catch (error: any) {
             logger.error(`[Remote Forward] Failed to start remote forwarding: ${error.message}`, error);
-            vscode.window.showErrorMessage(`远程转发启动失败: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to start remote forwarding: ${error.message}`);
 
             this.postMessage({
                 command: 'portForwardingError',
@@ -2008,7 +2008,7 @@ export abstract class DualPanelBase {
             logger.info(`[Dynamic Forward] Successfully started: ${JSON.stringify(forwarding)}`);
 
             vscode.window.showInformationMessage(
-                `动态转发 (SOCKS5) 已启动: localhost:${forwarding.localPort}`
+                `Dynamic forwarding (SOCKS5) started: localhost:${forwarding.localPort}`
             );
 
             this.postMessage({
@@ -2020,7 +2020,7 @@ export abstract class DualPanelBase {
             await this.handleGetPortForwardings();
         } catch (error: any) {
             logger.error(`[Dynamic Forward] Failed to start dynamic forwarding: ${error.message}`, error);
-            vscode.window.showErrorMessage(`动态转发启动失败: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to start dynamic forwarding: ${error.message}`);
 
             this.postMessage({
                 command: 'portForwardingError',
