@@ -1769,6 +1769,7 @@ body {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    table-layout: fixed;
 }
 
 .port-forward-table thead {
@@ -1786,6 +1787,28 @@ body {
     border-bottom: 1px solid var(--vscode-panel-border);
 }
 
+.port-forward-table th.status-column {
+    width: 40px;
+    padding: 8px 4px;
+}
+
+.port-forward-table th:nth-child(2) {
+    width: 80px;
+}
+
+.port-forward-table th:nth-child(3) {
+    width: auto;
+    min-width: 150px;
+}
+
+.port-forward-table th:nth-child(4) {
+    width: 120px;
+}
+
+.port-forward-table th:nth-child(5) {
+    width: 140px;
+}
+
 .port-forward-table tbody tr {
     border-bottom: 1px solid var(--vscode-panel-border);
 }
@@ -1797,6 +1820,12 @@ body {
 .port-forward-table td {
     padding: 8px 12px;
     color: var(--vscode-foreground);
+}
+
+.port-forward-table td.status-cell {
+    padding: 8px 4px;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .port-forward-table .port-forward-empty {
@@ -1834,6 +1863,8 @@ body {
 .port-forward-actions {
     display: flex;
     gap: 4px;
+    align-items: center;
+    white-space: nowrap;
 }
 
 .port-status-badge {
@@ -1852,6 +1883,59 @@ body {
 .port-status-badge.available {
     background-color: var(--vscode-badge-background);
     color: var(--vscode-badge-foreground);
+}
+
+/* Port Status Indicator (Clickable Circle) */
+.port-status-indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+    display: inline-block;
+    position: relative;
+}
+
+.port-status-indicator.available {
+    background-color: transparent;
+    border: 2px solid var(--vscode-descriptionForeground);
+    opacity: 0.5;
+}
+
+.port-status-indicator.available:hover {
+    opacity: 0.8;
+}
+
+.port-status-indicator.forwarded {
+    background-color: var(--vscode-testing-iconPassed);
+    border: none;
+    opacity: 0.85;
+}
+
+.port-status-indicator.forwarded:hover {
+    opacity: 1;
+}
+
+/* Local Port Input */
+.local-port-input {
+    width: 80px;
+    padding: 3px 6px;
+    font-size: 12px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+    text-align: center;
+}
+
+.local-port-input:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+    background-color: var(--vscode-input-background);
+}
+
+.local-port-input::placeholder {
+    color: var(--vscode-input-placeholderForeground);
 }
 
 .port-forward-action-btn {
@@ -1919,6 +2003,8 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
+    white-space: nowrap;
+    flex-wrap: nowrap;
 }
 
 .quick-forward-input {

@@ -2479,7 +2479,7 @@
 
         // Render table
         if (sortedPorts.length === 0) {
-            tbody.innerHTML = '<tr class=\"port-forward-empty\"><td colspan=\"6\">No ports detected</td></tr>';
+            tbody.innerHTML = '<tr class=\"port-forward-empty\"><td colspan=\"5\">No ports detected</td></tr>';
             return;
         }
 
@@ -2493,55 +2493,43 @@
                     ? `${process}${pid ? ` (${pid})` : ''}`
                     : '-');
 
-            // Status badge
-            let statusBadge = '';
+            // Status indicator (clickable circle)
+            let statusIndicator = '';
+            let statusClass = '';
+            let statusTitle = '';
             if (status === 'forwarded') {
-                statusBadge = '<span class=\"port-status-badge forwarded\">Forwarded</span>';
+                statusClass = 'forwarded';
+                statusTitle = 'Click to stop forwarding';
+                statusIndicator = `<div class=\"port-status-indicator ${statusClass}\" data-action=\"stop\" data-id=\"${forwarding.id}\" title=\"${statusTitle}\"></div>`;
             } else {
-                statusBadge = '<span class=\"port-status-badge available\">Available</span>';
+                statusClass = 'available';
+                statusTitle = 'Click to forward port';
+                statusIndicator = `<div class=\"port-status-indicator ${statusClass}\" data-action=\"forward\" data-port=\"${port}\" title=\"${statusTitle}\"></div>`;
             }
 
-            // Forwarded address
-            const forwardedTo = forwarding
-                ? `${forwarding.localHost}:${forwarding.localPort}`
-                : '-';
-
-            // Actions
-            let actions = '';
+            // Forwarded address or local port input
+            let forwardedToContent = '';
             if (status === 'forwarded' && forwarding) {
-                actions = `
-                    <button class="port-forward-action-btn stop" data-action="stop" data-id="${forwarding.id}">Stop</button>
-                    <button class="port-forward-action-btn delete" data-action="delete" data-id="${forwarding.id}">Delete</button>
-                `;
+                forwardedToContent = `${forwarding.localHost}:${forwarding.localPort}`;
             } else {
-                // For available ports, show inline local port input + forward button
-                actions = `
-                    <div class="quick-forward-group">
-                        <input type="number"
-                               class="quick-forward-input"
-                               id="quick-port-${port}"
-                               value="${port}"
-                               min="1"
-                               max="65535"
-                               placeholder="${port}"
-                               title="Local Port" />
-                        <button class="port-forward-action-btn forward" data-action="quick-forward" data-port="${port}">Forward</button>
-                    </div>
-                `;
+                // Show local port input for available ports
+                forwardedToContent = `<input type=\"number\"
+                                             class=\"local-port-input\"
+                                             id=\"local-port-${port}\"
+                                             value=\"${port}\"
+                                             min=\"1\"
+                                             max=\"65535\"
+                                             placeholder=\"${port}\"
+                                             title=\"Local port to forward to\" />`;
             }
 
             return `
-                <tr data-port="${port}" class="port-row-${status}">
+                <tr data-port=\"${port}\" class=\"port-row-${status}\">
+                    <td class=\"status-cell\">${statusIndicator}</td>
                     <td><strong>${port}</strong></td>
                     <td>${processInfo}</td>
                     <td>${listenAddress || '-'}</td>
-                    <td>${statusBadge}</td>
-                    <td>${forwardedTo}</td>
-                    <td>
-                        <div class="port-forward-actions">
-                            ${actions}
-                        </div>
-                    </td>
+                    <td>${forwardedToContent}</td>
                 </tr>
             `;
         }).join('');
@@ -2555,27 +2543,27 @@
 
         // Add new event listener
         const portActionHandler = (e) => {
-            const button = e.target.closest('button[data-action]');
-            if (!button) return;
+            const indicator = e.target.closest('.port-status-indicator');
+            if (!indicator) return;
 
-            const action = button.getAttribute('data-action');
-            const id = button.getAttribute('data-id');
-            const port = button.getAttribute('data-port');
+            const action = indicator.getAttribute('data-action');
+            const id = indicator.getAttribute('data-id');
+            const port = indicator.getAttribute('data-port');
 
             if (action === 'stop') {
                 vscode.postMessage({ command: 'stopPortForward', id });
-            } else if (action === 'delete') {
-                if (confirm('Are you sure you want to delete this port forwarding?')) {
-                    vscode.postMessage({ command: 'deletePortForward', id });
-                }
-            } else if (action === 'quick-forward') {
-                // Get local port from input
+            } else if (action === 'forward') {
                 const remotePort = Number.parseInt(port, 10);
-                const localPortInput = document.getElementById(`quick-port-${remotePort}`);
-                const localPort = Number.parseInt(localPortInput?.value || remotePort, 10);
+
+                // Get local port from input
+                const localPortInput = document.getElementById(`local-port-${remotePort}`);
+                const localPort = localPortInput ? Number.parseInt(localPortInput.value || remotePort, 10) : remotePort;
 
                 if (!localPort || localPort < 1 || localPort > 65535) {
-                    alert('Please enter a valid local port (1-65535)');
+                    vscode.postMessage({
+                        command: 'showError',
+                        message: 'Please enter a valid local port (1-65535)'
+                    });
                     return;
                 }
 
