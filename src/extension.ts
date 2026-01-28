@@ -255,22 +255,11 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      // 从PortForwarding提取配置信息
-      const config: PortForwardConfig = {
-        remotePort: forwarding.remotePort,
-        localPort: forwarding.localPort,
-        localHost: forwarding.localHost,
-        remoteHost: forwarding.remoteHost,
-        label: forwarding.label
-      };
-
       try {
         // 先删除旧的转发记录
         await portForwardService.deleteForwarding(forwarding.id);
 
         // 重新启动转发 - 需要获取主机配置和认证配置
-        // 但这里没有dualPanelBase的实例，无法访问它的_currentHost和_currentAuthConfig
-        // 所以需要从hostManager获取主机配置，并重新构建认证配置
         const host = hostManager.getHostsSync().find(h => h.id === forwarding.hostId);
         if (!host) {
           throw new Error('Host configuration not found');
@@ -282,9 +271,39 @@ export async function activate(context: vscode.ExtensionContext) {
           throw new Error('Authentication not configured for this host');
         }
 
-        // 重新启动转发
-        await portForwardService.startForwarding(host, authConfig, config);
-        vscode.window.showInformationMessage(`Port forwarding started: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        // 根据转发类型调用不同的方法
+        const forwardType = forwarding.forwardType || 'local';
+
+        if (forwardType === 'dynamic') {
+          // Dynamic forwarding (SOCKS5 proxy)
+          await portForwardService.startDynamicForwarding(host, authConfig, {
+            localPort: forwarding.localPort,
+            localHost: forwarding.localHost,
+            label: forwarding.label
+          });
+          vscode.window.showInformationMessage(`Dynamic forwarding (SOCKS5) started: localhost:${forwarding.localPort}`);
+        } else if (forwardType === 'remote') {
+          // Remote forwarding
+          await portForwardService.startRemoteForwarding(host, authConfig, {
+            localPort: forwarding.localPort,
+            localHost: forwarding.localHost,
+            remotePort: forwarding.remotePort,
+            remoteHost: forwarding.remoteHost
+          });
+          vscode.window.showInformationMessage(`Remote forwarding started: ${host.host}:${forwarding.remotePort} → localhost:${forwarding.localPort}`);
+        } else {
+          // Local forwarding (default)
+          const config: PortForwardConfig = {
+            remotePort: forwarding.remotePort,
+            localPort: forwarding.localPort,
+            localHost: forwarding.localHost,
+            remoteHost: forwarding.remoteHost,
+            label: forwarding.label
+          };
+          await portForwardService.startForwarding(host, authConfig, config);
+          vscode.window.showInformationMessage(`Port forwarding started: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        }
+
         portForwardingTreeProvider.refresh();
       } catch (error: any) {
         vscode.window.showErrorMessage(`Failed to start port forwarding: ${error.message}`);
