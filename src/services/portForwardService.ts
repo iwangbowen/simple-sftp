@@ -238,10 +238,32 @@ export class PortForwardService {
 
         const client = this.sshClients.get(id);
         if (client) {
-            // Close the forward server
+            // Close the forward server and wait for it to complete
             const server = (client as any)._forwardServer;
             if (server) {
-                server.close();
+                await new Promise<void>((resolve, reject) => {
+                    // Set a timeout for server close
+                    const timeout = setTimeout(() => {
+                        logger.warn(`Server close timeout for port forwarding ${id}`);
+                        resolve();
+                    }, 3000);
+
+                    // Close all existing connections first
+                    server.getConnections((err: Error | null, count: number) => {
+                        if (!err && count > 0) {
+                            logger.debug(`Closing ${count} active connections for port forwarding ${id}`);
+                        }
+                    });
+
+                    server.close((err?: Error) => {
+                        clearTimeout(timeout);
+                        if (err) {
+                            logger.error(`Error closing server: ${err.message}`);
+                            // Don't reject, just log and continue
+                        }
+                        resolve();
+                    });
+                });
             }
 
             // End SSH client

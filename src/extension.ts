@@ -276,8 +276,11 @@ export async function activate(context: vscode.ExtensionContext) {
           throw new Error('Host configuration not found');
         }
 
-        // 构建认证配置 - 需要重新实现addAuthToConnectConfig的逻辑
-        const authConfig = await authManager.addAuthToConnectConfig(host, {} as any);
+        // 获取认证配置
+        const authConfig = await authManager.getAuth(host.id);
+        if (!authConfig) {
+          throw new Error('Authentication not configured for this host');
+        }
 
         // 重新启动转发
         await portForwardService.startForwarding(host, authConfig, config);
