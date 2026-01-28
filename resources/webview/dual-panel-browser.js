@@ -2452,8 +2452,14 @@
         const tbody = document.getElementById('dynamic-forward-table-body');
         if (!tbody) return;
 
+        // Remove existing handler to avoid duplicates
+        const existingHandler = tbody._addDynamicHandler;
+        if (existingHandler) {
+            tbody.removeEventListener('click', existingHandler);
+        }
+
         // Handle click on add-dynamic-indicator
-        tbody.addEventListener('click', (e) => {
+        const addDynamicHandler = (e) => {
             const indicator = e.target.closest('.add-dynamic-indicator');
             if (indicator) {
                 const localPort = document.getElementById('dynamic-new-local-port')?.value;
@@ -2485,7 +2491,10 @@
                 document.getElementById('dynamic-new-local-port').value = '';
                 document.getElementById('dynamic-new-label').value = '';
             }
-        });
+        };
+
+        tbody._addDynamicHandler = addDynamicHandler;
+        tbody.addEventListener('click', addDynamicHandler);
     }
 
     function renderRemoteForwards() {
@@ -2711,7 +2720,13 @@
     }
 
     function setupDynamicForwardTableListeners(tbody) {
-        tbody.addEventListener('click', (e) => {
+        // Remove existing handler to avoid duplicates
+        const existingHandler = tbody._dynamicForwardHandler;
+        if (existingHandler) {
+            tbody.removeEventListener('click', existingHandler);
+        }
+
+        const dynamicForwardHandler = (e) => {
             const indicator = e.target.closest('.port-status-indicator:not(.add-dynamic-indicator)');
 
             if (indicator) {
@@ -2736,7 +2751,10 @@
                     }
                 }
             }
-        });
+        };
+
+        tbody._dynamicForwardHandler = dynamicForwardHandler;
+        tbody.addEventListener('click', dynamicForwardHandler);
     }
 
     function openPortForwardView() {
