@@ -1942,8 +1942,8 @@
                 break;
 
             case 'portForwardings':
-                // Update port forwarding list
-                currentForwardings = message.data || [];
+                // Update port forwarding list (handle both data and forwardings properties)
+                currentForwardings = message.data || message.forwardings || [];
                 console.log('[Port Forward] Received portForwardings, calling render for tab:', currentForwardTab, currentForwardings.length);
                 // Render based on current active tab
                 if (currentForwardTab === 'local') {
@@ -1966,10 +1966,14 @@
 
             case 'portForwardingStopped':
                 // Update local state and render immediately for quick UI feedback
-                if (message.id) {
-                    console.log('[Port Forward] Stopping forwarding', message.id);
-                    currentForwardings = currentForwardings.filter(f => f.id !== message.id);
-                    console.log('[Port Forward] After filtering, currentForwardings count:', currentForwardings.length);
+                const stoppedId = message.forwarding?.id || message.id;
+                if (stoppedId) {
+                    console.log('[Port Forward] Stopping forwarding', stoppedId);
+                    // Update the status rather than removing it completely
+                    currentForwardings = currentForwardings.map(f =>
+                        f.id === stoppedId ? { ...f, status: 'inactive' } : f
+                    );
+                    console.log('[Port Forward] After updating, currentForwardings count:', currentForwardings.length);
                     // Immediately re-render based on current tab
                     if (currentForwardTab === 'local') {
                         renderUnifiedPorts();
@@ -1994,8 +1998,9 @@
 
             case 'portForwardingDeleted':
                 // Remove from local state and re-render
-                if (message.id) {
-                    currentForwardings = currentForwardings.filter(f => f.id !== message.id);
+                const deletedId = message.forwarding?.id || message.id;
+                if (deletedId) {
+                    currentForwardings = currentForwardings.filter(f => f.id !== deletedId);
                     if (currentForwardTab === 'local') {
                         renderUnifiedPorts();
                     } else if (currentForwardTab === 'remote') {

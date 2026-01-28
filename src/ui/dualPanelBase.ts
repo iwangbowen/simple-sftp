@@ -552,12 +552,12 @@ export abstract class DualPanelBase {
         // Notify webview to refresh port forwardings when any port forwarding event occurs
         if (this._currentHost) {
             const service = PortForwardService.getInstance();
-            const forwardings = service.getForwardingsForHost(this._currentHost.id)
-                .filter(f => f.status === 'active');
+            // Send all forwardings, not just active ones
+            const forwardings = service.getForwardingsForHost(this._currentHost.id);
 
             this.postMessage({
                 command: 'portForwardings',
-                forwardings: forwardings
+                data: forwardings
             });
 
             // Also send specific event notifications
