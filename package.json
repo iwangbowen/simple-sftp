@@ -1174,6 +1174,20 @@
           "type": "boolean",
           "default": true,
           "description": "Open file browser in editor area instead of panel area. When enabled, allows opening multiple browser instances for different hosts."
+        },
+        "simpleSftp.portForwarding.openBrowserOnClick": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open browser when clicking on port number or forwarded address in port forwarding table"
+        },
+        "simpleSftp.portForwarding.defaultProtocol": {
+          "type": "string",
+          "enum": [
+            "http",
+            "https"
+          ],
+          "default": "http",
+          "description": "Default protocol to use when opening browser for port forwarding"
         }
       }
     }

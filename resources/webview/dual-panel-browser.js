@@ -2571,6 +2571,27 @@
                 return;
             }
 
+            // Handle clickable port/address to open browser
+            const clickableElement = e.target.closest('.port-clickable');
+            if (clickableElement && clickableElement.getAttribute('data-action') === 'openBrowser') {
+                const address = clickableElement.getAttribute('data-address');
+                const port = clickableElement.getAttribute('data-port');
+                const forwardingId = clickableElement.getAttribute('data-forwarding');
+
+                if (address) {
+                    // Click on forwarded address
+                    vscode.postMessage({ command: 'openBrowser', address });
+                } else if (port && forwardingId) {
+                    // Click on port number (when forwarded)
+                    const forwarding = currentForwardings.find(f => f.id === forwardingId);
+                    if (forwarding) {
+                        const url = `${forwarding.localHost}:${forwarding.localPort}`;
+                        vscode.postMessage({ command: 'openBrowser', address: url });
+                    }
+                }
+                return;
+            }
+
             const indicator = e.target.closest('.port-status-indicator');
             if (!indicator) return;
 

@@ -269,6 +269,10 @@ export abstract class DualPanelBase {
             case 'scanRemotePorts':
                 await this.handleScanRemotePorts();
                 break;
+
+            case 'openBrowser':
+                await this.handleOpenBrowser(message.address);
+                break;
         }
     }
 
@@ -1938,6 +1942,31 @@ export abstract class DualPanelBase {
                 command: 'remotePorts',
                 data: []
             });
+        }
+    }
+
+    protected async handleOpenBrowser(address: string): Promise<void> {
+        try {
+            const config = vscode.workspace.getConfiguration('simpleSftp.portForwarding');
+            const openBrowserOnClick = config.get<boolean>('openBrowserOnClick', true);
+
+            if (!openBrowserOnClick) {
+                return;
+            }
+
+            const defaultProtocol = config.get<string>('defaultProtocol', 'http');
+
+            // Add protocol if not present
+            let url = address;
+            if (!url.match(/^https?:\/\//)) {
+                url = `${defaultProtocol}://${address}`;
+            }
+
+            await vscode.env.openExternal(vscode.Uri.parse(url));
+            logger.info(`Opened browser: ${url}`);
+        } catch (error: any) {
+            logger.error(`Failed to open browser: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to open browser: ${error.message}`);
         }
     }
 }

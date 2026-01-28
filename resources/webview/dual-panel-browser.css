@@ -1949,6 +1949,23 @@ body {
     transition: background-color 0.1s ease;
 }
 
+/* Clickable Port Numbers and Addresses */
+.port-clickable {
+    color: var(--vscode-textLink-foreground);
+    cursor: pointer;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease;
+}
+
+.port-clickable:hover {
+    border-bottom-color: var(--vscode-textLink-foreground);
+}
+
+.port-clickable:active {
+    color: var(--vscode-textLink-activeForeground);
+}
+
 .port-forward-action-btn:hover {
     background-color: var(--vscode-list-hoverBackground);
 }
