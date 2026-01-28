@@ -2093,6 +2093,19 @@ body {
     background-color: var(--vscode-button-hoverBackground);
 }
 
+/* Process info in port table */
+.port-process-info {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    margin-left: 4px;
+}
+
+/* Inactive status indicator */
+.port-status-indicator.inactive {
+    background-color: var(--vscode-descriptionForeground);
+    opacity: 0.6;
+}
+
 /* Forward type badge */
 .forward-type-badge {
     display: inline-flex;

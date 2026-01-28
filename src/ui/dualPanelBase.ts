@@ -285,6 +285,10 @@ export abstract class DualPanelBase {
                 await this.handleScanRemotePorts();
                 break;
 
+            case 'scanLocalPorts':
+                await this.handleScanLocalPorts();
+                break;
+
             case 'openBrowser':
                 await this.handleOpenBrowser(message.address);
                 break;
@@ -2087,6 +2091,26 @@ export abstract class DualPanelBase {
 
             this.postMessage({
                 command: 'remotePorts',
+                data: []
+            });
+        }
+    }
+
+    protected async handleScanLocalPorts(): Promise<void> {
+        try {
+            const service = PortForwardService.getInstance();
+            const localPorts = await service.scanLocalPorts();
+
+            this.postMessage({
+                command: 'localPorts',
+                data: localPorts
+            });
+        } catch (error: any) {
+            logger.error(`Failed to scan local ports: ${error.message}`);
+            vscode.window.showErrorMessage(`Failed to scan local ports: ${error.message}`);
+
+            this.postMessage({
+                command: 'localPorts',
                 data: []
             });
         }

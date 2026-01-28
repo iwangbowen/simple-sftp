@@ -2011,6 +2011,15 @@
                 console.log('[Port Forward] Received remotePorts, calling renderRemotePorts', message.data.length);
                 renderRemotePorts(message.data);
                 break;
+
+            case 'localPorts':
+                // Update local ports list (for remote forwarding tab)
+                console.log('[Port Forward] Received localPorts', message.data.length);
+                currentLocalPorts = message.data || [];
+                if (currentForwardTab === 'remote') {
+                    renderRemoteForwards();
+                }
+                break;
         }
     });
 
@@ -2267,6 +2276,7 @@
     let isSearchViewVisible = false;
     let isPortForwardViewVisible = false;
     let currentForwardings = [];
+    let currentLocalPorts = [];  // Store scanned local ports for remote forwarding
     let currentSearchResults = [];
     let currentSearchPath = '/';
     let searchHistory = [];
@@ -2430,6 +2440,8 @@
                     renderUnifiedPorts();
                 } else if (tabType === 'remote') {
                     renderRemoteForwards();
+                    // Scan local ports for remote forwarding
+                    handleScanLocalPorts();
                 } else if (tabType === 'dynamic') {
                     renderDynamicForwards();
                 }
@@ -2514,14 +2526,60 @@
         // Filter remote forwardings
         const remoteForwardings = currentForwardings.filter(f => f.forwardType === 'remote');
 
+        console.log('[Port Forward] renderRemoteForwards called', {
+            totalForwardings: currentForwardings.length,
+            remoteForwardings: remoteForwardings.length,
+            localPortsCount: currentLocalPorts.length
+        });
+
+        // Create a map of all local ports
+        const portsMap = new Map();
+
+        // First, add all scanned local ports
+        currentLocalPorts.forEach(lp => {
+            portsMap.set(lp.port, {
+                localPort: lp.port,
+                process: lp.processName,
+                pid: lp.pid,
+                command: lp.command,
+                listenAddress: lp.listenAddress,
+                status: 'available',
+                forwarding: null
+            });
+        });
+
+        // Then, overlay/update with active remote forwardings
+        remoteForwardings.forEach(f => {
+            const existingPort = portsMap.get(f.localPort);
+            if (existingPort) {
+                existingPort.status = f.status === 'active' ? 'forwarded' : 'inactive';
+                existingPort.forwarding = f;
+            } else {
+                // Forwarding exists but port not detected
+                portsMap.set(f.localPort, {
+                    localPort: f.localPort,
+                    process: f.runningProcess || '-',
+                    pid: null,
+                    command: null,
+                    listenAddress: f.localHost,
+                    status: f.status === 'active' ? 'forwarded' : 'inactive',
+                    forwarding: f
+                });
+            }
+        });
+
+        // Sort by port number
+        const sortedPorts = Array.from(portsMap.values()).sort((a, b) => a.localPort - b.localPort);
+
         // Keep the add row at the end
         const addRow = tbody.querySelector('.add-forward-row');
         const addRowHtml = addRow ? addRow.outerHTML : '';
 
-        if (remoteForwardings.length === 0) {
+        // Render table
+        if (sortedPorts.length === 0) {
             tbody.innerHTML = `
                 <tr class="port-forward-empty">
-                    <td colspan="6">No remote forwarding configured</td>
+                    <td colspan="6">No local ports detected. Start a local service to forward it to remote.</td>
                 </tr>
                 ${addRowHtml}
             `;
@@ -2529,29 +2587,79 @@
             return;
         }
 
-        const rowsHtml = remoteForwardings.map(f => {
-            const statusClass = f.status === 'active' ? 'forwarded' : 'available';
-            const statusTitle = f.status === 'active' ? 'Click to stop forwarding' : 'Click to start forwarding';
+        const rowsHtml = sortedPorts.map(portInfo => {
+            const { localPort, process, pid, command, listenAddress, status, forwarding } = portInfo;
+
+            // Process info with tooltip
+            const processInfo = command
+                ? `<span title="${command.replace(/"/g, '&quot;')}">${process || 'Unknown'}${pid ? ` (${pid})` : ''}</span>`
+                : (process
+                    ? `${process}${pid ? ` (${pid})` : ''}`
+                    : '-');
+
+            // Status indicator (clickable circle)
+            let statusIndicator = '';
+            let statusClass = '';
+            let statusTitle = '';
+
+            if (status === 'forwarded' && forwarding) {
+                statusClass = 'forwarded';
+                statusTitle = 'Click to stop forwarding';
+                statusIndicator = `<div class="port-status-indicator ${statusClass}" data-action="stop" data-id="${forwarding.id}" title="${statusTitle}"></div>`;
+            } else if (status === 'inactive' && forwarding) {
+                statusClass = 'inactive';
+                statusTitle = 'Click to start forwarding';
+                statusIndicator = `<div class="port-status-indicator ${statusClass}" data-action="restart" data-id="${forwarding.id}" title="${statusTitle}"></div>`;
+            } else {
+                statusClass = 'available';
+                statusTitle = 'Click to forward this port to remote';
+                statusIndicator = `<div class="port-status-indicator ${statusClass}" data-action="forward" data-local-port="${localPort}" title="${statusTitle}"></div>`;
+            }
+
+            // Remote port input or display
+            let remotePortContent = '';
+            if (forwarding) {
+                remotePortContent = `<strong>${forwarding.remotePort}</strong>`;
+            } else {
+                remotePortContent = `<input type="number"
+                                           class="local-port-input"
+                                           id="remote-port-for-${localPort}"
+                                           value="${localPort}"
+                                           min="1"
+                                           max="65535"
+                                           placeholder="${localPort}"
+                                           title="Remote port to bind on" />`;
+            }
+
+            // Remote host or input
+            let remoteHostContent = '';
+            if (forwarding) {
+                remoteHostContent = forwarding.remoteHost || '127.0.0.1';
+            } else {
+                remoteHostContent = `<input type="text"
+                                           class="forward-input"
+                                           id="remote-host-for-${localPort}"
+                                           value="127.0.0.1"
+                                           placeholder="127.0.0.1"
+                                           title="Remote host to bind on" />`;
+            }
+
+            // Actions column
+            let actionsContent = '';
+            if (forwarding) {
+                actionsContent = `<button class="icon-button port-forward-action-btn delete" data-action="delete" data-id="${forwarding.id}" title="Delete">
+                    <span class="codicon codicon-trash"></span>
+                </button>`;
+            }
 
             return `
-                <tr data-id="${f.id}">
-                    <td class="status-cell">
-                        <div class="port-status-indicator ${statusClass}"
-                             data-action="${f.status === 'active' ? 'stop' : 'start'}"
-                             data-id="${f.id}"
-                             data-type="remote"
-                             title="${statusTitle}"></div>
-                    </td>
-                    <td><strong>${f.localPort}</strong></td>
-                    <td>${f.localHost}</td>
-                    <td><strong>${f.remotePort}</strong></td>
-                    <td>${f.remoteHost}</td>
-                    <td class="actions-column">
-                        <button class="icon-button port-forward-action-btn delete"
-                                data-action="delete" data-id="${f.id}" title="Delete">
-                            <span class="codicon codicon-trash"></span>
-                        </button>
-                    </td>
+                <tr data-local-port="${localPort}" class="port-row-${status}">
+                    <td class="status-cell">${statusIndicator}</td>
+                    <td><strong>${localPort}</strong> <span class="port-process-info">${processInfo}</span></td>
+                    <td>${listenAddress || '-'}</td>
+                    <td>${remotePortContent}</td>
+                    <td>${remoteHostContent}</td>
+                    <td class="actions-column">${actionsContent}</td>
                 </tr>
             `;
         }).join('');
@@ -2564,17 +2672,29 @@
     }
 
     function setupRemoteForwardTableListeners(tbody) {
-        tbody.addEventListener('click', (e) => {
+        // Remove old listener if exists
+        const existingHandler = tbody._remoteForwardHandler;
+        if (existingHandler) {
+            tbody.removeEventListener('click', existingHandler);
+        }
+
+        const remoteForwardHandler = (e) => {
+            // Don't interfere with input interactions
+            if (e.target.classList.contains('local-port-input') || e.target.classList.contains('forward-input')) {
+                return;
+            }
+
             const indicator = e.target.closest('.port-status-indicator');
             const deleteBtn = e.target.closest('.port-forward-action-btn.delete');
 
             if (indicator) {
                 const action = indicator.dataset.action;
                 const id = indicator.dataset.id;
+                const localPortStr = indicator.dataset.localPort;
 
                 if (action === 'stop') {
                     vscode.postMessage({ command: 'stopPortForward', id });
-                } else if (action === 'start') {
+                } else if (action === 'restart') {
                     // Re-start an inactive remote forwarding
                     const forwarding = currentForwardings.find(f => f.id === id);
                     if (forwarding) {
@@ -2589,6 +2709,37 @@
                             existingId: id
                         });
                     }
+                } else if (action === 'forward' && localPortStr) {
+                    const localPort = Number.parseInt(localPortStr, 10);
+
+                    // Get remote port from input
+                    const remotePortInput = document.getElementById(`remote-port-for-${localPort}`);
+                    const remoteHostInput = document.getElementById(`remote-host-for-${localPort}`);
+
+                    const remotePort = remotePortInput ? Number.parseInt(remotePortInput.value || localPort, 10) : localPort;
+                    const remoteHost = remoteHostInput ? remoteHostInput.value || '127.0.0.1' : '127.0.0.1';
+
+                    if (!remotePort || remotePort < 1 || remotePort > 65535) {
+                        vscode.postMessage({
+                            command: 'showError',
+                            message: 'Please enter a valid remote port (1-65535)'
+                        });
+                        return;
+                    }
+
+                    const config = {
+                        localPort,
+                        localHost: '127.0.0.1',
+                        remotePort,
+                        remoteHost
+                    };
+
+                    console.log('[Remote Forward] Quick forward:', config);
+
+                    vscode.postMessage({
+                        command: 'startRemoteForward',
+                        config
+                    });
                 }
             }
 
@@ -2598,7 +2749,10 @@
                     vscode.postMessage({ command: 'deletePortForward', id });
                 }
             }
-        });
+        };
+
+        tbody._remoteForwardHandler = remoteForwardHandler;
+        tbody.addEventListener('click', remoteForwardHandler);
     }
 
     function renderDynamicForwards() {
@@ -3057,6 +3211,14 @@
         vscode.postMessage({ command: 'scanRemotePorts' });
         // Don't show loading state here - let the current table remain visible
         // The table will be updated when remotePorts response arrives
+    }
+
+    /**
+     * Scan local machine for listening ports (for remote forwarding)
+     */
+    function handleScanLocalPorts() {
+        vscode.postMessage({ command: 'scanLocalPorts' });
+        // The table will be updated when localPorts response arrives
     }
 
     function renderRemotePorts(remotePorts) {

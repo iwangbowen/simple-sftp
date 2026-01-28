@@ -949,6 +949,124 @@ export class PortForwardService {
     }
 
     /**
+     * Check if a local port is being forwarded (for remote forwarding)
+     */
+    private isLocalPortForwarded(port: number): boolean {
+        return Array.from(this.forwardings.values()).some(
+            f => f.localPort === port && f.forwardType === 'remote' && f.status === 'active'
+        );
+    }
+
+    /**
+     * Scan local machine for listening ports
+     * Used for Remote Forwarding to show available local services
+     */
+    public async scanLocalPorts(): Promise<import('../types/portForward.types').RemoteListeningPort[]> {
+        return new Promise((resolve, reject) => {
+            const { exec } = require('child_process');
+            const os = require('os');
+
+            // Different commands for different platforms
+            let command: string;
+            if (os.platform() === 'win32') {
+                command = 'netstat -ano | findstr "LISTENING"';
+            } else {
+                command = 'ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || echo "UNSUPPORTED"';
+            }
+
+            exec(command, { maxBuffer: 1024 * 1024 }, (error: any, stdout: string, stderr: string) => {
+                if (error) {
+                    logger.error(`Failed to scan local ports: ${error.message}`);
+                    resolve([]);
+                    return;
+                }
+
+                if (stdout.includes('UNSUPPORTED')) {
+                    logger.warn('Neither ss nor netstat command available');
+                    resolve([]);
+                    return;
+                }
+
+                const ports = this.parseLocalListeningPorts(stdout, os.platform());
+                resolve(ports);
+            });
+        });
+    }
+
+    /**
+     * Parse local listening ports from command output
+     */
+    private parseLocalListeningPorts(output: string, platform: string): import('../types/portForward.types').RemoteListeningPort[] {
+        const portMap = new Map<number, import('../types/portForward.types').RemoteListeningPort>();
+        const lines = output.split('\n');
+
+        for (const line of lines) {
+            if (!line.trim()) continue;
+
+            if (platform === 'win32') {
+                // Windows netstat format: TCP 0.0.0.0:8080 0.0.0.0:0 LISTENING 1234
+                const winRegex = /TCP\s+([\d.]+):(\d+).*?LISTENING\s+(\d+)/i;
+                const winMatch = winRegex.exec(line);
+                if (winMatch) {
+                    const [, listenAddr, portStr, pidStr] = winMatch;
+                    const port = Number.parseInt(portStr, 10);
+                    const pid = Number.parseInt(pidStr, 10);
+
+                    if (!portMap.has(port) && port > 0) {
+                        portMap.set(port, {
+                            port,
+                            pid,
+                            listenAddress: listenAddr,
+                            isForwarded: this.isLocalPortForwarded(port)
+                        });
+                    }
+                }
+            } else {
+                // Linux ss format: LISTEN 0 128 0.0.0.0:8080 0.0.0.0:* users:(("node",pid=1234,fd=20))
+                const ssRegex = /LISTEN\s+\S+\s+\S+\s+([\d.:*]+):(\d+).*?users:\(\("([^"]+)",pid=(\d+)/;
+                const ssMatch = ssRegex.exec(line);
+                if (ssMatch) {
+                    const [, listenAddr, portStr, processName, pidStr] = ssMatch;
+                    const port = Number.parseInt(portStr, 10);
+                    const pid = Number.parseInt(pidStr, 10);
+
+                    if (!portMap.has(port) && port > 0) {
+                        portMap.set(port, {
+                            port,
+                            pid,
+                            processName,
+                            listenAddress: listenAddr,
+                            isForwarded: this.isLocalPortForwarded(port)
+                        });
+                    }
+                    continue;
+                }
+
+                // Linux netstat format: tcp 0 0 0.0.0.0:8080 0.0.0.0:* LISTEN 1234/node
+                const netstatRegex = /tcp\s+\S+\s+\S+\s+([\d.:*]+):(\d+).*?LISTEN\s+(\d+)\/(\S+)/;
+                const netstatMatch = netstatRegex.exec(line);
+                if (netstatMatch) {
+                    const [, listenAddr, portStr, pidStr, processName] = netstatMatch;
+                    const port = Number.parseInt(portStr, 10);
+                    const pid = Number.parseInt(pidStr, 10);
+
+                    if (!portMap.has(port) && port > 0) {
+                        portMap.set(port, {
+                            port,
+                            pid,
+                            processName: processName.replace(/^-/, ''),
+                            listenAddress: listenAddr,
+                            isForwarded: this.isLocalPortForwarded(port)
+                        });
+                    }
+                }
+            }
+        }
+
+        return Array.from(portMap.values()).sort((a, b) => a.port - b.port);
+    }
+
+    /**
      * Dispose all resources
      */
     public dispose(): void {
