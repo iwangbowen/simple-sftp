@@ -73,6 +73,13 @@ If you find this extension helpful, consider buying me a coffee!
 - **Parallel Transfers**: Up to 5 concurrent file transfers
 - **Large File Optimization**: Automatic chunked transfer for files over 100MB
 
+#### Port Forwarding
+- **Port Forwarding Management**: Manage SSH port forwardings with auto-refresh and duplicate prevention
+  - Click port numbers or forwarding addresses to open in browser
+  - Automatic table refresh when forwarding status changes
+  - Smart duplicate prevention to avoid redundant records
+  - Configure to use internal (Simple Browser) or external browser
+
 ### Getting Started
 
 #### Add a New Host
@@ -267,6 +274,14 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
 - **simpleSftp.transfer.followSymlinks** (boolean, default: `false`)
   Follow symbolic links instead of preserving them
 
+#### Port Forwarding
+
+- **simpleSftp.portForwarding.browserType** (enum: `simple-browser`|`external`, default: `simple-browser`)
+  Browser type when clicking port numbers or forwarding addresses (simple-browser: VS Code internal, external: system default browser)
+
+- **simpleSftp.portForwarding.defaultProtocol** (enum: `http`|`https`, default: `http`)
+  Default protocol when opening browsers
+
 #### Parallel Transfer (Large Files)
 
 - **simpleSftp.parallelTransfer.enabled** (boolean, default: `true`)
@@ -427,6 +442,14 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 - **SSH 连接池**: 自动连接复用,速度提升 5-10 倍
 - **并行传输**: 最多 5 个并发文件传输
 - **大文件优化**: 超过 100MB 的文件自动分块传输
+
+#### 端口转发
+
+- **端口转发管理**: SSH 端口转发管理，支持自动刷新和重复防止
+  - 点击端口号或转发地址在浏览器中打开
+  - 转发状态变化时自动刷新表格
+  - 智能去重防止冗余记录
+  - 可配置使用内置（Simple Browser）或外部浏览器
 
 ### 快速开始
 
@@ -622,6 +645,14 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 - **simpleSftp.transfer.followSymlinks** (布尔值,默认: `false`)
   跟随符号链接而不是保留它们
+
+#### 端口转发
+
+- **simpleSftp.portForwarding.browserType** (枚举: `simple-browser`|`external`,默认: `simple-browser`)
+  点击端口号或转发地址时使用的浏览器类型(simple-browser: VS Code 内置浏览器,external: 系统默认浏览器)
+
+- **simpleSftp.portForwarding.defaultProtocol** (枚举: `http`|`https`,默认: `http`)
+  打开浏览器时使用的默认协议
 
 #### 并行传输(大文件)
 
