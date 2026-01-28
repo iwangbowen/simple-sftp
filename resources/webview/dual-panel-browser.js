@@ -3134,6 +3134,12 @@
             icon.classList.remove('codicon-refresh');
         }
 
+        // Show loading state in table
+        const tbody = document.getElementById('unified-ports-table-body');
+        if (tbody) {
+            tbody.innerHTML = '<tr class="port-forward-loading"><td colspan="5" style="text-align: center; padding: 20px;"><span class="codicon codicon-loading codicon-modifier-spin"></span> Refreshing remote ports...</td></tr>';
+        }
+
         vscode.postMessage({ command: 'scanRemotePorts' });
         // Don't show loading state here - let the current table remain visible
         // The table will be updated when remotePorts response arrives
