@@ -2408,8 +2408,7 @@
         // Initialize tab switching
         initPortForwardTabs();
 
-        // Initialize remote and dynamic forwarding handlers
-        initRemoteForwardHandlers();
+        // Initialize dynamic forwarding handlers
         initDynamicForwardHandlers();
     }
 
@@ -2446,42 +2445,6 @@
                     renderDynamicForwards();
                 }
             });
-        });
-    }
-
-    function initRemoteForwardHandlers() {
-        const addBtn = document.getElementById('add-remote-forward-btn');
-        addBtn?.addEventListener('click', () => {
-            const localPort = document.getElementById('remote-new-local-port')?.value;
-            const localHost = document.getElementById('remote-new-local-host')?.value || '127.0.0.1';
-            const remotePort = document.getElementById('remote-new-remote-port')?.value;
-            const remoteHost = document.getElementById('remote-new-remote-host')?.value || '127.0.0.1';
-
-            if (!localPort || !remotePort) {
-                vscode.postMessage({
-                    command: 'showError',
-                    message: 'Please enter local port and remote port'
-                });
-                return;
-            }
-
-            const config = {
-                localPort: Number.parseInt(localPort, 10),
-                localHost,
-                remotePort: Number.parseInt(remotePort, 10),
-                remoteHost
-            };
-
-            console.log('[Remote Forward] Starting remote forwarding:', config);
-
-            vscode.postMessage({
-                command: 'startRemoteForward',
-                config
-            });
-
-            // Clear inputs
-            document.getElementById('remote-new-local-port').value = '';
-            document.getElementById('remote-new-remote-port').value = '';
         });
     }
 
@@ -2571,23 +2534,13 @@
         // Sort by port number
         const sortedPorts = Array.from(portsMap.values()).sort((a, b) => a.localPort - b.localPort);
 
-        // Keep the add row at the end
-        const addRow = tbody.querySelector('.add-forward-row');
-        const addRowHtml = addRow ? addRow.outerHTML : '';
-
         // Render table
         if (sortedPorts.length === 0) {
-            tbody.innerHTML = `
-                <tr class="port-forward-empty">
-                    <td colspan="6">No local ports detected. Start a local service to forward it to remote.</td>
-                </tr>
-                ${addRowHtml}
-            `;
-            initRemoteForwardHandlers();
+            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5">No local ports detected</td></tr>';
             return;
         }
 
-        const rowsHtml = sortedPorts.map(portInfo => {
+        tbody.innerHTML = sortedPorts.map(portInfo => {
             const { localPort, process, pid, command, listenAddress, status, forwarding } = portInfo;
 
             // Process info with tooltip
@@ -2606,68 +2559,41 @@
                 statusClass = 'forwarded';
                 statusTitle = 'Click to stop forwarding';
                 statusIndicator = `<div class="port-status-indicator ${statusClass}" data-action="stop" data-id="${forwarding.id}" title="${statusTitle}"></div>`;
-            } else if (status === 'inactive' && forwarding) {
-                statusClass = 'inactive';
-                statusTitle = 'Click to start forwarding';
-                statusIndicator = `<div class="port-status-indicator ${statusClass}" data-action="restart" data-id="${forwarding.id}" title="${statusTitle}"></div>`;
             } else {
                 statusClass = 'available';
                 statusTitle = 'Click to forward this port to remote';
                 statusIndicator = `<div class="port-status-indicator ${statusClass}" data-action="forward" data-local-port="${localPort}" title="${statusTitle}"></div>`;
             }
 
-            // Remote port input or display
-            let remotePortContent = '';
-            if (forwarding) {
-                remotePortContent = `<strong>${forwarding.remotePort}</strong>`;
+            // Forward To column - show remote address if forwarded, or input for remote port
+            let forwardToContent = '';
+            if (status === 'forwarded' && forwarding) {
+                const forwardedAddress = `${forwarding.remoteHost}:${forwarding.remotePort}`;
+                forwardToContent = `<span>${forwardedAddress}</span>`;
             } else {
-                remotePortContent = `<input type="number"
-                                           class="local-port-input"
-                                           id="remote-port-for-${localPort}"
-                                           value="${localPort}"
-                                           min="1"
-                                           max="65535"
-                                           placeholder="${localPort}"
-                                           title="Remote port to bind on" />`;
-            }
-
-            // Remote host or input
-            let remoteHostContent = '';
-            if (forwarding) {
-                remoteHostContent = forwarding.remoteHost || '127.0.0.1';
-            } else {
-                remoteHostContent = `<input type="text"
-                                           class="forward-input"
-                                           id="remote-host-for-${localPort}"
-                                           value="127.0.0.1"
-                                           placeholder="127.0.0.1"
-                                           title="Remote host to bind on" />`;
-            }
-
-            // Actions column
-            let actionsContent = '';
-            if (forwarding) {
-                actionsContent = `<button class="icon-button port-forward-action-btn delete" data-action="delete" data-id="${forwarding.id}" title="Delete">
-                    <span class="codicon codicon-trash"></span>
-                </button>`;
+                // Show remote port input for available ports
+                forwardToContent = `<input type="number"
+                                          class="local-port-input"
+                                          id="remote-port-for-${localPort}"
+                                          value="${localPort}"
+                                          min="1"
+                                          max="65535"
+                                          placeholder="${localPort}"
+                                          title="Remote port to bind on" />`;
             }
 
             return `
                 <tr data-local-port="${localPort}" class="port-row-${status}">
                     <td class="status-cell">${statusIndicator}</td>
-                    <td><strong>${localPort}</strong> <span class="port-process-info">${processInfo}</span></td>
+                    <td><strong>${localPort}</strong></td>
+                    <td>${processInfo}</td>
                     <td>${listenAddress || '-'}</td>
-                    <td>${remotePortContent}</td>
-                    <td>${remoteHostContent}</td>
-                    <td class="actions-column">${actionsContent}</td>
+                    <td>${forwardToContent}</td>
                 </tr>
             `;
         }).join('');
 
-        tbody.innerHTML = rowsHtml + addRowHtml;
-
-        // Re-initialize handlers
-        initRemoteForwardHandlers();
+        // Setup event listeners
         setupRemoteForwardTableListeners(tbody);
     }
 
@@ -2685,7 +2611,6 @@
             }
 
             const indicator = e.target.closest('.port-status-indicator');
-            const deleteBtn = e.target.closest('.port-forward-action-btn.delete');
 
             if (indicator) {
                 const action = indicator.dataset.action;
@@ -2694,30 +2619,12 @@
 
                 if (action === 'stop') {
                     vscode.postMessage({ command: 'stopPortForward', id });
-                } else if (action === 'restart') {
-                    // Re-start an inactive remote forwarding
-                    const forwarding = currentForwardings.find(f => f.id === id);
-                    if (forwarding) {
-                        vscode.postMessage({
-                            command: 'startRemoteForward',
-                            config: {
-                                localPort: forwarding.localPort,
-                                localHost: forwarding.localHost,
-                                remotePort: forwarding.remotePort,
-                                remoteHost: forwarding.remoteHost
-                            },
-                            existingId: id
-                        });
-                    }
                 } else if (action === 'forward' && localPortStr) {
                     const localPort = Number.parseInt(localPortStr, 10);
 
                     // Get remote port from input
                     const remotePortInput = document.getElementById(`remote-port-for-${localPort}`);
-                    const remoteHostInput = document.getElementById(`remote-host-for-${localPort}`);
-
                     const remotePort = remotePortInput ? Number.parseInt(remotePortInput.value || localPort, 10) : localPort;
-                    const remoteHost = remoteHostInput ? remoteHostInput.value || '127.0.0.1' : '127.0.0.1';
 
                     if (!remotePort || remotePort < 1 || remotePort > 65535) {
                         vscode.postMessage({
@@ -2731,7 +2638,7 @@
                         localPort,
                         localHost: '127.0.0.1',
                         remotePort,
-                        remoteHost
+                        remoteHost: '127.0.0.1'
                     };
 
                     console.log('[Remote Forward] Quick forward:', config);
@@ -2740,13 +2647,6 @@
                         command: 'startRemoteForward',
                         config
                     });
-                }
-            }
-
-            if (deleteBtn) {
-                const id = deleteBtn.dataset.id;
-                if (confirm('Are you sure you want to delete this remote forwarding?')) {
-                    vscode.postMessage({ command: 'deletePortForward', id });
                 }
             }
         };

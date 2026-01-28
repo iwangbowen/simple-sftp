@@ -269,42 +269,14 @@
                                     <tr>
                                         <th class="status-column"></th>
                                         <th>Local Port</th>
+                                        <th>Process</th>
                                         <th>Listen Address</th>
-                                        <th>Remote Port</th>
-                                        <th>Remote Address</th>
-                                        <th class="actions-column">Actions</th>
+                                        <th>Forward To</th>
                                     </tr>
                                 </thead>
                                 <tbody id="remote-forward-table-body">
                                     <tr class="port-forward-empty">
-                                        <td colspan="6">No local ports detected</td>
-                                    </tr>
-                                    <tr class="add-forward-row">
-                                        <td class="status-column">
-                                            <span class="port-status-indicator available"></span>
-                                        </td>
-                                        <td>
-                                            <input type="number" class="local-port-input" id="remote-new-local-port"
-                                                   placeholder="Local Port" min="1" max="65535" title="Local Port">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="forward-input" id="remote-new-local-host"
-                                                   placeholder="127.0.0.1" value="127.0.0.1" title="Local Address">
-                                        </td>
-                                        <td>
-                                            <input type="number" class="local-port-input" id="remote-new-remote-port"
-                                                   placeholder="Remote Port" min="1" max="65535" title="Remote Port">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="forward-input" id="remote-new-remote-host"
-                                                   placeholder="127.0.0.1" value="127.0.0.1" title="Remote Address">
-                                        </td>
-                                        <td class="actions-column">
-                                            <button class="icon-button add-remote-forward-btn" id="add-remote-forward-btn"
-                                                    title="Add Remote Forwarding">
-                                                <span class="codicon codicon-add"></span>
-                                            </button>
-                                        </td>
+                                        <td colspan="5">No local ports detected</td>
                                     </tr>
                                 </tbody>
                             </table>
