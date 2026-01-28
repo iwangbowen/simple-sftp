@@ -1757,6 +1757,7 @@
                 activeElement.id === 'remote-search' ||
                 activeElement.classList.contains('tree-item-input') ||
                 activeElement.classList.contains('rename-input') ||
+                activeElement.classList.contains('local-port-input') ||
                 // 检查是否在搜索视图的任何输入框中
                 activeElement.closest('.panel-search-view') ||
                 // 检查是否在批量重命名模态对话框中
@@ -1947,14 +1948,20 @@
                 break;
 
             case 'portForwardingStarted':
-                // Refresh port forwarding list
+                // Fetch latest data from backend immediately
                 vscode.postMessage({ command: 'getPortForwardings' });
                 // Also scan remote ports to update the unified table
                 handleScanRemotePorts();
                 break;
 
             case 'portForwardingStopped':
-                // Refresh port forwarding list
+                // Update local state and render immediately for quick UI feedback
+                if (message.id) {
+                    currentForwardings = currentForwardings.filter(f => f.id !== message.id);
+                    // Immediately re-render to show the updated state
+                    renderUnifiedPorts();
+                }
+                // Fetch latest data from backend for full refresh
                 vscode.postMessage({ command: 'getPortForwardings' });
                 // Also scan remote ports to update the unified table
                 handleScanRemotePorts();
@@ -2543,6 +2550,11 @@
 
         // Add new event listener
         const portActionHandler = (e) => {
+            // Don't interfere with input interactions
+            if (e.target.classList.contains('local-port-input')) {
+                return;
+            }
+
             const indicator = e.target.closest('.port-status-indicator');
             if (!indicator) return;
 
@@ -2614,7 +2626,7 @@
         // Show loading state
         const tbody = document.getElementById('unified-ports-table-body');
         if (tbody) {
-            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="6"><span class="codicon codicon-loading codicon-modifier-spin"></span> Refreshing ports...</td></tr>';
+            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> Refreshing ports...</td></tr>';
         }
     }
 
