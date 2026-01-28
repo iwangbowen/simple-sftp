@@ -1,5 +1,13 @@
 # Change Log
 
+## 4.2.0 - 2026-01-28
+
+### Changed
+
+- **Brand Update**: Extension display name updated to "Simple SFTP Plus" to better reflect enhanced features including port forwarding while maintaining SFTP core identity
+
+---
+
 ## 4.0.0 - 2026-01-28
 
 ### Added
