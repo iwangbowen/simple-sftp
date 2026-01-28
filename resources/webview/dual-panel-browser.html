@@ -83,12 +83,23 @@
                     <button class="icon-button" id="download-selected" title="Download Selected">
                         <span class="codicon codicon-cloud-download"></span>
                     </button>
-                    <button class="icon-button" id="toggle-port-forward-view" title="Port Forwarding">
-                        <span class="codicon codicon-plug"></span>
-                    </button>
-                    <button class="icon-button" id="toggle-search-view" title="Search Files">
-                        <span class="codicon codicon-search"></span>
-                    </button>
+                    <div class="more-dropdown-container">
+                        <button class="icon-button more-toggle-btn" id="more-toggle" title="More...">
+                            <span class="codicon codicon-kebab-vertical"></span>
+                        </button>
+                        <div class="more-dropdown" id="more-dropdown">
+                            <div class="more-dropdown-list" id="more-list">
+                                <div class="more-dropdown-item" data-action="port-forwarding">
+                                    <span class="codicon codicon-plug"></span>
+                                    <span class="more-item-label">Port Forwarding</span>
+                                </div>
+                                <div class="more-dropdown-item" data-action="search-files">
+                                    <span class="codicon codicon-search"></span>
+                                    <span class="more-item-label">Search Files</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Remote File Tree (default view) -->

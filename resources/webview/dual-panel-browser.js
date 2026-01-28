@@ -2247,13 +2247,18 @@
     function initializeSearchView() {
         // Toggle search view button (toggle between file tree and search)
         const toggleButton = document.getElementById('toggle-search-view');
-        toggleButton?.addEventListener('click', () => {
-            if (isSearchViewVisible) {
-                closeSearchView();
-            } else {
-                openSearchView();
-            }
-        });
+        if (toggleButton) {
+            toggleButton.addEventListener('click', () => {
+                if (isSearchViewVisible) {
+                    closeSearchView();
+                } else {
+                    openSearchView();
+                }
+            });
+        }
+
+        // More dropdown menu
+        setupMoreDropdown();
 
         // Start search button
         const searchButton = document.getElementById('start-search-button');
@@ -2393,6 +2398,60 @@
             remoteTree.style.display = 'block';
             isPortForwardViewVisible = false;
         }
+    }
+
+    function setupMoreDropdown() {
+        const moreToggle = document.getElementById('more-toggle');
+        const moreDropdown = document.getElementById('more-dropdown');
+        const moreList = document.getElementById('more-list');
+
+        if (!moreToggle || !moreDropdown || !moreList) {
+            return;
+        }
+
+        // Toggle dropdown visibility
+        moreToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isVisible = moreDropdown.style.display === 'flex';
+            if (isVisible) {
+                moreDropdown.style.display = 'none';
+            } else {
+                moreDropdown.style.display = 'flex';
+            }
+        });
+
+        // Handle menu item clicks
+        moreList.addEventListener('click', (e) => {
+            const item = e.target.closest('.more-dropdown-item');
+            if (!item) return;
+
+            const action = item.dataset.action;
+
+            // Close dropdown
+            moreDropdown.style.display = 'none';
+
+            // Perform action
+            if (action === 'port-forwarding') {
+                if (isPortForwardViewVisible) {
+                    closePortForwardView();
+                } else {
+                    openPortForwardView();
+                }
+            } else if (action === 'search-files') {
+                if (isSearchViewVisible) {
+                    closeSearchView();
+                } else {
+                    openSearchView();
+                }
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!moreToggle.contains(e.target) && !moreDropdown.contains(e.target)) {
+                moreDropdown.style.display = 'none';
+            }
+        });
     }
 
     function showAddPortModal() {

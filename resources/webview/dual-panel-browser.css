@@ -192,6 +192,63 @@ body {
     font-style: italic;
 }
 
+/* ===== More Dropdown (similar to bookmark dropdown) ===== */
+.more-dropdown-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.more-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+}
+
+.more-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    min-width: 180px;
+    background-color: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: none; /* Controlled by inline style in JS */
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.more-dropdown-list {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.more-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.more-dropdown-item:hover {
+    background-color: var(--vscode-menu-selectionBackground);
+    color: var(--vscode-menu-selectionForeground);
+}
+
+.more-dropdown-item .codicon {
+    font-size: 14px;
+}
+
+.more-item-label {
+    font-size: 12px;
+}
+
 /* ===== Filter Container ===== */
 .filter-container {
     display: flex;
