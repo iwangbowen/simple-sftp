@@ -86,35 +86,52 @@ export class PortForwardService {
         const id = randomUUID();
         const localHost = config.localHost || '127.0.0.1';
         const remoteHost = config.remoteHost || 'localhost';
+        const localPort = config.localPort || config.remotePort; // Default to remote port if not specified
 
-        // Check if forwarding already exists for this remote port
+        // Check if forwarding already exists for this combination (including inactive ones)
         const existing = Array.from(this.forwardings.values()).find(
             f => f.hostId === hostConfig.id &&
                 f.remotePort === config.remotePort &&
-                f.status === 'active'
+                f.localPort === localPort
         );
 
-        if (existing) {
-            throw new Error(`Port ${config.remotePort} is already being forwarded to local port ${existing.localPort}`);
+        // If active forwarding exists, return it
+        if (existing && existing.status === 'active') {
+            logger.info(`Active port forwarding already exists: ${existing.localHost}:${existing.localPort} -> ${remoteHost}:${config.remotePort}`);
+            return existing;
         }
 
-        const forwarding: PortForwarding = {
-            id,
-            hostId: hostConfig.id,
-            remotePort: config.remotePort,
-            localPort: config.localPort || 0, // Will be assigned by system if 0
-            localHost,
-            remoteHost,
-            status: 'inactive',
-            label: config.label,
-            origin: 'manual',
-            createdAt: Date.now()
-        };
+        // If inactive forwarding exists, reuse it
+        let forwarding: PortForwarding;
+        if (existing) {
+            logger.info(`Reusing existing inactive forwarding for ${existing.localHost}:${existing.localPort} -> ${remoteHost}:${config.remotePort}`);
+            forwarding = existing;
+            forwarding.status = 'inactive'; // Will be set to active later
+            forwarding.error = undefined; // Clear previous error
+            forwarding.origin = config.origin || 'manual';
+            if (config.label) {
+                forwarding.label = config.label;
+            }
+        } else {
+            // Create new forwarding
+            forwarding = {
+                id,
+                hostId: hostConfig.id,
+                remotePort: config.remotePort,
+                localPort: localPort,
+                localHost,
+                remoteHost,
+                status: 'inactive',
+                label: config.label,
+                origin: 'manual',
+                createdAt: Date.now()
+            };
+        }
 
         try {
             // Create SSH client (already in 'ready' state when returned)
             const client = await this.createSSHClient(hostConfig, authConfig);
-            this.sshClients.set(id, client);
+            this.sshClients.set(forwarding.id, client);
 
             logger.debug(`[Port Forward] SSH client ready, creating local server...`);
 
@@ -177,12 +194,12 @@ export class PortForwardService {
             });
 
             client.on('close', () => {
-                logger.info(`SSH client connection closed for port forwarding ${id}`);
+                logger.info(`SSH client connection closed for port forwarding ${forwarding.id}`);
                 server.close();
                 forwarding.status = 'inactive';
             });
 
-            this.forwardings.set(id, forwarding);
+            this.forwardings.set(forwarding.id, forwarding);
 
             this.eventEmitter.fire({
                 type: 'started',
@@ -197,7 +214,7 @@ export class PortForwardService {
         } catch (error: any) {
             forwarding.status = 'error';
             forwarding.error = error.message;
-            this.forwardings.set(id, forwarding);
+            this.forwardings.set(forwarding.id, forwarding);
 
             this.eventEmitter.fire({
                 type: 'error',
@@ -313,6 +330,12 @@ export class PortForwardService {
         }
 
         this.forwardings.delete(id);
+
+        // Fire event to notify listeners
+        this.eventEmitter.fire({
+            type: 'deleted',
+            forwarding
+        });
 
         // Save to globalState for persistence
         await this.saveToGlobalState();

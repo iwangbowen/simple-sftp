@@ -294,9 +294,9 @@ export async function activate(context: vscode.ExtensionContext) {
       const forwarding = treeItem.data as PortForwarding;
       try {
         await portForwardService.stopForwarding(forwarding.id);
-        vscode.window.showInformationMessage(`已停止端口转发: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        vscode.window.showInformationMessage(`Port forwarding stopped: ${forwarding.remotePort} → ${forwarding.localPort}`);
       } catch (error: any) {
-        vscode.window.showErrorMessage(`停止端口转发失败: ${error.message}`);
+        vscode.window.showErrorMessage(`Failed to stop port forwarding: ${error.message}`);
       }
     }),
     vscode.commands.registerCommand('simpleSftp.deletePortForward', async (treeItem) => {
@@ -306,9 +306,34 @@ export async function activate(context: vscode.ExtensionContext) {
       const forwarding = treeItem.data as PortForwarding;
       try {
         await portForwardService.deleteForwarding(forwarding.id);
-        vscode.window.showInformationMessage(`已删除端口转发: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        vscode.window.showInformationMessage(`Port forwarding deleted: ${forwarding.remotePort} → ${forwarding.localPort}`);
       } catch (error: any) {
-        vscode.window.showErrorMessage(`删除端口转发失败: ${error.message}`);
+        vscode.window.showErrorMessage(`Failed to delete port forwarding: ${error.message}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('simpleSftp.openPortForwardingInBrowser', async (address: string) => {
+      try {
+        const config = vscode.workspace.getConfiguration('simpleSftp.portForwarding');
+        const browserType = config.get<string>('browserType', 'simple-browser');
+        const defaultProtocol = config.get<string>('defaultProtocol', 'http');
+
+        // Add protocol if not present
+        let url = address;
+        if (!url.match(/^https?:\/\//)) {
+          url = `${defaultProtocol}://${address}`;
+        }
+
+        if (browserType === 'simple-browser') {
+          // Use VS Code Simple Browser
+          await vscode.commands.executeCommand('simpleBrowser.show', url);
+        } else {
+          // Use external browser
+          await vscode.env.openExternal(vscode.Uri.parse(url));
+        }
+      } catch (error: any) {
+        logger.error(`Failed to open browser: ${error.message}`);
+        vscode.window.showErrorMessage(`打开浏览器失败: ${error.message}`);
       }
     }),
 

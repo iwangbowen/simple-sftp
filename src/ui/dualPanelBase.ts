@@ -50,6 +50,13 @@ export abstract class DualPanelBase {
                 this.handleDownloadCompleted(task);
             }
         });
+
+        // Subscribe to port forwarding events
+        const portForwardService = PortForwardService.getInstance();
+        portForwardService.onPortForwardingEvent((event) => {
+            // Notify webview to refresh port forwardings
+            this.handlePortForwardingChanged(event);
+        });
     }
 
     /**
@@ -526,6 +533,38 @@ export abstract class DualPanelBase {
 
         if (localDir === this._localRootPath) {
             await this.loadLocalDirectory(this._localRootPath);
+        }
+    }
+
+    protected async handlePortForwardingChanged(event: any): Promise<void> {
+        // Notify webview to refresh port forwardings when any port forwarding event occurs
+        if (this._currentHost) {
+            const service = PortForwardService.getInstance();
+            const forwardings = service.getForwardingsForHost(this._currentHost.id)
+                .filter(f => f.status === 'active');
+
+            this.postMessage({
+                command: 'portForwardings',
+                forwardings: forwardings
+            });
+
+            // Also send specific event notifications
+            if (event.type === 'started') {
+                this.postMessage({
+                    command: 'portForwardingStarted',
+                    forwarding: event.forwarding
+                });
+            } else if (event.type === 'stopped') {
+                this.postMessage({
+                    command: 'portForwardingStopped',
+                    forwarding: event.forwarding
+                });
+            } else if (event.type === 'deleted') {
+                this.postMessage({
+                    command: 'portForwardingDeleted',
+                    forwarding: event.forwarding
+                });
+            }
         }
     }
 

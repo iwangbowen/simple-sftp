@@ -66,6 +66,15 @@ export class PortForwardTreeItem extends vscode.TreeItem {
         tooltipParts.push(`Process: ${forwarding.runningProcess}`);
       }
       this.tooltip = tooltipParts.join('\n');
+
+      // 如果是 active 状态，添加点击命令打开浏览器
+      if (forwarding.status === 'active') {
+        this.command = {
+          command: 'simpleSftp.openPortForwardingInBrowser',
+          title: 'Open in Browser',
+          arguments: [`${forwarding.localHost}:${forwarding.localPort}`]
+        };
+      }
     }
   }
 }
