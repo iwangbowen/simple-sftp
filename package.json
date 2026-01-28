@@ -1,7 +1,7 @@
 {
   "name": "simple-sftp",
   "displayName": "Simple SFTP Plus",
-  "description": "Lightweight SFTP file upload and download tool with cross-device host configuration sync",
+  "description": "Lightweight SFTP client with port forwarding and cross-device host configuration sync",
   "version": "4.2.0",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
