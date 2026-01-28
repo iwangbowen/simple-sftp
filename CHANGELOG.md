@@ -1,48 +1,10 @@
 # Change Log
 
-## 4.1.0 - 2026-01-28
-
-### Changed
-
-- **Rebranding**: Renamed extension from "Simple SFTP" to "Simple SSH" to better reflect expanded SSH capabilities beyond file transfers
-
----
-
 ## 4.0.0 - 2026-01-28
 
 ### Added
 
-- **Port Forwarding Management**: Comprehensive SSH port forwarding with three forwarding types
-  - **Local Forwarding**: Forward local ports to remote destinations (client → server → target)
-  - **Remote Forwarding**: Forward remote ports to local destinations (server → client → target)
-  - **Dynamic Forwarding (SOCKS5)**: Create SOCKS5 proxy server for dynamic port forwarding
-  - TreeView with real-time status indicators for all forwarding types
-  - WebView with tab-based interface (Local, Remote, Dynamic tabs)
-  - Auto-refresh when forwarding status changes
-  - Smart duplicate prevention
-  - Click port numbers or forwarding addresses to open in browser
-  - Configurable browser type (Simple Browser or external browser)
-  - Local port scanning for Remote tab
-  - Remote port scanning with process information (using ss/netstat)
-
-### Changed
-
-- **Internationalization**: All UI text and messages converted to English for consistency
-- **UI Improvements**:
-  - Unified table layouts across all port forwarding tabs
-  - Removed tab icons for cleaner interface
-  - Consistent 5-column table structure across tabs
-  - Removed Actions column from Remote and Dynamic tabs
-
-### Fixed
-
-- **Port Forwarding Bugs**:
-  - Fixed Remote tab automatically scanning local ports
-  - Fixed Dynamic tab event handling to avoid duplicate listeners
-  - Fixed SOCKS5 proxy not releasing ports on stop (added 3-second timeout)
-  - Fixed TreeView commands using wrong service methods for different forwarding types
-  - Fixed WebView not updating when TreeView operations occur
-  - Fixed event broadcasting to send all forwardings, not just active ones
+- **Port Forwarding**: Added port forwarding management
 
 ---
 

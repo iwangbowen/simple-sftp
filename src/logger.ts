@@ -9,7 +9,7 @@ class Logger {
     private readonly outputChannel: vscode.OutputChannel;
 
     private constructor() {
-        this.outputChannel = vscode.window.createOutputChannel('Simple SSH');
+        this.outputChannel = vscode.window.createOutputChannel('Simple SFTP');
     }
 
     static getInstance(): Logger {

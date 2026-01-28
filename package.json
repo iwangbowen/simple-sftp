@@ -1,8 +1,8 @@
 {
   "name": "simple-sftp",
-  "displayName": "Simple SSH",
-  "description": "Lightweight SSH toolkit for SFTP file transfers, port forwarding, and remote server management with cross-device sync",
-  "version": "4.1.0",
+  "displayName": "Simple SFTP",
+  "description": "Lightweight SFTP file upload and download tool with cross-device host configuration sync",
+  "version": "4.0.0",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
   "license": "MIT",
@@ -39,14 +39,14 @@
       "activitybar": [
         {
           "id": "simpleSftp",
-          "title": "Simple SSH",
+          "title": "Simple SFTP",
           "icon": "resources/icon.svg"
         }
       ],
       "panel": [
         {
           "id": "simpleSftpPanel",
-          "title": "SSH Browser",
+          "title": "SFTP Browser",
           "icon": "$(remote-explorer)"
         }
       ]
@@ -100,7 +100,7 @@
     "viewsWelcome": [
       {
         "view": "simpleSftp.hosts",
-        "contents": "Welcome to Simple SSH\n\nNo remote hosts configured yet. Get started by adding your first host to manage SSH connections, transfer files, and configure port forwarding.\n\n[$(add) Add Host](command:simpleSftp.addHost)\n\n[$(cloud-download) Import from SSH Config](command:simpleSftp.importFromSshConfig)\n\nNeed help? Check out the [documentation](https://github.com/iwangbowen/simple-sftp#readme)."
+        "contents": "Welcome to Simple SFTP\n\nNo remote hosts configured yet. Get started by adding your first host to upload and download files via SFTP.\n\n[$(add) Add Host](command:simpleSftp.addHost)\n\n[$(cloud-download) Import from SSH Config](command:simpleSftp.importFromSshConfig)\n\nNeed help? Check out the [documentation](https://github.com/iwangbowen/simple-sftp#readme)."
       }
     ],
     "submenus": [
@@ -114,401 +114,401 @@
       {
         "command": "simpleSftp.addHost",
         "title": "Add Host",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(add)"
       },
       {
         "command": "simpleSftp.addHostToGroup",
         "title": "Add Host to Group",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(add)"
       },
       {
         "command": "simpleSftp.editHost",
         "title": "Edit Host",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(edit)"
       },
       {
         "command": "simpleSftp.configureHostAdvanced",
         "title": "Advanced Configuration",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(settings-gear)"
       },
       {
         "command": "simpleSftp.duplicateHost",
         "title": "Duplicate Host",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(copy)"
       },
       {
         "command": "simpleSftp.deleteHost",
         "title": "Delete",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
         "command": "simpleSftp.addGroup",
         "title": "Add Group",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(add)"
       },
       {
         "command": "simpleSftp.editGroup",
         "title": "Edit Group",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(edit)"
       },
       {
         "command": "simpleSftp.importFromSshConfig",
         "title": "Import from SSH Config",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(cloud-download)"
       },
       {
         "command": "simpleSftp.exportAllHosts",
         "title": "Export All Hosts",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(export)"
       },
       {
         "command": "simpleSftp.exportGroup",
         "title": "Export Group",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(export)"
       },
       {
         "command": "simpleSftp.exportHost",
         "title": "Export Host",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(export)"
       },
       {
         "command": "simpleSftp.importHosts",
         "title": "Import Hosts",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(cloud-upload)"
       },
       {
         "command": "simpleSftp.uploadFile",
         "title": "Upload to Remote Host",
-        "category": "Simple SSH"
+        "category": "Simple SFTP"
       },
       {
         "command": "simpleSftp.browseFiles",
         "title": "Browse Files (QuickPick)",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(list-selection)"
       },
       {
         "command": "simpleSftp.downloadToLocal",
         "title": "Download from Remote Host to Here",
-        "category": "Simple SSH"
+        "category": "Simple SFTP"
       },
       {
         "command": "simpleSftp.setupPasswordlessLogin",
         "title": "Setup Passwordless Login",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(key)"
       },
       {
         "command": "simpleSftp.testConnection",
         "title": "Test Connection",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(plug)"
       },
       {
         "command": "simpleSftp.refresh",
         "title": "Refresh",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(refresh)"
       },
       {
         "command": "simpleSftp.refreshPortForwardings",
         "title": "Refresh Port Forwardings",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(refresh)"
       },
       {
         "command": "simpleSftp.startPortForward",
         "title": "Start Port Forward",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(debug-start)"
       },
       {
         "command": "simpleSftp.stopPortForward",
         "title": "Stop Port Forward",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(debug-stop)"
       },
       {
         "command": "simpleSftp.deletePortForward",
         "title": "Delete Port Forward",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
         "command": "simpleSftp.configureAuth",
         "title": "Configure Authentication",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(lock)"
       },
       {
         "command": "simpleSftp.copySshCommand",
         "title": "Copy SSH Command",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(copy)"
       },
       {
         "command": "simpleSftp.openSshTerminal",
         "title": "Open SSH Terminal",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(terminal)"
       },
       {
         "command": "simpleSftp.addBookmark",
         "title": "Add Bookmark",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(bookmark)"
       },
       {
         "command": "simpleSftp.renameBookmark",
         "title": "Rename Bookmark",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(edit)"
       },
       {
         "command": "simpleSftp.editBookmarkDescription",
         "title": "Edit Description",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(note)"
       },
       {
         "command": "simpleSftp.deleteBookmark",
         "title": "Delete Bookmark",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
         "command": "simpleSftp.browseBookmark",
         "title": "Browse Files (QuickPick)",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(list-selection)"
       },
       {
         "command": "simpleSftp.browseBookmarkWebview",
         "title": "Browse Files (WebView)",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(folder-opened)"
       },
       {
         "command": "simpleSftp.showLogs",
         "title": "Show Output Logs",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(output)"
       },
       {
         "command": "simpleSftp.showConnectionPool",
         "title": "Show Connection Pool Status",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(dashboard)"
       },
       {
         "command": "simpleSftp.moveHostToGroup",
         "title": "Move to Group",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(folder)"
       },
       {
         "command": "simpleSftp.toggleStar",
         "title": "Toggle Star",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(star)"
       },
       {
         "command": "simpleSftp.pauseQueue",
         "title": "Pause Transfer Queue",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(debug-pause)"
       },
       {
         "command": "simpleSftp.resumeQueue",
         "title": "Resume Transfer Queue",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(debug-continue)"
       },
       {
         "command": "simpleSftp.pauseTask",
         "title": "Pause Transfer Task",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(debug-pause)"
       },
       {
         "command": "simpleSftp.resumeTask",
         "title": "Resume Transfer Task",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(debug-continue)"
       },
       {
         "command": "simpleSftp.cancelTask",
         "title": "Cancel Transfer Task",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(close)"
       },
       {
         "command": "simpleSftp.retryTask",
         "title": "Retry Failed Task",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(refresh)"
       },
       {
         "command": "simpleSftp.removeTask",
         "title": "Remove Task from Queue",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
         "command": "simpleSftp.clearCompleted",
         "title": "Clear Completed Tasks",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(clear-all)"
       },
       {
         "command": "simpleSftp.clearAll",
         "title": "Clear All Tasks",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
         "command": "simpleSftp.showTaskDetails",
         "title": "Show Task Details",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(info)"
       },
       {
         "command": "simpleSftp.viewTransferHistory",
         "title": "View Transfer History",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(history)"
       },
       {
         "command": "simpleSftp.clearHistory",
         "title": "Clear Transfer History",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(clear-all)"
       },
       {
         "command": "simpleSftp.removeHistoryTask",
         "title": "Remove from History",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
         "command": "simpleSftp.openGitHubReadme",
         "title": "Read Documentation",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(book)"
       },
       {
         "command": "simpleSftp.openIssues",
         "title": "Review Issues",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(issues)"
       },
       {
         "command": "simpleSftp.reportIssue",
         "title": "Report Issue",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(comment)"
       },
       {
         "command": "simpleSftp.openGitHubRepo",
         "title": "View on GitHub",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(github)"
       },
       {
         "command": "simpleSftp.expandAll",
         "title": "Expand All",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(expand-all)"
       },
       {
         "command": "simpleSftp.collapseAll",
         "title": "Collapse All",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(collapse-all)"
       },
       {
         "command": "simpleSftp.openDualPanelBrowser",
         "title": "Browse Files (WebView)",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(folder-opened)"
       },
       {
         "command": "simpleSftp.dualPanel.upload",
         "title": "Upload to Remote",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(cloud-upload)"
       },
       {
         "command": "simpleSftp.dualPanel.download",
         "title": "Download to Local",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(cloud-download)"
       },
       {
         "command": "simpleSftp.dualPanel.delete",
         "title": "Delete",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(trash)"
       },
       {
         "command": "simpleSftp.dualPanel.changePermissions",
         "title": "Change Permissions",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(shield)"
       },
       {
         "command": "simpleSftp.dualPanel.rename",
         "title": "Rename",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(edit)"
       },
       {
         "command": "simpleSftp.dualPanel.batchRename",
         "title": "Batch Rename",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(edit)"
       },
       {
         "command": "simpleSftp.dualPanel.createFolder",
         "title": "New Folder",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(new-folder)"
       },
       {
         "command": "simpleSftp.dualPanel.refresh",
         "title": "Refresh",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(refresh)"
       },
       {
         "command": "simpleSftp.dualPanel.addBookmark",
         "title": "Add to Bookmarks",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(bookmark)"
       },
       {
         "command": "simpleSftp.dualPanel.selectForCompare",
         "title": "Select for Compare",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(git-compare)"
       },
       {
         "command": "simpleSftp.dualPanel.compareWithSelected",
         "title": "Compare with Selected",
-        "category": "Simple SSH",
+        "category": "Simple SFTP",
         "icon": "$(diff)"
       }
     ],
@@ -1050,7 +1050,7 @@
       ]
     },
     "configuration": {
-      "title": "Simple SSH",
+      "title": "Simple SFTP",
       "properties": {
         "simpleSftp.showDotFiles": {
           "type": "boolean",
