@@ -1175,10 +1175,18 @@
           "default": true,
           "description": "Open file browser in editor area instead of panel area. When enabled, allows opening multiple browser instances for different hosts."
         },
-        "simpleSftp.portForwarding.openBrowserOnClick": {
-          "type": "boolean",
-          "default": true,
-          "description": "Open browser when clicking on port number or forwarded address in port forwarding table"
+        "simpleSftp.portForwarding.browserType": {
+          "type": "string",
+          "enum": [
+            "external",
+            "simple-browser"
+          ],
+          "enumDescriptions": [
+            "Open in external browser (system default)",
+            "Open in VS Code Simple Browser (built-in preview)"
+          ],
+          "default": "simple-browser",
+          "description": "Browser type to use when clicking on port number or forwarded address"
         },
         "simpleSftp.portForwarding.defaultProtocol": {
           "type": "string",

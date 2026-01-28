@@ -2533,7 +2533,8 @@
             // Forwarded address or local port input
             let forwardedToContent = '';
             if (status === 'forwarded' && forwarding) {
-                forwardedToContent = `${forwarding.localHost}:${forwarding.localPort}`;
+                const forwardedAddress = `${forwarding.localHost}:${forwarding.localPort}`;
+                forwardedToContent = `<span class="port-clickable" data-action="openBrowser" data-address="${forwardedAddress}" title="Click to open in browser">${forwardedAddress}</span>`;
             } else {
                 // Show local port input for available ports
                 forwardedToContent = `<input type=\"number\"
@@ -2546,10 +2547,15 @@
                                              title=\"Local port to forward to\" />`;
             }
 
+            // Render port number - clickable if forwarded
+            const portDisplay = status === 'forwarded' && forwarding
+                ? `<span class="port-clickable" data-action="openBrowser" data-port="${port}" data-forwarding="${forwarding.id}" title="Click to open in browser">${port}</span>`
+                : `${port}`;
+
             return `
                 <tr data-port=\"${port}\" class=\"port-row-${status}\">
                     <td class=\"status-cell\">${statusIndicator}</td>
-                    <td><strong>${port}</strong></td>
+                    <td><strong>${portDisplay}</strong></td>
                     <td>${processInfo}</td>
                     <td>${listenAddress || '-'}</td>
                     <td>${forwardedToContent}</td>

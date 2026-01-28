@@ -1948,12 +1948,7 @@ export abstract class DualPanelBase {
     protected async handleOpenBrowser(address: string): Promise<void> {
         try {
             const config = vscode.workspace.getConfiguration('simpleSftp.portForwarding');
-            const openBrowserOnClick = config.get<boolean>('openBrowserOnClick', true);
-
-            if (!openBrowserOnClick) {
-                return;
-            }
-
+            const browserType = config.get<string>('browserType', 'simple-browser');
             const defaultProtocol = config.get<string>('defaultProtocol', 'http');
 
             // Add protocol if not present
@@ -1962,8 +1957,15 @@ export abstract class DualPanelBase {
                 url = `${defaultProtocol}://${address}`;
             }
 
-            await vscode.env.openExternal(vscode.Uri.parse(url));
-            logger.info(`Opened browser: ${url}`);
+            if (browserType === 'simple-browser') {
+                // Use VS Code Simple Browser
+                await vscode.commands.executeCommand('simpleBrowser.show', url);
+                logger.info(`Opened in Simple Browser: ${url}`);
+            } else {
+                // Use external browser
+                await vscode.env.openExternal(vscode.Uri.parse(url));
+                logger.info(`Opened in external browser: ${url}`);
+            }
         } catch (error: any) {
             logger.error(`Failed to open browser: ${error.message}`);
             vscode.window.showErrorMessage(`Failed to open browser: ${error.message}`);
