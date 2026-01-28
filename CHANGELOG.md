@@ -1,5 +1,13 @@
 # Change Log
 
+## 4.0.0 - 2026-01-28
+
+### Added
+
+- **Port Forwarding**: Added port forwarding management
+
+---
+
 ## 3.11.0 - 2026-01-27
 
 ### Added
