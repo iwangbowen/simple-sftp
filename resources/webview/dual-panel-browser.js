@@ -1944,6 +1944,7 @@
             case 'portForwardings':
                 // Update port forwarding list
                 currentForwardings = message.data || [];
+                console.log('[Port Forward] Received portForwardings, calling renderUnifiedPorts', currentForwardings.length);
                 renderUnifiedPorts();
                 break;
 
@@ -1957,7 +1958,9 @@
             case 'portForwardingStopped':
                 // Update local state and render immediately for quick UI feedback
                 if (message.id) {
+                    console.log('[Port Forward] Stopping forwarding', message.id);
                     currentForwardings = currentForwardings.filter(f => f.id !== message.id);
+                    console.log('[Port Forward] After filtering, currentForwardings count:', currentForwardings.length);
                     // Immediately re-render to show the updated state
                     renderUnifiedPorts();
                 }
@@ -1974,6 +1977,7 @@
 
             case 'remotePorts':
                 // Update remote ports list
+                console.log('[Port Forward] Received remotePorts, calling renderRemotePorts', message.data.length);
                 renderRemotePorts(message.data);
                 break;
         }
@@ -2443,7 +2447,19 @@
 
     function renderUnifiedPorts() {
         const tbody = document.getElementById('unified-ports-table-body');
-        if (!tbody) return;
+        if (!tbody) {
+            console.warn('[Port Forward] unified-ports-table-body element not found');
+            return;
+        }
+
+        // Filter out inactive forwardings - only show active ones
+        const activeForwardings = currentForwardings.filter(f => f.status === 'active');
+
+        console.log('[Port Forward] renderUnifiedPorts called', {
+            totalForwardings: currentForwardings.length,
+            activeForwardings: activeForwardings.length,
+            remotePortsCount: currentRemotePorts.length
+        });
 
         // Create a map of all ports (using port number as key)
         const portsMap = new Map();
@@ -2462,7 +2478,7 @@
         });
 
         // Then, overlay/update with active forwardings
-        currentForwardings.forEach(f => {
+        activeForwardings.forEach(f => {
             const existingPort = portsMap.get(f.remotePort);
             if (existingPort) {
                 existingPort.status = 'forwarded';
@@ -2622,12 +2638,8 @@
      */
     function handleScanRemotePorts() {
         vscode.postMessage({ command: 'scanRemotePorts' });
-
-        // Show loading state
-        const tbody = document.getElementById('unified-ports-table-body');
-        if (tbody) {
-            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> Refreshing ports...</td></tr>';
-        }
+        // Don't show loading state here - let the current table remain visible
+        // The table will be updated when remotePorts response arrives
     }
 
     function renderRemotePorts(remotePorts) {
