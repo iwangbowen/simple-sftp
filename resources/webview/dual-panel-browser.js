@@ -2449,36 +2449,42 @@
     }
 
     function initDynamicForwardHandlers() {
-        const addBtn = document.getElementById('add-dynamic-forward-btn');
-        addBtn?.addEventListener('click', () => {
-            const localPort = document.getElementById('dynamic-new-local-port')?.value;
-            const localHost = document.getElementById('dynamic-new-local-host')?.value || '127.0.0.1';
-            const label = document.getElementById('dynamic-new-label')?.value || 'SOCKS5 Proxy';
+        const tbody = document.getElementById('dynamic-forward-table-body');
+        if (!tbody) return;
 
-            if (!localPort) {
+        // Handle click on add-dynamic-indicator
+        tbody.addEventListener('click', (e) => {
+            const indicator = e.target.closest('.add-dynamic-indicator');
+            if (indicator) {
+                const localPort = document.getElementById('dynamic-new-local-port')?.value;
+                const localHost = document.getElementById('dynamic-new-local-host')?.value || '127.0.0.1';
+                const label = document.getElementById('dynamic-new-label')?.value || 'SOCKS5 Proxy';
+
+                if (!localPort) {
+                    vscode.postMessage({
+                        command: 'showError',
+                        message: 'Please enter proxy port'
+                    });
+                    return;
+                }
+
+                const config = {
+                    localPort: Number.parseInt(localPort, 10),
+                    localHost,
+                    label
+                };
+
+                console.log('[Dynamic Forward] Starting dynamic forwarding:', config);
+
                 vscode.postMessage({
-                    command: 'showError',
-                    message: 'Please enter proxy port'
+                    command: 'startDynamicForward',
+                    config
                 });
-                return;
+
+                // Clear inputs
+                document.getElementById('dynamic-new-local-port').value = '';
+                document.getElementById('dynamic-new-label').value = '';
             }
-
-            const config = {
-                localPort: Number.parseInt(localPort, 10),
-                localHost,
-                label
-            };
-
-            console.log('[Dynamic Forward] Starting dynamic forwarding:', config);
-
-            vscode.postMessage({
-                command: 'startDynamicForward',
-                config
-            });
-
-            // Clear inputs
-            document.getElementById('dynamic-new-local-port').value = '';
-            document.getElementById('dynamic-new-label').value = '';
         });
     }
 
@@ -2669,7 +2675,7 @@
         if (dynamicForwardings.length === 0) {
             tbody.innerHTML = `
                 <tr class="port-forward-empty">
-                    <td colspan="5">No dynamic forwarding configured</td>
+                    <td colspan="4">No dynamic forwarding configured</td>
                 </tr>
                 ${addRowHtml}
             `;
@@ -2693,12 +2699,6 @@
                     <td><strong>${f.localPort}</strong></td>
                     <td>${f.localHost}</td>
                     <td>${f.label || 'SOCKS5 Proxy'}</td>
-                    <td class="actions-column">
-                        <button class="icon-button port-forward-action-btn delete"
-                                data-action="delete" data-id="${f.id}" title="Delete">
-                            <span class="codicon codicon-trash"></span>
-                        </button>
-                    </td>
                 </tr>
             `;
         }).join('');
@@ -2712,8 +2712,7 @@
 
     function setupDynamicForwardTableListeners(tbody) {
         tbody.addEventListener('click', (e) => {
-            const indicator = e.target.closest('.port-status-indicator');
-            const deleteBtn = e.target.closest('.port-forward-action-btn.delete');
+            const indicator = e.target.closest('.port-status-indicator:not(.add-dynamic-indicator)');
 
             if (indicator) {
                 const action = indicator.dataset.action;
@@ -2735,13 +2734,6 @@
                             existingId: id
                         });
                     }
-                }
-            }
-
-            if (deleteBtn) {
-                const id = deleteBtn.dataset.id;
-                if (confirm('Are you sure you want to delete this dynamic forwarding?')) {
-                    vscode.postMessage({ command: 'deletePortForward', id });
                 }
             }
         });

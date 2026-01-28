@@ -297,16 +297,15 @@
                                         <th>Proxy Port</th>
                                         <th>Listen Address</th>
                                         <th>Label</th>
-                                        <th class="actions-column">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="dynamic-forward-table-body">
                                     <tr class="port-forward-empty">
-                                        <td colspan="5">No dynamic forwarding configured</td>
+                                        <td colspan="4">No dynamic forwarding configured</td>
                                     </tr>
                                     <tr class="add-forward-row">
                                         <td class="status-column">
-                                            <span class="port-status-indicator available"></span>
+                                            <div class="port-status-indicator available add-dynamic-indicator" title="Click to create SOCKS5 proxy"></div>
                                         </td>
                                         <td>
                                             <input type="number" class="local-port-input" id="dynamic-new-local-port"
@@ -319,12 +318,6 @@
                                         <td>
                                             <input type="text" class="forward-input" id="dynamic-new-label"
                                                    placeholder="SOCKS5 Proxy" title="Label">
-                                        </td>
-                                        <td class="actions-column">
-                                            <button class="icon-button add-dynamic-forward-btn" id="add-dynamic-forward-btn"
-                                                    title="Add Dynamic Forwarding">
-                                                <span class="codicon codicon-add"></span>
-                                            </button>
                                         </td>
                                     </tr>
                                 </tbody>
