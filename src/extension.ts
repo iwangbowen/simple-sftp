@@ -316,7 +316,15 @@ export async function activate(context: vscode.ExtensionContext) {
       const forwarding = treeItem.data as PortForwarding;
       try {
         await portForwardService.stopForwarding(forwarding.id);
-        vscode.window.showInformationMessage(`Port forwarding stopped: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        // Display appropriate message based on forward type
+        const forwardType = forwarding.forwardType || 'local';
+        if (forwardType === 'dynamic') {
+          vscode.window.showInformationMessage(`SOCKS5 proxy stopped: localhost:${forwarding.localPort}`);
+        } else if (forwardType === 'remote') {
+          vscode.window.showInformationMessage(`Remote forwarding stopped: ${forwarding.remotePort} → localhost:${forwarding.localPort}`);
+        } else {
+          vscode.window.showInformationMessage(`Port forwarding stopped: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        }
       } catch (error: any) {
         vscode.window.showErrorMessage(`Failed to stop port forwarding: ${error.message}`);
       }
@@ -328,7 +336,15 @@ export async function activate(context: vscode.ExtensionContext) {
       const forwarding = treeItem.data as PortForwarding;
       try {
         await portForwardService.deleteForwarding(forwarding.id);
-        vscode.window.showInformationMessage(`Port forwarding deleted: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        // Display appropriate message based on forward type
+        const forwardType = forwarding.forwardType || 'local';
+        if (forwardType === 'dynamic') {
+          vscode.window.showInformationMessage(`SOCKS5 proxy deleted: localhost:${forwarding.localPort}`);
+        } else if (forwardType === 'remote') {
+          vscode.window.showInformationMessage(`Remote forwarding deleted: ${forwarding.remotePort} → localhost:${forwarding.localPort}`);
+        } else {
+          vscode.window.showInformationMessage(`Port forwarding deleted: ${forwarding.remotePort} → ${forwarding.localPort}`);
+        }
       } catch (error: any) {
         vscode.window.showErrorMessage(`Failed to delete port forwarding: ${error.message}`);
       }
