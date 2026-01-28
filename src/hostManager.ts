@@ -27,7 +27,7 @@ export class HostManager {
 
     // Log sync configuration
     const data = await this.loadData();
-    logger.info('=== Simple SFTP Sync Configuration ===');
+    logger.info('=== Simple SSH Sync Configuration ===');
     logger.info(`Sync Key: ${HostManager.STORAGE_KEY}`);
     logger.info(`Hosts: ${data.hosts.length}, Groups: ${data.groups.length}`);
     if (data.hosts.length > 0) {
