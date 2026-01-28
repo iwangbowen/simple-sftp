@@ -225,7 +225,7 @@
       },
       {
         "command": "simpleSftp.refreshPortForwardings",
-        "title": "Refresh Port Forwardings",
+        "title": "Refresh",
         "category": "Simple SFTP",
         "icon": "$(refresh)"
       },

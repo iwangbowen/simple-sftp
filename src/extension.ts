@@ -244,6 +244,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Port forwarding commands
     vscode.commands.registerCommand('simpleSftp.refreshPortForwardings', () => {
       portForwardingTreeProvider.refresh();
+      vscode.window.setStatusBarMessage('$(sync~spin) Port forwardings refreshed', 2000);
     }),
     vscode.commands.registerCommand('simpleSftp.startPortForward', async (treeItem) => {
       if (!treeItem || treeItem.type !== 'forwarding') {

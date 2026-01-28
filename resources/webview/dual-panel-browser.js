@@ -3123,6 +3123,17 @@
      * Enable inline editing for port forwarding
      */
     function handleScanRemotePorts() {
+        const button = document.getElementById('scan-remote-ports');
+        if (!button) return;
+
+        // Disable button and add spin animation
+        button.disabled = true;
+        const icon = button.querySelector('.codicon-refresh');
+        if (icon) {
+            icon.classList.add('codicon-loading', 'codicon-modifier-spin');
+            icon.classList.remove('codicon-refresh');
+        }
+
         vscode.postMessage({ command: 'scanRemotePorts' });
         // Don't show loading state here - let the current table remain visible
         // The table will be updated when remotePorts response arrives
@@ -3139,6 +3150,24 @@
     function renderRemotePorts(remotePorts) {
         currentRemotePorts = remotePorts || [];
         renderUnifiedPorts();
+
+        // Re-enable scan button and restore icon
+        const button = document.getElementById('scan-remote-ports');
+        if (button) {
+            button.disabled = false;
+            const icon = button.querySelector('.codicon');
+            if (icon) {
+                icon.classList.remove('codicon-loading', 'codicon-modifier-spin');
+                icon.classList.add('codicon-refresh');
+
+                // Show brief success feedback
+                const originalTitle = button.title;
+                button.title = 'Refreshed ✓';
+                setTimeout(() => {
+                    button.title = originalTitle;
+                }, 2000);
+            }
+        }
     }
 
     /**
