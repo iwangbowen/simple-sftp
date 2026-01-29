@@ -177,7 +177,7 @@ export class PortForwardEditorManager {
     private handlePortForwardingChanged(event: any): void {
         // Notify all panels about the change
         for (const [hostId, panel] of this.panels) {
-            if (event.hostId === hostId) {
+            if (event.forwarding?.hostId === hostId) {
                 let commandType = 'portForwardingDeleted';
                 if (event.type === 'started') {
                     commandType = 'portForwardingStarted';
