@@ -922,18 +922,25 @@
         // Filter dynamic forwardings
         const dynamicForwardings = currentForwardings.filter(f => f.forwardType === 'dynamic');
 
-        // Keep the add row at the end
-        const addRow = tbody.querySelector('.add-forward-row');
-        const addRowHtml = addRow ? addRow.outerHTML : '';
-
         if (dynamicForwardings.length === 0) {
+            // Show a default inactive SOCKS5 proxy row that can be activated
             tbody.innerHTML = `
                 <tr class="port-forward-empty">
                     <td colspan="4">No dynamic forwarding configured</td>
                 </tr>
-                ${addRowHtml}
+                <tr data-default="true" class="default-dynamic-row">
+                    <td class="status-cell">
+                        <div class="port-status-indicator available"
+                             data-action="start-default"
+                             data-type="dynamic"
+                             title="Click to start SOCKS5 proxy"></div>
+                    </td>
+                    <td><strong>1080</strong></td>
+                    <td>127.0.0.1</td>
+                    <td>SOCKS5 Proxy</td>
+                </tr>
             `;
-            initDynamicForwardHandlers();
+            setupDynamicForwardTableListeners(tbody);
             return;
         }
 
@@ -957,10 +964,9 @@
             `;
         }).join('');
 
-        tbody.innerHTML = rowsHtml + addRowHtml;
+        tbody.innerHTML = rowsHtml;
 
         // Re-initialize handlers
-        initDynamicForwardHandlers();
         setupDynamicForwardTableListeners(tbody);
     }
 
@@ -997,6 +1003,16 @@
                             existingId: id
                         });
                     }
+                } else if (action === 'start-default') {
+                    // Start default SOCKS5 proxy (port 1080, 127.0.0.1)
+                    vscode.postMessage({
+                        command: 'startDynamicForward',
+                        config: {
+                            localPort: 1080,
+                            localHost: '127.0.0.1',
+                            label: 'SOCKS5 Proxy'
+                        }
+                    });
                 }
             }
         };
