@@ -130,12 +130,26 @@
      * @param {boolean} [options.showCloseButton=true] Whether to show close button
      */
     function initPortForwardModule(options = {}) {
-        vscode = options.vscode || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+        // Only acquire VS Code API if not already provided and not already acquired
+        if (options.vscode) {
+            vscode = options.vscode;
+        } else if (!vscode) {
+            try {
+                vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+            } catch (e) {
+                // API already acquired, try to use window._vscodeApi if available
+                console.warn('[Port Forward] VS Code API already acquired, using existing instance');
+                vscode = window._vscodeApi || null;
+            }
+        }
 
         if (!vscode) {
             console.error('[Port Forward] VS Code API not available');
             return;
         }
+
+        // Store for potential reuse
+        window._vscodeApi = vscode;
 
         config.isStandalone = options.isStandalone || false;
         config.showCloseButton = options.showCloseButton !== false;
@@ -150,15 +164,10 @@
         if (config.isStandalone) {
             isPortForwardViewVisible = true;
 
-            // Show initial loading state in tables
-            const unifiedTbody = document.getElementById('unified-ports-table-body');
-            const remoteTbody = document.getElementById('remote-forward-table-body');
-            const dynamicTbody = document.getElementById('dynamic-forward-table-body');
-            const loadingHtml = '<tr class="port-forward-loading"><td colspan="5" style="text-align: center; padding: 20px;"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading...</td></tr>';
-
-            if (unifiedTbody) unifiedTbody.innerHTML = loadingHtml;
-            if (remoteTbody) remoteTbody.innerHTML = loadingHtml;
-            if (dynamicTbody) dynamicTbody.innerHTML = loadingHtml;
+            // Show initial loading overlay only for tabs that need async data
+            // Local tab needs remote ports, Remote tab needs local ports
+            // Dynamic tab uses same data as other tabs, no separate loading needed
+            showLoadingOverlay('local-forward-panel', 'Loading...');
 
             vscode.postMessage({ command: 'getPortForwardings' });
             if (config.autoScanOnOpen) {
@@ -167,6 +176,49 @@
         }
 
         console.log('[Port Forward] Module initialized', { isStandalone: config.isStandalone });
+    }
+
+    // ===== Loading Overlay Utilities =====
+
+    /**
+     * Show loading overlay on a panel (keeps table content visible)
+     * @param {string} panelId - Panel element ID
+     * @param {string} message - Loading message to display
+     */
+    function showLoadingOverlay(panelId, message = 'Loading...') {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+
+        const container = panel.querySelector('.port-forward-table-container');
+        if (!container) return;
+
+        // Remove existing overlay if any
+        hideLoadingOverlay(panelId);
+
+        // Create and add overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="loading-content">
+                <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                <span>${message}</span>
+            </div>
+        `;
+        container.appendChild(overlay);
+    }
+
+    /**
+     * Hide loading overlay on a panel
+     * @param {string} panelId - Panel element ID
+     */
+    function hideLoadingOverlay(panelId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+
+        const overlay = panel.querySelector('.loading-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
     }
 
     /**
@@ -216,10 +268,10 @@
         if (cancelAddPort) cancelAddPort.addEventListener('click', hideAddPortModal);
         if (confirmAddPort) confirmAddPort.addEventListener('click', handleAddPort);
 
-        // Scan remote ports button
+        // Scan ports button - behavior depends on current tab
         const scanPortsButton = document.getElementById('scan-remote-ports');
         if (scanPortsButton) {
-            scanPortsButton.addEventListener('click', handleScanRemotePorts);
+            scanPortsButton.addEventListener('click', handleRefreshCurrentTab);
         }
 
         // Initialize tab switching
@@ -259,6 +311,12 @@
 
                 // Render based on current active tab
                 renderCurrentTab();
+
+                // Reset refresh button if on dynamic tab (it requested getPortForwardings)
+                if (currentForwardTab === 'dynamic') {
+                    resetRefreshButton();
+                    hideLoadingOverlay('dynamic-forward-panel');
+                }
                 break;
 
             case 'portForwardingStarted': {
@@ -348,6 +406,8 @@
                 isInitialLoading = false;
                 console.log('[Port Forward] Received remotePorts, calling renderRemotePorts', message.data?.length);
                 renderRemotePorts(message.data);
+                // Hide loading overlay after rendering
+                hideLoadingOverlay('local-forward-panel');
                 break;
 
             case 'localPorts':
@@ -357,6 +417,9 @@
                 if (currentForwardTab === 'remote') {
                     renderRemoteForwards();
                 }
+                // Hide loading overlay and reset refresh button
+                hideLoadingOverlay('remote-forward-panel');
+                resetRefreshButton();
                 break;
         }
     }
@@ -367,10 +430,13 @@
     function renderCurrentTab() {
         if (currentForwardTab === 'local') {
             renderUnifiedPorts();
+            hideLoadingOverlay('local-forward-panel');
         } else if (currentForwardTab === 'remote') {
             renderRemoteForwards();
+            hideLoadingOverlay('remote-forward-panel');
         } else if (currentForwardTab === 'dynamic') {
             renderDynamicForwards();
+            hideLoadingOverlay('dynamic-forward-panel');
         }
     }
 
@@ -398,15 +464,20 @@
 
                 currentForwardTab = tabType;
 
-                // Render appropriate content
+                // Render appropriate content and request data if needed
                 if (tabType === 'local') {
                     renderUnifiedPorts();
+                    hideLoadingOverlay('local-forward-panel');
                 } else if (tabType === 'remote') {
+                    // Show loading and scan local ports for remote forwarding
+                    if (currentLocalPorts.length === 0) {
+                        showLoadingOverlay('remote-forward-panel', 'Scanning local ports...');
+                    }
                     renderRemoteForwards();
-                    // Scan local ports for remote forwarding
                     handleScanLocalPorts();
                 } else if (tabType === 'dynamic') {
                     renderDynamicForwards();
+                    hideLoadingOverlay('dynamic-forward-panel');
                 }
             });
         });
@@ -421,11 +492,13 @@
             portForwardView.style.display = 'flex';
             isPortForwardViewVisible = true;
 
-            // Show initial loading state in table
-            const tbody = document.getElementById('unified-ports-table-body');
-            if (tbody && currentForwardings.length === 0 && currentRemotePorts.length === 0) {
-                tbody.innerHTML = '<tr class="port-forward-loading"><td colspan="5" style="text-align: center; padding: 20px;"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading port forwardings...</td></tr>';
+            // Show loading overlay for initial load (only current tab and only if no data yet)
+            if (currentForwardTab === 'local' && currentRemotePorts.length === 0) {
+                showLoadingOverlay('local-forward-panel', 'Loading...');
+            } else if (currentForwardTab === 'remote' && currentLocalPorts.length === 0) {
+                showLoadingOverlay('remote-forward-panel', 'Loading...');
             }
+            // Dynamic tab doesn't need separate loading
 
             // Request port forwarding list from backend
             vscode.postMessage({ command: 'getPortForwardings' });
@@ -533,17 +606,58 @@
             icon.classList.remove('codicon-refresh');
         }
 
-        // Show loading state in table
-        const tbody = document.getElementById('unified-ports-table-body');
-        if (tbody) {
-            tbody.innerHTML = '<tr class="port-forward-loading"><td colspan="5" style="text-align: center; padding: 20px;"><span class="codicon codicon-loading codicon-modifier-spin"></span> Refreshing remote ports...</td></tr>';
-        }
+        // Show loading overlay instead of replacing table content
+        showLoadingOverlay('local-forward-panel', 'Refreshing remote ports...');
 
         vscode.postMessage({ command: 'scanRemotePorts' });
     }
 
     function handleScanLocalPorts() {
+        // Show loading overlay for remote panel
+        showLoadingOverlay('remote-forward-panel', 'Scanning local ports...');
         vscode.postMessage({ command: 'scanLocalPorts' });
+    }
+
+    /**
+     * Unified refresh handler - refreshes data based on current active tab
+     */
+    function handleRefreshCurrentTab() {
+        const button = document.getElementById('scan-remote-ports');
+        if (button) {
+            button.disabled = true;
+            const icon = button.querySelector('.codicon-refresh');
+            if (icon) {
+                icon.classList.add('codicon-loading', 'codicon-modifier-spin');
+                icon.classList.remove('codicon-refresh');
+            }
+        }
+
+        // Refresh based on current tab
+        if (currentForwardTab === 'local') {
+            showLoadingOverlay('local-forward-panel', 'Refreshing...');
+            vscode.postMessage({ command: 'scanRemotePorts' });
+        } else if (currentForwardTab === 'remote') {
+            showLoadingOverlay('remote-forward-panel', 'Refreshing...');
+            vscode.postMessage({ command: 'scanLocalPorts' });
+        } else if (currentForwardTab === 'dynamic') {
+            showLoadingOverlay('dynamic-forward-panel', 'Refreshing...');
+            vscode.postMessage({ command: 'getPortForwardings' });
+        }
+    }
+
+    /**
+     * Reset refresh button to normal state
+     */
+    function resetRefreshButton() {
+        const button = document.getElementById('scan-remote-ports');
+        if (button) {
+            button.disabled = false;
+            const icon = button.querySelector('.codicon');
+            if (icon) {
+                icon.classList.remove('codicon-loading', 'codicon-modifier-spin');
+                icon.classList.add('codicon-refresh');
+            }
+        }
     }
 
     // ===== Render Functions =====
@@ -552,23 +666,11 @@
         currentRemotePorts = remotePorts || [];
         renderUnifiedPorts();
 
-        // Re-enable scan button and restore icon
-        const button = document.getElementById('scan-remote-ports');
-        if (button) {
-            button.disabled = false;
-            const icon = button.querySelector('.codicon');
-            if (icon) {
-                icon.classList.remove('codicon-loading', 'codicon-modifier-spin');
-                icon.classList.add('codicon-refresh');
+        // Hide loading overlay
+        hideLoadingOverlay('local-forward-panel');
 
-                // Show brief success feedback
-                const originalTitle = button.title;
-                button.title = 'Refreshed ✓';
-                setTimeout(() => {
-                    button.title = originalTitle;
-                }, 2000);
-            }
-        }
+        // Reset refresh button
+        resetRefreshButton();
     }
 
     function renderUnifiedPorts() {

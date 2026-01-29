@@ -67,6 +67,37 @@
     flex: 1;
     overflow: auto;
     padding: 8px;
+    position: relative;
+    min-height: 0; /* Important for flex child overflow */
+}
+
+/* Loading Overlay for Tables */
+.port-forward-table-container .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--vscode-editor-background);
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.port-forward-table-container .loading-overlay .loading-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--vscode-foreground);
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.port-forward-table-container .loading-overlay .codicon-loading {
+    font-size: 14px;
 }
 
 /* Table */
@@ -316,12 +347,21 @@
     font-size: 16px;
 }
 
+/* Port Forward View Content Container */
+.port-forward-view-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Critical for nested flex overflow */
+    overflow: hidden;
+}
+
 /* Port Forwarding Panels */
 .port-forward-panel {
     display: none;
     flex-direction: column;
     flex: 1;
-    overflow: hidden;
+    min-height: 0; /* Enable flex child to shrink and allow overflow */
 }
 
 .port-forward-panel.active {
