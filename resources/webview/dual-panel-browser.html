@@ -208,27 +208,24 @@
 
                 <!-- Port Forwarding View (hidden by default) -->
                 <div class="panel-port-forward-view" id="panel-port-forward-view" style="display: none;">
-                    <!-- Header -->
-                    <div class="port-forward-header">
-                        <h3>Port Forwarding</h3>
-                        <div class="port-forward-actions-group">
-                            <button class="icon-button" id="scan-remote-ports" title="Refresh Remote Ports">
+                    <!-- Forwarding Type Tabs with Actions -->
+                    <div class="port-forward-tabs-container">
+                        <div class="port-forward-tabs">
+                            <button class="port-forward-tab active" data-tab="local" title="Local Forwarding: Map remote port to local">
+                                Local
+                            </button>
+                            <button class="port-forward-tab" data-tab="remote" title="Remote Forwarding: Map local port to remote">
+                                Remote
+                            </button>
+                            <button class="port-forward-tab" data-tab="dynamic" title="Dynamic Forwarding: SOCKS5 Proxy">
+                                Dynamic
+                            </button>
+                        </div>
+                        <div class="port-forward-actions">
+                            <button class="icon-button-minimal" id="scan-remote-ports" title="Refresh Remote Ports">
                                 <span class="codicon codicon-refresh"></span>
                             </button>
                         </div>
-                    </div>
-
-                    <!-- Forwarding Type Tabs -->
-                    <div class="port-forward-tabs">
-                        <button class="port-forward-tab active" data-tab="local" title="Local Forwarding: Map remote port to local">
-                            Local
-                        </button>
-                        <button class="port-forward-tab" data-tab="remote" title="Remote Forwarding: Map local port to remote">
-                            Remote
-                        </button>
-                        <button class="port-forward-tab" data-tab="dynamic" title="Dynamic Forwarding: SOCKS5 Proxy">
-                            Dynamic
-                        </button>
                     </div>
 
                     <!-- Port Forwarding Panels Container (populated by JavaScript) -->
