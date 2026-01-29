@@ -266,6 +266,12 @@
             portForwardView.style.display = 'flex';
             isPortForwardViewVisible = true;
 
+            // Show initial loading state in table
+            const tbody = document.getElementById('local-forward-table-body');
+            if (tbody && currentForwardings.length === 0 && currentRemotePorts.length === 0) {
+                tbody.innerHTML = '<tr class="port-forward-loading"><td colspan="5" style="text-align: center; padding: 20px;"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading port forwardings...</td></tr>';
+            }
+
             // Request port forwarding list from backend
             vscode.postMessage({ command: 'getPortForwardings' });
 

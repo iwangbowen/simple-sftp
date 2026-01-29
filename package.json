@@ -859,9 +859,19 @@
           "group": "inline@2"
         },
         {
+          "command": "simpleSftp.openPortForwarding",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "inline@3"
+        },
+        {
           "command": "simpleSftp.browseFiles",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_browse@1"
+        },
+        {
+          "command": "simpleSftp.openPortForwarding",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "1_browse@2"
         },
         {
           "command": "simpleSftp.configureHostAdvanced",
@@ -897,11 +907,6 @@
           "command": "simpleSftp.testConnection",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "2_connect@3"
-        },
-        {
-          "command": "simpleSftp.openPortForwarding",
-          "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "2_connect@4"
         },
         {
           "command": "simpleSftp.configureAuth",
