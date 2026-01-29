@@ -66,7 +66,6 @@
 .port-forward-table-container {
     flex: 1;
     overflow: auto;
-    padding: 8px;
     position: relative;
     min-height: 0; /* Important for flex child overflow */
 }
@@ -112,7 +111,7 @@
     position: sticky;
     top: 0;
     background-color: var(--vscode-editorGroupHeader-tabsBackground);
-    z-index: 1;
+    z-index: 10;
 }
 
 .port-forward-table th {
@@ -121,6 +120,7 @@
     font-weight: 600;
     color: var(--vscode-foreground);
     border-bottom: 1px solid var(--vscode-panel-border);
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
 }
 
 .port-forward-table th.status-column {
