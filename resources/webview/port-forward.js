@@ -19,6 +19,7 @@
     let currentLocalPorts = [];  // Store scanned local ports for remote forwarding
     let currentRemotePorts = []; // Store scanned remote ports for local forwarding
     let currentForwardTab = 'local';
+    let isInitialLoading = true; // Track if we're still in initial loading state
 
     // Reference to vscode API - should be injected or available globally
     let vscode = null;
@@ -59,6 +60,17 @@
         // For standalone, auto-open the view and load data
         if (config.isStandalone) {
             isPortForwardViewVisible = true;
+
+            // Show initial loading state in tables
+            const unifiedTbody = document.getElementById('unified-ports-table-body');
+            const remoteTbody = document.getElementById('remote-forward-table-body');
+            const dynamicTbody = document.getElementById('dynamic-forward-table-body');
+            const loadingHtml = '<tr class="port-forward-loading"><td colspan="5" style="text-align: center; padding: 20px;"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading...</td></tr>';
+
+            if (unifiedTbody) unifiedTbody.innerHTML = loadingHtml;
+            if (remoteTbody) remoteTbody.innerHTML = loadingHtml;
+            if (dynamicTbody) dynamicTbody.innerHTML = loadingHtml;
+
             vscode.postMessage({ command: 'getPortForwardings' });
             if (config.autoScanOnOpen) {
                 handleScanRemotePorts();
@@ -190,7 +202,8 @@
                 break;
 
             case 'remotePorts':
-                // Update remote ports list
+                // Update remote ports list - initial loading is complete
+                isInitialLoading = false;
                 console.log('[Port Forward] Received remotePorts, calling renderRemotePorts', message.data?.length);
                 renderRemotePorts(message.data);
                 break;
@@ -267,7 +280,7 @@
             isPortForwardViewVisible = true;
 
             // Show initial loading state in table
-            const tbody = document.getElementById('local-forward-table-body');
+            const tbody = document.getElementById('unified-ports-table-body');
             if (tbody && currentForwardings.length === 0 && currentRemotePorts.length === 0) {
                 tbody.innerHTML = '<tr class="port-forward-loading"><td colspan="5" style="text-align: center; padding: 20px;"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading port forwardings...</td></tr>';
             }
@@ -473,7 +486,12 @@
 
         // Render table
         if (sortedPorts.length === 0) {
-            tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5">No ports detected</td></tr>';
+            // If still in initial loading, show loading state
+            if (isInitialLoading) {
+                tbody.innerHTML = '<tr class="port-forward-loading"><td colspan="5" style="text-align: center; padding: 20px;"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading...</td></tr>';
+            } else {
+                tbody.innerHTML = '<tr class="port-forward-empty"><td colspan="5">No ports detected</td></tr>';
+            }
             return;
         }
 
