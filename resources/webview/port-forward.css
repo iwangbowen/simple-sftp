@@ -234,6 +234,16 @@
     opacity: 0.6;
 }
 
+.port-status-indicator.loading {
+    animation: port-loading-pulse 1s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes port-loading-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
 /* Port Forwarding Tabs */
 .port-forward-tabs {
     display: flex;

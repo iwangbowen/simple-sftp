@@ -20,6 +20,7 @@
     let currentRemotePorts = []; // Store scanned remote ports for local forwarding
     let currentForwardTab = 'local';
     let isInitialLoading = true; // Track if we're still in initial loading state
+    let skipNextRender = false; // Flag to skip next render (prevent flicker during state updates)
 
     // Reference to vscode API - should be injected or available globally
     let vscode = null;
@@ -153,44 +154,90 @@
                 // Update port forwarding list (handle both data and forwardings properties)
                 currentForwardings = message.data || message.forwardings || [];
                 console.log('[Port Forward] Received portForwardings, calling render for tab:', currentForwardTab, currentForwardings.length);
+
+                // Skip render if we just did a local update
+                if (skipNextRender) {
+                    skipNextRender = false;
+                    console.log('[Port Forward] Skipping render to prevent flicker');
+                    break;
+                }
+
                 // Render based on current active tab
                 renderCurrentTab();
                 break;
 
-            case 'portForwardingStarted':
-                // Fetch latest data from backend immediately
-                vscode.postMessage({ command: 'getPortForwardings' });
-                // Also scan remote ports to update the unified table (only for local tab)
-                if (currentForwardTab === 'local') {
-                    handleScanRemotePorts();
+            case 'portForwardingStarted': {
+                // Immediately update the indicator to show forwarded state (no flicker)
+                const startedForwarding = message.forwarding;
+                if (startedForwarding?.id) {
+                    // Try to update indicator by ID first
+                    const updated = updateIndicatorById(startedForwarding.id, 'forwarded');
+                    if (!updated && startedForwarding.remotePort) {
+                        // For local forwards, also try by remote port
+                        updateIndicatorById(String(startedForwarding.remotePort), 'forwarded');
+                    }
                 }
+                // Update local state
+                if (startedForwarding) {
+                    // Check if this forwarding already exists
+                    const existingIndex = currentForwardings.findIndex(f => f.id === startedForwarding.id);
+                    if (existingIndex >= 0) {
+                        currentForwardings[existingIndex] = { ...currentForwardings[existingIndex], ...startedForwarding, status: 'active' };
+                    } else {
+                        currentForwardings.push({ ...startedForwarding, status: 'active' });
+                    }
+                }
+                // Set flag to skip next render (prevent flicker)
+                skipNextRender = true;
+                // Fetch latest data from backend (will silently update state without flicker)
+                setTimeout(() => {
+                    vscode.postMessage({ command: 'getPortForwardings' });
+                    if (currentForwardTab === 'local') {
+                        handleScanRemotePorts();
+                    }
+                }, 300);
                 break;
+            }
 
-            case 'portForwardingStopped':
-                // Update local state and render immediately for quick UI feedback
+            case 'portForwardingStopped': {
+                // Immediately update the indicator to show available/inactive state (no flicker)
                 const stoppedId = message.forwarding?.id || message.id;
                 if (stoppedId) {
                     console.log('[Port Forward] Stopping forwarding', stoppedId);
-                    // Update the status rather than removing it completely
+                    // Update indicator immediately
+                    updateIndicatorById(stoppedId, 'available');
+                    // Update local state
                     currentForwardings = currentForwardings.map(f =>
                         f.id === stoppedId ? { ...f, status: 'inactive' } : f
                     );
                     console.log('[Port Forward] After updating, currentForwardings count:', currentForwardings.length);
-                    // Immediately re-render based on current tab
-                    renderCurrentTab();
                 }
-                // Fetch latest data from backend for full refresh
-                vscode.postMessage({ command: 'getPortForwardings' });
-                // Also scan remote ports to update the unified table (only for local tab)
-                if (currentForwardTab === 'local') {
-                    handleScanRemotePorts();
-                }
+                // Set flag to skip next render (prevent flicker)
+                skipNextRender = true;
+                // Fetch latest data from backend after a small delay (will silently update state)
+                setTimeout(() => {
+                    vscode.postMessage({ command: 'getPortForwardings' });
+                    if (currentForwardTab === 'local') {
+                        handleScanRemotePorts();
+                    }
+                }, 300);
                 break;
+            }
 
-            case 'portForwardingError':
+            case 'portForwardingError': {
+                // Remove loading state from the relevant indicator
+                const errorId = message.forwarding?.id || message.id;
+                if (errorId) {
+                    // Just remove loading class, restore previous state
+                    const indicator = document.querySelector(`.port-status-indicator[data-id="${errorId}"]`);
+                    if (indicator) {
+                        indicator.classList.remove('loading');
+                    }
+                }
                 // Refresh port forwarding list to reflect any changes
                 vscode.postMessage({ command: 'getPortForwardings' });
                 break;
+            }
 
             case 'portForwardingDeleted':
                 // Remove from local state and re-render
@@ -598,6 +645,11 @@
             const id = indicator.getAttribute('data-id');
             const port = indicator.getAttribute('data-port');
 
+            // Add loading state to indicator
+            console.log('[Port Forward] Click on indicator:', { action, id, port, classes: indicator.className });
+            indicator.classList.add('loading');
+            console.log('[Port Forward] After adding loading:', indicator.className);
+
             if (action === 'stop') {
                 vscode.postMessage({ command: 'stopPortForward', id });
             } else if (action === 'forward') {
@@ -767,6 +819,9 @@
             const indicator = e.target.closest('.port-status-indicator');
 
             if (indicator) {
+                // Add loading state to indicator
+                indicator.classList.add('loading');
+
                 const action = indicator.dataset.action;
                 const id = indicator.dataset.id;
                 const localPortStr = indicator.dataset.localPort;
@@ -920,6 +975,9 @@
             const indicator = e.target.closest('.port-status-indicator:not(.add-dynamic-indicator)');
 
             if (indicator) {
+                // Add loading state to indicator
+                indicator.classList.add('loading');
+
                 const action = indicator.dataset.action;
                 const id = indicator.dataset.id;
 
@@ -945,6 +1003,61 @@
 
         tbody._dynamicForwardHandler = dynamicForwardHandler;
         tbody.addEventListener('click', dynamicForwardHandler);
+    }
+
+    // ===== Indicator State Update Functions =====
+
+    /**
+     * Update a specific indicator's state without re-rendering the entire table
+     * @param {string} id - The forwarding ID
+     * @param {string} newStatus - 'forwarded', 'available', 'inactive', or 'loading'
+     * @returns {boolean} - Whether the indicator was found and updated
+     */
+    function updateIndicatorById(id, newStatus) {
+        const indicator = document.querySelector(`.port-status-indicator[data-id="${id}"]`);
+        if (!indicator) {
+            // Try finding by port number as well
+            const portIndicator = document.querySelector(`.port-status-indicator[data-port="${id}"]`);
+            if (portIndicator) {
+                updateIndicatorElement(portIndicator, newStatus);
+                return true;
+            }
+            return false;
+        }
+        updateIndicatorElement(indicator, newStatus);
+        return true;
+    }
+
+    /**
+     * Update indicator element classes based on status
+     */
+    function updateIndicatorElement(indicator, newStatus) {
+        // Remove all status classes
+        indicator.classList.remove('loading', 'available', 'forwarded', 'inactive');
+
+        // Add new status class
+        if (newStatus === 'forwarded') {
+            indicator.classList.add('forwarded');
+            indicator.dataset.action = 'stop';
+        } else if (newStatus === 'available') {
+            indicator.classList.add('available');
+            indicator.dataset.action = 'forward';
+        } else if (newStatus === 'inactive') {
+            indicator.classList.add('inactive');
+            indicator.dataset.action = 'start';
+        } else if (newStatus === 'loading') {
+            indicator.classList.add('loading');
+        }
+    }
+
+    /**
+     * Remove loading state from all indicators (used when receiving full data update)
+     */
+    function removeAllLoadingStates() {
+        const loadingIndicators = document.querySelectorAll('.port-status-indicator.loading');
+        loadingIndicators.forEach(indicator => {
+            indicator.classList.remove('loading');
+        });
     }
 
     // ===== Utility Functions =====
