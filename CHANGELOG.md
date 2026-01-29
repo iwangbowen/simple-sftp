@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.0 - 2026-01-28
+
+- **Port Forwarding**: Added standalone panel accessible from host context menu; refactored into shared modules for better maintainability
+
+---
+
 ## 4.2.0 - 2026-01-28
 
 ### Changed
