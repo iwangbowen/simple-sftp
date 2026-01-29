@@ -854,12 +854,12 @@
           "group": "inline@1"
         },
         {
-          "command": "simpleSftp.editHost",
+          "command": "simpleSftp.openPortForwarding",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "inline@2"
         },
         {
-          "command": "simpleSftp.openPortForwarding",
+          "command": "simpleSftp.editHost",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "inline@3"
         },
