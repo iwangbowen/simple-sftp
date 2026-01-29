@@ -43,6 +43,10 @@
         return `
             <!-- Local Forwarding Panel -->
             <div class="port-forward-panel active" id="local-forward-panel">
+                <div class="port-forward-panel-desc">
+                    <span class="codicon codicon-info"></span>
+                    Map remote port to local, access remote services locally (ssh -L)
+                </div>
                 <div class="port-forward-table-container">
                     <table class="port-forward-table">
                         <thead>
@@ -67,7 +71,7 @@
             <div class="port-forward-panel" id="remote-forward-panel">
                 <div class="port-forward-panel-desc">
                     <span class="codicon codicon-info"></span>
-                    Forward local ports to remote server
+                    Forward local ports to remote server (ssh -R)
                 </div>
                 <div class="port-forward-table-container">
                     <table class="port-forward-table">
