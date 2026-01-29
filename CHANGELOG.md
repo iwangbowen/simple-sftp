@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.1 - 2026-01-29
+
+- **Port Forwarding**: Enhanced UI with Dynamic Forwarding, improved tab navigation and refresh experience, fixed table scrolling and layout issues
+
+---
+
 ## 4.3.0 - 2026-01-28
 
 - **Port Forwarding**: Added standalone panel accessible from host context menu; refactored into shared modules for better maintainability
