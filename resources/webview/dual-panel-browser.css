@@ -1819,7 +1819,7 @@ body {
 .port-forward-table-container {
     flex: 1;
     overflow: auto;
-    padding: 8px;
+    min-height: 0;
 }
 
 .port-forward-table {
@@ -1833,7 +1833,7 @@ body {
     position: sticky;
     top: 0;
     background-color: var(--vscode-editorGroupHeader-tabsBackground);
-    z-index: 1;
+    z-index: 10;
 }
 
 .port-forward-table th {
@@ -1842,6 +1842,7 @@ body {
     font-weight: 600;
     color: var(--vscode-foreground);
     border-bottom: 1px solid var(--vscode-panel-border);
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
 }
 
 .port-forward-table th.status-column {
@@ -2017,7 +2018,8 @@ body {
     display: none;
     flex-direction: column;
     flex: 1;
-    overflow: hidden;
+    min-height: 0;
+    position: relative;
 }
 
 .port-forward-panel.active {
@@ -2033,6 +2035,8 @@ body {
     color: var(--vscode-descriptionForeground);
     background-color: var(--vscode-editorWidget-background);
     border-bottom: 1px solid var(--vscode-panel-border);
+    position: relative;
+    z-index: 15;
 }
 
 .port-forward-panel-desc .codicon {

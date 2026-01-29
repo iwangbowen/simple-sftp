@@ -377,6 +377,8 @@
     color: var(--vscode-descriptionForeground);
     background-color: var(--vscode-editorWidget-background);
     border-bottom: 1px solid var(--vscode-panel-border);
+    position: relative;
+    z-index: 15; /* Ensure desc is above scrolling table content */
 }
 
 .port-forward-panel-desc .codicon {
