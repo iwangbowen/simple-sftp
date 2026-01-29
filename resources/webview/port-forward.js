@@ -189,13 +189,10 @@
         const panel = document.getElementById(panelId);
         if (!panel) return;
 
-        const container = panel.querySelector('.port-forward-table-container');
-        if (!container) return;
-
         // Remove existing overlay if any
         hideLoadingOverlay(panelId);
 
-        // Create and add overlay
+        // Create and add overlay to panel (not table-container for correct centering)
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
         overlay.innerHTML = `
@@ -204,7 +201,7 @@
                 <span>${message}</span>
             </div>
         `;
-        container.appendChild(overlay);
+        panel.appendChild(overlay);
     }
 
     /**
@@ -215,7 +212,8 @@
         const panel = document.getElementById(panelId);
         if (!panel) return;
 
-        const overlay = panel.querySelector('.loading-overlay');
+        // Use :scope to only select direct child overlay
+        const overlay = panel.querySelector(':scope > .loading-overlay');
         if (overlay) {
             overlay.remove();
         }
