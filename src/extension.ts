@@ -13,6 +13,7 @@ import { TransferHistoryTreeProvider } from './ui/transferHistoryTreeProvider';
 import { HelpFeedbackTreeProvider } from './ui/helpFeedbackTreeProvider';
 import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { DualPanelEditorManager } from './ui/dualPanelEditorProvider';
+import { PortForwardEditorManager } from './ui/portForwardEditorProvider';
 import { TransferQueueCommands } from './integrations/transferQueueCommands';
 import { SftpFileSystemProvider } from './sftpFileSystemProvider';
 import { SshConnectionPool } from './sshConnectionPool';
@@ -144,6 +145,17 @@ export async function activate(context: vscode.ExtensionContext) {
     dispose: () => dualPanelEditorManager.dispose()
   });
   logger.info('Dual panel editor manager initialized');
+
+  // Register Port Forwarding Editor Manager (standalone port forwarding panel)
+  const portForwardEditorManager = new PortForwardEditorManager(
+    context.extensionUri,
+    authManager,
+    hostManager
+  );
+  context.subscriptions.push({
+    dispose: () => portForwardEditorManager.dispose()
+  });
+  logger.info('Port forwarding editor manager initialized');
 
   // Helper function to determine which manager to use based on actual active state
   const getActiveManager = (): 'editor' | 'panel' | null => {
@@ -404,6 +416,13 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         // Open in panel area (single instance)
         await dualPanelProvider.openForHost(item.data);
+      }
+    }),
+
+    // Open standalone port forwarding panel
+    vscode.commands.registerCommand('simpleSftp.openPortForwarding', async (item: any) => {
+      if (item?.data) {
+        await portForwardEditorManager.openForHost(item.data);
       }
     }),
 

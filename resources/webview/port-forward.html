@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src 'nonce-{{nonce}}'; font-src {{cspSource}};">
+    <title>Port Forwarding</title>
+    <link rel="stylesheet" href="{{codiconsUri}}">
+    <link rel="stylesheet" href="{{portForwardStyleUri}}">
+    <style>
+        /* Base styles for standalone webview */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-foreground);
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+        }
+    </style>
+</head>
+<body class="port-forward-standalone">
+    <!-- Port Forwarding View -->
+    <div class="panel-port-forward-view" id="panel-port-forward-view" style="display: flex;">
+        <!-- Header -->
+        <div class="port-forward-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="codicon codicon-plug"></span>
+                <h3>Port Forwarding</h3>
+                <span id="host-info" style="font-size: 12px; color: var(--vscode-descriptionForeground);"></span>
+            </div>
+            <div class="port-forward-actions-group">
+                <button class="icon-button" id="scan-remote-ports" title="Refresh Remote Ports">
+                    <span class="codicon codicon-refresh"></span>
+                </button>
+                <button class="icon-button" id="add-port-forward" title="Add Port Forward">
+                    <span class="codicon codicon-add"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Forwarding Type Tabs -->
+        <div class="port-forward-tabs">
+            <button class="port-forward-tab active" data-tab="local" title="Local Forwarding: Map remote port to local">
+                <span class="codicon codicon-arrow-down"></span>
+                Local
+            </button>
+            <button class="port-forward-tab" data-tab="remote" title="Remote Forwarding: Map local port to remote">
+                <span class="codicon codicon-arrow-up"></span>
+                Remote
+            </button>
+            <button class="port-forward-tab" data-tab="dynamic" title="Dynamic Forwarding: SOCKS5 Proxy">
+                <span class="codicon codicon-globe"></span>
+                Dynamic
+            </button>
+        </div>
+
+        <!-- Local Forwarding Panel (Default) -->
+        <div class="port-forward-panel active" id="local-forward-panel">
+            <div class="port-forward-panel-desc">
+                <span class="codicon codicon-info"></span>
+                Map remote port to local, access remote services locally (ssh -L)
+            </div>
+            <div class="port-forward-table-container">
+                <table class="port-forward-table">
+                    <thead>
+                        <tr>
+                            <th class="status-column"></th>
+                            <th>Remote Port</th>
+                            <th>Process</th>
+                            <th>Listen Address</th>
+                            <th>Forward To</th>
+                        </tr>
+                    </thead>
+                    <tbody id="unified-ports-table-body">
+                        <tr class="port-forward-empty">
+                            <td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Remote Forwarding Panel -->
+        <div class="port-forward-panel" id="remote-forward-panel">
+            <div class="port-forward-panel-desc">
+                <span class="codicon codicon-info"></span>
+                Map local port to remote server, let remote access local services (ssh -R)
+            </div>
+            <div class="port-forward-table-container">
+                <table class="port-forward-table">
+                    <thead>
+                        <tr>
+                            <th class="status-column"></th>
+                            <th>Local Port</th>
+                            <th>Process</th>
+                            <th>Listen Address</th>
+                            <th>Forward To</th>
+                        </tr>
+                    </thead>
+                    <tbody id="remote-forward-table-body">
+                        <tr class="port-forward-empty">
+                            <td colspan="5">No local ports detected</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Dynamic Forwarding Panel (SOCKS5) -->
+        <div class="port-forward-panel" id="dynamic-forward-panel">
+            <div class="port-forward-panel-desc">
+                <span class="codicon codicon-info"></span>
+                Create SOCKS5 proxy, tunnel all traffic through remote server (ssh -D)
+            </div>
+            <div class="port-forward-table-container">
+                <table class="port-forward-table">
+                    <thead>
+                        <tr>
+                            <th class="status-column"></th>
+                            <th>Proxy Port</th>
+                            <th>Listen Address</th>
+                            <th>Label</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dynamic-forward-table-body">
+                        <tr class="port-forward-empty">
+                            <td colspan="4">No dynamic forwarding configured</td>
+                        </tr>
+                        <tr class="add-forward-row">
+                            <td class="status-column">
+                                <div class="port-status-indicator available add-dynamic-indicator" title="Click to create SOCKS5 proxy"></div>
+                            </td>
+                            <td>
+                                <input type="number" class="local-port-input" id="dynamic-new-local-port"
+                                       placeholder="1080" min="1" max="65535" title="SOCKS5 Proxy Port">
+                            </td>
+                            <td>
+                                <input type="text" class="forward-input" id="dynamic-new-local-host"
+                                       placeholder="127.0.0.1" value="127.0.0.1" title="Listen Address">
+                            </td>
+                            <td>
+                                <input type="text" class="forward-input" id="dynamic-new-label"
+                                       placeholder="SOCKS5 Proxy" title="Label">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Port Modal -->
+    <div id="add-port-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Port Forward</h3>
+                <button class="close-btn" id="add-port-close" title="Close">
+                    <span class="codicon codicon-close"></span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="port-remote-port">Remote Port *</label>
+                    <input type="number" class="form-input" id="port-remote-port"
+                           placeholder="e.g., 3000" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="port-local-port">Local Port (optional)</label>
+                    <input type="number" class="form-input" id="port-local-port"
+                           placeholder="Same as remote port" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="port-remote-host">Remote Host</label>
+                    <input type="text" class="form-input" id="port-remote-host"
+                           placeholder="localhost" value="localhost">
+                </div>
+                <div class="form-group">
+                    <label for="port-label">Label (optional)</label>
+                    <input type="text" class="form-input" id="port-label"
+                           placeholder="e.g., Dev Server">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-add-port">Cancel</button>
+                <button class="btn btn-primary" id="confirm-add-port">Add Forward</button>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{nonce}}" src="{{portForwardScriptUri}}"></script>
+    <script nonce="{{nonce}}">
+        (function() {
+            // Acquire VS Code API
+            const vscode = acquireVsCodeApi();
+
+            // Initialize the port forwarding module in standalone mode
+            PortForwardModule.init({
+                vscode: vscode,
+                isStandalone: true,
+                showCloseButton: false
+            });
+
+            // Handle host info display
+            window.addEventListener('message', (event) => {
+                const message = event.data;
+                if (message.command === 'setHostInfo') {
+                    const hostInfoEl = document.getElementById('host-info');
+                    if (hostInfoEl) {
+                        hostInfoEl.textContent = `(${message.hostLabel || message.hostName})`;
+                    }
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

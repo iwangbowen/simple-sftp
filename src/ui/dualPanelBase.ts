@@ -1488,6 +1488,13 @@ export abstract class DualPanelBase {
             const codiconsUri = webview.asWebviewUri(
                 vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
             );
+            // Shared port forwarding module
+            const portForwardStyleUri = webview.asWebviewUri(
+                vscode.Uri.joinPath(this._extensionUri, 'resources', 'webview', 'port-forward.css')
+            );
+            const portForwardScriptUri = webview.asWebviewUri(
+                vscode.Uri.joinPath(this._extensionUri, 'resources', 'webview', 'port-forward.js')
+            );
 
             const nonce = this.getNonce();
 
@@ -1499,6 +1506,8 @@ export abstract class DualPanelBase {
             html = html.replaceAll('{{styleUri}}', styleUri.toString());
             html = html.replaceAll('{{scriptUri}}', scriptUri.toString());
             html = html.replaceAll('{{codiconsUri}}', codiconsUri.toString());
+            html = html.replaceAll('{{portForwardStyleUri}}', portForwardStyleUri.toString());
+            html = html.replaceAll('{{portForwardScriptUri}}', portForwardScriptUri.toString());
             html = html.replaceAll('{{localPath}}', this._localRootPath || 'No host selected');
             html = html.replaceAll('{{remotePath}}', this._remoteRootPath || 'No host selected');
 

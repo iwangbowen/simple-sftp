@@ -248,6 +248,12 @@
         "icon": "$(trash)"
       },
       {
+        "command": "simpleSftp.openPortForwarding",
+        "title": "Port Forwarding",
+        "category": "Simple SFTP",
+        "icon": "$(plug)"
+      },
+      {
         "command": "simpleSftp.configureAuth",
         "title": "Configure Authentication",
         "category": "Simple SFTP",
@@ -891,6 +897,11 @@
           "command": "simpleSftp.testConnection",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "2_connect@3"
+        },
+        {
+          "command": "simpleSftp.openPortForwarding",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "2_connect@4"
         },
         {
           "command": "simpleSftp.configureAuth",

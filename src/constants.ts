@@ -8,6 +8,7 @@ export const UI = {
     DUAL_PANEL_BROWSER: 'remote-explorer',  // Icon for dual panel file browser
     TASK_UPLOAD: 'cloud-upload',            // Icon for upload tasks
     TASK_DOWNLOAD: 'cloud-download',        // Icon for download tasks
+    PORT_FORWARDING: 'plug',                // Icon for port forwarding panel
   },
 } as const;
 
