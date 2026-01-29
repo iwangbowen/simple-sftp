@@ -68,7 +68,7 @@ export class DualPanelEditorManager extends DualPanelBase {
             // Create new panel for this host
             panel = vscode.window.createWebviewPanel(
                 'simpleSftp.dualPanelBrowser',  // Use same viewType as WebviewView for context menu compatibility
-                `SFTP: ${host.name}`,
+                `${host.name}`,
                 vscode.ViewColumn.One,
                 {
                     enableScripts: true,

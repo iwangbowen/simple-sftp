@@ -75,7 +75,7 @@ export class PortForwardEditorManager {
             // Create new panel for this host
             panel = vscode.window.createWebviewPanel(
                 'simpleSftp.portForwarding',
-                `Port Forwarding: ${host.name}`,
+                `${host.name}`,
                 vscode.ViewColumn.One,
                 {
                     enableScripts: true,
