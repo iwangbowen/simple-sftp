@@ -55,81 +55,9 @@
             </button>
         </div>
 
-        <!-- Local Forwarding Panel (Default) -->
-        <div class="port-forward-panel active" id="local-forward-panel">
-            <div class="port-forward-panel-desc">
-                <span class="codicon codicon-info"></span>
-                Map remote port to local, access remote services locally (ssh -L)
-            </div>
-            <div class="port-forward-table-container">
-                <table class="port-forward-table">
-                    <thead>
-                        <tr>
-                            <th class="status-column"></th>
-                            <th>Remote Port</th>
-                            <th>Process</th>
-                            <th>Listen Address</th>
-                            <th>Forward To</th>
-                        </tr>
-                    </thead>
-                    <tbody id="unified-ports-table-body">
-                        <tr class="port-forward-empty">
-                            <td colspan="5"><span class="codicon codicon-loading codicon-modifier-spin"></span> Loading...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Remote Forwarding Panel -->
-        <div class="port-forward-panel" id="remote-forward-panel">
-            <div class="port-forward-panel-desc">
-                <span class="codicon codicon-info"></span>
-                Map local port to remote server, let remote access local services (ssh -R)
-            </div>
-            <div class="port-forward-table-container">
-                <table class="port-forward-table">
-                    <thead>
-                        <tr>
-                            <th class="status-column"></th>
-                            <th>Local Port</th>
-                            <th>Process</th>
-                            <th>Listen Address</th>
-                            <th>Forward To</th>
-                        </tr>
-                    </thead>
-                    <tbody id="remote-forward-table-body">
-                        <tr class="port-forward-empty">
-                            <td colspan="5">No local ports detected</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Dynamic Forwarding Panel (SOCKS5) -->
-        <div class="port-forward-panel" id="dynamic-forward-panel">
-            <div class="port-forward-panel-desc">
-                <span class="codicon codicon-info"></span>
-                Create SOCKS5 proxy, tunnel all traffic through remote server (ssh -D)
-            </div>
-            <div class="port-forward-table-container">
-                <table class="port-forward-table">
-                    <thead>
-                        <tr>
-                            <th class="status-column"></th>
-                            <th>Proxy Port</th>
-                            <th>Listen Address</th>
-                            <th>Label</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dynamic-forward-table-body">
-                        <tr class="port-forward-empty">
-                            <td colspan="4">No dynamic forwarding configured</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <!-- Port Forwarding Panels Container (populated by JavaScript) -->
+        <div class="port-forward-view-content">
+            <!-- Panels will be injected by port-forward.js -->
         </div>
     </div>
 

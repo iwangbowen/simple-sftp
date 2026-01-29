@@ -32,6 +32,90 @@
         showCloseButton: true, // Show close button in header (false for standalone)
     };
 
+    // ===== HTML Templates =====
+
+    /**
+     * Get the HTML template for all port forwarding panels
+     * This allows code reuse between standalone and embedded views
+     * @returns {string} HTML content for port forwarding panels
+     */
+    function getPortForwardPanelsTemplate() {
+        return `
+            <!-- Local Forwarding Panel -->
+            <div class="port-forward-panel active" id="local-forward-panel">
+                <div class="port-forward-table-container">
+                    <table class="port-forward-table">
+                        <thead>
+                            <tr>
+                                <th class="status-column"></th>
+                                <th>Remote Port</th>
+                                <th>Process</th>
+                                <th>Listen Address</th>
+                                <th>Forward To</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unified-ports-table-body">
+                            <tr class="port-forward-empty">
+                                <td colspan="5">No ports detected</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Remote Forwarding Panel -->
+            <div class="port-forward-panel" id="remote-forward-panel">
+                <div class="port-forward-panel-desc">
+                    <span class="codicon codicon-info"></span>
+                    Forward local ports to remote server
+                </div>
+                <div class="port-forward-table-container">
+                    <table class="port-forward-table">
+                        <thead>
+                            <tr>
+                                <th class="status-column"></th>
+                                <th>Local Port</th>
+                                <th>Process</th>
+                                <th>Listen Address</th>
+                                <th>Forward To</th>
+                            </tr>
+                        </thead>
+                        <tbody id="remote-forward-table-body">
+                            <tr class="port-forward-empty">
+                                <td colspan="5">No local ports detected</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Dynamic Forwarding Panel (SOCKS5) -->
+            <div class="port-forward-panel" id="dynamic-forward-panel">
+                <div class="port-forward-panel-desc">
+                    <span class="codicon codicon-info"></span>
+                    Create SOCKS5 proxy, tunnel all traffic through remote server (ssh -D)
+                </div>
+                <div class="port-forward-table-container">
+                    <table class="port-forward-table">
+                        <thead>
+                            <tr>
+                                <th class="status-column"></th>
+                                <th>Proxy Port</th>
+                                <th>Listen Address</th>
+                                <th>Label</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dynamic-forward-table-body">
+                            <tr class="port-forward-empty">
+                                <td colspan="4">No dynamic forwarding configured</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
     // ===== Initialization =====
 
     /**
@@ -85,6 +169,13 @@
      * Initialize port forward view event listeners
      */
     function initPortForwardView() {
+        // Inject panel templates if not already present
+        const panelContent = document.querySelector('.port-forward-view-content');
+        if (panelContent && !panelContent.querySelector('#local-forward-panel')) {
+            console.log('[Port Forward] Injecting panel templates');
+            panelContent.innerHTML = getPortForwardPanelsTemplate();
+        }
+
         // Toggle port forwarding view button (for embedded mode)
         const toggleButton = document.getElementById('toggle-port-forward-view');
         if (toggleButton && !config.isStandalone) {
