@@ -31,7 +31,8 @@
     }
   },
   "activationEvents": [
-    "onView:simpleSftp.hosts"
+    "onView:simpleSftp.hosts",
+    "onFileSystem:sftp"
   ],
   "main": "./out/extension.js",
   "contributes": {
