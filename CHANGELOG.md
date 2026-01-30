@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.3.2 - 2026-01-30
+
+- **Remote File Opening**: Enhanced remote file opening experience - removed fixed timeout limit, loading closes automatically when file read completes; added 500ms delay to prevent flashing for quick opens; auto-restore remote files after VS Code restart
+
+---
+
 ## 4.3.1 - 2026-01-29
 
 - **Port Forwarding**: Enhanced UI with Dynamic Forwarding, improved tab navigation and refresh experience, fixed table scrolling and layout issues
