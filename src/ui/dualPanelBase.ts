@@ -962,8 +962,9 @@ export abstract class DualPanelBase {
 
         try {
             if (panel === 'local') {
-                const doc = await vscode.workspace.openTextDocument(filePath);
-                await vscode.window.showTextDocument(doc);
+                // 使用 vscode.open 命令,VS Code 会自动判断文件类型
+                // 文本文件 → 文本编辑器,二进制文件 → 相应查看器
+                await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath));
 
                 // 本地文件打开成功,通知 webview 清除 loading 状态
                 logger.info(`本地文件打开成功,发送 fileOpened 消息: ${filePath}`);
@@ -987,23 +988,16 @@ export abstract class DualPanelBase {
                 // URI format: sftp://hostId/remote/path
                 const uri = vscode.Uri.parse(`sftp://${this._currentHost.id}${filePath}`);
 
-                // Open the document using the SFTP file system provider
-                // 文件读取完成后,SftpFileSystemProvider 会自动发送 fileOpened 消息
-                const doc = await vscode.workspace.openTextDocument(uri);
-                await vscode.window.showTextDocument(doc, {
-                    preview: false,
-                    preserveFocus: false
-                });
+                // 使用 vscode.open 命令,VS Code 会自动判断文件类型并选择合适的编辑器/查看器
+                // 文本文件 → 文本编辑器(自动语法高亮)
+                // 图片文件 → 图片预览
+                // PDF 文件 → PDF 查看器
+                // 其他二进制文件 → 相应的查看器
+                await vscode.commands.executeCommand('vscode.open', uri);
 
-                // Set the language mode based on file extension
-                const fileName = path.basename(filePath);
-                const languageId = this.getLanguageIdFromFileName(fileName);
-                if (languageId) {
-                    await vscode.languages.setTextDocumentLanguage(doc, languageId);
-                }
-
-                // 注意:不在这里发送 fileOpened 消息,因为 SftpFileSystemProvider.readFile()
-                // 完成后会通过事件机制自动发送
+                // 注意:不在这里发送 fileOpened 消息
+                // 因为 vscode.open 会触发 FileSystemProvider.readFile()
+                // readFile() 完成后会通过事件机制自动发送 fileOpened 消息
             }
         } catch (error) {
             logger.error(`Open file failed: ${error}`);
