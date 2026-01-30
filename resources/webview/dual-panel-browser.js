@@ -470,18 +470,14 @@
         iconElement.className = 'codicon tree-item-icon codicon-sync codicon-modifier-spin';
         element.classList.add('opening-file');
 
-        // 设置超时(30秒后自动清除)
-        const timeoutId = setTimeout(() => {
-            stopFileOpeningLoading(filePath, panel);
-            console.warn(`File opening timeout: ${filePath}`);
-        }, 30000);
-
-        // 保存状态
+        // 保存状态(不再设置超时,完全依赖后端的 fileOpened 消息)
         openingFiles.set(key, {
             element: element,
-            timer: timeoutId,
+            timer: null,
             originalIcon: originalIcon
         });
+
+        console.log(`开始显示文件打开 loading: ${filePath}, panel: ${panel}`);
 
         console.log(`Started loading for file: ${filePath}`);
     }
@@ -499,8 +495,10 @@
             return;
         }
 
-        // 清除超时
-        clearTimeout(loadingInfo.timer);
+        // 清除超时(如果存在)
+        if (loadingInfo.timer) {
+            clearTimeout(loadingInfo.timer);
+        }
 
         // 恢复原始图标
         const iconElement = loadingInfo.element.querySelector('.tree-item-icon');
@@ -2010,8 +2008,12 @@
 
             case 'fileOpened':
                 // 文件打开成功,清除 loading 状态
+                console.log('收到 fileOpened 消息:', message.data);
                 if (message.data && message.data.path && message.data.panel) {
                     stopFileOpeningLoading(message.data.path, message.data.panel);
+                    console.log('已清除 loading:', message.data.path);
+                } else {
+                    console.warn('fileOpened 消息数据不完整:', message.data);
                 }
                 break;
 

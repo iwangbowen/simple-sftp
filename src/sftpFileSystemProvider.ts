@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
+import { EventEmitter } from 'node:events';  // ← 修复导入
 import { SshConnectionManager } from './sshConnectionManager';
 import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
@@ -15,12 +16,22 @@ export class SftpFileSystemProvider implements vscode.FileSystemProvider {
     private _bufferedEvents: vscode.FileChangeEvent[] = [];
     private _fireSoonHandle?: NodeJS.Timeout;
 
+    // Event emitter for file read events
+    private _fileReadEmitter = new EventEmitter();
+
     readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
 
     constructor(
         private readonly hostManager: HostManager,
         private readonly authManager: AuthManager
     ) {}
+
+    /**
+     * Subscribe to file read complete events
+     */
+    public onFileReadComplete(listener: (filePath: string) => void): void {
+        this._fileReadEmitter.on('fileReadComplete', listener);
+    }
 
     // ===== Helper Methods =====
 
@@ -131,10 +142,20 @@ export class SftpFileSystemProvider implements vscode.FileSystemProvider {
         const { host, authConfig, remotePath } = await this.parseUri(uri);
 
         try {
+            logger.info(`开始读取远程文件: ${remotePath}`);
             const buffer = await SshConnectionManager.readRemoteFile(host, authConfig, remotePath);
+            logger.info(`远程文件读取完成: ${remotePath}, 大小: ${buffer.length} bytes`);
+
+            // 发送文件读取完成事件
+            this._fileReadEmitter.emit('fileReadComplete', remotePath);
+
             return new Uint8Array(buffer);
         } catch (error) {
             logger.error(`readFile failed for ${remotePath}: ${error}`);
+
+            // 即使失败也要通知,清除 loading
+            this._fileReadEmitter.emit('fileReadComplete', remotePath);
+
             throw vscode.FileSystemError.FileNotFound(uri);
         }
     }

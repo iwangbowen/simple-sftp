@@ -5,6 +5,7 @@ import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { DualPanelBase } from './dualPanelBase';
 import { UI } from '../constants';
+import { SftpFileSystemProvider } from '../sftpFileSystemProvider';  // ← 添加导入
 
 /**
  * Manager for dual panel file browser in editor area
@@ -20,9 +21,10 @@ export class DualPanelEditorManager extends DualPanelBase {
         extensionUri: vscode.Uri,
         transferQueueService: TransferQueueService,
         authManager: AuthManager,
-        hostManager: HostManager
+        hostManager: HostManager,
+        sftpFsProvider?: SftpFileSystemProvider  // ← 添加参数
     ) {
-        super(extensionUri, transferQueueService, authManager, hostManager);
+        super(extensionUri, transferQueueService, authManager, hostManager, sftpFsProvider);
 
         // Subscribe to queue changes for all panels
         this.transferQueueService.onQueueChanged(() => {

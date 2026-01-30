@@ -9,6 +9,7 @@ import { HostManager } from '../hostManager';
 import { logger } from '../logger';
 import { PortForwardService } from '../services/portForwardService';
 import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
+import { SftpFileSystemProvider } from '../sftpFileSystemProvider';  // ← 添加导入
 
 export interface FileNode {
     name: string;
@@ -40,7 +41,8 @@ export abstract class DualPanelBase {
         protected readonly _extensionUri: vscode.Uri,
         protected readonly transferQueueService: TransferQueueService,
         protected readonly authManager: AuthManager,
-        protected readonly hostManager: HostManager
+        protected readonly hostManager: HostManager,
+        protected readonly sftpFsProvider?: SftpFileSystemProvider  // ← 添加可选参数
     ) {
         // Subscribe to task completion events
         this.transferQueueService.onTaskUpdated((task) => {
@@ -57,6 +59,17 @@ export abstract class DualPanelBase {
             // Notify webview to refresh port forwardings
             this.handlePortForwardingChanged(event);
         });
+
+        // 订阅文件读取完成事件
+        if (this.sftpFsProvider) {
+            this.sftpFsProvider.onFileReadComplete((filePath: string) => {
+                logger.info(`收到文件读取完成事件,发送 fileOpened 消息: ${filePath}`);
+                this.postMessage({
+                    command: 'fileOpened',
+                    data: { path: filePath, panel: 'remote' }
+                });
+            });
+        }
     }
 
     /**
@@ -945,13 +958,28 @@ export abstract class DualPanelBase {
     protected async handleOpenFile(data: any): Promise<void> {
         const { path: filePath, panel } = data;
 
+        logger.info(`handleOpenFile 被调用: ${filePath}, panel: ${panel}`);
+
         try {
             if (panel === 'local') {
                 const doc = await vscode.workspace.openTextDocument(filePath);
                 await vscode.window.showTextDocument(doc);
+
+                // 本地文件打开成功,通知 webview 清除 loading 状态
+                logger.info(`本地文件打开成功,发送 fileOpened 消息: ${filePath}`);
+                this.postMessage({
+                    command: 'fileOpened',
+                    data: { path: filePath, panel }
+                });
             } else if (panel === 'remote') {
                 if (!this._currentHost || !this._currentAuthConfig) {
                     vscode.window.showErrorMessage('No host selected');
+
+                    // 清除 loading 状态
+                    this.postMessage({
+                        command: 'fileOpened',
+                        data: { path: filePath, panel }
+                    });
                     return;
                 }
 
@@ -960,6 +988,7 @@ export abstract class DualPanelBase {
                 const uri = vscode.Uri.parse(`sftp://${this._currentHost.id}${filePath}`);
 
                 // Open the document using the SFTP file system provider
+                // 文件读取完成后,SftpFileSystemProvider 会自动发送 fileOpened 消息
                 const doc = await vscode.workspace.openTextDocument(uri);
                 await vscode.window.showTextDocument(doc, {
                     preview: false,
@@ -972,19 +1001,17 @@ export abstract class DualPanelBase {
                 if (languageId) {
                     await vscode.languages.setTextDocumentLanguage(doc, languageId);
                 }
-            }
 
-            // 文件打开成功,通知 webview 清除 loading 状态
-            this._panel?.webview.postMessage({
-                command: 'fileOpened',
-                data: { path: filePath, panel }
-            });
+                // 注意:不在这里发送 fileOpened 消息,因为 SftpFileSystemProvider.readFile()
+                // 完成后会通过事件机制自动发送
+            }
         } catch (error) {
             logger.error(`Open file failed: ${error}`);
             vscode.window.showErrorMessage(`Open file failed: ${error}`);
 
-            // 发生错误时也要清除 loading 状态
-            this._panel?.webview.postMessage({
+            // 发生错误时要清除 loading 状态
+            logger.info(`文件打开失败,发送 fileOpened 消息清除 loading: ${filePath}, panel: ${panel}`);
+            this.postMessage({
                 command: 'fileOpened',
                 data: { path: filePath, panel }
             });
