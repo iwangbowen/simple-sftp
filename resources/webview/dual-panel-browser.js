@@ -27,6 +27,8 @@
     let clickTimer = null;
     /** @type {string} */
     let lastActivePanel = 'remote';
+    /** @type {Map<string, {element: HTMLElement, timer: number}>} */
+    const openingFiles = new Map();
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -410,7 +412,9 @@
                 // 双击文件夹进入
                 loadDirectory(panel, node.path);
             } else {
-                // 双击文件打开
+                // 双击文件打开 - 添加 loading 效果
+                startFileOpeningLoading(item, node.path, panel);
+
                 vscode.postMessage({
                     command: 'openFile',
                     data: { path: node.path, panel }
@@ -439,6 +443,77 @@
     }
 
     // ===== 辅助函数 =====
+
+    /**
+     * 开始文件打开 loading 效果
+     * @param {HTMLElement} element - 文件项元素
+     * @param {string} filePath - 文件路径
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function startFileOpeningLoading(element, filePath, panel) {
+        const key = `${panel}:${filePath}`;
+
+        // 如果已经在打开中,不重复添加
+        if (openingFiles.has(key)) {
+            return;
+        }
+
+        // 保存原始图标
+        const iconElement = element.querySelector('.tree-item-icon');
+        if (!iconElement) {
+            return;
+        }
+
+        const originalIcon = iconElement.className;
+
+        // 设置 loading 图标和样式
+        iconElement.className = 'codicon tree-item-icon codicon-sync codicon-modifier-spin';
+        element.classList.add('opening-file');
+
+        // 设置超时(30秒后自动清除)
+        const timeoutId = setTimeout(() => {
+            stopFileOpeningLoading(filePath, panel);
+            console.warn(`File opening timeout: ${filePath}`);
+        }, 30000);
+
+        // 保存状态
+        openingFiles.set(key, {
+            element: element,
+            timer: timeoutId,
+            originalIcon: originalIcon
+        });
+
+        console.log(`Started loading for file: ${filePath}`);
+    }
+
+    /**
+     * 停止文件打开 loading 效果
+     * @param {string} filePath - 文件路径
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function stopFileOpeningLoading(filePath, panel) {
+        const key = `${panel}:${filePath}`;
+        const loadingInfo = openingFiles.get(key);
+
+        if (!loadingInfo) {
+            return;
+        }
+
+        // 清除超时
+        clearTimeout(loadingInfo.timer);
+
+        // 恢复原始图标
+        const iconElement = loadingInfo.element.querySelector('.tree-item-icon');
+        if (iconElement && loadingInfo.originalIcon) {
+            iconElement.className = loadingInfo.originalIcon;
+        }
+        loadingInfo.element.classList.remove('opening-file');
+
+        // 移除状态
+        openingFiles.delete(key);
+
+        console.log(`Stopped loading for file: ${filePath}`);
+    }
 
     /**
      * 处理搜索框的键盘事件
@@ -1931,6 +2006,13 @@
             case 'searchResults':
                 // Display search results
                 displaySearchResults(message.data);
+                break;
+
+            case 'fileOpened':
+                // 文件打开成功,清除 loading 状态
+                if (message.data && message.data.path && message.data.panel) {
+                    stopFileOpeningLoading(message.data.path, message.data.panel);
+                }
                 break;
 
             case 'searchError':

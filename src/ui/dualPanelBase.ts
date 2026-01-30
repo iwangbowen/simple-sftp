@@ -973,9 +973,21 @@ export abstract class DualPanelBase {
                     await vscode.languages.setTextDocumentLanguage(doc, languageId);
                 }
             }
+
+            // 文件打开成功,通知 webview 清除 loading 状态
+            this._panel?.webview.postMessage({
+                command: 'fileOpened',
+                data: { path: filePath, panel }
+            });
         } catch (error) {
             logger.error(`Open file failed: ${error}`);
             vscode.window.showErrorMessage(`Open file failed: ${error}`);
+
+            // 发生错误时也要清除 loading 状态
+            this._panel?.webview.postMessage({
+                command: 'fileOpened',
+                data: { path: filePath, panel }
+            });
         }
     }
 

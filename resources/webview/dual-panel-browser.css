@@ -531,6 +531,22 @@ body {
     color: var(--vscode-list-activeSelectionForeground);
 }
 
+/* 文件打开中的 loading 效果 */
+.tree-item.opening-file {
+    opacity: 0.7;
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.tree-item.opening-file .tree-item-icon {
+    animation: spin 1s linear infinite;
+    color: var(--vscode-progressBar-background);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 
 
 /* Tree Item 结构 */
