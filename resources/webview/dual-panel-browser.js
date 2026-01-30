@@ -445,7 +445,7 @@
     // ===== 辅助函数 =====
 
     /**
-     * 开始文件打开 loading 效果
+     * 开始文件打开 loading 效果(延迟显示)
      * @param {HTMLElement} element - 文件项元素
      * @param {string} filePath - 文件路径
      * @param {string} panel - 'local' | 'remote'
@@ -466,20 +466,37 @@
 
         const originalIcon = iconElement.className;
 
-        // 设置 loading 图标和样式
-        iconElement.className = 'codicon tree-item-icon codicon-sync codicon-modifier-spin';
-        element.classList.add('opening-file');
+        // 延迟500ms显示loading,避免快速打开的文件闪烁
+        const delayTimerId = setTimeout(() => {
+            // 检查是否已经打开完成
+            const loadingInfo = openingFiles.get(key);
+            if (!loadingInfo || loadingInfo.opened) {
+                return;
+            }
+
+            // 设置 loading 图标和样式
+            iconElement.className = 'codicon tree-item-icon codicon-sync codicon-modifier-spin';
+            element.classList.add('opening-file');
+
+            // 标记已显示 loading
+            if (loadingInfo) {
+                loadingInfo.loadingShown = true;
+            }
+
+            console.log(`显示文件打开 loading: ${filePath}, panel: ${panel}`);
+        }, 500);  // 500ms 延迟
 
         // 保存状态(不再设置超时,完全依赖后端的 fileOpened 消息)
         openingFiles.set(key, {
             element: element,
             timer: null,
-            originalIcon: originalIcon
+            delayTimer: delayTimerId,
+            originalIcon: originalIcon,
+            loadingShown: false,
+            opened: false
         });
 
-        console.log(`开始显示文件打开 loading: ${filePath}, panel: ${panel}`);
-
-        console.log(`Started loading for file: ${filePath}`);
+        console.log(`准备显示文件打开 loading(延迟500ms): ${filePath}, panel: ${panel}`);
     }
 
     /**
@@ -495,22 +512,32 @@
             return;
         }
 
+        // 标记为已打开
+        loadingInfo.opened = true;
+
+        // 清除延迟计时器(如果loading还没显示)
+        if (loadingInfo.delayTimer) {
+            clearTimeout(loadingInfo.delayTimer);
+        }
+
         // 清除超时(如果存在)
         if (loadingInfo.timer) {
             clearTimeout(loadingInfo.timer);
         }
 
-        // 恢复原始图标
-        const iconElement = loadingInfo.element.querySelector('.tree-item-icon');
-        if (iconElement && loadingInfo.originalIcon) {
-            iconElement.className = loadingInfo.originalIcon;
+        // 如果 loading 已经显示,才需要恢复图标
+        if (loadingInfo.loadingShown) {
+            const iconElement = loadingInfo.element.querySelector('.tree-item-icon');
+            if (iconElement && loadingInfo.originalIcon) {
+                iconElement.className = loadingInfo.originalIcon;
+            }
+            loadingInfo.element.classList.remove('opening-file');
         }
-        loadingInfo.element.classList.remove('opening-file');
 
         // 移除状态
         openingFiles.delete(key);
 
-        console.log(`Stopped loading for file: ${filePath}`);
+        console.log(`已清除文件打开 loading: ${filePath}`);
     }
 
     /**
