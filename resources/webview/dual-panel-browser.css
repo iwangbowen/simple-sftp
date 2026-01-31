@@ -356,8 +356,7 @@ body {
 }
 
 .breadcrumb-clickable:hover {
-    background-color: var(--vscode-toolbar-hoverBackground);
-    text-decoration: underline;
+    color: var(--vscode-list-hoverForeground);
 }
 
 .breadcrumb-current {
