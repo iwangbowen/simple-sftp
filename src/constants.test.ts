@@ -11,10 +11,27 @@ import {
     MESSAGES,
     INSTRUCTIONS,
     TOOLTIPS,
-    LABELS
+    LABELS,
+    UI
 } from './constants';
 
 describe('constants', () => {
+    describe('UI', () => {
+        it('should have correct icon constants', () => {
+            expect(UI.ICONS.DUAL_PANEL_BROWSER).toBe('remote-explorer');
+            expect(UI.ICONS.TASK_UPLOAD).toBe('cloud-upload');
+            expect(UI.ICONS.TASK_DOWNLOAD).toBe('cloud-download');
+            expect(UI.ICONS.PORT_FORWARDING).toBe('plug');
+        });
+
+        it('should have all required icon types', () => {
+            expect(UI.ICONS).toHaveProperty('DUAL_PANEL_BROWSER');
+            expect(UI.ICONS).toHaveProperty('TASK_UPLOAD');
+            expect(UI.ICONS).toHaveProperty('TASK_DOWNLOAD');
+            expect(UI.ICONS).toHaveProperty('PORT_FORWARDING');
+        });
+    });
+
     describe('DEFAULTS', () => {
         it('should have correct default values', () => {
             expect(DEFAULTS.PORT).toBe(22);
@@ -164,6 +181,76 @@ describe('constants', () => {
             const chunkSizeInMB = PARALLEL_TRANSFER.CHUNK_SIZE / MB;
             expect(chunkSizeInMB).toBeGreaterThanOrEqual(1); // At least 1MB
             expect(chunkSizeInMB).toBeLessThanOrEqual(100); // At most 100MB
+        });
+    });
+
+    describe('PROMPTS functions', () => {
+        it('should generate dynamic prompts with parameters', () => {
+            expect(PROMPTS.editHost('TestHost')).toBe('Edit TestHost');
+        });
+    });
+
+    describe('MESSAGES functions', () => {
+        it('should generate success messages', () => {
+            expect(MESSAGES.hostAdded('MyHost')).toBe('Host "MyHost" added successfully with authentication');
+            expect(MESSAGES.hostAddedNoAuth('MyHost')).toContain('added without authentication');
+            expect(MESSAGES.hostDeleted('MyHost')).toContain('deleted successfully');
+            expect(MESSAGES.groupCreated('MyGroup')).toContain('created successfully');
+            expect(MESSAGES.groupUpdated('MyGroup')).toContain('updated successfully');
+            expect(MESSAGES.bookmarkAdded('MyBookmark')).toContain('added successfully');
+            expect(MESSAGES.downloadSuccess('/path/to/file')).toContain('Download successful');
+            expect(MESSAGES.connectionSuccess('MyHost')).toContain('Connected to MyHost');
+        });
+
+        it('should generate error messages', () => {
+            const error = new Error('test error');
+            expect(MESSAGES.updateFailed(error)).toContain('Update failed');
+        });
+
+        it('should generate confirmation prompts', () => {
+            expect(MESSAGES.deleteHostConfirm('MyHost')).toContain("Delete host 'MyHost'");
+            expect(MESSAGES.deleteHostsConfirm(5)).toContain('Delete 5 hosts');
+            expect(MESSAGES.deleteGroupConfirm('MyGroup')).toContain("Delete group 'MyGroup'");
+            expect(MESSAGES.deleteBookmarkConfirm('MyBookmark')).toContain('Delete bookmark');
+            expect(MESSAGES.configureAuthNow('MyHost')).toContain('Configure now');
+            expect(MESSAGES.importDuplicates(3)).toContain('Found 3 matching hosts');
+        });
+
+        it('should generate validation error messages', () => {
+            expect(MESSAGES.portRange(1, 65535)).toContain('between 1 and 65535');
+        });
+    });
+
+    describe('TOOLTIPS functions', () => {
+        it('should generate dynamic tooltips', () => {
+            expect(TOOLTIPS.downloading('file.txt')).toContain('Downloading: file.txt');
+            expect(TOOLTIPS.downloadingFolder('myFolder')).toContain('Downloading folder: myFolder');
+        });
+    });
+
+    describe('DELTA_SYNC', () => {
+        it('should have exclude patterns array', () => {
+            expect(Array.isArray(DELTA_SYNC.EXCLUDE_PATTERNS)).toBe(true);
+            expect(DELTA_SYNC.EXCLUDE_PATTERNS).toContain('node_modules');
+            expect(DELTA_SYNC.EXCLUDE_PATTERNS.length).toBeGreaterThan(0);
+        });
+
+        it('should have preserve timestamps setting', () => {
+            expect(typeof DELTA_SYNC.PRESERVE_TIMESTAMPS).toBe('boolean');
+        });
+    });
+
+    describe('COMPRESSION', () => {
+        it('should have compressible extensions array', () => {
+            expect(Array.isArray(COMPRESSION.COMPRESSIBLE_EXTENSIONS)).toBe(true);
+            expect(COMPRESSION.COMPRESSIBLE_EXTENSIONS).toContain('.txt');
+            expect(COMPRESSION.COMPRESSIBLE_EXTENSIONS).toContain('.js');
+            expect(COMPRESSION.COMPRESSIBLE_EXTENSIONS.length).toBeGreaterThan(10);
+        });
+
+        it('should have valid compression level', () => {
+            expect(COMPRESSION.COMPRESSION_LEVEL).toBeGreaterThanOrEqual(1);
+            expect(COMPRESSION.COMPRESSION_LEVEL).toBeLessThanOrEqual(9);
         });
     });
 });
