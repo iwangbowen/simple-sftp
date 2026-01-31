@@ -15,6 +15,7 @@ import { RemoteBrowserService } from './services/remoteBrowserService';
 import { TransferQueueService } from './services/transferQueueService';
 import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { HostConfigProvider } from './ui/hostConfigProvider';
+import { ResourceDashboardProvider } from './ui/resourceDashboardProvider';
 import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS } from './constants';
 
 export class CommandHandler {
@@ -142,7 +143,10 @@ export class CommandHandler {
       ),
       vscode.commands.registerCommand('simpleSftp.refresh', () => this.refresh()),
       vscode.commands.registerCommand('simpleSftp.showLogs', () => this.showLogs()),
-      vscode.commands.registerCommand('simpleSftp.showConnectionPool', () => this.showConnectionPoolStatus())
+      vscode.commands.registerCommand('simpleSftp.showConnectionPool', () => this.showConnectionPoolStatus()),
+      vscode.commands.registerCommand('simpleSftp.showResourceDashboard', (item: HostTreeItem) =>
+        this.showResourceDashboard(item)
+      )
     );
   }
 
@@ -2506,6 +2510,50 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
   /**
    * Show connection pool status
    */
+  /**
+   * 显示主机资源仪表盘
+   */
+  private async showResourceDashboard(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {
+      return;
+    }
+
+    const config = item.data as HostConfig;
+
+    // Check authentication
+    const authConfig = await this.authManager.getAuth(config.id);
+    if (!authConfig) {
+      const choice = await vscode.window.showWarningMessage(
+        MESSAGES.noAuthConfigured(config.name),
+        { modal: false },
+        MESSAGES.configure
+      );
+
+      if (choice === MESSAGES.configure) {
+        const success = await this.configureAuthForHost(config.id);
+        if (!success) {
+          return;
+        }
+        return this.showResourceDashboard(item);
+      }
+      return;
+    }
+
+    logger.info(`Opening resource dashboard for ${config.name}`);
+
+    if (!this.extensionContext) {
+      vscode.window.showErrorMessage('Extension context not available');
+      return;
+    }
+
+    // Create or show resource dashboard webview
+    ResourceDashboardProvider.createOrShow(
+      this.extensionContext.extensionUri,
+      config,
+      authConfig
+    );
+  }
+
   private showConnectionPoolStatus(): void {
     const pool = SshConnectionPool.getInstance();
     const status = pool.getPoolStatus();

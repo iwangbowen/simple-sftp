@@ -321,6 +321,12 @@
         "icon": "$(dashboard)"
       },
       {
+        "command": "simpleSftp.showResourceDashboard",
+        "title": "Show Resource Dashboard",
+        "category": "Simple SFTP",
+        "icon": "$(pulse)"
+      },
+      {
         "command": "simpleSftp.moveHostToGroup",
         "title": "Move to Group",
         "category": "Simple SFTP",
@@ -682,6 +688,10 @@
           "command": "simpleSftp.showConnectionPool"
         },
         {
+          "command": "simpleSftp.showResourceDashboard",
+          "when": "false"
+        },
+        {
           "command": "simpleSftp.viewTransferHistory"
         },
         {
@@ -991,9 +1001,14 @@
           "group": "4_bookmarks@1"
         },
         {
+          "command": "simpleSftp.showResourceDashboard",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "5_monitor@1"
+        },
+        {
           "command": "simpleSftp.exportHost",
           "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "5_export@1"
+          "group": "6_export@1"
         },
         {
           "command": "simpleSftp.deleteHost",
