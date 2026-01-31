@@ -951,7 +951,8 @@ export abstract class DualPanelBase {
             if (panel === 'local') {
                 // 使用 vscode.open 命令,VS Code 会自动判断文件类型
                 // 文本文件 → 文本编辑器,二进制文件 → 相应查看器
-                await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath));
+                // preview: false 禁用预览模式,避免新文件替换已打开的预览tab
+                await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath), { preview: false });
             } else if (panel === 'remote') {
                 if (!this._currentHost || !this._currentAuthConfig) {
                     vscode.window.showErrorMessage('No host selected');
@@ -967,7 +968,8 @@ export abstract class DualPanelBase {
                 // 图片文件 → 图片预览
                 // PDF 文件 → PDF 查看器
                 // 其他二进制文件 → 相应的查看器
-                await vscode.commands.executeCommand('vscode.open', uri);
+                // preview: false 禁用预览模式,避免新文件替换已打开的预览tab
+                await vscode.commands.executeCommand('vscode.open', uri, { preview: false });
             }
         } catch (error) {
             logger.error(`Open file failed: ${error}`);
