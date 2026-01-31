@@ -1174,6 +1174,8 @@
      * Toggle panel maximize/restore state
      */
     let maximizedPanel = null; // Track which panel is maximized: 'local', 'remote', or null
+    let savedLocalFlex = null; // Save local panel flex before maximize
+    let savedRemoteFlex = null; // Save remote panel flex before maximize
 
     function togglePanelMaximize(panel) {
         const localPanel = document.querySelector('.local-panel');
@@ -1188,10 +1190,10 @@
 
         // If clicking the already maximized panel, restore to normal
         if (maximizedPanel === panel) {
-            // Restore normal layout
-            localPanel.style.flex = '1';
+            // Restore previous layout with saved flex values
+            localPanel.style.flex = savedLocalFlex || '1';
             localPanel.style.display = 'flex';
-            remotePanel.style.flex = '1';
+            remotePanel.style.flex = savedRemoteFlex || '1';
             remotePanel.style.display = 'flex';
             resizer.style.display = 'flex';
 
@@ -1202,7 +1204,13 @@
             remoteMaxBtn.title = 'Maximize Panel';
 
             maximizedPanel = null;
+            savedLocalFlex = null;
+            savedRemoteFlex = null;
         } else {
+            // Save current flex values before maximizing
+            savedLocalFlex = getComputedStyle(localPanel).flex;
+            savedRemoteFlex = getComputedStyle(remotePanel).flex;
+
             // Maximize the selected panel
             if (panel === 'local') {
                 localPanel.style.flex = '1';
