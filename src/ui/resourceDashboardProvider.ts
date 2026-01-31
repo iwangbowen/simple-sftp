@@ -448,7 +448,7 @@ export class ResourceDashboardProvider {
                                     <th>PID</th>
                                     <th>User</th>
                                     <th>CPU %</th>
-                                    <th>Memory %</th>
+                                    <th>MEM %</th>
                                     <th>Command</th>
                                 </tr>
                             </thead>
