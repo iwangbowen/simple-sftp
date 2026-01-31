@@ -281,13 +281,14 @@ export class ResourceDashboardProvider {
             </h1>
             <div class="header-actions">
                 <label class="auto-refresh-control">
-                    <input type="checkbox" id="autoRefreshToggle" />
+                    <input type="checkbox" id="autoRefreshToggle" checked />
                     <span>Auto Refresh</span>
                 </label>
                 <select id="refreshInterval" class="refresh-interval-select">
                     <option value="0">Off</option>
                     <option value="5">5s</option>
-                    <option value="10" selected>10s</option>
+                    <option value="10">10s</option>
+                    <option value="20" selected>20s</option>
                     <option value="30">30s</option>
                     <option value="60">1min</option>
                     <option value="300">5min</option>

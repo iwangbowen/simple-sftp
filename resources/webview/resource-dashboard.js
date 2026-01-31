@@ -20,7 +20,12 @@
 
   // Auto-refresh state
   let autoRefreshInterval = null;
-  let refreshIntervalSeconds = 10;
+  let refreshIntervalSeconds = 20;
+
+  // Start auto-refresh on load if checkbox is checked
+  if (autoRefreshToggle.checked) {
+    startAutoRefresh();
+  }
 
   // Tab switching
   tabButtons.forEach(button => {
