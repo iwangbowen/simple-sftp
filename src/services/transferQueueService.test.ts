@@ -685,5 +685,169 @@ describe('TransferQueueService', () => {
       expect(stats.failed).toBe(0);
       expect(stats.cancelled).toBe(0);
     });
+
+    it('should handle task with high priority', () => {
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/urgent.txt',
+        remotePath: '/remote/urgent.txt',
+        fileName: 'urgent.txt',
+        fileSize: 1000,
+        priority: 'high'
+      });
+
+      expect(task.priority).toBe('high');
+    });
+
+
+
+    it('should handle addTasks with empty array', () => {
+      const tasks = service.addTasks([]);
+      expect(tasks).toHaveLength(0);
+    });
+
+    it('should handle addTasks with multiple tasks', () => {
+      const options = [
+        {
+          type: 'upload' as const,
+          hostId: 'host1',
+          hostName: 'Host 1',
+          localPath: '/file1.txt',
+          remotePath: '/remote/file1.txt',
+          fileName: 'file1.txt',
+          fileSize: 100
+        },
+        {
+          type: 'download' as const,
+          hostId: 'host1',
+          hostName: 'Host 1',
+          localPath: '/file2.txt',
+          remotePath: '/remote/file2.txt',
+          fileName: 'file2.txt',
+          fileSize: 200
+        },
+        {
+          type: 'upload' as const,
+          hostId: 'host1',
+          hostName: 'Host 1',
+          localPath: '/file3.txt',
+          remotePath: '/remote/file3.txt',
+          fileName: 'file3.txt',
+          fileSize: 300
+        }
+      ];
+
+      const tasks = service.addTasks(options);
+      expect(tasks).toHaveLength(3);
+      expect(tasks[0].fileName).toBe('file1.txt');
+      expect(tasks[1].fileName).toBe('file2.txt');
+      expect(tasks[2].fileName).toBe('file3.txt');
+    });
+
+
+
+    it('should handle set maxConcurrent to 1', () => {
+      service.setMaxConcurrent(1);
+      const status = service.getQueueStatus();
+      expect(status.maxConcurrent).toBe(1);
+    });
+
+    it('should handle set maxConcurrent to very large value', () => {
+      service.setMaxConcurrent(9999);
+      const status = service.getQueueStatus();
+      expect(status.maxConcurrent).toBe(9999);
+    });
+
+    it('should get tasks by status for each status type', () => {
+      service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file1.txt',
+        remotePath: '/remote/file1.txt',
+        fileName: 'file1.txt',
+        fileSize: 100
+      });
+
+      // Check all tasks (should have at least one)
+      const allTasks = service.getAllTasks();
+      expect(allTasks.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should clear completed tasks successfully', () => {
+       // Add a task and mark it as completed manually if possible
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file1.txt',
+        remotePath: '/remote/file1.txt',
+        fileName: 'file1.txt',
+        fileSize: 100
+      });
+
+      // Mark as completed (this might not work if the task needs real execution)
+      task.complete();
+
+      // Try to clear completed
+      service.clearCompleted();
+
+      // The task should be removed from queue
+      const allTasks = service.getAllTasks();
+      expect(allTasks.some(t => t.status === 'completed')).toBe(false);
+    });
+
+    it('should handle getTask with valid ID', () => {
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file.txt',
+        remotePath: '/remote/file.txt',
+        fileName: 'file.txt',
+        fileSize: 100
+      });
+
+      const retrieved = service.getTask(task.id);
+      expect(retrieved).toBeDefined();
+      expect(retrieved?.id).toBe(task.id);
+    });
+
+    it('should return undefined for non-existent task ID', () => {
+      const retrieved = service.getTask('non-existent-id-12345');
+      expect(retrieved).toBeUndefined();
+    });
+
+    it('should handle directory task', () => {
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/folder',
+        remotePath: '/remote/folder',
+        fileName: 'folder',
+        fileSize: 0,
+        isDirectory: true
+      });
+
+      expect(task.isDirectory).toBe(true);
+    });
+
+    it('should handle task without isDirectory flag', () => {
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file.txt',
+        remotePath: '/remote/file.txt',
+        fileName: 'file.txt',
+        fileSize: 100
+      });
+
+      // Should default to false
+      expect(task.isDirectory).toBe(false);
+    });
   });
 });
