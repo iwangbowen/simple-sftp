@@ -136,11 +136,13 @@ body {
 .content-state {
     display: flex;
     flex-direction: column;
+    padding: 16px 24px 24px 24px;
 }
 
 /* Section */
 .section {
     border-bottom: 1px solid var(--vscode-panel-border);
+    padding: 12px 0;
 }
 
 .section:last-child {
@@ -151,8 +153,7 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
-    background-color: var(--vscode-sideBar-background);
+    margin-bottom: 12px;
     font-weight: 500;
     font-size: 12px;
     color: var(--vscode-foreground);
@@ -164,7 +165,7 @@ body {
 }
 
 .section-content {
-    padding: 12px 16px;
+    padding: 0;
 }
 
 /* Info Grid */
