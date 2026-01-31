@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.4.1 - 2026-02-01
+
+- **UI Enhancement**: Expanded file icon mappings (280+ extensions), refined breadcrumb hover style, updated local panel icon to desktop device
+
+---
+
 ## 4.4.0 - 2026-02-01
 
 - **Resource Dashboard**: Added system resource monitoring (CPU, memory, disk) accessible from host context menu
