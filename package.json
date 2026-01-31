@@ -569,12 +569,12 @@
         },
         {
           "command": "simpleSftp.dualPanel.refresh",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
           "group": "2_operations@1"
         },
         {
           "command": "simpleSftp.dualPanel.createFolder",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser'",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
           "group": "2_operations@2"
         },
         {
