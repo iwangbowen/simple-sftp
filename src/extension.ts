@@ -538,6 +538,62 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         await dualPanelProvider.executeRefresh(args);
       }
+    }),
+    // Local panel "More" menu commands
+    vscode.commands.registerCommand('simpleSftp.dualPanel.localMore.newFolder', async () => {
+      const activeManager = getActiveManager();
+      const messageData = { command: 'createFolderLocal' };
+      if (activeManager === 'editor') {
+        dualPanelEditorManager.postMessageToWebview(messageData);
+      } else {
+        dualPanelProvider.postMessageToWebview(messageData);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.localMore.uploadSelected', async () => {
+      const activeManager = getActiveManager();
+      const messageData = { command: 'uploadSelected' };
+      if (activeManager === 'editor') {
+        dualPanelEditorManager.postMessageToWebview(messageData);
+      } else {
+        dualPanelProvider.postMessageToWebview(messageData);
+      }
+    }),
+    // Remote panel "More" menu commands
+    vscode.commands.registerCommand('simpleSftp.dualPanel.remoteMore.newFolder', async () => {
+      const activeManager = getActiveManager();
+      const messageData = { command: 'createFolderRemote' };
+      if (activeManager === 'editor') {
+        dualPanelEditorManager.postMessageToWebview(messageData);
+      } else {
+        dualPanelProvider.postMessageToWebview(messageData);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.remoteMore.downloadSelected', async () => {
+      const activeManager = getActiveManager();
+      const messageData = { command: 'downloadSelected' };
+      if (activeManager === 'editor') {
+        dualPanelEditorManager.postMessageToWebview(messageData);
+      } else {
+        dualPanelProvider.postMessageToWebview(messageData);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.remoteMore.portForwarding', async () => {
+      const activeManager = getActiveManager();
+      const messageData = { command: 'togglePortForwarding' };
+      if (activeManager === 'editor') {
+        dualPanelEditorManager.postMessageToWebview(messageData);
+      } else {
+        dualPanelProvider.postMessageToWebview(messageData);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.remoteMore.searchFiles', async () => {
+      const activeManager = getActiveManager();
+      const messageData = { command: 'toggleSearchView' };
+      if (activeManager === 'editor') {
+        dualPanelEditorManager.postMessageToWebview(messageData);
+      } else {
+        dualPanelProvider.postMessageToWebview(messageData);
+      }
     })
   );
   logger.info('Transfer queue commands registered');

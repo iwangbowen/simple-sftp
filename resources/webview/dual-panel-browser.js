@@ -63,8 +63,21 @@
         document.getElementById('maximize-local')?.addEventListener('click', () => togglePanelMaximize('local'));
         document.getElementById('maximize-remote')?.addEventListener('click', () => togglePanelMaximize('remote'));
 
-        // Note: New folder, upload, and download buttons are now in the "More" dropdown menu
-        // Their event handlers are in setupLocalMoreDropdown() and setupMoreDropdown()
+        // More buttons - trigger context menu on click
+        document.getElementById('local-more-toggle')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
+            e.stopPropagation();
+        });
+
+        document.getElementById('more-toggle')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
+            e.stopPropagation();
+        });
+
+        // Note: New folder, upload, and download are now in the native VS Code context menu
+        // triggered by the "More" buttons above
 
         // Search inputs
         document.getElementById('local-search')?.addEventListener('input', (e) => filterTree('local', e.target.value));
@@ -2024,6 +2037,41 @@
                     PortForwardModule.handleMessage(message);
                 }
                 break;
+
+            // Handle "More" menu commands from VS Code context menu
+            case 'createFolderLocal':
+                createFolder('local');
+                break;
+
+            case 'uploadSelected':
+                uploadSelected();
+                break;
+
+            case 'createFolderRemote':
+                createFolder('remote');
+                break;
+
+            case 'downloadSelected':
+                downloadSelected();
+                break;
+
+            case 'togglePortForwarding':
+                if (typeof PortForwardModule !== 'undefined') {
+                    if (PortForwardModule.isViewVisible && PortForwardModule.isViewVisible()) {
+                        PortForwardModule.closeView();
+                    } else {
+                        PortForwardModule.openView();
+                    }
+                }
+                break;
+
+            case 'toggleSearchView':
+                if (isSearchViewVisible) {
+                    closeSearchView();
+                } else {
+                    openSearchView();
+                }
+                break;
         }
     });
 
@@ -2302,9 +2350,7 @@
             });
         }
 
-        // More dropdown menus
-        setupMoreDropdown();        // Remote panel "More" menu
-        setupLocalMoreDropdown();   // Local panel "More" menu
+        // Note: More dropdown menus are now native VS Code context menus
 
         // Start search button
         const searchButton = document.getElementById('start-search-button');
@@ -2383,118 +2429,8 @@
     // state variables, and message handlers are managed by that module.
     // See: resources/webview/port-forward.js
 
-    /**
-     * Setup the "More" dropdown menu in the remote panel toolbar
-     */
-    function setupMoreDropdown() {
-        const moreToggle = document.getElementById('more-toggle');
-        const moreDropdown = document.getElementById('more-dropdown');
-        const moreList = document.getElementById('more-list');
-
-        if (!moreToggle || !moreDropdown || !moreList) {
-            return;
-        }
-
-        // Toggle dropdown visibility
-        moreToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isVisible = moreDropdown.style.display === 'flex';
-            if (isVisible) {
-                moreDropdown.style.display = 'none';
-            } else {
-                moreDropdown.style.display = 'flex';
-            }
-        });
-
-        // Handle menu item clicks
-        moreList.addEventListener('click', (e) => {
-            const item = e.target.closest('.more-dropdown-item');
-            if (!item) return;
-
-            const action = item.dataset.action;
-
-            // Close dropdown
-            moreDropdown.style.display = 'none';
-
-            // Perform action
-            if (action === 'new-remote-folder') {
-                createFolder('remote');
-            } else if (action === 'download-selected') {
-                downloadSelected();
-            } else if (action === 'port-forwarding') {
-                // Use shared module for port forwarding
-                if (typeof PortForwardModule !== 'undefined') {
-                    if (PortForwardModule.isViewVisible && PortForwardModule.isViewVisible()) {
-                        PortForwardModule.closeView();
-                    } else {
-                        PortForwardModule.openView();
-                    }
-                }
-            } else if (action === 'search-files') {
-                if (isSearchViewVisible) {
-                    closeSearchView();
-                } else {
-                    openSearchView();
-                }
-            }
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!moreToggle.contains(e.target) && !moreDropdown.contains(e.target)) {
-                moreDropdown.style.display = 'none';
-            }
-        });
-    }
-
-    /**
-     * Setup the "More" dropdown menu in the local panel toolbar
-     */
-    function setupLocalMoreDropdown() {
-        const moreToggle = document.getElementById('local-more-toggle');
-        const moreDropdown = document.getElementById('local-more-dropdown');
-        const moreList = document.getElementById('local-more-list');
-
-        if (!moreToggle || !moreDropdown || !moreList) {
-            return;
-        }
-
-        // Toggle dropdown visibility
-        moreToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isVisible = moreDropdown.style.display === 'flex';
-            if (isVisible) {
-                moreDropdown.style.display = 'none';
-            } else {
-                moreDropdown.style.display = 'flex';
-            }
-        });
-
-        // Handle menu item clicks
-        moreList.addEventListener('click', (e) => {
-            const item = e.target.closest('.more-dropdown-item');
-            if (!item) return;
-
-            const action = item.dataset.action;
-
-            // Close dropdown
-            moreDropdown.style.display = 'none';
-
-            // Perform action
-            if (action === 'new-local-folder') {
-                createFolder('local');
-            } else if (action === 'upload-selected') {
-                uploadSelected();
-            }
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!moreToggle.contains(e.target) && !moreDropdown.contains(e.target)) {
-                moreDropdown.style.display = 'none';
-            }
-        });
-    }
+    // Note: More dropdown menus are now native VS Code context menus
+    // See package.json > contributes > menus > webview/context
 
     /**
      * Open search view
