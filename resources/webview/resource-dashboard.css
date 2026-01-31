@@ -136,7 +136,7 @@ body {
 .content-state {
     display: flex;
     flex-direction: column;
-    padding: 16px 24px 24px 24px;
+    padding: 16px 40px 24px 40px;
 }
 
 /* Section */
