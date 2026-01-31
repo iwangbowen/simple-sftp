@@ -1075,4 +1075,496 @@ Host server1
       expect(hosts[0].port).toBe(22);
     });
   });
+
+  describe('Edge Cases and Boundary Tests', () => {
+    describe('Host Name Validation', () => {
+      it('should handle empty host name', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: '',
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        expect(host.name).toBe('');
+      });
+
+      it('should handle very long host name', async () => {
+        await hostManager.initialize();
+
+        const longName = 'A'.repeat(500);
+        const host = await hostManager.addHost({
+          name: longName,
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        expect(host.name).toBe(longName);
+        expect(host.name.length).toBe(500);
+      });
+
+      it('should handle special characters in host name', async () => {
+        await hostManager.initialize();
+
+        const specialName = 'host@#$%^&*()_+-=[]{}|;:\'",.<>?/';
+        const host = await hostManager.addHost({
+          name: specialName,
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        expect(host.name).toBe(specialName);
+      });
+
+      it('should handle Unicode in host name', async () => {
+        await hostManager.initialize();
+
+        const unicodeName = '测试服务器🔥';
+        const host = await hostManager.addHost({
+          name: unicodeName,
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        expect(host.name).toBe(unicodeName);
+      });
+
+      it('should handle whitespace-only host name', async () => {
+        await hostManager.initialize();
+
+        const whitespaceName = '   \t\n   ';
+        const host = await hostManager.addHost({
+          name: whitespaceName,
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        expect(host.name).toBe(whitespaceName);
+      });
+    });
+
+    describe('Host Address Validation', () => {
+      it('should handle very long host address', async () => {
+        await hostManager.initialize();
+
+        const longAddress = 'very-long-domain-name-' + 'subdomain.'.repeat(20) + 'example.com';
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: longAddress,
+          port: 22,
+          username: 'user'
+        });
+
+        expect(host.host).toBe(longAddress);
+      });
+
+      it('should handle IPv6 address', async () => {
+        await hostManager.initialize();
+
+        const ipv6 = '2001:0db8:85a3:0000:0000:8a2e:0370:7334';
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: ipv6,
+          port: 22,
+          username: 'user'
+        });
+
+        expect(host.host).toBe(ipv6);
+      });
+
+      it('should handle localhost variations', async () => {
+        await hostManager.initialize();
+
+        const host1 = await hostManager.addHost({
+          name: 'localhost1',
+          host: 'localhost',
+          port: 22,
+          username: 'user'
+        });
+
+        const host2 = await hostManager.addHost({
+          name: 'localhost2',
+          host: '127.0.0.1',
+          port: 22,
+          username: 'user'
+        });
+
+        expect(host1.host).toBe('localhost');
+        expect(host2.host).toBe('127.0.0.1');
+      });
+    });
+
+    describe('Port Validation', () => {
+      it('should accept minimum valid port (1)', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 1,
+          username: 'user'
+        });
+
+        expect(host.port).toBe(1);
+      });
+
+      it('should accept maximum valid port (65535)', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 65535,
+          username: 'user'
+        });
+
+        expect(host.port).toBe(65535);
+      });
+
+      it('should accept common SSH alternative ports', async () => {
+        await hostManager.initialize();
+
+        const host2222 = await hostManager.addHost({
+          name: 'test2222',
+          host: '192.168.1.1',
+          port: 2222,
+          username: 'user'
+        });
+
+        const host2200 = await hostManager.addHost({
+          name: 'test2200',
+          host: '192.168.1.2',
+          port: 2200,
+          username: 'user'
+        });
+
+        expect(host2222.port).toBe(2222);
+        expect(host2200.port).toBe(2200);
+      });
+    });
+
+    describe('Username Edge Cases', () => {
+      it('should handle very long username', async () => {
+        await hostManager.initialize();
+
+        const longUsername = 'user' + 'name'.repeat(100);
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 22,
+          username: longUsername
+        });
+
+        expect(host.username).toBe(longUsername);
+      });
+
+      it('should handle username with special characters', async () => {
+        await hostManager.initialize();
+
+        const specialUsername = 'user.name-123_test@domain';
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 22,
+          username: specialUsername
+        });
+
+        expect(host.username).toBe(specialUsername);
+      });
+
+      it('should handle single character username', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 22,
+          username: 'a'
+        });
+
+        expect(host.username).toBe('a');
+      });
+    });
+
+    describe('Group Name Edge Cases', () => {
+      it('should handle empty group name', async () => {
+        await hostManager.initialize();
+
+        const group = await hostManager.addGroup('');
+
+        expect(group.name).toBe('');
+      });
+
+      it('should handle very long group name', async () => {
+        await hostManager.initialize();
+
+        const longName = 'Group' + 'Name'.repeat(100);
+        const group = await hostManager.addGroup(longName);
+
+        expect(group.name).toBe(longName);
+      });
+
+      it('should handle Unicode in group name', async () => {
+        await hostManager.initialize();
+
+        const unicodeGroup = '开发环境🚀';
+        const group = await hostManager.addGroup(unicodeGroup);
+
+        expect(group.name).toBe(unicodeGroup);
+      });
+
+      it('should handle duplicate group names', async () => {
+        await hostManager.initialize();
+
+        const group1 = await hostManager.addGroup('Production');
+        const group2 = await hostManager.addGroup('Production');
+
+        expect(group1.name).toBe('Production');
+        expect(group2.name).toBe('Production');
+        expect(group1.id).not.toBe(group2.id);
+      });
+    });
+
+    describe('Path Edge Cases', () => {
+      it('should handle very long path in recentPaths', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        const longPath = '/very/long/' + 'path/'.repeat(50) + 'file.txt';
+        await hostManager.recordRecentPath(host.id, longPath);
+
+        const paths = await hostManager.getRecentPaths(host.id);
+        expect(paths).toContain(longPath);
+      });
+
+      it('should handle path with special characters', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        const specialPath = '/path/with spaces/file@#$.txt';
+        await hostManager.recordRecentPath(host.id, specialPath);
+
+        const paths = await hostManager.getRecentPaths(host.id);
+        expect(paths).toContain(specialPath);
+      });
+
+      it('should handle Windows-style path', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        const windowsPath = 'C:\\Users\\Test\\Documents\\file.txt';
+        await hostManager.recordRecentPath(host.id, windowsPath);
+
+        const paths = await hostManager.getRecentPaths(host.id);
+        expect(paths).toContain(windowsPath);
+      });
+    });
+
+    describe('Bookmark Edge Cases', () => {
+      it('should handle very long bookmark name', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        const longBookmarkName = 'Bookmark' + 'Name'.repeat(50);
+        await hostManager.addBookmark(host.id, longBookmarkName, '/path');
+
+        const hosts = await hostManager.getHosts();
+        const updatedHost = hosts.find(h => h.id === host.id);
+        expect(updatedHost?.bookmarks?.[0].name).toBe(longBookmarkName);
+      });
+
+      it('should handle bookmark path with Unicode', async () => {
+        await hostManager.initialize();
+
+        const host = await hostManager.addHost({
+          name: 'test',
+          host: '192.168.1.1',
+          port: 22,
+          username: 'user'
+        });
+
+        const unicodePath = '/项目/文件/测试.txt';
+        await hostManager.addBookmark(host.id, 'test', unicodePath);
+
+        const hosts = await hostManager.getHosts();
+        const updatedHost = hosts.find(h => h.id === host.id);
+        expect(updatedHost?.bookmarks?.[0].path).toBe(unicodePath);
+      });
+    });
+
+    describe('Import/Export Edge Cases', () => {
+      it('should handle export with no hosts', async () => {
+        await hostManager.initialize();
+
+        const exported = await hostManager.exportAllHosts();
+        const parsed = JSON.parse(exported);
+
+        expect(parsed.hosts).toEqual([]);
+        expect(parsed.groups).toEqual([]);
+      });
+
+      it('should handle import with empty hosts array', async () => {
+        await hostManager.initialize();
+
+        const importData = {
+          version: '1.0.0',
+          exportDate: new Date().toISOString(),
+          hosts: [],
+          groups: []
+        };
+
+        await expect(hostManager.importHosts(JSON.stringify(importData))).resolves.not.toThrow();
+
+        const hosts = await hostManager.getHosts();
+        expect(hosts).toEqual([]);
+      });
+
+      it('should handle import with very large dataset', async () => {
+        await hostManager.initialize();
+
+        const hosts = Array.from({ length: 100 }, (_, i) => ({
+          name: `host-${i}`,
+          host: `192.168.1.${i % 256}`,
+          port: 22,
+          username: `user${i}`
+        }));
+
+        const importData = {
+          version: '1.0.0',
+          exportDate: new Date().toISOString(),
+          hosts,
+          groups: []
+        };
+
+        await hostManager.importHosts(JSON.stringify(importData));
+
+        const importedHosts = await hostManager.getHosts();
+        expect(importedHosts.length).toBe(100);
+      });
+
+      it('should handle malformed version string', async () => {
+        await hostManager.initialize();
+
+        const importData = {
+          version: 'not-a-version',
+          exportDate: new Date().toISOString(),
+          hosts: [{
+            name: 'test',
+            host: '192.168.1.1',
+            port: 22,
+            username: 'user'
+          }],
+          groups: []
+        };
+
+        await expect(hostManager.importHosts(JSON.stringify(importData))).resolves.not.toThrow();
+      });
+    });
+
+    describe('Concurrent Operations', () => {
+      it('should handle adding multiple hosts concurrently', async () => {
+        await hostManager.initialize();
+
+        const promises = Array.from({ length: 10 }, (_, i) =>
+          hostManager.addHost({
+            name: `concurrent-${i}`,
+            host: `192.168.1.${i}`,
+            port: 22,
+            username: 'user'
+          })
+        );
+
+        const hosts = await Promise.all(promises);
+
+        expect(hosts.length).toBe(10);
+        const allIds = hosts.map(h => h.id);
+        const uniqueIds = [...new Set(allIds)];
+        expect(uniqueIds.length).toBe(10);
+      });
+
+      it('should handle deleting multiple hosts concurrently', async () => {
+        await hostManager.initialize();
+
+        // First add some hosts
+        const hosts = await Promise.all(
+          Array.from({ length: 5 }, (_, i) =>
+            hostManager.addHost({
+              name: `delete-${i}`,
+              host: `192.168.1.${i}`,
+              port: 22,
+              username: 'user'
+            })
+          )
+        );
+
+        // Then delete them concurrently
+        await Promise.all(hosts.map(h => hostManager.deleteHost(h.id)));
+
+        const remainingHosts = await hostManager.getHosts();
+        expect(remainingHosts.length).toBe(0);
+      });
+    });
+
+    describe('Data Integrity', () => {
+      it('should preserve all host properties after update', async () => {
+        await hostManager.initialize();
+
+        const originalHost = await hostManager.addHost({
+          name: 'original',
+          host: '192.168.1.1',
+          port: 2222,
+          username: 'user',
+          defaultRemotePath: '/home/user'
+        });
+
+        await hostManager.recordRecentPath(originalHost.id, '/path1');
+        await hostManager.addBookmark(originalHost.id, 'bookmark1', '/bookmark/path');
+
+        await hostManager.updateHost(originalHost.id, {
+          name: 'updated-name'
+        });
+
+        const hosts = await hostManager.getHosts();
+        const updatedHost = hosts.find(h => h.id === originalHost.id);
+
+        expect(updatedHost?.name).toBe('updated-name');
+        expect(updatedHost?.host).toBe('192.168.1.1');
+        expect(updatedHost?.port).toBe(2222);
+        expect(updatedHost?.username).toBe('user');
+        expect(updatedHost?.defaultRemotePath).toBe('/home/user');
+        expect(updatedHost?.recentPaths).toContain('/path1');
+        expect(updatedHost?.bookmarks?.[0]).toEqual({ name: 'bookmark1', path: '/bookmark/path' });
+      });
+    });
+  });
 });

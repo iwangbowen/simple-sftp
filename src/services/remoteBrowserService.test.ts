@@ -488,4 +488,408 @@ describe('RemoteBrowserService', () => {
       expect(svc).toBeDefined();
     });
   });
+
+  describe('Additional Edge Cases and Boundary Tests', () => {
+    beforeEach(() => {
+      service = new RemoteBrowserService(mockHostManager);
+    });
+
+    describe('Path Validation Edge Cases', () => {
+      it('should handle extremely long paths', () => {
+        const longPath = '/' + 'very/long/'.repeat(100) + 'path';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path',
+            longPath
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle path with Unicode characters', () => {
+        const unicodePath = '/用户/文档/项目/测试文件';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path',
+            unicodePath
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle path with emoji', () => {
+        const emojiPath = '/folder🚀/project📁/file📄.txt';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path',
+            emojiPath
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle path with dots', () => {
+        const dotPath = '/./path/../to/./file';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path',
+            dotPath
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle path with trailing slash', () => {
+        const trailingPath = '/home/user/';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path',
+            trailingPath
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle path without leading slash', () => {
+        const noLeadingSlash = 'home/user/files';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path',
+            noLeadingSlash
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle single slash path', () => {
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path',
+            '/'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle path with multiple consecutive slashes', () => {
+        const multiSlash = '/home///user////files';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path',
+            multiSlash
+          );
+        }).not.toThrow();
+      });
+    });
+
+    describe('Port Number Edge Cases', () => {
+      it('should handle minimum valid port (1)', () => {
+        const configPort1 = { ...mockConfig, port: 1 };
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            configPort1,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle maximum valid port (65535)', () => {
+        const configPort65535 = { ...mockConfig, port: 65535 };
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            configPort65535,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle common alternative SSH ports', () => {
+        const config2222 = { ...mockConfig, port: 2222 };
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            config2222,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+    });
+
+    describe('Title Edge Cases', () => {
+      it('should handle title with special characters', () => {
+        const specialTitle = 'Title@#$%^&*()_+-=[]{}|;:\'",.<>?/';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            specialTitle
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle title with line breaks', () => {
+        const multilineTitle = 'Line1\nLine2\nLine3';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            multilineTitle
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle title with tabs', () => {
+        const tabTitle = 'Title\twith\ttabs';
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            tabTitle
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle single character title', () => {
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            'T'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle whitespace-only title', () => {
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            mockConfig,
+            mockAuthConfig,
+            'selectPath',
+            '   '
+          );
+        }).not.toThrow();
+      });
+    });
+
+    describe('Host Configuration Edge Cases', () => {
+      it('should handle IPv6 address in host', () => {
+        const ipv6Config = {
+          ...mockConfig,
+          host: '2001:0db8:85a3:0000:0000:8a2e:0370:7334'
+        };
+
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            ipv6Config,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle localhost variations', () => {
+        const localhostConfig = { ...mockConfig, host: 'localhost' };
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            localhostConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle domain with subdomain', () => {
+        const domainConfig = { ...mockConfig, host: 'server.subdomain.example.com' };
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            domainConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle very long hostname', () => {
+        const longHost = 'very-long-hostname-' + 'subdomain.'.repeat(10) + 'example.com';
+        const longConfig = { ...mockConfig, host: longHost };
+
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            longConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+    });
+
+    describe('Username Edge Cases', () => {
+      it('should handle very long username', () => {
+        const longUsername = 'user' + 'name'.repeat(50);
+        const userConfig = { ...mockConfig, username: longUsername };
+
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            userConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle username with special characters', () => {
+        const specialUser = 'user.name-123_test@domain';
+        const userConfig = { ...mockConfig, username: specialUser };
+
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            userConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle single character username', () => {
+        const userConfig = { ...mockConfig, username: 'a' };
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            userConfig,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+    });
+
+    describe('Mode Parameter Validation', () => {
+      it('should accept all valid modes', () => {
+        const modes: Array<'selectPath' | 'browseFiles' | 'selectBookmark' | 'sync'> = [
+          'selectPath',
+          'browseFiles',
+          'selectBookmark',
+          'sync'
+        ];
+
+        modes.forEach(mode => {
+          expect(() => {
+            service.browseRemoteFilesGeneric(
+              mockConfig,
+              mockAuthConfig,
+              mode,
+              `Test ${mode}`
+            );
+          }).not.toThrow();
+        });
+      });
+    });
+
+    describe('Handler Edge Cases', () => {
+      it('should accept null upload handler', () => {
+        const svc = new RemoteBrowserService(mockHostManager, null as any);
+        expect(svc).toBeDefined();
+      });
+
+      it('should accept undefined upload handler', () => {
+        const svc = new RemoteBrowserService(mockHostManager, undefined);
+        expect(svc).toBeDefined();
+      });
+
+      it('should accept upload handler with complex logic', () => {
+        const complexHandler = vi.fn((items: unknown[]) => {
+          return items.map(item => ({ ...item as object, processed: true }));
+        });
+
+        const svc = new RemoteBrowserService(mockHostManager, complexHandler);
+        expect(svc).toBeDefined();
+      });
+    });
+
+    describe('Default Remote Path Edge Cases', () => {
+      it('should handle undefined defaultRemotePath', () => {
+        const configNoDefault = { ...mockConfig, defaultRemotePath: undefined };
+
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            configNoDefault,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle empty string defaultRemotePath', () => {
+        const configEmptyDefault = { ...mockConfig, defaultRemotePath: '' };
+
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            configEmptyDefault,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle relative defaultRemotePath', () => {
+        const configRelative = { ...mockConfig, defaultRemotePath: 'relative/path' };
+
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            configRelative,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+
+      it('should handle Windows-style defaultRemotePath', () => {
+        const configWindows = { ...mockConfig, defaultRemotePath: String.raw`C:\Users\Test` };
+
+        expect(() => {
+          service.browseRemoteFilesGeneric(
+            configWindows,
+            mockAuthConfig,
+            'selectPath',
+            'Select Path'
+          );
+        }).not.toThrow();
+      });
+    });
+  });
 });
