@@ -76,7 +76,7 @@ export class ResourceDashboardProvider {
     // Create new panel
     const panel = vscode.window.createWebviewPanel(
       'simpleSftpResourceDashboard',
-      `Resource Dashboard - ${hostConfig.name}`,
+      hostConfig.name,
       column || vscode.ViewColumn.One,
       {
         enableScripts: true,
