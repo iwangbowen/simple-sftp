@@ -603,5 +603,26 @@ describe('BookmarkService', () => {
 
       expect(mockHostManager.removeBookmark).not.toHaveBeenCalled();
     });
+
+
+    it('should handle concurrent bookmark delete operations', async () => {
+      const bookmarkItem: any = {
+        type: 'bookmark',
+        data: { name: 'Test', path: '/path' },
+        hostId: 'host1'
+      };
+
+      vi.spyOn(vscode.window, 'showWarningMessage').mockResolvedValue('Delete' as any);
+      mockHostManager.removeBookmark.mockResolvedValue(undefined);
+
+      // Simulate concurrent delete operations
+      const promise1 = bookmarkService.deleteBookmark(bookmarkItem);
+      const promise2 = bookmarkService.deleteBookmark(bookmarkItem);
+
+      await Promise.all([promise1, promise2]);
+
+      // Both should call removeBookmark (no race condition protection in service)
+      expect(mockHostManager.removeBookmark).toHaveBeenCalledTimes(2);
+    });
   });
 });

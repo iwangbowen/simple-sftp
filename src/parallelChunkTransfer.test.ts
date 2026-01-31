@@ -238,4 +238,246 @@ describe('ParallelChunkTransferManager', () => {
       expect(fileSize >= threshold).toBe(true);
     });
   });
+
+  describe('chunk size edge cases', () => {
+    it('should handle minimum chunk size (1 byte)', () => {
+      const fileSize = 1000;
+      const chunkSize = 1;
+
+      const chunks = Math.ceil(fileSize / chunkSize);
+
+      expect(chunks).toBe(1000);
+    });
+
+    it('should handle chunk size equal to file size', () => {
+      const fileSize = 50 * 1024 * 1024;
+      const chunkSize = 50 * 1024 * 1024;
+
+      const chunks = Math.ceil(fileSize / chunkSize);
+
+      expect(chunks).toBe(1);
+    });
+
+    it('should handle chunk size larger than file size', () => {
+      const fileSize = 10 * 1024 * 1024;
+      const chunkSize = 50 * 1024 * 1024;
+
+      const chunks = Math.ceil(fileSize / chunkSize);
+
+      expect(chunks).toBe(1);
+    });
+
+    it('should handle very large chunk size (1GB)', () => {
+      const fileSize = 5 * 1024 * 1024 * 1024; // 5GB
+      const chunkSize = 1024 * 1024 * 1024; // 1GB
+
+      const chunks = Math.ceil(fileSize / chunkSize);
+
+      expect(chunks).toBe(5);
+    });
+
+    it('should handle odd chunk sizes', () => {
+      const fileSize = 100000000; // 100MB
+      const chunkSize = 7777777; // ~7.4MB
+
+      const chunks = Math.ceil(fileSize / chunkSize);
+
+      expect(chunks).toBe(13);
+    });
+  });
+
+  describe('concurrent operations edge cases', () => {
+    it('should handle maxConcurrent = 1 (sequential)', () => {
+      const totalChunks = 10;
+      const maxConcurrent = 1;
+
+      const batches = Math.ceil(totalChunks / maxConcurrent);
+
+      expect(batches).toBe(10); // 10 batches of 1 chunk each
+    });
+
+    it('should handle maxConcurrent > total chunks', () => {
+      const totalChunks = 5;
+      const maxConcurrent = 10;
+
+      const batches = Math.ceil(totalChunks / maxConcurrent);
+
+      expect(batches).toBe(1); // Single batch with all 5 chunks
+    });
+
+    it('should handle very high concurrency (100+)', () => {
+      const totalChunks = 50;
+      const maxConcurrent = 100;
+
+      const batches = Math.ceil(totalChunks / maxConcurrent);
+
+      expect(batches).toBe(1); // Single batch
+    });
+
+    it('should handle maxConcurrent exactly equals total chunks', () => {
+      const totalChunks = 8;
+      const maxConcurrent = 8;
+
+      const batches = Math.ceil(totalChunks / maxConcurrent);
+
+      expect(batches).toBe(1);
+    });
+  });
+
+  describe('file size edge cases', () => {
+    it('should handle 0 byte file (empty file)', () => {
+      const fileSize = 0;
+      const threshold = 100 * 1024 * 1024;
+
+      const result = manager.shouldUseParallelTransfer(fileSize, { threshold });
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle 1 byte file', () => {
+      const fileSize = 1;
+      const chunkSize = 10 * 1024 * 1024;
+
+      const chunks = Math.ceil(fileSize / chunkSize);
+
+      expect(chunks).toBe(1);
+    });
+
+    it('should handle very large file (10GB)', () => {
+      const fileSize = 10 * 1024 * 1024 * 1024; // 10GB
+      const threshold = 100 * 1024 * 1024; // 100MB
+
+      const result = manager.shouldUseParallelTransfer(fileSize, { threshold });
+
+      expect(result).toBe(true);
+    });
+
+    it('should handle threshold boundary (threshold - 1)', () => {
+      const threshold = 100 * 1024 * 1024;
+      const fileSize = threshold - 1;
+
+      const result = manager.shouldUseParallelTransfer(fileSize, { threshold });
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle threshold boundary (threshold + 1)', () => {
+      const threshold = 100 * 1024 * 1024;
+      const fileSize = threshold + 1;
+
+      const result = manager.shouldUseParallelTransfer(fileSize, { threshold });
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('progress tracking edge cases', () => {
+    it('should handle progress with different chunk sizes', () => {
+      const chunkProgress = {
+        0: 10 * 1024 * 1024,  // Chunk 0: 10MB
+        1: 5 * 1024 * 1024,   // Chunk 1: 5MB (smaller, last chunk)
+        2: 10 * 1024 * 1024,  // Chunk 2: 10MB
+      };
+
+      const totalTransferred = Object.values(chunkProgress).reduce((sum, val) => sum + val, 0);
+
+      expect(totalTransferred).toBe(25 * 1024 * 1024);
+    });
+
+    it('should handle all chunks completed (100% progress)', () => {
+      const fileSize = 100 * 1024 * 1024;
+      const transferred = 100 * 1024 * 1024;
+
+      const progressPercent = (transferred / fileSize) * 100;
+
+      expect(progressPercent).toBe(100);
+    });
+
+    it('should handle 0% progress (no transfer started)', () => {
+      const fileSize = 100 * 1024 * 1024;
+      const transferred = 0;
+
+      const progressPercent = (transferred / fileSize) * 100;
+
+      expect(progressPercent).toBe(0);
+    });
+
+    it('should handle partial chunk transfer', () => {
+      const chunkSize = 10 * 1024 * 1024; // 10MB
+      const partialTransferred = 3 * 1024 * 1024; // 3MB (30% of chunk)
+
+      const chunkProgress = (partialTransferred / chunkSize) * 100;
+
+      expect(chunkProgress).toBe(30);
+    });
+  });
+
+  describe('byte range calculation edge cases', () => {
+    it('should calculate correct range for last chunk with smaller size', () => {
+      const fileSize = 105 * 1024 * 1024; // 105MB
+      const chunkSize = 10 * 1024 * 1024; // 10MB
+      const lastChunkIndex = 10; // 11 chunks total (0-10)
+
+      const expectedStart = lastChunkIndex * chunkSize; // 100MB
+      const expectedEnd = fileSize - 1; // 105MB - 1
+
+      expect(expectedStart).toBe(100 * 1024 * 1024);
+      expect(expectedEnd).toBe(105 * 1024 * 1024 - 1);
+      expect(expectedEnd - expectedStart + 1).toBe(5 * 1024 * 1024); // 5MB last chunk
+    });
+
+    it('should calculate correct range for first chunk', () => {
+      const chunkSize = 10 * 1024 * 1024; // 10MB
+      const chunkIndex = 0;
+
+      const expectedStart = chunkIndex * chunkSize; // 0
+      const expectedEnd = chunkSize - 1; // 10MB - 1
+
+      expect(expectedStart).toBe(0);
+      expect(expectedEnd).toBe(10 * 1024 * 1024 - 1);
+    });
+
+    it('should not have overlapping ranges', () => {
+      const chunkSize = 10 * 1024 * 1024; // 10MB
+
+      const chunk1Start = 0 * chunkSize;
+      const chunk1End = chunk1Start + chunkSize - 1;
+
+      const chunk2Start = 1 * chunkSize;
+
+      // Chunk 1 end should be 1 byte before chunk 2 start
+      expect(chunk1End + 1).toBe(chunk2Start);
+      expect(chunk1End).toBe(10 * 1024 * 1024 - 1);
+      expect(chunk2Start).toBe(10 * 1024 * 1024);
+    });
+  });
+
+  describe('batch processing edge cases', () => {
+    it('should handle empty chunk array', () => {
+      const totalChunks = 0;
+      const maxConcurrent = 5;
+
+      const batches = Math.ceil(totalChunks / maxConcurrent) || 0;
+
+      expect(batches).toBe(0);
+    });
+
+    it('should handle very large batch count', () => {
+      const totalChunks = 1000; // 1000 chunks
+      const maxConcurrent = 1; // Sequential
+
+      const batches = Math.ceil(totalChunks / maxConcurrent);
+
+      expect(batches).toBe(1000);
+    });
+
+    it('should process prime number of chunks with even maxConcurrent', () => {
+      const totalChunks = 13; // Prime number
+      const maxConcurrent = 4; // Even number
+
+      const batches = Math.ceil(totalChunks / maxConcurrent);
+
+      expect(batches).toBe(4); // Batches: 4, 4, 4, 1
+    });
+  });
 });

@@ -306,4 +306,408 @@ describe('createCompressedConnectConfig', () => {
     expect(compressedConfig.algorithms.cipher).toEqual(['aes128-ctr']);
     expect(compressedConfig.algorithms.compress).toEqual(['zlib@openssh.com', 'zlib']);
   });
+
+  describe('Edge Cases', () => {
+    it('should handle config with minimal required fields only', () => {
+      const minimalConfig = {
+        host: 'test.com'
+      };
+
+      const result = createCompressedConnectConfig(minimalConfig as any);
+
+      expect(result.compress).toBe(true);
+      expect(result.algorithms.compress).toEqual(['zlib@openssh.com', 'zlib']);
+    });
+
+    it('should handle config with existing compress algorithms', () => {
+      const config = {
+        host: 'test.com',
+        algorithms: {
+          compress: ['none']
+        }
+      };
+
+      const result = createCompressedConnectConfig(config);
+
+      expect(result.algorithms.compress).toEqual(['zlib@openssh.com', 'zlib']);
+    });
+
+    it('should handle config with all SSH options', () => {
+      const fullConfig = {
+        host: 'example.com',
+        port: 2222,
+        username: 'admin',
+        password: 'pass',
+        privateKey: 'key',
+        passphrase: 'phrase',
+        readyTimeout: 60000,
+        keepaliveInterval: 10000,
+        algorithms: {
+          cipher: ['aes256-ctr'],
+          kex: ['diffie-hellman-group14-sha1']
+        }
+      };
+
+      const result = createCompressedConnectConfig(fullConfig);
+
+      expect(result.compress).toBe(true);
+      expect(result.algorithms.compress).toEqual(['zlib@openssh.com', 'zlib']);
+      expect(result.host).toBe('example.com');
+      expect(result.port).toBe(2222);
+      expect(result.username).toBe('admin');
+    });
+  });
+});
+
+// Additional edge case tests for CompressionManager
+describe('CompressionManager - Additional Edge Cases', () => {
+  let tempDir: string;
+  let testFile: string;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'compression-edge-test-'));
+    testFile = path.join(tempDir, 'test.log');
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  describe('shouldCompressFile - Extended Edge Cases', () => {
+    it('should handle zero-size files', () => {
+      const result = CompressionManager.shouldCompressFile('test.log', 0);
+      expect(result).toBe(false);
+    });
+
+    it('should handle extremely large files', () => {
+      const result = CompressionManager.shouldCompressFile('test.log', 10 * 1024 * 1024 * 1024); // 10GB
+      expect(result).toBe(true);
+    });
+
+    it('should handle filenames with multiple dots', () => {
+      const result = CompressionManager.shouldCompressFile('test.file.name.log', 60 * 1024 * 1024);
+      expect(result).toBe(true);
+    });
+
+    it('should handle filenames starting with dot', () => {
+      const result = CompressionManager.shouldCompressFile('.hidden.log', 60 * 1024 * 1024);
+      expect(result).toBe(true);
+    });
+
+    it('should handle uppercase extensions', () => {
+      const extensions = ['.TXT', '.LOG', '.JSON', '.XML'];
+      const fileSize = 60 * 1024 * 1024;
+
+      extensions.forEach(ext => {
+        const result = CompressionManager.shouldCompressFile(`test${ext}`, fileSize);
+        expect(result).toBe(true);
+      });
+    });
+
+    it('should handle mixed case extensions', () => {
+      const result = CompressionManager.shouldCompressFile('test.JsOn', 60 * 1024 * 1024);
+      expect(result).toBe(true);
+    });
+
+    it('should handle file paths with directories', () => {
+      const result = CompressionManager.shouldCompressFile('/path/to/file/test.log', 60 * 1024 * 1024);
+      expect(result).toBe(true);
+    });
+
+    it('should handle Windows-style paths', () => {
+      const result = CompressionManager.shouldCompressFile(String.raw`C:\path\to\file\test.log`, 60 * 1024 * 1024);
+      expect(result).toBe(true);
+    });
+
+    it('should reject image files regardless of size', () => {
+      const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+      const largeSize = 1024 * 1024 * 1024; // 1GB
+
+      imageExts.forEach(ext => {
+        const result = CompressionManager.shouldCompressFile(`image${ext}`, largeSize);
+        expect(result).toBe(false);
+      });
+    });
+
+    it('should reject already compressed files', () => {
+      const compressedExts = ['.gz', '.zip', '.7z', '.rar', '.bz2', '.xz'];
+      const largeSize = 1024 * 1024 * 1024;
+
+      compressedExts.forEach(ext => {
+        const result = CompressionManager.shouldCompressFile(`archive${ext}`, largeSize);
+        expect(result).toBe(false);
+      });
+    });
+
+    it('should handle code file extensions', () => {
+      const codeExts = ['.py', '.java', '.cpp', '.c', '.h'];
+      const fileSize = 60 * 1024 * 1024;
+
+      codeExts.forEach(ext => {
+        const result = CompressionManager.shouldCompressFile(`code${ext}`, fileSize);
+        expect(result).toBe(true);
+      });
+    });
+
+    it('should handle source files with numbers in extension', () => {
+      const result = CompressionManager.shouldCompressFile('test.c', 60 * 1024 * 1024);
+      expect(result).toBe(true);
+    });
+
+    it('should handle Markdown and documentation files', () => {
+      const docExts = ['.md', '.yml', '.yaml', '.xml'];
+      const fileSize = 60 * 1024 * 1024;
+
+      docExts.forEach(ext => {
+        const result = CompressionManager.shouldCompressFile(`doc${ext}`, fileSize);
+        expect(result).toBe(true);
+      });
+    });
+
+    it('should handle exactly one byte over threshold', () => {
+      const result = CompressionManager.shouldCompressFile('test.log', 50 * 1024 * 1024 + 1);
+      expect(result).toBe(true);
+    });
+
+    it('should reject non-compressible files even if large', () => {
+      const result = CompressionManager.shouldCompressFile('test.mp4', 5 * 1024 * 1024 * 1024); // 5GB
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('compressFile - Extended Edge Cases', () => {
+    it('should handle empty files', async () => {
+      fs.writeFileSync(testFile, '');
+
+      const compressedPath = await CompressionManager.compressFile(testFile);
+
+      expect(fs.existsSync(compressedPath)).toBe(true);
+      expect(compressedPath).toBe(`${testFile}.gz`);
+
+      // Cleanup
+      fs.unlinkSync(compressedPath);
+    });
+
+    it('should handle files with single character', async () => {
+      fs.writeFileSync(testFile, 'x');
+
+      const compressedPath = await CompressionManager.compressFile(testFile);
+
+      expect(fs.existsSync(compressedPath)).toBe(true);
+
+      // Cleanup
+      fs.unlinkSync(compressedPath);
+    });
+
+    it('should handle files with special characters in content', async () => {
+      const specialContent = '!@#$%^&*()_+-=[]{}|;:\'",.<>?/\n\t\r';
+      fs.writeFileSync(testFile, specialContent.repeat(1000));
+
+      const compressedPath = await CompressionManager.compressFile(testFile);
+
+      expect(fs.existsSync(compressedPath)).toBe(true);
+
+      // Cleanup
+      fs.unlinkSync(compressedPath);
+    });
+
+    it('should handle files with Unicode content', async () => {
+      const unicodeContent = '你好世界🌍こんにちは世界\n'.repeat(1000);
+      fs.writeFileSync(testFile, unicodeContent, 'utf8');
+
+      const compressedPath = await CompressionManager.compressFile(testFile);
+
+      expect(fs.existsSync(compressedPath)).toBe(true);
+
+      // Cleanup
+      fs.unlinkSync(compressedPath);
+    });
+
+    it('should handle binary content', async () => {
+      const binaryData = Buffer.alloc(10000);
+      for (let i = 0; i < binaryData.length; i++) {
+        binaryData[i] = i % 256;
+      }
+      fs.writeFileSync(testFile, binaryData);
+
+      const compressedPath = await CompressionManager.compressFile(testFile);
+
+      expect(fs.existsSync(compressedPath)).toBe(true);
+
+      // Cleanup
+      fs.unlinkSync(compressedPath);
+    });
+  });
+
+  describe('decompressRemoteFile - Extended Edge Cases', () => {
+    it('should handle paths with spaces', async () => {
+      const mockClient = {
+        exec: vi.fn((cmd, callback) => {
+          expect(cmd).toContain('gunzip');
+          expect(cmd).toContain('/remote/path with spaces/file.log.gz');
+
+          const mockStream = {
+            on: vi.fn((event, handler) => {
+              if (event === 'close') {
+                setTimeout(() => handler(0), 10);
+              }
+              return mockStream;
+            }),
+            stderr: {
+              on: vi.fn(() => mockStream)
+            }
+          };
+          callback(null, mockStream);
+        })
+      } as any;
+
+      await CompressionManager.decompressRemoteFile(mockClient, '/remote/path with spaces/file.log');
+      expect(mockClient.exec).toHaveBeenCalled();
+    });
+
+    it('should handle paths with special characters', async () => {
+      const mockClient = {
+        exec: vi.fn((cmd, callback) => {
+          expect(cmd).toContain('gunzip');
+
+          const mockStream = {
+            on: vi.fn((event, handler) => {
+              if (event === 'close') {
+                setTimeout(() => handler(0), 10);
+              }
+              return mockStream;
+            }),
+            stderr: {
+              on: vi.fn(() => mockStream)
+            }
+          };
+          callback(null, mockStream);
+        })
+      } as any;
+
+      await CompressionManager.decompressRemoteFile(mockClient, '/remote/file@#$%.log');
+      expect(mockClient.exec).toHaveBeenCalled();
+    });
+
+    it('should handle very long paths', async () => {
+      const longPath = '/remote/' + 'very/long/'.repeat(20) + 'path/file.log';
+      const mockClient = {
+        exec: vi.fn((cmd, callback) => {
+          const mockStream = {
+            on: vi.fn((event, handler) => {
+              if (event === 'close') {
+                setTimeout(() => handler(0), 10);
+              }
+              return mockStream;
+            }),
+            stderr: {
+              on: vi.fn(() => mockStream)
+            }
+          };
+          callback(null, mockStream);
+        })
+      } as any;
+
+      await CompressionManager.decompressRemoteFile(mockClient, longPath);
+      expect(mockClient.exec).toHaveBeenCalled();
+    });
+
+    it('should collect stderr output on failure', async () => {
+      const mockClient = {
+        exec: vi.fn((cmd, callback) => {
+          const mockStream = {
+            on: vi.fn((event, handler) => {
+              if (event === 'close') {
+                setTimeout(() => handler(1), 20);
+              }
+              return mockStream;
+            }),
+            stderr: {
+              on: vi.fn((event, handler) => {
+                if (event === 'data') {
+                  setTimeout(() => {
+                    handler(Buffer.from('Error part 1\n'));
+                    handler(Buffer.from('Error part 2\n'));
+                  }, 5);
+                }
+                return mockStream;
+              })
+            }
+          };
+          callback(null, mockStream);
+        })
+      } as any;
+
+      await expect(
+        CompressionManager.decompressRemoteFile(mockClient, '/remote/test.log')
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('checkRemoteGunzip - Extended Edge Cases', () => {
+    it('should handle gunzip path with newlines', async () => {
+      const mockClient = {
+        exec: vi.fn((cmd, callback) => {
+          const mockStream = {
+            on: vi.fn((event, handler) => {
+              if (event === 'data') {
+                setTimeout(() => handler(Buffer.from('/usr/bin/gunzip\n\n')), 5);
+              } else if (event === 'close') {
+                setTimeout(() => handler(0), 10);
+              }
+              return mockStream;
+            })
+          };
+          callback(null, mockStream);
+        })
+      } as any;
+
+      const result = await CompressionManager.checkRemoteGunzip(mockClient);
+      expect(result).toBe(true);
+    });
+
+    it('should return false for empty output even with zero exit code', async () => {
+      const mockClient = {
+        exec: vi.fn((cmd, callback) => {
+          const mockStream = {
+            on: vi.fn((event, handler) => {
+              if (event === 'data') {
+                setTimeout(() => handler(Buffer.from('')), 5);
+              } else if (event === 'close') {
+                setTimeout(() => handler(0), 10);
+              }
+              return mockStream;
+            })
+          };
+          callback(null, mockStream);
+        })
+      } as any;
+
+      const result = await CompressionManager.checkRemoteGunzip(mockClient);
+      expect(result).toBe(false);
+    });
+
+    it('should return false for whitespace-only output', async () => {
+      const mockClient = {
+        exec: vi.fn((cmd, callback) => {
+          const mockStream = {
+            on: vi.fn((event, handler) => {
+              if (event === 'data') {
+                setTimeout(() => handler(Buffer.from('   \n  \t  ')), 5);
+              } else if (event === 'close') {
+                setTimeout(() => handler(0), 10);
+              }
+              return mockStream;
+            })
+          };
+          callback(null, mockStream);
+        })
+      } as any;
+
+      const result = await CompressionManager.checkRemoteGunzip(mockClient);
+      expect(result).toBe(false);
+    });
+  });
 });

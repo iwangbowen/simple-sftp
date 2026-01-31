@@ -290,5 +290,42 @@ describe('SshConnectionPool', () => {
         pool.releaseConnection(mockConfig);
       }).not.toThrow();
     });
+
+    it('should handle getPoolStatus called multiple times', () => {
+      const status1 = pool.getPoolStatus();
+      const status2 = pool.getPoolStatus();
+
+      expect(status1.totalConnections).toBe(status2.totalConnections);
+      expect(status1.idleConnections).toBe(status2.idleConnections);
+    });
+
+    it('should handle pool operations with empty config values', () => {
+      const emptyConfig: HostConfig = {
+        id: '',
+        name: '',
+        host: '',
+        port: 22,
+        username: ''
+      };
+
+      expect(() => {
+        pool.releaseConnection(emptyConfig);
+        pool.closeConnection(emptyConfig);
+      }).not.toThrow();
+    });
+
+    it('should maintain consistent state after multiple operations', () => {
+      pool.closeAll();
+      const initialStatus = pool.getPoolStatus();
+
+      pool.releaseConnection(mockConfig);
+      pool.closeConnection(mockConfig);
+      pool.closeAll();
+
+      const finalStatus = pool.getPoolStatus();
+
+      expect(initialStatus.totalConnections).toBe(finalStatus.totalConnections);
+      expect(initialStatus.idleConnections).toBe(finalStatus.idleConnections);
+    });
   });
 });

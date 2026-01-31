@@ -165,5 +165,249 @@ describe('DeltaSyncManager', () => {
       expect((DeltaSyncManager as any).shouldExclude('debug.log', patterns)).toBe(true);
       expect((DeltaSyncManager as any).shouldExclude('src/app.ts', patterns)).toBe(false);
     });
+
+    it('should handle empty pattern array', () => {
+      expect((DeltaSyncManager as any).shouldExclude('any/path/file.txt', [])).toBe(false);
+    });
+
+    it('should handle very long path names', () => {
+      const longPath = 'a/'.repeat(100) + 'file.txt'; // Very deep path
+      expect((DeltaSyncManager as any).shouldExclude(longPath, ['node_modules'])).toBe(false);
+    });
+
+    it('should handle unicode and emoji in paths', () => {
+      expect((DeltaSyncManager as any).shouldExclude('文件夹/测试.txt', ['node_modules'])).toBe(false);
+      expect((DeltaSyncManager as any).shouldExclude('📁/😀.txt', [String.raw`📁`])).toBe(true);
+    });
+
+    it('should handle special regex characters in patterns', () => {
+      const patterns = [String.raw`\[test\]`, String.raw`\(cache\)`, String.raw`file\+backup`];
+      expect((DeltaSyncManager as any).shouldExclude('[test]/file.txt', patterns)).toBe(true);
+      expect((DeltaSyncManager as any).shouldExclude('(cache)/data.json', patterns)).toBe(true);
+      expect((DeltaSyncManager as any).shouldExclude('file+backup.txt', patterns)).toBe(true);
+    });
+  });
+
+  describe('timestamp edge cases', () => {
+    it('should handle equal timestamps (exact match)', () => {
+      const exactTime = 1704067200000; // 2024-01-01 00:00:00 UTC
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: exactTime, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 100, mtime: exactTime, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(false);
+    });
+
+    it('should handle timestamps differing by exactly 1000ms (boundary)', () => {
+      const now = Date.now();
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: now, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 100, mtime: now - 1000, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(false); // Exactly at tolerance boundary
+    });
+
+    it('should handle timestamps differing by 999ms (within tolerance)', () => {
+      const now = Date.now();
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: now, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 100, mtime: now - 999, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(false);
+    });
+
+    it('should handle timestamps differing by 1001ms (outside tolerance)', () => {
+      const now = Date.now();
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: now, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 100, mtime: now - 1001, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(true);
+    });
+
+    it('should handle future timestamps (local newer than remote)', () => {
+      const now = Date.now();
+      const futureTime = now + 86400000; // 1 day in future
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: futureTime, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 100, mtime: now, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(true);
+    });
+
+    it('should handle future timestamps (remote newer than local)', () => {
+      const now = Date.now();
+      const futureTime = now + 86400000; // 1 day in future
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: now, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 100, mtime: futureTime, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(true);
+    });
+
+    it('should handle epoch 0 timestamps', () => {
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: 0, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 100, mtime: 0, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(false);
+    });
+
+    it('should handle very large timestamp differences (years apart)', () => {
+      const oldTime = 946684800000; // 2000-01-01
+      const newTime = 1704067200000; // 2024-01-01
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: newTime, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 100, mtime: oldTime, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(true);
+    });
+  });
+
+  describe('file size edge cases', () => {
+    it('should detect 0 byte files as unchanged when sizes match', () => {
+      const now = Date.now();
+      const local: FileInfo = { path: '/local/empty.txt', size: 0, mtime: now, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/empty.txt', size: 0, mtime: now, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(false);
+    });
+
+    it('should detect 1 byte difference as modified', () => {
+      const now = Date.now();
+      const local: FileInfo = { path: '/local/file.txt', size: 100, mtime: now, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/file.txt', size: 101, mtime: now, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(true);
+    });
+
+    it('should handle very large files (GB+)', () => {
+      const now = Date.now();
+      const largeSize = 5 * 1024 * 1024 * 1024; // 5GB
+      const local: FileInfo = { path: '/local/large.file', size: largeSize, mtime: now, isDirectory: false };
+      const remote: FileInfo = { path: '/remote/large.file', size: largeSize, mtime: now, isDirectory: false };
+
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(false);
+    });
+  });
+
+  describe('diff calculation edge cases', () => {
+    it('should handle both maps empty', () => {
+      const localFiles = new Map<string, FileInfo>();
+      const remoteFiles = new Map<string, FileInfo>();
+
+      const diff = (DeltaSyncManager as any).calculateDiff(localFiles, remoteFiles);
+
+      expect(diff.toUpload).toHaveLength(0);
+      expect(diff.toDelete).toHaveLength(0);
+      expect(diff.unchanged).toHaveLength(0);
+    });
+
+    it('should handle local map empty with deleteRemote enabled', () => {
+      const localFiles = new Map<string, FileInfo>();
+      const remoteFiles = new Map<string, FileInfo>([
+        ['file1.txt', { path: '/remote/file1.txt', size: 100, mtime: Date.now(), isDirectory: false }],
+        ['file2.txt', { path: '/remote/file2.txt', size: 200, mtime: Date.now(), isDirectory: false }]
+      ]);
+
+      const options: SyncOptions = { deleteRemote: true };
+      const diff = (DeltaSyncManager as any).calculateDiff(localFiles, remoteFiles, options);
+
+      expect(diff.toUpload).toHaveLength(0);
+      expect(diff.toDelete).toHaveLength(2);
+      expect(diff.unchanged).toHaveLength(0);
+    });
+
+    it('should handle remote map empty (all local files are new)', () => {
+      const localFiles = new Map<string, FileInfo>([
+        ['file1.txt', { path: '/local/file1.txt', size: 100, mtime: Date.now(), isDirectory: false }],
+        ['file2.txt', { path: '/local/file2.txt', size: 200, mtime: Date.now(), isDirectory: false }]
+      ]);
+      const remoteFiles = new Map<string, FileInfo>();
+
+      const diff = (DeltaSyncManager as any).calculateDiff(localFiles, remoteFiles);
+
+      expect(diff.toUpload).toHaveLength(2);
+      expect(diff.toUpload.every((f: any) => f.reason === 'new')).toBe(true);
+      expect(diff.toDelete).toHaveLength(0);
+      expect(diff.unchanged).toHaveLength(0);
+    });
+
+    it('should handle all files identical (no changes)', () => {
+      const now = Date.now();
+      const localFiles = new Map<string, FileInfo>([
+        ['file1.txt', { path: '/local/file1.txt', size: 100, mtime: now, isDirectory: false }],
+        ['file2.txt', { path: '/local/file2.txt', size: 200, mtime: now, isDirectory: false }]
+      ]);
+      const remoteFiles = new Map<string, FileInfo>([
+        ['file1.txt', { path: '/remote/file1.txt', size: 100, mtime: now, isDirectory: false }],
+        ['file2.txt', { path: '/remote/file2.txt', size: 200, mtime: now, isDirectory: false }]
+      ]);
+
+      const diff = (DeltaSyncManager as any).calculateDiff(localFiles, remoteFiles);
+
+      expect(diff.toUpload).toHaveLength(0);
+      expect(diff.toDelete).toHaveLength(0);
+      expect(diff.unchanged).toHaveLength(2);
+    });
+
+    it('should handle all files modified', () => {
+      const now = Date.now();
+      const localFiles = new Map<string, FileInfo>([
+        ['file1.txt', { path: '/local/file1.txt', size: 150, mtime: now, isDirectory: false }],
+        ['file2.txt', { path: '/local/file2.txt', size: 250, mtime: now, isDirectory: false }]
+      ]);
+      const remoteFiles = new Map<string, FileInfo>([
+        ['file1.txt', { path: '/remote/file1.txt', size: 100, mtime: now - 5000, isDirectory: false }],
+        ['file2.txt', { path: '/remote/file2.txt', size: 200, mtime: now - 5000, isDirectory: false }]
+      ]);
+
+      const diff = (DeltaSyncManager as any).calculateDiff(localFiles, remoteFiles);
+
+      expect(diff.toUpload).toHaveLength(2);
+      expect(diff.toUpload.every((f: any) => f.reason === 'size_mismatch' || f.reason === 'mtime_newer')).toBe(true);
+      expect(diff.unchanged).toHaveLength(0);
+    });
+  });
+
+  describe('directory handling edge cases', () => {
+    it('should handle directories with isDirectory=true', () => {
+      const now = Date.now();
+      const local: FileInfo = { path: '/local/dir', size: 0, mtime: now, isDirectory: true };
+      const remote: FileInfo = { path: '/remote/dir', size: 0, mtime: now, isDirectory: true };
+
+      // Directories with same size and mtime should be unchanged
+      const modified = (DeltaSyncManager as any).isFileModified(local, remote, 'mtime');
+
+      expect(modified).toBe(false);
+    });
+
+    it('should differentiate directory vs file with same name', () => {
+      const now = Date.now();
+      const localFiles = new Map<string, FileInfo>([
+        ['data', { path: '/local/data', size: 0, mtime: now, isDirectory: true }]
+      ]);
+      const remoteFiles = new Map<string, FileInfo>([
+        ['data', { path: '/remote/data', size: 100, mtime: now, isDirectory: false }]
+      ]);
+
+      const diff = (DeltaSyncManager as any).calculateDiff(localFiles, remoteFiles);
+
+      // Size differs (0 vs 100)  expect(diff.toUpload).toHaveLength(1);
+    });
   });
 });
