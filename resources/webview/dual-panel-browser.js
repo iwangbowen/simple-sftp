@@ -59,6 +59,10 @@
         document.getElementById('refresh-local')?.addEventListener('click', () => refreshPanel('local'));
         document.getElementById('refresh-remote')?.addEventListener('click', () => refreshPanel('remote'));
 
+        // Maximize panel buttons
+        document.getElementById('maximize-local')?.addEventListener('click', () => togglePanelMaximize('local'));
+        document.getElementById('maximize-remote')?.addEventListener('click', () => togglePanelMaximize('remote'));
+
         // Note: New folder, upload, and download buttons are now in the "More" dropdown menu
         // Their event handlers are in setupLocalMoreDropdown() and setupMoreDropdown()
 
@@ -1166,6 +1170,65 @@
      * Refresh panel content
      * @param {string} panel - 'local' | 'remote'
      */
+    /**
+     * Toggle panel maximize/restore state
+     */
+    let maximizedPanel = null; // Track which panel is maximized: 'local', 'remote', or null
+
+    function togglePanelMaximize(panel) {
+        const localPanel = document.querySelector('.local-panel');
+        const remotePanel = document.querySelector('.remote-panel');
+        const resizer = document.getElementById('resizer');
+        const localMaxBtn = document.getElementById('maximize-local');
+        const remoteMaxBtn = document.getElementById('maximize-remote');
+
+        if (!localPanel || !remotePanel || !resizer || !localMaxBtn || !remoteMaxBtn) {
+            return;
+        }
+
+        // If clicking the already maximized panel, restore to normal
+        if (maximizedPanel === panel) {
+            // Restore normal layout
+            localPanel.style.flex = '1';
+            localPanel.style.display = 'flex';
+            remotePanel.style.flex = '1';
+            remotePanel.style.display = 'flex';
+            resizer.style.display = 'flex';
+
+            // Update button icons to "maximize"
+            localMaxBtn.querySelector('.codicon').className = 'codicon codicon-screen-full';
+            remoteMaxBtn.querySelector('.codicon').className = 'codicon codicon-screen-full';
+            localMaxBtn.title = 'Maximize Panel';
+            remoteMaxBtn.title = 'Maximize Panel';
+
+            maximizedPanel = null;
+        } else {
+            // Maximize the selected panel
+            if (panel === 'local') {
+                localPanel.style.flex = '1';
+                localPanel.style.display = 'flex';
+                remotePanel.style.flex = '0';
+                remotePanel.style.display = 'none';
+                localMaxBtn.querySelector('.codicon').className = 'codicon codicon-screen-normal';
+                localMaxBtn.title = 'Restore Panel';
+                remoteMaxBtn.querySelector('.codicon').className = 'codicon codicon-screen-full';
+                remoteMaxBtn.title = 'Maximize Panel';
+            } else {
+                remotePanel.style.flex = '1';
+                remotePanel.style.display = 'flex';
+                localPanel.style.flex = '0';
+                localPanel.style.display = 'none';
+                remoteMaxBtn.querySelector('.codicon').className = 'codicon codicon-screen-normal';
+                remoteMaxBtn.title = 'Restore Panel';
+                localMaxBtn.querySelector('.codicon').className = 'codicon codicon-screen-full';
+                localMaxBtn.title = 'Maximize Panel';
+            }
+
+            resizer.style.display = 'none';
+            maximizedPanel = panel;
+        }
+    }
+
     function refreshPanel(panel) {
         // 延迟显示加载状态(500ms后才显示,避免快速加载时的闪烁)
         scheduleLoading(panel);
