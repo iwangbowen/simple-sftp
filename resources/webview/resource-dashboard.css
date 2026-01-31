@@ -282,6 +282,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    transition: opacity 0.15s ease-in-out;
 }
 
 .disk-item {
@@ -323,6 +324,12 @@ body {
     font-family: var(--vscode-editor-font-family);
     table-layout: auto;
     min-width: 600px; /* Minimum width to prevent squashing */
+}
+
+.process-table tbody,
+.network-table tbody,
+.io-table tbody {
+    transition: opacity 0.15s ease-in-out;
 }
 
 .process-table thead,
@@ -376,6 +383,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    transition: opacity 0.15s ease-in-out;
 }
 
 .disk-item-summary {

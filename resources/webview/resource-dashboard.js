@@ -154,9 +154,14 @@
 
   function handleLoading(isLoading) {
     if (isLoading) {
-      loadingState.style.display = 'flex';
-      errorState.style.display = 'none';
-      contentState.style.display = 'none';
+      // Only show loading state if content is not yet displayed (first load)
+      // This prevents flashing during auto-refresh
+      const isFirstLoad = contentState.style.display === 'none';
+      if (isFirstLoad) {
+        loadingState.style.display = 'flex';
+        errorState.style.display = 'none';
+        contentState.style.display = 'none';
+      }
       refreshBtn.disabled = true;
     } else {
       loadingState.style.display = 'none';
@@ -212,19 +217,26 @@
       return;
     }
 
-    processList.innerHTML = '';
+    // Smooth update: fade out, update, fade in
+    processList.style.opacity = '0.4';
 
-    processes.forEach(proc => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${proc.pid}</td>
-        <td>${proc.user}</td>
-        <td>${proc.cpu}%</td>
-        <td>${proc.mem}%</td>
-        <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(proc.command)}</td>
-      `;
-      processList.appendChild(row);
-    });
+    setTimeout(() => {
+      processList.innerHTML = '';
+
+      processes.forEach(proc => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${proc.pid}</td>
+          <td>${proc.user}</td>
+          <td>${proc.cpu}%</td>
+          <td>${proc.mem}%</td>
+          <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(proc.command)}</td>
+        `;
+        processList.appendChild(row);
+      });
+
+      processList.style.opacity = '1';
+    }, 100);
   }
 
   function handleNetworkData(interfaces) {
@@ -240,19 +252,26 @@
       return;
     }
 
-    networkList.innerHTML = '';
+    // Smooth update: fade out, update, fade in
+    networkList.style.opacity = '0.4';
 
-    interfaces.forEach(iface => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${iface.name}</td>
-        <td>${formatBytesSize(iface.rxBytes)}</td>
-        <td>${formatBytesSize(iface.txBytes)}</td>
-        <td>${iface.rxRate ? formatRate(iface.rxRate) : 'N/A'}</td>
-        <td>${iface.txRate ? formatRate(iface.txRate) : 'N/A'}</td>
-      `;
-      networkList.appendChild(row);
-    });
+    setTimeout(() => {
+      networkList.innerHTML = '';
+
+      interfaces.forEach(iface => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${iface.name}</td>
+          <td>${formatBytesSize(iface.rxBytes)}</td>
+          <td>${formatBytesSize(iface.txBytes)}</td>
+          <td>${iface.rxRate ? formatRate(iface.rxRate) : 'N/A'}</td>
+          <td>${iface.txRate ? formatRate(iface.txRate) : 'N/A'}</td>
+        `;
+        networkList.appendChild(row);
+      });
+
+      networkList.style.opacity = '1';
+    }, 100);
   }
 
   function handleIOData(devices) {
@@ -268,18 +287,25 @@
       return;
     }
 
-    ioList.innerHTML = '';
+    // Smooth update: fade out, update, fade in
+    ioList.style.opacity = '0.4';
 
-    devices.forEach(device => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${device.device}</td>
-        <td>${formatKBps(device.readKBps)} KB/s</td>
-        <td>${formatKBps(device.writeKBps)} KB/s</td>
-        <td>${device.utilization.toFixed(1)}%</td>
-      `;
-      ioList.appendChild(row);
-    });
+    setTimeout(() => {
+      ioList.innerHTML = '';
+
+      devices.forEach(device => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${device.device}</td>
+          <td>${formatKBps(device.readKBps)} KB/s</td>
+          <td>${formatKBps(device.writeKBps)} KB/s</td>
+          <td>${device.utilization.toFixed(1)}%</td>
+        `;
+        ioList.appendChild(row);
+      });
+
+      ioList.style.opacity = '1';
+    }, 100);
   }
 
   function handleDiskData(disks) {
@@ -299,31 +325,38 @@
       return;
     }
 
-    diskSummary.innerHTML = '';
+    // Smooth update: fade out, update, fade in
+    diskSummary.style.opacity = '0.4';
 
-    disks.forEach((disk) => {
-      const diskItem = document.createElement('div');
-      diskItem.className = 'disk-item-summary';
-      diskItem.innerHTML = `
-        <div class="info-item">
-          <span class="info-label">Mountpoint</span>
-          <span class="info-value">${disk.mountpoint}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Usage</span>
-          <span class="info-value">${disk.usage.toFixed(1)}%</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Total</span>
-          <span class="info-value">${disk.total} GB</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Available</span>
-          <span class="info-value">${disk.available} GB</span>
-        </div>
-      `;
-      diskSummary.appendChild(diskItem);
-    });
+    setTimeout(() => {
+      diskSummary.innerHTML = '';
+
+      disks.forEach((disk) => {
+        const diskItem = document.createElement('div');
+        diskItem.className = 'disk-item-summary';
+        diskItem.innerHTML = `
+          <div class="info-item">
+            <span class="info-label">Mountpoint</span>
+            <span class="info-value">${disk.mountpoint}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Usage</span>
+            <span class="info-value">${disk.usage.toFixed(1)}%</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Total</span>
+            <span class="info-value">${disk.total} GB</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Available</span>
+            <span class="info-value">${disk.available} GB</span>
+          </div>
+        `;
+        diskSummary.appendChild(diskItem);
+      });
+
+      diskSummary.style.opacity = '1';
+    }, 100);
   }
 
   function updateDiskList(disks) {
@@ -334,39 +367,46 @@
       return;
     }
 
-    diskList.innerHTML = '';
+    // Smooth update: fade out, update, fade in
+    diskList.style.opacity = '0.4';
 
-    disks.forEach((disk) => {
-      const diskItem = document.createElement('div');
-      diskItem.className = 'disk-item';
-      diskItem.innerHTML = `
-        <div class="info-item">
-          <span class="info-label">Mountpoint</span>
-          <span class="info-value">${disk.mountpoint}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Filesystem</span>
-          <span class="info-value">${disk.filesystem}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Usage</span>
-          <span class="info-value">${disk.usage.toFixed(1)}%</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Total</span>
-          <span class="info-value">${disk.total} GB</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Used</span>
-          <span class="info-value">${disk.used} GB</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Available</span>
-          <span class="info-value">${disk.available} GB</span>
-        </div>
-      `;
-      diskList.appendChild(diskItem);
-    });
+    setTimeout(() => {
+      diskList.innerHTML = '';
+
+      disks.forEach((disk) => {
+        const diskItem = document.createElement('div');
+        diskItem.className = 'disk-item';
+        diskItem.innerHTML = `
+          <div class="info-item">
+            <span class="info-label">Mountpoint</span>
+            <span class="info-value">${disk.mountpoint}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Filesystem</span>
+            <span class="info-value">${disk.filesystem}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Usage</span>
+            <span class="info-value">${disk.usage.toFixed(1)}%</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Total</span>
+            <span class="info-value">${disk.total} GB</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Used</span>
+            <span class="info-value">${disk.used} GB</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Available</span>
+            <span class="info-value">${disk.available} GB</span>
+          </div>
+        `;
+        diskList.appendChild(diskItem);
+      });
+
+      diskList.style.opacity = '1';
+    }, 100);
   }
 
   function formatBytes(mb) {
