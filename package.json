@@ -926,11 +926,6 @@
           "group": "inline@2"
         },
         {
-          "command": "simpleSftp.editHost",
-          "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "inline@3"
-        },
-        {
           "command": "simpleSftp.browseFiles",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_browse@1"
@@ -946,19 +941,24 @@
           "group": "1_host@1"
         },
         {
-          "command": "simpleSftp.duplicateHost",
+          "command": "simpleSftp.editHost",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@2"
         },
         {
-          "command": "simpleSftp.moveHostToGroup",
+          "command": "simpleSftp.duplicateHost",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@3"
         },
         {
-          "command": "simpleSftp.toggleStar",
+          "command": "simpleSftp.moveHostToGroup",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_host@4"
+        },
+        {
+          "command": "simpleSftp.toggleStar",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "1_host@5"
         },
         {
           "command": "simpleSftp.openSshTerminal",
@@ -1006,19 +1006,19 @@
           "group": "inline@1"
         },
         {
-          "command": "simpleSftp.renameBookmark",
-          "when": "view == simpleSftp.hosts && viewItem == bookmark",
-          "group": "inline@2"
-        },
-        {
           "command": "simpleSftp.browseBookmark",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "1_browse@1"
         },
         {
-          "command": "simpleSftp.editBookmarkDescription",
+          "command": "simpleSftp.renameBookmark",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "1_edit@1"
+        },
+        {
+          "command": "simpleSftp.editBookmarkDescription",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
+          "group": "1_edit@2"
         },
         {
           "command": "simpleSftp.deleteBookmark",
@@ -1063,7 +1063,7 @@
         {
           "command": "simpleSftp.editGroup",
           "when": "view == simpleSftp.hosts && viewItem == group",
-          "group": "inline@2"
+          "group": "1_edit@1"
         },
         {
           "command": "simpleSftp.exportGroup",
