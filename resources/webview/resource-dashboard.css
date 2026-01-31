@@ -249,6 +249,8 @@ body {
 
 .section-content {
     padding: 0;
+    overflow-x: auto;
+    overflow-y: visible;
 }
 
 /* Info Grid */
@@ -319,6 +321,8 @@ body {
     border-collapse: collapse;
     font-size: 12px;
     font-family: var(--vscode-editor-font-family);
+    table-layout: auto;
+    min-width: 600px; /* Minimum width to prevent squashing */
 }
 
 .process-table thead,
@@ -337,6 +341,7 @@ body {
     font-size: 11px;
     color: var(--vscode-descriptionForeground);
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .process-table td,
