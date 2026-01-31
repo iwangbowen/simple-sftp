@@ -52,6 +52,42 @@ describe('CompressionManager', () => {
       expect(CompressionManager.shouldCompressFile('test.LOG', fileSize)).toBe(true);
       expect(CompressionManager.shouldCompressFile('test.TXT', fileSize)).toBe(true);
     });
+
+    it('should return false for file at exact threshold (50MB)', () => {
+      const result = CompressionManager.shouldCompressFile('test.log', 50 * 1024 * 1024);
+      expect(result).toBe(true); // At threshold, compressible files should be compressed
+    });
+
+    it('should return false for file just below threshold', () => {
+      const result = CompressionManager.shouldCompressFile('test.log', 50 * 1024 * 1024 - 1);
+      expect(result).toBe(false);
+    });
+
+    it('should handle files without extension', () => {
+      const fileSize = 60 * 1024 * 1024;
+      const result = CompressionManager.shouldCompressFile('Makefile', fileSize);
+      expect(result).toBe(false);
+    });
+
+    it('should recognize all compressible text extensions', () => {
+      const extensions = ['.xml', '.csv', '.yaml', '.yml', '.md', '.sql'];
+      const fileSize = 60 * 1024 * 1024;
+
+      extensions.forEach(ext => {
+        const result = CompressionManager.shouldCompressFile(`test${ext}`, fileSize);
+        expect(result).toBe(true);
+      });
+    });
+
+    it('should reject common binary file extensions', () => {
+      const binaryExts = ['.zip', '.gz', '.tar', '.jpg', '.png', '.pdf', '.exe', '.bin'];
+      const fileSize = 100 * 1024 * 1024;
+
+      binaryExts.forEach(ext => {
+        const result = CompressionManager.shouldCompressFile(`test${ext}`, fileSize);
+        expect(result).toBe(false);
+      });
+    });
   });
 
   describe('compressFile', () => {

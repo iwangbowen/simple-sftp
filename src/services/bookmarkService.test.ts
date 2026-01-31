@@ -137,6 +137,82 @@ describe('BookmarkService', () => {
       expect(showErrorSpy).toHaveBeenCalled();
       expect(showErrorSpy.mock.calls[0][0]).toContain('Failed to add bookmark');
     });
+
+    it('should trim whitespace from bookmark name before adding', async () => {
+      mockAuthManager.getAuth.mockResolvedValue({ password: 'test' } as HostAuthConfig);
+      mockBrowseCallback.mockResolvedValue('/remote/path');
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('  Spaced Name  ');
+
+      const hostItem: any = {
+        type: 'host',
+        data: { id: 'host1', name: 'Test Host', host: '192.168.1.1', port: 22, username: 'user' } as HostConfig
+      };
+
+      await bookmarkService.addBookmark(hostItem);
+
+      expect(mockHostManager.addBookmark).toHaveBeenCalledWith('host1', 'Spaced Name', '/remote/path');
+    });
+
+    it('should handle paths with special characters', async () => {
+      mockAuthManager.getAuth.mockResolvedValue({ password: 'test' } as HostAuthConfig);
+      mockBrowseCallback.mockResolvedValue('/remote/path/with spaces/[brackets]/and-dashes');
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('Special Path');
+
+      const hostItem: any = {
+        type: 'host',
+        data: { id: 'host1', name: 'Test Host', host: '192.168.1.1', port: 22, username: 'user' } as HostConfig
+      };
+
+      await bookmarkService.addBookmark(hostItem);
+
+      expect(mockHostManager.addBookmark).toHaveBeenCalledWith('host1', 'Special Path', '/remote/path/with spaces/[brackets]/and-dashes');
+    });
+
+    it('should handle very long bookmark names', async () => {
+      const longName = 'A'.repeat(200);
+      mockAuthManager.getAuth.mockResolvedValue({ password: 'test' } as HostAuthConfig);
+      mockBrowseCallback.mockResolvedValue('/remote/path');
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue(longName);
+
+      const hostItem: any = {
+        type: 'host',
+        data: { id: 'host1', name: 'Test Host', host: '192.168.1.1', port: 22, username: 'user' } as HostConfig
+      };
+
+      await bookmarkService.addBookmark(hostItem);
+
+      expect(mockHostManager.addBookmark).toHaveBeenCalledWith('host1', longName, '/remote/path');
+    });
+
+    it('should handle paths with unicode characters', async () => {
+      mockAuthManager.getAuth.mockResolvedValue({ password: 'test' } as HostAuthConfig);
+      mockBrowseCallback.mockResolvedValue('/remote/项目/文件夹/日本語');
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('Unicode Path');
+
+      const hostItem: any = {
+        type: 'host',
+        data: { id: 'host1', name: 'Test Host', host: '192.168.1.1', port: 22, username: 'user' } as HostConfig
+      };
+
+      await bookmarkService.addBookmark(hostItem);
+
+      expect(mockHostManager.addBookmark).toHaveBeenCalledWith('host1', 'Unicode Path', '/remote/项目/文件夹/日本語');
+    });
+
+    it('should handle special characters in bookmark name', async () => {
+      mockAuthManager.getAuth.mockResolvedValue({ password: 'test' } as HostAuthConfig);
+      mockBrowseCallback.mockResolvedValue('/remote/path');
+      vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('Test-Bookmark_2023 (v1)');
+
+      const hostItem: any = {
+        type: 'host',
+        data: { id: 'host1', name: 'Test Host', host: '192.168.1.1', port: 22, username: 'user' } as HostConfig
+      };
+
+      await bookmarkService.addBookmark(hostItem);
+
+      expect(mockHostManager.addBookmark).toHaveBeenCalledWith('host1', 'Test-Bookmark_2023 (v1)', '/remote/path');
+    });
   });
 
   describe('deleteBookmark', () => {
@@ -484,6 +560,48 @@ describe('BookmarkService', () => {
       await bookmarkService.addBookmark({ type: 'host', data: mockHost } as any);
 
       expect(mockHostManager.addBookmark).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing data property in bookmark item', async () => {
+      const invalidItem: any = {
+        type: 'bookmark'
+        // Missing data property
+      };
+
+      await bookmarkService.deleteBookmark(invalidItem);
+
+      expect(mockHostManager.removeBookmark).not.toHaveBeenCalled();
+    });
+
+    it('should handle edit description when hostManager update fails', async () => {
+      const showErrorSpy = vi.spyOn(vscode.window, 'showErrorMessage').mockResolvedValue(undefined);
+      const bookmarkItem: any = {
+        type: 'bookmark',
+        data: { name: 'My Projects', path: '/remote/projects' },
+        hostId: 'host1'
+      };
+
+      (vscode.window.showInputBox as any).mockResolvedValue('New description');
+      mockHostManager.updateBookmark.mockRejectedValue(new Error('Update failed'));
+
+      await bookmarkService.editBookmarkDescription(bookmarkItem);
+
+      expect(showErrorSpy).toHaveBeenCalled();
+      expect(showErrorSpy.mock.calls[0][0]).toContain('Failed to update description');
+    });
+
+    it('should handle delete bookmark confirmation with unexpected response', async () => {
+      vi.spyOn(vscode.window, 'showWarningMessage').mockResolvedValue('Cancel' as any);
+
+      const bookmarkItem: any = {
+        type: 'bookmark',
+        data: { name: 'Test Bookmark', path: '/remote/path' },
+        hostId: 'host1'
+      };
+
+      await bookmarkService.deleteBookmark(bookmarkItem);
+
+      expect(mockHostManager.removeBookmark).not.toHaveBeenCalled();
     });
   });
 });

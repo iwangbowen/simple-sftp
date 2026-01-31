@@ -767,6 +767,222 @@ describe('TransferHistoryService', () => {
     it('should handle invalid JSON', async () => {
       await expect(service.importHistory('invalid json')).rejects.toThrow();
     });
+
+    it('should handle empty array import', async () => {
+      await service.importHistory('[]');
+      const history = service.getHistory();
+      expect(history).toHaveLength(0);
+    });
+
+
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle multiple tasks with same filename', async () => {
+      const task1 = new TransferTaskModel({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/path1/file.txt',
+        remotePath: '/remote1/file.txt',
+        fileName: 'file.txt',
+        fileSize: 1024
+      });
+      task1.start();
+      task1.complete();
+
+      const task2 = new TransferTaskModel({
+        type: 'download',
+        hostId: 'host2',
+        hostName: 'Host 2',
+        localPath: '/path2/file.txt',
+        remotePath: '/remote2/file.txt',
+        fileName: 'file.txt',
+        fileSize: 2048
+      });
+      task2.start();
+      task2.complete();
+
+      await service.addToHistory(task1);
+      await service.addToHistory(task2);
+
+      const results = service.searchByFileName('file.txt');
+      expect(results).toHaveLength(2);
+    });
+
+    it('should handle very long filenames', async () => {
+      const longName = 'A'.repeat(500) + '.txt';
+      const task = new TransferTaskModel({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: `/path/${longName}`,
+        remotePath: `/remote/${longName}`,
+        fileName: longName,
+        fileSize: 1024
+      });
+      task.start();
+      task.complete();
+
+      await service.addToHistory(task);
+      const results = service.searchByFileName(longName);
+      expect(results).toHaveLength(1);
+      expect(results[0].fileName).toBe(longName);
+    });
+
+    it('should handle filenames with special characters', async () => {
+      const specialName = 'test-file_[2023] (copy).txt';
+      const task = new TransferTaskModel({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: `/path/${specialName}`,
+        remotePath: `/remote/${specialName}`,
+        fileName: specialName,
+        fileSize: 1024
+      });
+      task.start();
+      task.complete();
+
+      await service.addToHistory(task);
+      const results = service.searchByFileName('[2023]');
+      expect(results).toHaveLength(1);
+    });
+
+    it('should handle unicode filenames', async () => {
+      const unicodeName = '文件名称_日본語_파일.txt';
+      const task = new TransferTaskModel({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: `/path/${unicodeName}`,
+        remotePath:`/remote/${unicodeName}`,
+        fileName: unicodeName,
+        fileSize: 1024
+      });
+      task.start();
+      task.complete();
+
+      await service.addToHistory(task);
+      const results = service.searchByFileName(unicodeName);
+      expect(results).toHaveLength(1);
+      expect(results[0].fileName).toBe(unicodeName);
+    });
+
+    it('should handle getRecentHistory with no history', () => {
+      const recent = service.getRecentHistory(10);
+      expect(recent).toHaveLength(0);
+      expect(recent).toEqual([]);
+    });
+
+    it('should handle getRecentHistory with limit larger than history size', async () => {
+      const task = new TransferTaskModel({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file.txt',
+        remotePath: '/remote.txt',
+        fileName: 'file.txt',
+        fileSize: 1024
+      });
+      task.start();
+      task.complete();
+
+      await service.addToHistory(task);
+      const recent = service.getRecentHistory(100);
+      expect(recent).toHaveLength(1);
+    });
+
+    it('should handle clearAllHistory when already empty', async () => {
+      await service.clearAllHistory();
+      const history = service.getHistory();
+      expect(history).toHaveLength(0);
+    });
+
+    it('should handle removeFromHistory for non-existent task', async () => {
+      await service.removeFromHistory('non-existent-id');
+      // Should not throw
+      const history = service.getHistory();
+      expect(history).toHaveLength(0);
+    });
+
+    it('should handle searchByFileName with empty string', () => {
+      const results = service.searchByFileName('');
+      expect(results).toHaveLength(0);
+    });
+
+    it('should handle searchByPath with empty string', () => {
+      const results = service.searchByPath('');
+      expect(results).toHaveLength(0);
+    });
+
+    it('should handle getHistoryByDateRange with invalid range (end before start)', async () => {
+      const task = new TransferTaskModel({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file.txt',
+        remotePath: '/remote.txt',
+        fileName: 'file.txt',
+        fileSize: 1024
+      });
+      task.start();
+      task.complete();
+
+      await service.addToHistory(task);
+
+      const endDate = new Date();
+      const startDate = new Date(Date.now() + 86400000); // Tomorrow
+      const results = service.getHistoryByDateRange(startDate, endDate);
+      expect(results).toHaveLength(0);
+    });
+
+    it('should handle getStatistics with empty history', () => {
+      const stats = service.getStatistics();
+      expect(stats.completed).toBe(0);
+      expect(stats.failed).toBe(0);
+      expect(stats.cancelled).toBe(0);
+      expect(stats.total).toBe(0);
+    });
+
+    it('should handle clearHistoryByHost for non-existent host', async () => {
+      const task = new TransferTaskModel({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file.txt',
+        remotePath: '/remote.txt',
+        fileName: 'file.txt',
+        fileSize: 1024
+      });
+      task.start();
+      task.complete();
+
+      await service.addToHistory(task);
+      await service.clearHistoryByHost('non-existent-host');
+
+      const history = service.getHistory();
+      expect(history).toHaveLength(1); // Task should still exist
+    });
+
+    it('should handle binary zero bytes in filename', async () => {
+      const task = new TransferTaskModel({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file.txt',
+        remotePath: '/remote.txt',
+        fileName: 'file.txt',
+        fileSize: 0
+      });
+      task.start();
+      task.complete();
+
+      await service.addToHistory(task);
+      const history = service.getHistory();
+      expect(history).toHaveLength(1);
+      expect(history[0].fileSize).toBe(0);
+    });
   });
 
   describe('dispose', () => {

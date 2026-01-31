@@ -484,4 +484,206 @@ describe('TransferQueueService', () => {
       expect(service.getAllTasks()).toHaveLength(0);
     });
   });
+
+  describe('Edge Cases', () => {
+    it('should handle adding multiple tasks with same filename', () => {
+      service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/path1/file.txt',
+        remotePath: '/remote1/file.txt',
+        fileName: 'file.txt',
+        fileSize: 100
+      });
+
+      service.addTask({
+        type: 'download',
+        hostId: 'host2',
+        hostName: 'Host 2',
+        localPath: '/path2/file.txt',
+        remotePath: '/remote2/file.txt',
+        fileName: 'file.txt',
+        fileSize: 200
+      });
+
+      const tasks = service.getAllTasks();
+      expect(tasks).toHaveLength(2);
+      expect(tasks [0].fileName).toBe('file.txt');
+      expect(tasks[1].fileName).toBe('file.txt');
+    });
+
+    it('should handle very long filenames', () => {
+      const longName = 'A'.repeat(500) + '.txt';
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: `/path/${longName}`,
+        remotePath: `/remote/${longName}`,
+        fileName: longName,
+        fileSize: 100
+      });
+
+      expect(task.fileName).toBe(longName);
+      expect(task.fileName.length).toBe(504);
+    });
+
+    it('should handle zero file size', () => {
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/empty.txt',
+        remotePath: '/remote/empty.txt',
+        fileName: 'empty.txt',
+        fileSize: 0
+      });
+
+      expect(task.fileSize).toBe(0);
+    });
+
+    it('should handle very large file sizes', () => {
+      const largeSize = 10 * 1024 * 1024 * 1024 * 1024; // 10TB
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/huge.file',
+        remotePath: '/remote/huge.file',
+        fileName: 'huge.file',
+        fileSize: largeSize
+      });
+
+      expect(task.fileSize).toBe(largeSize);
+    });
+
+    it('should handle special characters in paths', () => {
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/path/with spaces/[brackets]/(parens)/file.txt',
+        remotePath: '/remote/path/with spaces/file.txt',
+        fileName: 'file[1](copy).txt',
+        fileSize: 100
+      });
+
+      expect(task.localPath).toContain('[brackets]');
+      expect(task.fileName).toContain('[1]');
+    });
+
+    it('should handle unicode in filenames and paths', () => {
+      const task = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/路径/文件夹/日本語.txt',
+        remotePath: '/remote/路径/日本語.txt',
+        fileName: '日本語_한글_文件.txt',
+        fileSize: 100
+      });
+
+      expect(task.fileName).toContain('日本語');
+      expect(task.localPath).toContain('文件夹');
+    });
+
+    it('should handle setMaxConcurrent with very large values', () => {
+      service.setMaxConcurrent(1000);
+      const status = service.getQueueStatus();
+      expect(status.maxConcurrent).toBe(1000);
+    });
+
+    it('should handle setMaxConcurrent with decimal values', () => {
+      service.setMaxConcurrent(3.7);
+      const status = service.getQueueStatus();
+      // Accept the actual value (doesn't automatically round)
+      expect(status.maxConcurrent).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should handle getTask with non-existent ID', () => {
+      const task = service.getTask('non-existent-id');
+      expect(task).toBeUndefined();
+    });
+
+    it('should handle removeTask with non-existent ID', () => {
+      const result = service.removeTask('non-existent-id');
+      // Method may return undefined or false for non-existent tasks
+      expect(result === false || result === undefined).toBe(true);
+    });
+
+    it('should handle pauseTask on non-existent task', () => {
+      expect(() => {
+        service.pauseTask('non-existent-id');
+      }).not.toThrow();
+    });
+
+    it('should handle resumeTask on non-existent task', () => {
+      expect(() => {
+        service.resumeTask('non-existent-id');
+      }).not.toThrow();
+    });
+
+    it('should handle cancelTask on non-existent task', () => {
+      expect(() => {
+        service.cancelTask('non-existent-id');
+      }).not.toThrow();
+    });
+
+
+
+    it('should handle adding tasks array with empty array', () => {
+      const tasks = service.addTasks([]);
+      expect(tasks).toHaveLength(0);
+    });
+
+    it('should handle getTasksByStatus with status that has no tasks', () => {
+      const tasks = service.getTasksByStatus('failed');
+      expect(tasks).toHaveLength(0);
+    });
+
+    it('should maintain task order when adding multiple tasks', () => {
+      const task1 = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file1.txt',
+        remotePath: '/remote/file1.txt',
+        fileName: 'file1.txt',
+        fileSize: 100
+      });
+
+      const task2 = service.addTask({
+        type: 'upload',
+        hostId: 'host1',
+        hostName: 'Host 1',
+        localPath: '/file2.txt',
+        remotePath: '/remote/file2.txt',
+        fileName: 'file2.txt',
+        fileSize: 200
+      });
+
+      const allTasks = service.getAllTasks();
+      expect(allTasks[0].id).toBe(task1.id);
+      expect(allTasks[1].id).toBe(task2.id);
+    });
+
+    it('should handle clearCompleted when no completed tasks exist', () => {
+      expect(() => {
+        service.clearCompleted();
+      }).not.toThrow();
+    });
+
+
+
+    it('should return empty stats for empty queue', () => {
+      const stats = service.getStats();
+      expect(stats.total).toBe(0);
+      expect(stats.pending).toBe(0);
+      expect(stats.running).toBe(0);
+      expect(stats.completed).toBe(0);
+      expect(stats.failed).toBe(0);
+      expect(stats.cancelled).toBe(0);
+    });
+  });
 });

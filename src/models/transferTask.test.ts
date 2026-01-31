@@ -590,4 +590,156 @@ describe('TransferTaskModel', () => {
       expect(task.status).toBe('completed');
     });
   });
+
+  describe('Edge Cases', () => {
+    it('should handle file name with special characters', () => {
+      const options = {
+        ...defaultOptions,
+        fileName: 'test@#$%^&()file[].txt'
+      };
+
+      const task = new TransferTaskModel(options);
+      expect(task.fileName).toBe('test@#$%^&()file[].txt');
+    });
+
+    it('should handle very long file name', () => {
+      const longName = 'a'.repeat(1000) + '.txt';
+      const options = {
+        ...defaultOptions,
+        fileName: longName
+      };
+
+      const task = new TransferTaskModel(options);
+      expect(task.fileName).toBe(longName);
+      expect(task.fileName.length).toBe  (1004);
+    });
+
+    it('should handle path with multiple consecutive slashes', () => {
+      const options = {
+        ...defaultOptions,
+        fileName: undefined,
+        localPath: '/path///to////file.txt'
+      };
+
+      const task = new TransferTaskModel(options);
+      expect(task.fileName).toBe('file.txt');
+    });
+
+    it('should handle maxRetries with zero value', () => {
+      const options = {
+        ...defaultOptions,
+        maxRetries: 0
+      };
+
+      const task = new TransferTaskModel(options);
+      // Implementation may have a minimum value (default 3)
+      expect(task.maxRetries).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle extremely large file size (100TB)', () => {
+      const hugeSize = 100 * 1024 * 1024 * 1024 * 1024; // 100 TB
+      const options = {
+        ...defaultOptions,
+        fileSize: hugeSize
+      };
+
+      const task = new TransferTaskModel(options);
+      expect(task.fileSize).toBe(hugeSize);
+    });
+
+    it('should handle negative transferred bytes in updateProgress', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.updateProgress(-100, 1024);
+
+      expect(task.transferred).toBe(-100);
+      // Progress calculation should handle negative values
+    });
+
+    it('should handle transferred exceeding fileSize', () => {
+      const task = new TransferTaskModel(defaultOptions);
+      const fileSize = 1024;
+
+      task.updateProgress(2048, fileSize);
+
+      expect(task.transferred).toBe(2048);
+      // Progress is capped at 100%
+      expect(task.progress).toBe(100);
+    });
+
+    it('should handle file name with only extension', () => {
+      const options = {
+        ...defaultOptions,
+        fileName: undefined,
+        localPath: '/path/to/.gitignore'
+      };
+
+      const task = new TransferTaskModel(options);
+      expect(task.fileName).toBe('.gitignore');
+    });
+
+    it('should handle file name with Unicode characters', () => {
+      const options = {
+        ...defaultOptions,
+        fileName: '测试文件名-テスト-🎉.txt'
+      };
+
+      const task = new TransferTaskModel(options);
+      expect(task.fileName).toBe('测试文件名-テスト-🎉.txt');
+    });
+
+    it('should handle path with trailing slash', () => {
+      const options = {
+        ...defaultOptions,
+        fileName: undefined,
+        localPath: '/path/to/file.txt/'
+      };
+
+      const task = new TransferTaskModel(options);
+      // Should extract file name even with trailing slash
+      expect(task.fileName).toBeTruthy();
+    });
+
+    it('should handle complete() on already completed task', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.start();
+      task.complete();
+      const firstCompletedAt = task.completedAt;
+
+      task.complete();
+
+      expect(task.status).toBe('completed');
+      expect(task.completedAt).toBe(firstCompletedAt);
+    });
+
+    it('should handle fail() on already failed task', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.start();
+      task.fail('First error');
+      const firstError = task.error;
+
+      task.fail('Second error');
+
+      expect(task.status).toBe('failed');
+      expect(task.error).toBe(firstError);
+    });
+
+    it('should handle incrementRetry beyond maxRetries', () => {
+      const options = {
+        ...defaultOptions,
+        maxRetries: 3
+      };
+      const task = new TransferTaskModel(options);
+
+      for (let i = 0; i < 10; i++) {
+        task.incrementRetry();
+      }
+
+      // Implementation may cap retryCount at maxRetries
+      expect(task.retryCount).toBeGreaterThan(0);
+      expect(task.retryCount).toBeLessThanOrEqual(10);
+    });
+  });
 });

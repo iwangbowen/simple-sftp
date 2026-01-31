@@ -455,4 +455,145 @@ describe('AuthManager', () => {
       expect(result?.password).toBe('pass5');
     });
   });
+
+  describe('Edge Cases', () => {
+    it('should handle host ID with special characters', async () => {
+      const authConfig: HostAuthConfig = {
+        hostId: 'host@#$%^&*()[]{}',
+        authType: 'password',
+        password: 'test123'
+      };
+
+      await authManager.saveAuth(authConfig);
+      const result = await authManager.getAuth('host@#$%^&*()[]{}');
+
+      expect(result).toEqual(authConfig);
+    });
+
+    it('should handle very long host ID (1000 characters)', async () => {
+      const longHostId = 'h'.repeat(1000);
+      const authConfig: HostAuthConfig = {
+        hostId: longHostId,
+        authType: 'password',
+        password: 'test123'
+      };
+
+      await authManager.saveAuth(authConfig);
+      const result = await authManager.getAuth(longHostId);
+
+      expect(result?.hostId).toBe(longHostId);
+      expect(result?.hostId.length).toBe(1000);
+    });
+
+    it('should handle empty password string', async () => {
+      const authConfig: HostAuthConfig = {
+        hostId: 'host1',
+        authType: 'password',
+        password: ''
+      };
+
+      await authManager.saveAuth(authConfig);
+      const result = await authManager.getAuth('host1');
+
+      expect(result?.password).toBe('');
+    });
+
+    it('should handle whitespace-only password', async () => {
+      const authConfig: HostAuthConfig = {
+        hostId: 'host1',
+        authType: 'password',
+        password: '    '
+      };
+
+      await authManager.saveAuth(authConfig);
+      const result = await authManager.getAuth('host1');
+
+      expect(result?.password).toBe('    ');
+    });
+
+    it('should handle privateKey auth with very long path', async () => {
+      const longPath = '/'.repeat(500) + 'key.pem';
+      const authConfig: HostAuthConfig = {
+        hostId: 'host1',
+        authType: 'privateKey',
+        privateKeyPath: longPath
+      };
+
+      await authManager.saveAuth(authConfig);
+      const result = await authManager.getAuth('host1');
+
+      expect(result?.privateKeyPath).toBe(longPath);
+    });
+
+    it('should handle corrupted data in secrets store', async () => {
+      // Manually corrupt the secrets store
+      secretsStore.set('hostAuthConfigs', 'invalid json {]');
+
+      const result = await authManager.getAuth('host1');
+
+      // Should handle gracefully (likely returns undefined)
+      expect(result).toBeUndefined();
+    });
+
+    it('should recover from corrupted data when saving new auth', async () => {
+      // Corrupt the data first
+      secretsStore.set('hostAuthConfigs', 'invalid json');
+
+      const authConfig: HostAuthConfig = {
+        hostId: 'host1',
+        authType: 'password',
+        password: 'test123'
+      };
+
+      // Should handle the error and save successfully
+      await authManager.saveAuth(authConfig);
+
+      // Verify it was saved (might overwrite corrupted data)
+      const stored = secretsStore.get('hostAuthConfigs');
+      expect(stored).toBeTruthy();
+    });
+
+    it('should handle deleteAuth on empty store', async () => {
+      secretsStore.clear();
+
+      await authManager.deleteAuth('non-existent-host');
+
+      // Should not throw error
+      expect(true).toBe(true);
+    });
+
+    it('should handle hasAuth with corrupted data', async () => {
+      secretsStore.set('hostAuthConfigs', 'not valid json');
+
+      const result = await authManager.hasAuth('host1');
+
+      // Should return false when data is corrupted
+      expect(result).toBe(false);
+    });
+
+    it('should handle multiple hosts with same password', async () => {
+      const sharedPassword = 'shared123';
+
+      const auth1: HostAuthConfig = {
+        hostId: 'host1',
+        authType: 'password',
+        password: sharedPassword
+      };
+
+      const auth2: HostAuthConfig = {
+        hostId: 'host2',
+        authType: 'password',
+        password: sharedPassword
+      };
+
+      await authManager.saveAuth(auth1);
+      await authManager.saveAuth(auth2);
+
+      const result1 = await authManager.getAuth('host1');
+      const result2 = await authManager.getAuth('host2');
+
+      expect(result1?.password).toBe(sharedPassword);
+      expect(result2?.password).toBe(sharedPassword);
+    });
+  });
 });
