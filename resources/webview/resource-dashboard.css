@@ -136,13 +136,13 @@ body {
 .content-state {
     display: flex;
     flex-direction: column;
-    padding: 16px 40px 24px 40px;
+    padding: 12px 40px 20px 40px;
 }
 
 /* Section */
 .section {
     border-bottom: 1px solid var(--vscode-panel-border);
-    padding: 12px 0;
+    padding: 10px 0;
 }
 
 .section:last-child {
@@ -153,7 +153,7 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     font-weight: 500;
     font-size: 12px;
     color: var(--vscode-foreground);
@@ -178,7 +178,7 @@ body {
 .info-item {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .info-label {
@@ -192,58 +192,18 @@ body {
     font-family: var(--vscode-editor-font-family);
 }
 
-/* Metric Card */
-.metric-card {
-    margin-bottom: 12px;
-}
-
-.metric-card:last-child {
-    margin-bottom: 0;
-}
-
-.metric-header {
+/* Disk List */
+#diskList {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.metric-label {
-    font-size: 12px;
-    color: var(--vscode-descriptionForeground);
-}
-
-.metric-value {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--vscode-foreground);
-}
-
-/* Progress Bar */
-.progress-bar {
-    height: 6px;
-    background-color: var(--vscode-panel-border);
-    overflow: hidden;
-    margin-bottom: 8px;
-}
-
-.progress-fill {
-    height: 100%;
-    background-color: var(--vscode-progressBar-background);
-    transition: width 0.3s ease;
-}
-
-.progress-fill.warning {
-    background-color: var(--vscode-editorWarning-foreground);
-}
-
-.progress-fill.critical {
-    background-color: var(--vscode-editorError-foreground);
-}
-
-/* Disk Item */
 .disk-item {
-    padding: 8px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--vscode-editorIndentGuide-background);
 }
 
@@ -252,39 +212,16 @@ body {
     padding-bottom: 0;
 }
 
-.disk-item:first-child {
-    padding-top: 0;
-}
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .content-state {
+        padding: 12px 20px 20px 20px;
+    }
 
-.disk-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
 
-.disk-name {
-    font-size: 12px;
-    color: var(--vscode-foreground);
-    font-weight: 500;
-}
-
-.disk-path {
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family);
-}
-
-.disk-usage {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--vscode-foreground);
-}
-
-.disk-info {
-    display: flex;
-    gap: 16px;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    margin-top: 4px;
-}
+    .disk-item {
+        grid-template-columns: 1fr;
+        gap: 8px;

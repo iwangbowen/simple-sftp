@@ -17,13 +17,11 @@
 
   // CPU info elements
   const cpuUsage = document.getElementById('cpuUsage');
-  const cpuProgress = document.getElementById('cpuProgress');
   const cores = document.getElementById('cores');
   const loadAvg = document.getElementById('loadAvg');
 
   // Memory info elements
   const memoryUsage = document.getElementById('memoryUsage');
-  const memoryProgress = document.getElementById('memoryProgress');
   const memoryTotal = document.getElementById('memoryTotal');
   const memoryUsed = document.getElementById('memoryUsed');
   const memoryAvailable = document.getElementById('memoryAvailable');
@@ -93,17 +91,11 @@
 
     // Update CPU info
     cpuUsage.textContent = `${data.cpu.usage.toFixed(1)}%`;
-    cpuProgress.style.width = `${Math.min(data.cpu.usage, 100)}%`;
-    updateProgressColor(cpuProgress, data.cpu.usage);
-
     cores.textContent = data.cpu.cores;
     loadAvg.textContent = `${data.cpu.loadAvg1} / ${data.cpu.loadAvg5} / ${data.cpu.loadAvg15}`;
 
     // Update memory info
     memoryUsage.textContent = `${data.memory.usage.toFixed(1)}%`;
-    memoryProgress.style.width = `${Math.min(data.memory.usage, 100)}%`;
-    updateProgressColor(memoryProgress, data.memory.usage);
-
     memoryTotal.textContent = `${formatBytes(data.memory.total)} MB`;
     memoryUsed.textContent = `${formatBytes(data.memory.used)} MB`;
     memoryAvailable.textContent = `${formatBytes(data.memory.available)} MB`;
@@ -112,18 +104,9 @@
     updateDiskList(data.disk);
   }
 
-  function updateProgressColor(element, percentage) {
-    element.classList.remove('warning', 'critical');
-    if (percentage >= 90) {
-      element.classList.add('critical');
-    } else if (percentage >= 75) {
-      element.classList.add('warning');
-    }
-  }
-
   function updateDiskList(disks) {
     if (!disks || disks.length === 0) {
-      diskList.innerHTML = '<p style="color: var(--vscode-descriptionForeground);">No disk information available</p>';
+      diskList.innerHTML = '<p style="color: var(--vscode-descriptionForeground); font-size: 12px;">No disk information available</p>';
       return;
     }
 
@@ -132,29 +115,32 @@
     disks.forEach((disk) => {
       const diskItem = document.createElement('div');
       diskItem.className = 'disk-item';
-
       diskItem.innerHTML = `
-        <div class="disk-header">
-          <div>
-            <div class="disk-name">${disk.mountpoint}</div>
-            <div class="disk-path">${disk.filesystem}</div>
-          </div>
-          <div class="disk-usage">${disk.usage}%</div>
+        <div class="info-item">
+          <span class="info-label">Mountpoint</span>
+          <span class="info-value">${disk.mountpoint}</span>
         </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: ${Math.min(disk.usage, 100)}%"></div>
+        <div class="info-item">
+          <span class="info-label">Filesystem</span>
+          <span class="info-value">${disk.filesystem}</span>
         </div>
-        <div class="disk-info">
-          <span>Total: ${disk.total} GB</span>
-          <span>Used: ${disk.used} GB</span>
-          <span>Available: ${disk.available} GB</span>
+        <div class="info-item">
+          <span class="info-label">Usage</span>
+          <span class="info-value">${disk.usage.toFixed(1)}%</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Total</span>
+          <span class="info-value">${disk.total} GB</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Used</span>
+          <span class="info-value">${disk.used} GB</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Available</span>
+          <span class="info-value">${disk.available} GB</span>
         </div>
       `;
-
-      // Update progress color
-      const progressFill = diskItem.querySelector('.progress-fill');
-      updateProgressColor(progressFill, disk.usage);
-
       diskList.appendChild(diskItem);
     });
   }

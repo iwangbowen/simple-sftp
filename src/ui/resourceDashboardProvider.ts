@@ -216,7 +216,7 @@ export class ResourceDashboardProvider {
             <div class="section">
                 <div class="section-header">
                     <i class="codicon codicon-server"></i>
-                    <span>System Information</span>
+                    <span>System</span>
                 </div>
                 <div class="section-content">
                     <div class="info-grid">
@@ -229,7 +229,7 @@ export class ResourceDashboardProvider {
                             <span class="info-value" id="os">-</span>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">Kernel Version</span>
+                            <span class="info-label">Kernel</span>
                             <span class="info-value" id="kernel">-</span>
                         </div>
                         <div class="info-item">
@@ -244,25 +244,20 @@ export class ResourceDashboardProvider {
             <div class="section">
                 <div class="section-header">
                     <i class="codicon codicon-dashboard"></i>
-                    <span>CPU Resources</span>
+                    <span>CPU</span>
                 </div>
                 <div class="section-content">
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-label">CPU Usage</span>
-                            <span class="metric-value" id="cpuUsage">-</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="cpuProgress"></div>
-                        </div>
-                    </div>
                     <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Usage</span>
+                            <span class="info-value" id="cpuUsage">-</span>
+                        </div>
                         <div class="info-item">
                             <span class="info-label">Cores</span>
                             <span class="info-value" id="cores">-</span>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">Load Average (1/5/15 min)</span>
+                            <span class="info-label">Load (1/5/15 min)</span>
                             <span class="info-value" id="loadAvg">-</span>
                         </div>
                     </div>
@@ -273,19 +268,14 @@ export class ResourceDashboardProvider {
             <div class="section">
                 <div class="section-header">
                     <i class="codicon codicon-server-process"></i>
-                    <span>Memory Resources</span>
+                    <span>Memory</span>
                 </div>
                 <div class="section-content">
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-label">Memory Usage</span>
-                            <span class="metric-value" id="memoryUsage">-</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="memoryProgress"></div>
-                        </div>
-                    </div>
                     <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Usage</span>
+                            <span class="info-value" id="memoryUsage">-</span>
+                        </div>
                         <div class="info-item">
                             <span class="info-label">Total</span>
                             <span class="info-value" id="memoryTotal">-</span>
@@ -306,7 +296,7 @@ export class ResourceDashboardProvider {
             <div class="section">
                 <div class="section-header">
                     <i class="codicon codicon-database"></i>
-                    <span>Disk Resources</span>
+                    <span>Disk</span>
                 </div>
                 <div class="section-content">
                     <div id="diskList"></div>
