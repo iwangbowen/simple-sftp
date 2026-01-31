@@ -202,7 +202,7 @@ export class ResourceDashboardProvider {
    * Load I/O tab data
    */
   private async loadIOData(): Promise<void> {
-    const ioStats = await ResourceDashboardService.getIOStats(
+    const ioStats = await ResourceDashboardService.getDiskIOStats(
       this.hostConfig,
       this.authConfig
     );

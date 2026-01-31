@@ -194,11 +194,11 @@
     interfaces.forEach(iface => {
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td>${iface.interface}</td>
+        <td>${iface.name}</td>
         <td>${formatBytesSize(iface.rxBytes)}</td>
         <td>${formatBytesSize(iface.txBytes)}</td>
-        <td>${formatRate(iface.rxRate)}</td>
-        <td>${formatRate(iface.txRate)}</td>
+        <td>${iface.rxRate ? formatRate(iface.rxRate) : 'N/A'}</td>
+        <td>${iface.txRate ? formatRate(iface.txRate) : 'N/A'}</td>
       `;
       networkList.appendChild(row);
     });
@@ -223,8 +223,8 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${device.device}</td>
-        <td>${formatRate(device.readRate)}</td>
-        <td>${formatRate(device.writeRate)}</td>
+        <td>${formatKBps(device.readKBps)} KB/s</td>
+        <td>${formatKBps(device.writeKBps)} KB/s</td>
         <td>${device.utilization.toFixed(1)}%</td>
       `;
       ioList.appendChild(row);
@@ -340,6 +340,13 @@
       return (bytesPerSec / 1024).toFixed(2) + ' KB/s';
     }
     return bytesPerSec.toFixed(0) + ' B/s';
+  }
+
+  function formatKBps(kbps) {
+    if (kbps >= 1024) {
+      return (kbps / 1024).toFixed(2) + ' MB';
+    }
+    return kbps.toFixed(2);
   }
 
   function escapeHtml(text) {
