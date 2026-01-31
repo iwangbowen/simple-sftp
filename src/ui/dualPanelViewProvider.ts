@@ -4,6 +4,7 @@ import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { DualPanelBase } from './dualPanelBase';
+import { logger } from '../logger';
 
 /**
  * WebviewView Provider for Dual Panel File Browser
@@ -87,7 +88,10 @@ export class DualPanelViewProvider extends DualPanelBase implements vscode.Webvi
             await vscode.commands.executeCommand('simpleSftp.dualPanelBrowser.focus');
         }
 
-        // Call base implementation
+        logger.info(`[DualPanelViewProvider] openForHost called - host: ${host.name}, initialPath: ${initialPath}, currentHost: ${this._currentHost?.name}, currentPath: ${this._remoteRootPath}`);
+
+        // Always do full reload to ensure everything is in sync
+        // This is the safest approach and ensures the view is properly initialized
         await super.openForHost(host, initialPath);
     }
 

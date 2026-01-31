@@ -130,10 +130,14 @@ export abstract class DualPanelBase {
             case 'openBookmark': {
                 const bookmarkHostId = message.hostId;
                 const bookmarkPath = message.path;
+                logger.info(`[DualPanelBase] openBookmark message received - hostId: ${bookmarkHostId}, path: ${bookmarkPath}, path type: ${typeof bookmarkPath}`);
                 const bookmarkHosts = await this.hostManager.getHosts();
                 const bookmarkHost = bookmarkHosts.find(h => h.id === bookmarkHostId);
                 if (bookmarkHost) {
+                    logger.info(`[DualPanelBase] Found bookmark host: ${bookmarkHost.name}, calling openForHost with path: ${bookmarkPath}`);
                     await this.openForHost(bookmarkHost, bookmarkPath);
+                } else {
+                    logger.warn(`[DualPanelBase] Bookmark host not found for ID: ${bookmarkHostId}`);
                 }
                 break;
             }

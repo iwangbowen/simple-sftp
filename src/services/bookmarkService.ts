@@ -274,18 +274,13 @@ export class BookmarkService {
       return;
     }
 
-    // Temporarily set the default remote path to the bookmark path
-    const originalDefaultPath = host.defaultRemotePath;
-    host.defaultRemotePath = bookmark.path;
-
-    // Use the command to open dual panel browser
+    // Use the command to open dual panel browser with bookmark path
     // This will respect the user's configuration (panel vs editor mode)
+    // and properly navigate to the bookmark path even if panel is already open
     await vscode.commands.executeCommand('simpleSftp.openDualPanelBrowser', {
       data: host,
-      type: 'host'
+      type: 'host',
+      initialPath: bookmark.path  // Pass bookmark path as initialPath
     });
-
-    // Restore original default path
-    host.defaultRemotePath = originalDefaultPath;
   }
 }

@@ -5,6 +5,7 @@ import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { DualPanelBase } from './dualPanelBase';
 import { UI } from '../constants';
+import { logger } from '../logger';
 
 /**
  * Manager for dual panel file browser in editor area
@@ -55,14 +56,20 @@ export class DualPanelEditorManager extends DualPanelBase {
         // Check if panel already exists for this host
         let panel = this.panels.get(host.id);
 
+        logger.info(`[DualPanelEditorProvider] openForHost called - host: ${host.name}, initialPath: ${initialPath}, panel exists: ${!!panel}`);
+
         if (panel) {
-            // Panel exists, reveal it and update path if needed
+            // Panel exists, reveal it
             panel.reveal(vscode.ViewColumn.One);
             this.currentPanel = panel;
 
-            // If initial path provided, navigate to it
+            // Always call super.openForHost to ensure proper navigation
+            // even when panel already exists
             if (initialPath) {
+                logger.info(`[DualPanelEditorProvider] Panel exists, navigating to: ${initialPath}`);
                 await super.openForHost(host, initialPath);
+            } else {
+                logger.info('[DualPanelEditorProvider] Panel exists, no initialPath provided');
             }
         } else {
             // Create new panel for this host

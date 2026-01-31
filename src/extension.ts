@@ -407,6 +407,9 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      // Extract initialPath if provided (e.g., from bookmark navigation)
+      const initialPath = item.initialPath;
+
       // Check configuration to decide which mode to use
       const openInEditor = vscode.workspace
         .getConfiguration('simpleSftp.browser')
@@ -414,10 +417,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
       if (openInEditor) {
         // Open in editor area (supports multiple instances)
-        await dualPanelEditorManager.openForHost(item.data);
+        await dualPanelEditorManager.openForHost(item.data, initialPath);
       } else {
         // Open in panel area (single instance)
-        await dualPanelProvider.openForHost(item.data);
+        await dualPanelProvider.openForHost(item.data, initialPath);
       }
     }),
 
