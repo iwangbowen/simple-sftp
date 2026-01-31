@@ -59,11 +59,8 @@
         document.getElementById('refresh-local')?.addEventListener('click', () => refreshPanel('local'));
         document.getElementById('refresh-remote')?.addEventListener('click', () => refreshPanel('remote'));
 
-        // Toolbar buttons
-        document.getElementById('new-local-folder')?.addEventListener('click', () => createFolder('local'));
-        document.getElementById('new-remote-folder')?.addEventListener('click', () => createFolder('remote'));
-        document.getElementById('upload-selected')?.addEventListener('click', uploadSelected);
-        document.getElementById('download-selected')?.addEventListener('click', downloadSelected);
+        // Note: New folder, upload, and download buttons are now in the "More" dropdown menu
+        // Their event handlers are in setupLocalMoreDropdown() and setupMoreDropdown()
 
         // Search inputs
         document.getElementById('local-search')?.addEventListener('input', (e) => filterTree('local', e.target.value));
@@ -2234,8 +2231,9 @@
             });
         }
 
-        // More dropdown menu
-        setupMoreDropdown();
+        // More dropdown menus
+        setupMoreDropdown();        // Remote panel "More" menu
+        setupLocalMoreDropdown();   // Local panel "More" menu
 
         // Start search button
         const searchButton = document.getElementById('start-search-button');
@@ -2315,7 +2313,7 @@
     // See: resources/webview/port-forward.js
 
     /**
-     * Setup the "More" dropdown menu in the toolbar
+     * Setup the "More" dropdown menu in the remote panel toolbar
      */
     function setupMoreDropdown() {
         const moreToggle = document.getElementById('more-toggle');
@@ -2348,7 +2346,11 @@
             moreDropdown.style.display = 'none';
 
             // Perform action
-            if (action === 'port-forwarding') {
+            if (action === 'new-remote-folder') {
+                createFolder('remote');
+            } else if (action === 'download-selected') {
+                downloadSelected();
+            } else if (action === 'port-forwarding') {
                 // Use shared module for port forwarding
                 if (typeof PortForwardModule !== 'undefined') {
                     if (PortForwardModule.isViewVisible && PortForwardModule.isViewVisible()) {
@@ -2363,6 +2365,55 @@
                 } else {
                     openSearchView();
                 }
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!moreToggle.contains(e.target) && !moreDropdown.contains(e.target)) {
+                moreDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    /**
+     * Setup the "More" dropdown menu in the local panel toolbar
+     */
+    function setupLocalMoreDropdown() {
+        const moreToggle = document.getElementById('local-more-toggle');
+        const moreDropdown = document.getElementById('local-more-dropdown');
+        const moreList = document.getElementById('local-more-list');
+
+        if (!moreToggle || !moreDropdown || !moreList) {
+            return;
+        }
+
+        // Toggle dropdown visibility
+        moreToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isVisible = moreDropdown.style.display === 'flex';
+            if (isVisible) {
+                moreDropdown.style.display = 'none';
+            } else {
+                moreDropdown.style.display = 'flex';
+            }
+        });
+
+        // Handle menu item clicks
+        moreList.addEventListener('click', (e) => {
+            const item = e.target.closest('.more-dropdown-item');
+            if (!item) return;
+
+            const action = item.dataset.action;
+
+            // Close dropdown
+            moreDropdown.style.display = 'none';
+
+            // Perform action
+            if (action === 'new-local-folder') {
+                createFolder('local');
+            } else if (action === 'upload-selected') {
+                uploadSelected();
             }
         });
 

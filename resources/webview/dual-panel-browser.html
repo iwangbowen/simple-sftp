@@ -30,12 +30,23 @@
                     <button class="icon-button" id="refresh-local" title="Refresh Local">
                         <span class="codicon codicon-refresh"></span>
                     </button>
-                    <button class="icon-button" id="new-local-folder" title="New Folder">
-                        <span class="codicon codicon-new-folder"></span>
-                    </button>
-                    <button class="icon-button" id="upload-selected" title="Upload Selected">
-                        <span class="codicon codicon-cloud-upload"></span>
-                    </button>
+                    <div class="more-dropdown-container">
+                        <button class="icon-button more-toggle-btn" id="local-more-toggle" title="More...">
+                            <span class="codicon codicon-kebab-vertical"></span>
+                        </button>
+                        <div class="more-dropdown" id="local-more-dropdown">
+                            <div class="more-dropdown-list" id="local-more-list">
+                                <div class="more-dropdown-item" data-action="new-local-folder">
+                                    <span class="codicon codicon-new-folder"></span>
+                                    <span class="more-item-label">New Folder</span>
+                                </div>
+                                <div class="more-dropdown-item" data-action="upload-selected">
+                                    <span class="codicon codicon-cloud-upload"></span>
+                                    <span class="more-item-label">Upload Selected</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="file-tree" id="local-tree" data-panel="local">
                     <div class="loading">
@@ -78,18 +89,20 @@
                     <button class="icon-button" id="refresh-remote" title="Refresh Remote">
                         <span class="codicon codicon-refresh"></span>
                     </button>
-                    <button class="icon-button" id="new-remote-folder" title="New Folder">
-                        <span class="codicon codicon-new-folder"></span>
-                    </button>
-                    <button class="icon-button" id="download-selected" title="Download Selected">
-                        <span class="codicon codicon-cloud-download"></span>
-                    </button>
                     <div class="more-dropdown-container">
                         <button class="icon-button more-toggle-btn" id="more-toggle" title="More...">
                             <span class="codicon codicon-kebab-vertical"></span>
                         </button>
                         <div class="more-dropdown" id="more-dropdown">
                             <div class="more-dropdown-list" id="more-list">
+                                <div class="more-dropdown-item" data-action="new-remote-folder">
+                                    <span class="codicon codicon-new-folder"></span>
+                                    <span class="more-item-label">New Folder</span>
+                                </div>
+                                <div class="more-dropdown-item" data-action="download-selected">
+                                    <span class="codicon codicon-cloud-download"></span>
+                                    <span class="more-item-label">Download Selected</span>
+                                </div>
                                 <div class="more-dropdown-item" data-action="port-forwarding">
                                     <span class="codicon codicon-plug"></span>
                                     <span class="more-item-label">Port Forwarding</span>
