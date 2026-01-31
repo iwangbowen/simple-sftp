@@ -8,6 +8,8 @@
   const errorState = document.getElementById('errorState');
   const contentState = document.getElementById('contentState');
   const errorText = document.getElementById('errorText');
+  const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+  const refreshIntervalSelect = document.getElementById('refreshInterval');
 
   // Tab elements
   const tabButtons = document.querySelectorAll('.tab-button');
@@ -15,6 +17,10 @@
 
   // Current active tab
   let activeTab = 'overview';
+
+  // Auto-refresh state
+  let autoRefreshInterval = null;
+  let refreshIntervalSeconds = 10;
 
   // Tab switching
   tabButtons.forEach(button => {
@@ -65,6 +71,46 @@
   viewLogsBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'showLogs' });
   });
+
+  // Auto-refresh toggle
+  autoRefreshToggle.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      startAutoRefresh();
+    } else {
+      stopAutoRefresh();
+    }
+  });
+
+  // Refresh interval change
+  refreshIntervalSelect.addEventListener('change', (e) => {
+    const seconds = Number.parseInt(e.target.value);
+    refreshIntervalSeconds = seconds;
+
+    if (seconds === 0) {
+      autoRefreshToggle.checked = false;
+      stopAutoRefresh();
+    } else if (autoRefreshToggle.checked) {
+      // Restart with new interval
+      stopAutoRefresh();
+      startAutoRefresh();
+    }
+  });
+
+  // Auto-refresh functions
+  function startAutoRefresh() {
+    if (refreshIntervalSeconds > 0) {
+      autoRefreshInterval = setInterval(() => {
+        requestTabData(activeTab);
+      }, refreshIntervalSeconds * 1000);
+    }
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+      clearInterval(autoRefreshInterval);
+      autoRefreshInterval = null;
+    }
+  }
 
   // Handle messages from extension
   window.addEventListener('message', (event) => {

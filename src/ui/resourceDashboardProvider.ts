@@ -279,9 +279,23 @@ export class ResourceDashboardProvider {
                 <i class="codicon codicon-pulse"></i>
                 <span>Resource Dashboard</span>
             </h1>
-            <button id="refreshBtn" class="icon-button" title="Refresh">
-                <i class="codicon codicon-refresh"></i>
-            </button>
+            <div class="header-actions">
+                <label class="auto-refresh-control">
+                    <input type="checkbox" id="autoRefreshToggle" />
+                    <span>Auto Refresh</span>
+                </label>
+                <select id="refreshInterval" class="refresh-interval-select">
+                    <option value="0">Off</option>
+                    <option value="5">5s</option>
+                    <option value="10" selected>10s</option>
+                    <option value="30">30s</option>
+                    <option value="60">1min</option>
+                    <option value="300">5min</option>
+                </select>
+                <button id="refreshBtn" class="icon-button" title="Refresh">
+                    <i class="codicon codicon-refresh"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Tab Navigation -->
