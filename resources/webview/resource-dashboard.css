@@ -62,6 +62,53 @@ body {
     font-size: 14px;
 }
 
+/* Tab Navigation */
+.tab-nav {
+    display: flex;
+    gap: 0;
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    padding: 0;
+}
+
+.tab-button {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--vscode-tab-inactiveForeground);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.1s ease;
+}
+
+.tab-button i {
+    font-size: 14px;
+}
+
+.tab-button:hover {
+    background-color: var(--vscode-tab-hoverBackground);
+    color: var(--vscode-tab-activeForeground);
+}
+
+.tab-button.active {
+    color: var(--vscode-tab-activeForeground);
+    background-color: var(--vscode-tab-activeBackground);
+    border-bottom-color: var(--vscode-tab-activeBorderTop, var(--vscode-focusBorder));
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
 /* Loading State */
 .loading-state {
     display: flex;
@@ -225,3 +272,80 @@ body {
     .disk-item {
         grid-template-columns: 1fr;
         gap: 8px;
+    }
+}
+
+/* Tables for Processes, Network, I/O */
+.process-table,
+.network-table,
+.io-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: var(--vscode-editor-font-family);
+}
+
+.process-table thead,
+.network-table thead,
+.io-table thead {
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.process-table th,
+.network-table th,
+.io-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+}
+
+.process-table td,
+.network-table td,
+.io-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-editorIndentGuide-background);
+    color: var(--vscode-foreground);
+}
+
+.process-table tbody tr:last-child td,
+.network-table tbody tr:last-child td,
+.io-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.process-table tbody tr:hover,
+.network-table tbody tr:hover,
+.io-table tbody tr:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 24px !important;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+
+/* Disk Summary for Overview Tab */
+#diskSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.disk-item-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--vscode-editorIndentGuide-background);
+}
+
+.disk-item-summary:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}

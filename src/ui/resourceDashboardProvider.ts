@@ -50,7 +50,9 @@ export class ResourceDashboardProvider {
     );
 
     // Load resource data immediately after panel is created
-    this.loadResourceData();
+    this.loadTabData('overview').catch(error => {
+      logger.error('Failed to load initial tab data', error as Error);
+    });
   }
 
   /**
@@ -69,7 +71,7 @@ export class ResourceDashboardProvider {
     const existingPanel = ResourceDashboardProvider.panels.get(hostConfig.id);
     if (existingPanel) {
       existingPanel.panel.reveal(column);
-      existingPanel.loadResourceData();
+      existingPanel.loadTabData('overview');
       return existingPanel;
     }
 
@@ -105,9 +107,9 @@ export class ResourceDashboardProvider {
   }
 
   /**
-   * Load resource data from remote server
+   * Load data for specific tab
    */
-  private async loadResourceData(): Promise<void> {
+  private async loadTabData(tab: string): Promise<void> {
     try {
       // Send loading state to webview
       this.panel.webview.postMessage({
@@ -115,31 +117,115 @@ export class ResourceDashboardProvider {
         data: true
       });
 
-      logger.info(`Fetching resource data for ${this.hostConfig.name}`);
+      logger.info(`Fetching ${tab} data for ${this.hostConfig.name}`);
 
-      const resourceInfo = await ResourceDashboardService.getSystemResources(
-        this.hostConfig,
-        this.authConfig
-      );
+      switch (tab) {
+        case 'overview':
+          await this.loadOverviewData();
+          break;
+        case 'processes':
+          await this.loadProcessData();
+          break;
+        case 'network':
+          await this.loadNetworkData();
+          break;
+        case 'io':
+          await this.loadIOData();
+          break;
+        case 'disk':
+          await this.loadDiskData();
+          break;
+        default:
+          await this.loadOverviewData();
+      }
 
-      // Send resource data to webview
-      this.panel.webview.postMessage({
-        type: 'resourceData',
-        data: resourceInfo
-      });
-
-      logger.info(`Successfully fetched resource data for ${this.hostConfig.name}`);
+      logger.info(`Successfully fetched ${tab} data for ${this.hostConfig.name}`);
     } catch (error) {
-      logger.error(`Failed to fetch resource data for ${this.hostConfig.name}`, error as Error);
+      logger.error(`Failed to fetch ${tab} data for ${this.hostConfig.name}`, error as Error);
 
       // Send error to webview
       this.panel.webview.postMessage({
         type: 'error',
         data: {
-          message: `Failed to fetch resource information: ${(error as Error).message}`
+          message: `Failed to fetch ${tab} information: ${(error as Error).message}`
         }
       });
     }
+  }
+
+  /**
+   * Load overview tab data (system resources)
+   */
+  private async loadOverviewData(): Promise<void> {
+    const resourceInfo = await ResourceDashboardService.getSystemResources(
+      this.hostConfig,
+      this.authConfig
+    );
+
+    this.panel.webview.postMessage({
+      type: 'resourceData',
+      data: resourceInfo
+    });
+  }
+
+  /**
+   * Load processes tab data
+   */
+  private async loadProcessData(): Promise<void> {
+    const processes = await ResourceDashboardService.getProcessList(
+      this.hostConfig,
+      this.authConfig
+    );
+
+    this.panel.webview.postMessage({
+      type: 'processData',
+      data: processes
+    });
+  }
+
+  /**
+   * Load network tab data
+   */
+  private async loadNetworkData(): Promise<void> {
+    const networkStats = await ResourceDashboardService.getNetworkStats(
+      this.hostConfig,
+      this.authConfig
+    );
+
+    this.panel.webview.postMessage({
+      type: 'networkData',
+      data: networkStats
+    });
+  }
+
+  /**
+   * Load I/O tab data
+   */
+  private async loadIOData(): Promise<void> {
+    const ioStats = await ResourceDashboardService.getIOStats(
+      this.hostConfig,
+      this.authConfig
+    );
+
+    this.panel.webview.postMessage({
+      type: 'ioData',
+      data: ioStats
+    });
+  }
+
+  /**
+   * Load disk tab data (detailed disk info)
+   */
+  private async loadDiskData(): Promise<void> {
+    const resourceInfo = await ResourceDashboardService.getSystemResources(
+      this.hostConfig,
+      this.authConfig
+    );
+
+    this.panel.webview.postMessage({
+      type: 'diskData',
+      data: resourceInfo.disk
+    });
   }
 
   /**
@@ -147,9 +233,12 @@ export class ResourceDashboardProvider {
    */
   private async handleMessage(message: any): Promise<void> {
     switch (message.type) {
-      case 'refresh':
-        await this.loadResourceData();
+      case 'refresh': {
+        // Get tab from message, default to 'overview'
+        const tab = message.tab || 'overview';
+        await this.loadTabData(tab);
         break;
+      }
 
       case 'showLogs':
         logger.show();
@@ -195,6 +284,30 @@ export class ResourceDashboardProvider {
             </button>
         </div>
 
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-button active" data-tab="overview">
+                <i class="codicon codicon-dashboard"></i>
+                Overview
+            </button>
+            <button class="tab-button" data-tab="processes">
+                <i class="codicon codicon-server-process"></i>
+                Processes
+            </button>
+            <button class="tab-button" data-tab="network">
+                <i class="codicon codicon-globe"></i>
+                Network
+            </button>
+            <button class="tab-button" data-tab="io">
+                <i class="codicon codicon-database"></i>
+                I/O
+            </button>
+            <button class="tab-button" data-tab="disk">
+                <i class="codicon codicon-disc"></i>
+                Disk
+            </button>
+        </div>
+
         <div id="loadingState" class="loading-state">
             <div class="spinner"></div>
             <p>Loading resource information...</p>
@@ -212,94 +325,187 @@ export class ResourceDashboardProvider {
         </div>
 
         <div id="contentState" class="content-state" style="display: none;">
-            <!-- System Info -->
-            <div class="section">
-                <div class="section-header">
-                    <i class="codicon codicon-server"></i>
-                    <span>System</span>
+            <!-- Overview Tab -->
+            <div id="overviewTab" class="tab-content active">
+                <!-- System Info -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-server"></i>
+                        <span>System</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Hostname</span>
+                                <span class="info-value" id="hostname">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Operating System</span>
+                                <span class="info-value" id="os">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Kernel</span>
+                                <span class="info-value" id="kernel">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Uptime</span>
+                                <span class="info-value" id="uptime">-</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="section-content">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Hostname</span>
-                            <span class="info-value" id="hostname">-</span>
+
+                <!-- CPU Info -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-dashboard"></i>
+                        <span>CPU</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Usage</span>
+                                <span class="info-value" id="cpuUsage">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Cores</span>
+                                <span class="info-value" id="cores">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Load (1/5/15 min)</span>
+                                <span class="info-value" id="loadAvg">-</span>
+                            </div>
                         </div>
-                        <div class="info-item">
-                            <span class="info-label">Operating System</span>
-                            <span class="info-value" id="os">-</span>
+                    </div>
+                </div>
+
+                <!-- Memory Info -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-server-process"></i>
+                        <span>Memory</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Usage</span>
+                                <span class="info-value" id="memoryUsage">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Total</span>
+                                <span class="info-value" id="memoryTotal">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Used</span>
+                                <span class="info-value" id="memoryUsed">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Available</span>
+                                <span class="info-value" id="memoryAvailable">-</span>
+                            </div>
                         </div>
-                        <div class="info-item">
-                            <span class="info-label">Kernel</span>
-                            <span class="info-value" id="kernel">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Uptime</span>
-                            <span class="info-value" id="uptime">-</span>
-                        </div>
+                    </div>
+                </div>
+
+                <!-- Disk Summary (for Overview) -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-database"></i>
+                        <span>Disk Summary</span>
+                    </div>
+                    <div class="section-content">
+                        <div id="diskSummary"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- CPU Info -->
-            <div class="section">
-                <div class="section-header">
-                    <i class="codicon codicon-dashboard"></i>
-                    <span>CPU</span>
-                </div>
-                <div class="section-content">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Usage</span>
-                            <span class="info-value" id="cpuUsage">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Cores</span>
-                            <span class="info-value" id="cores">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Load (1/5/15 min)</span>
-                            <span class="info-value" id="loadAvg">-</span>
-                        </div>
+            <!-- Processes Tab -->
+            <div id="processesTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-server-process"></i>
+                        <span>Top Processes</span>
+                    </div>
+                    <div class="section-content">
+                        <table class="process-table">
+                            <thead>
+                                <tr>
+                                    <th>PID</th>
+                                    <th>User</th>
+                                    <th>CPU %</th>
+                                    <th>Memory %</th>
+                                    <th>Command</th>
+                                </tr>
+                            </thead>
+                            <tbody id="processList">
+                                <tr><td colspan="5" class="empty-state">No data available</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Memory Info -->
-            <div class="section">
-                <div class="section-header">
-                    <i class="codicon codicon-server-process"></i>
-                    <span>Memory</span>
-                </div>
-                <div class="section-content">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Usage</span>
-                            <span class="info-value" id="memoryUsage">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Total</span>
-                            <span class="info-value" id="memoryTotal">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Used</span>
-                            <span class="info-value" id="memoryUsed">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Available</span>
-                            <span class="info-value" id="memoryAvailable">-</span>
-                        </div>
+            <!-- Network Tab -->
+            <div id="networkTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-globe"></i>
+                        <span>Network Interfaces</span>
+                    </div>
+                    <div class="section-content">
+                        <table class="network-table">
+                            <thead>
+                                <tr>
+                                    <th>Interface</th>
+                                    <th>RX Bytes</th>
+                                    <th>TX Bytes</th>
+                                    <th>RX Rate</th>
+                                    <th>TX Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="networkList">
+                                <tr><td colspan="5" class="empty-state">No data available</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Disk Info -->
-            <div class="section">
-                <div class="section-header">
-                    <i class="codicon codicon-database"></i>
-                    <span>Disk</span>
+            <!-- I/O Tab -->
+            <div id="ioTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-database"></i>
+                        <span>Disk I/O Statistics</span>
+                    </div>
+                    <div class="section-content">
+                        <table class="io-table">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Read Rate</th>
+                                    <th>Write Rate</th>
+                                    <th>Utilization</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ioList">
+                                <tr><td colspan="4" class="empty-state">No data available</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="section-content">
-                    <div id="diskList"></div>
+            </div>
+
+            <!-- Disk Tab -->
+            <div id="diskTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-disc"></i>
+                        <span>Disk Partitions</span>
+                    </div>
+                    <div class="section-content">
+                        <div id="diskList"></div>
+                    </div>
                 </div>
             </div>
         </div>
