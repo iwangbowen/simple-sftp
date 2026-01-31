@@ -48,6 +48,14 @@
             PortForwardModule.init({ vscode, isStandalone: false, showCloseButton: true });
         }
 
+        // Listen for port forward view events
+        window.addEventListener('portForwardViewOpened', () => {
+            updateMoreButtonToBackButton();
+        });
+        window.addEventListener('portForwardViewClosed', () => {
+            restoreMoreButtonToNormal();
+        });
+
         // 通知扩展 WebView 已准备就绪
         vscode.postMessage({ command: 'ready' });
     });
@@ -70,10 +78,26 @@
             e.stopPropagation();
         });
 
-        document.getElementById('more-toggle')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
-            e.stopPropagation();
+        // Remote panel more button - can switch between menu and back button
+        const remoteMoreToggle = document.getElementById('more-toggle');
+        remoteMoreToggle?.addEventListener('click', (e) => {
+            // Check if we're in a special view (search or port forward)
+            if (isSearchViewVisible) {
+                // Close search view
+                e.preventDefault();
+                closeSearchView();
+                e.stopPropagation();
+            } else if (typeof PortForwardModule !== 'undefined' && PortForwardModule.isViewVisible && PortForwardModule.isViewVisible()) {
+                // Close port forward view
+                e.preventDefault();
+                PortForwardModule.closeView();
+                e.stopPropagation();
+            } else {
+                // Open context menu
+                e.preventDefault();
+                e.target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
+                e.stopPropagation();
+            }
         });
 
         // Note: New folder, upload, and download are now in the native VS Code context menu
@@ -2445,6 +2469,9 @@
             searchView.style.display = 'flex';
             isSearchViewVisible = true;
 
+            // Change more button to back button
+            updateMoreButtonToBackButton();
+
             // Initialize search path with current remote path
             currentSearchPath = currentRemotePath || '/';
             const pathInput = document.getElementById('search-path-input');
@@ -2503,6 +2530,9 @@
             searchView.style.display = 'none';
             remoteTree.style.display = ''; // Reset to default (uses CSS flex)
             isSearchViewVisible = false;
+
+            // Restore more button to normal
+            restoreMoreButtonToNormal();
         }
     }
 
@@ -3119,6 +3149,42 @@
      */
     function escapeRegExp(string) {
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Update more button to back button
+     */
+    function updateMoreButtonToBackButton() {
+        const moreToggle = document.getElementById('more-toggle');
+        if (moreToggle) {
+            const icon = moreToggle.querySelector('.codicon');
+            if (icon) {
+                icon.className = 'codicon codicon-arrow-left';
+            }
+            moreToggle.title = 'Back to File List';
+        }
+    }
+
+    /**
+     * Restore more button to normal state
+     */
+    function restoreMoreButtonToNormal() {
+        const moreToggle = document.getElementById('more-toggle');
+        if (moreToggle) {
+            const icon = moreToggle.querySelector('.codicon');
+            if (icon) {
+                icon.className = 'codicon codicon-kebab-vertical';
+            }
+            moreToggle.title = 'More...';
+        }
+    }
+
+    /**
+     * Export functions to be called by PortForwardModule
+     */
+    if (typeof window !== 'undefined') {
+        window.updateMoreButtonToBackButton = updateMoreButtonToBackButton;
+        window.restoreMoreButtonToNormal = restoreMoreButtonToNormal;
     }
 
     // Initialize batch rename when DOM is ready
