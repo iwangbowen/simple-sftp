@@ -9,7 +9,6 @@ import { HostManager } from '../hostManager';
 import { logger } from '../logger';
 import { PortForwardService } from '../services/portForwardService';
 import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
-import { SftpFileSystemProvider } from '../sftpFileSystemProvider';  // ← 添加导入
 
 export interface FileNode {
     name: string;
@@ -41,8 +40,7 @@ export abstract class DualPanelBase {
         protected readonly _extensionUri: vscode.Uri,
         protected readonly transferQueueService: TransferQueueService,
         protected readonly authManager: AuthManager,
-        protected readonly hostManager: HostManager,
-        protected readonly sftpFsProvider?: SftpFileSystemProvider  // ← 添加可选参数
+        protected readonly hostManager: HostManager
     ) {
         // Subscribe to task completion events
         this.transferQueueService.onTaskUpdated((task) => {
@@ -59,17 +57,6 @@ export abstract class DualPanelBase {
             // Notify webview to refresh port forwardings
             this.handlePortForwardingChanged(event);
         });
-
-        // 订阅文件读取完成事件
-        if (this.sftpFsProvider) {
-            this.sftpFsProvider.onFileReadComplete((filePath: string) => {
-                logger.info(`收到文件读取完成事件,发送 fileOpened 消息: ${filePath}`);
-                this.postMessage({
-                    command: 'fileOpened',
-                    data: { path: filePath, panel: 'remote' }
-                });
-            });
-        }
     }
 
     /**
@@ -965,22 +952,9 @@ export abstract class DualPanelBase {
                 // 使用 vscode.open 命令,VS Code 会自动判断文件类型
                 // 文本文件 → 文本编辑器,二进制文件 → 相应查看器
                 await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath));
-
-                // 本地文件打开成功,通知 webview 清除 loading 状态
-                logger.info(`本地文件打开成功,发送 fileOpened 消息: ${filePath}`);
-                this.postMessage({
-                    command: 'fileOpened',
-                    data: { path: filePath, panel }
-                });
             } else if (panel === 'remote') {
                 if (!this._currentHost || !this._currentAuthConfig) {
                     vscode.window.showErrorMessage('No host selected');
-
-                    // 清除 loading 状态
-                    this.postMessage({
-                        command: 'fileOpened',
-                        data: { path: filePath, panel }
-                    });
                     return;
                 }
 
@@ -994,21 +968,10 @@ export abstract class DualPanelBase {
                 // PDF 文件 → PDF 查看器
                 // 其他二进制文件 → 相应的查看器
                 await vscode.commands.executeCommand('vscode.open', uri);
-
-                // 注意:不在这里发送 fileOpened 消息
-                // 因为 vscode.open 会触发 FileSystemProvider.readFile()
-                // readFile() 完成后会通过事件机制自动发送 fileOpened 消息
             }
         } catch (error) {
             logger.error(`Open file failed: ${error}`);
             vscode.window.showErrorMessage(`Open file failed: ${error}`);
-
-            // 发生错误时要清除 loading 状态
-            logger.info(`文件打开失败,发送 fileOpened 消息清除 loading: ${filePath}, panel: ${panel}`);
-            this.postMessage({
-                command: 'fileOpened',
-                data: { path: filePath, panel }
-            });
         }
     }
 

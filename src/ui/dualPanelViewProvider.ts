@@ -4,7 +4,6 @@ import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { DualPanelBase } from './dualPanelBase';
-import { SftpFileSystemProvider } from '../sftpFileSystemProvider';  // ← 添加导入
 
 /**
  * WebviewView Provider for Dual Panel File Browser
@@ -19,10 +18,9 @@ export class DualPanelViewProvider extends DualPanelBase implements vscode.Webvi
         extensionUri: vscode.Uri,
         transferQueueService: TransferQueueService,
         authManager: AuthManager,
-        hostManager: HostManager,
-        sftpFsProvider?: SftpFileSystemProvider  // ← 添加参数
+        hostManager: HostManager
     ) {
-        super(extensionUri, transferQueueService, authManager, hostManager, sftpFsProvider);
+        super(extensionUri, transferQueueService, authManager, hostManager);
     }
 
     /**

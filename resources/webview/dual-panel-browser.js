@@ -27,8 +27,6 @@
     let clickTimer = null;
     /** @type {string} */
     let lastActivePanel = 'remote';
-    /** @type {Map<string, {element: HTMLElement, timer: number}>} */
-    const openingFiles = new Map();
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -412,9 +410,7 @@
                 // 双击文件夹进入
                 loadDirectory(panel, node.path);
             } else {
-                // 双击文件打开 - 添加 loading 效果
-                startFileOpeningLoading(item, node.path, panel);
-
+                // 双击文件打开
                 vscode.postMessage({
                     command: 'openFile',
                     data: { path: node.path, panel }
@@ -443,102 +439,6 @@
     }
 
     // ===== 辅助函数 =====
-
-    /**
-     * 开始文件打开 loading 效果(延迟显示)
-     * @param {HTMLElement} element - 文件项元素
-     * @param {string} filePath - 文件路径
-     * @param {string} panel - 'local' | 'remote'
-     */
-    function startFileOpeningLoading(element, filePath, panel) {
-        const key = `${panel}:${filePath}`;
-
-        // 如果已经在打开中,不重复添加
-        if (openingFiles.has(key)) {
-            return;
-        }
-
-        // 保存原始图标
-        const iconElement = element.querySelector('.tree-item-icon');
-        if (!iconElement) {
-            return;
-        }
-
-        const originalIcon = iconElement.className;
-
-        // 延迟500ms显示loading,避免快速打开的文件闪烁
-        const delayTimerId = setTimeout(() => {
-            // 检查是否已经打开完成
-            const loadingInfo = openingFiles.get(key);
-            if (!loadingInfo || loadingInfo.opened) {
-                return;
-            }
-
-            // 设置 loading 图标和样式
-            iconElement.className = 'codicon tree-item-icon codicon-sync codicon-modifier-spin';
-            element.classList.add('opening-file');
-
-            // 标记已显示 loading
-            if (loadingInfo) {
-                loadingInfo.loadingShown = true;
-            }
-
-            console.log(`显示文件打开 loading: ${filePath}, panel: ${panel}`);
-        }, 500);  // 500ms 延迟
-
-        // 保存状态(不再设置超时,完全依赖后端的 fileOpened 消息)
-        openingFiles.set(key, {
-            element: element,
-            timer: null,
-            delayTimer: delayTimerId,
-            originalIcon: originalIcon,
-            loadingShown: false,
-            opened: false
-        });
-
-        console.log(`准备显示文件打开 loading(延迟500ms): ${filePath}, panel: ${panel}`);
-    }
-
-    /**
-     * 停止文件打开 loading 效果
-     * @param {string} filePath - 文件路径
-     * @param {string} panel - 'local' | 'remote'
-     */
-    function stopFileOpeningLoading(filePath, panel) {
-        const key = `${panel}:${filePath}`;
-        const loadingInfo = openingFiles.get(key);
-
-        if (!loadingInfo) {
-            return;
-        }
-
-        // 标记为已打开
-        loadingInfo.opened = true;
-
-        // 清除延迟计时器(如果loading还没显示)
-        if (loadingInfo.delayTimer) {
-            clearTimeout(loadingInfo.delayTimer);
-        }
-
-        // 清除超时(如果存在)
-        if (loadingInfo.timer) {
-            clearTimeout(loadingInfo.timer);
-        }
-
-        // 如果 loading 已经显示,才需要恢复图标
-        if (loadingInfo.loadingShown) {
-            const iconElement = loadingInfo.element.querySelector('.tree-item-icon');
-            if (iconElement && loadingInfo.originalIcon) {
-                iconElement.className = loadingInfo.originalIcon;
-            }
-            loadingInfo.element.classList.remove('opening-file');
-        }
-
-        // 移除状态
-        openingFiles.delete(key);
-
-        console.log(`已清除文件打开 loading: ${filePath}`);
-    }
 
     /**
      * 处理搜索框的键盘事件
@@ -2031,17 +1931,6 @@
             case 'searchResults':
                 // Display search results
                 displaySearchResults(message.data);
-                break;
-
-            case 'fileOpened':
-                // 文件打开成功,清除 loading 状态
-                console.log('收到 fileOpened 消息:', message.data);
-                if (message.data && message.data.path && message.data.panel) {
-                    stopFileOpeningLoading(message.data.path, message.data.panel);
-                    console.log('已清除 loading:', message.data.path);
-                } else {
-                    console.warn('fileOpened 消息数据不完整:', message.data);
-                }
                 break;
 
             case 'searchError':
