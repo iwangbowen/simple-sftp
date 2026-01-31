@@ -742,4 +742,139 @@ describe('TransferTaskModel', () => {
       expect(task.retryCount).toBeLessThanOrEqual(10);
     });
   });
+
+  describe('Chunk Progress', () => {
+    it('should initialize chunk progress correctly', () => {
+      const task = new TransferTaskModel(defaultOptions);
+      const totalChunks = 5;
+      const chunkSize = 1024;
+      const totalSize = 5000;
+
+      task.initializeChunkProgress(totalChunks, chunkSize, totalSize);
+
+      expect(task.chunkProgress).toBeDefined();
+      expect(task.chunkProgress?.length).toBe(5);
+      expect(task.chunkProgress?.[0].start).toBe(0);
+      expect(task.chunkProgress?.[0].size).toBe(1024);
+      expect(task.chunkProgress?.[4].end).toBe(4999);
+    });
+
+    it('should initialize chunk progress with correct sizes', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(3, 1000, 2500);
+
+      expect(task.chunkProgress?.[0].size).toBe(1000); // 0-999
+      expect(task.chunkProgress?.[1].size).toBe(1000); // 1000-1999
+      expect(task.chunkProgress?.[2].size).toBe(500);  // 2000-2499 (last chunk smaller)
+    });
+
+    it('should update chunk progress correctly', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(3, 1000, 3000);
+      task.updateChunkProgress(0, 500, 'downloading');
+
+      expect(task.chunkProgress?.[0].transferred).toBe(500);
+      expect(task.chunkProgress?.[0].status).toBe('downloading');
+    });
+
+    it('should calculate chunk speed when downloading', async () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(2, 1000, 2000);
+      task.updateChunkProgress(0, 0, 'downloading');
+
+      // Wait a bit then update progress
+      await new Promise(resolve => setTimeout(resolve, 100));
+      task.updateChunkProgress(0, 500, 'downloading');
+
+      expect(task.chunkProgress?.[0].speed).toBeGreaterThan(0);
+    });
+
+    it('should mark chunk as completed', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(2, 1000, 2000);
+      task.updateChunkProgress(0, 1000, 'completed');
+
+      expect(task.chunkProgress?.[0].status).toBe('completed');
+      expect(task.chunkProgress?.[0].transferred).toBe(1000);
+      expect(task.chunkProgress?.[0].endTime).toBeDefined();
+    });
+
+    it('should get total transferred from all chunks', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(3, 1000, 3000);
+      task.updateChunkProgress(0, 1000, 'completed');
+      task.updateChunkProgress(1, 500, 'downloading');
+      task.updateChunkProgress(2, 0, 'pending');
+
+      const total = task.getChunkTotalTransferred();
+      expect(total).toBe(1500); // 1000 + 500 + 0
+    });
+
+    it('should handle chunk progress with no chunks initialized', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      const total = task.getChunkTotalTransferred();
+      expect(total).toBe(0);
+    });
+
+    it('should handle update chunk progress with invalid index', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(2, 1000, 2000);
+
+      // Should not throw error for out of bounds index
+      expect(() => {
+        task.updateChunkProgress(5, 500, 'downloading');
+      }).not.toThrow();
+    });
+
+    it('should handle chunk progress for single chunk', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(1, 10000, 10000);
+
+      expect(task.chunkProgress?.length).toBe(1);
+      expect(task.chunkProgress?.[0].size).toBe(10000);
+    });
+
+    it('should handle chunk progress with very small chunks', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(100, 10, 1000);
+
+      expect(task.chunkProgress?.length).toBe(100);
+      expect(task.chunkProgress?.[0].size).toBe(10);
+      expect(task.chunkProgress?.[99].size).toBe(10);
+    });
+
+    it('should calculate correct chunk boundaries', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(4, 256, 1000);
+
+      // Check each chunk's boundaries
+      expect(task.chunkProgress?.[0].start).toBe(0);
+      expect(task.chunkProgress?.[0].end).toBe(255);
+      expect(task.chunkProgress?.[1].start).toBe(256);
+      expect(task.chunkProgress?.[1].end).toBe(511);
+      expect(task.chunkProgress?.[3].start).toBe(768);
+      expect(task.chunkProgress?.[3].end).toBe(999); // Last chunk to file end
+    });
+
+    it('should reset chunk transferred to chunk size on completion', () => {
+      const task = new TransferTaskModel(defaultOptions);
+
+      task.initializeChunkProgress(2, 1000, 2000);
+      task.updateChunkProgress(0, 800, 'downloading');
+      task.updateChunkProgress(0, 1000, 'completed');
+
+      // On completion, transferred should equal chunk size
+      expect(task.chunkProgress?.[0].transferred).toBe(1000);
+    });
+  });
 });
