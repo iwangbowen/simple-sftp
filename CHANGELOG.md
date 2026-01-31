@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.4.0 - 2026-02-01
+
+- **Resource Dashboard**: Added system resource monitoring (CPU, memory, disk) accessible from host context menu
+
+---
+
 ## 4.3.3 - 2026-01-31
 
 - **TreeView UX**: Fixed bookmark navigation and moved edit actions to context menus
