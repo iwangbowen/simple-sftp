@@ -479,6 +479,35 @@ body {
     font-size: 11px;
 }
 
+/* ===== Breadcrumb Tree (expand/collapse in dropdown) ===== */
+.breadcrumb-tree-chevron {
+    flex-shrink: 0;
+    margin-right: 4px;
+    opacity: 0.6;
+    font-size: 12px;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.breadcrumb-tree-chevron:hover {
+    opacity: 1;
+}
+
+.breadcrumb-tree-chevron.codicon-chevron-down {
+    transform: rotate(0deg);
+}
+
+.breadcrumb-tree-loading {
+    opacity: 0.6;
+    font-size: 11px;
+}
+
+.breadcrumb-tree-empty {
+    opacity: 0.5;
+    font-size: 11px;
+    font-style: italic;
+}
+
 /* ===== Breadcrumb Submenu ===== */
 .breadcrumb-submenu {
     position: fixed;

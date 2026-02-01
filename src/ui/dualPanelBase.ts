@@ -262,6 +262,10 @@ export abstract class DualPanelBase {
                 await this.handleGetBreadcrumbSubMenu(message.panel, message.path);
                 break;
 
+            case 'getBreadcrumbTreeChildren':
+                await this.handleGetBreadcrumbTreeChildren(message.panel, message.path);
+                break;
+
             case 'performSearch':
                 await this.performSearch(message.data);
                 break;
@@ -1630,6 +1634,49 @@ export abstract class DualPanelBase {
         } catch (error: any) {
             logger.error(`Failed to load breadcrumb submenu: ${error}`);
             // Don't show error message for submenu, just fail silently
+        }
+    }
+
+    protected async handleGetBreadcrumbTreeChildren(panel: string, parentPath: string): Promise<void> {
+        try {
+            // Load directory contents (same as submenu)
+            let nodes: FileNode[] = [];
+
+            if (panel === 'local') {
+                if (parentPath === 'drives://') {
+                    nodes = await this.listWindowsDrives();
+                } else {
+                    nodes = await this.readLocalDirectory(parentPath);
+                }
+            } else {
+                // Remote panel
+                if (!this._remoteSftp) {
+                    vscode.window.showErrorMessage('Not connected to remote server');
+                    return;
+                }
+                nodes = await this.readRemoteDirectory(parentPath);
+            }
+
+            // Send results to webview
+            this.postMessage({
+                command: 'breadcrumbTreeChildren',
+                data: {
+                    panel: panel,
+                    parentPath: parentPath,
+                    nodes: nodes
+                }
+            });
+        } catch (error: any) {
+            logger.error(`Failed to load breadcrumb tree children: ${error}`);
+            // Send empty result on error
+            this.postMessage({
+                command: 'breadcrumbTreeChildren',
+                data: {
+                    panel: panel,
+                    parentPath: parentPath,
+                    nodes: []
+                }
+            });
         }
     }
 
