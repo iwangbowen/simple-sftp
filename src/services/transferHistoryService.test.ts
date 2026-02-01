@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TransferHistoryService } from './transferHistoryService';
 import { TransferTaskModel } from '../models/transferTask';
-import { TaskStatus } from '../types/transfer.types';
 import * as vscode from 'vscode';
 
 describe('TransferHistoryService', () => {
