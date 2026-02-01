@@ -495,16 +495,16 @@
         "icon": "$(edit)"
       },
       {
-        "command": "simpleSftp.dualPanel.createFolder",
-        "title": "New Folder",
-        "category": "Simple SFTP",
-        "icon": "$(new-folder)"
-      },
-      {
         "command": "simpleSftp.dualPanel.createFile",
         "title": "New File",
         "category": "Simple SFTP",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.createFolder",
+        "title": "New Folder",
+        "category": "Simple SFTP",
+        "icon": "$(new-folder)"
       },
       {
         "command": "simpleSftp.dualPanel.refresh",
@@ -531,16 +531,16 @@
         "icon": "$(diff)"
       },
       {
-        "command": "simpleSftp.dualPanel.localMore.newFolder",
-        "title": "New Folder",
-        "category": "Simple SFTP",
-        "icon": "$(new-folder)"
-      },
-      {
         "command": "simpleSftp.dualPanel.localMore.newFile",
         "title": "New File",
         "category": "Simple SFTP",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.localMore.newFolder",
+        "title": "New Folder",
+        "category": "Simple SFTP",
+        "icon": "$(new-folder)"
       },
       {
         "command": "simpleSftp.dualPanel.localMore.uploadSelected",
@@ -549,16 +549,16 @@
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "simpleSftp.dualPanel.remoteMore.newFolder",
-        "title": "New Folder",
-        "category": "Simple SFTP",
-        "icon": "$(new-folder)"
-      },
-      {
         "command": "simpleSftp.dualPanel.remoteMore.newFile",
         "title": "New File",
         "category": "Simple SFTP",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.remoteMore.newFolder",
+        "title": "New Folder",
+        "category": "Simple SFTP",
+        "icon": "$(new-folder)"
       },
       {
         "command": "simpleSftp.dualPanel.remoteMore.downloadSelected",
@@ -597,12 +597,12 @@
           "group": "2_operations@1"
         },
         {
-          "command": "simpleSftp.dualPanel.createFolder",
+          "command": "simpleSftp.dualPanel.createFile",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
           "group": "2_operations@2"
         },
         {
-          "command": "simpleSftp.dualPanel.createFile",
+          "command": "simpleSftp.dualPanel.createFolder",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
           "group": "2_operations@2.5"
         },
@@ -642,12 +642,12 @@
           "group": "3_dangerous@1"
         },
         {
-          "command": "simpleSftp.dualPanel.localMore.newFolder",
+          "command": "simpleSftp.dualPanel.localMore.newFile",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'localMore'",
           "group": "1_actions@1"
         },
         {
-          "command": "simpleSftp.dualPanel.localMore.newFile",
+          "command": "simpleSftp.dualPanel.localMore.newFolder",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'localMore'",
           "group": "1_actions@1.5"
         },
@@ -657,12 +657,12 @@
           "group": "1_actions@2"
         },
         {
-          "command": "simpleSftp.dualPanel.remoteMore.newFolder",
+          "command": "simpleSftp.dualPanel.remoteMore.newFile",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteMore'",
           "group": "1_actions@1"
         },
         {
-          "command": "simpleSftp.dualPanel.remoteMore.newFile",
+          "command": "simpleSftp.dualPanel.remoteMore.newFolder",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteMore'",
           "group": "1_actions@1.5"
         },
