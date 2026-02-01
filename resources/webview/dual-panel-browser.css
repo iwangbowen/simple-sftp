@@ -454,7 +454,7 @@ body {
 .file-tree {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto; /* 允许横向滚动 */
     padding: 0;
     user-select: none;
     display: flex;
@@ -463,6 +463,7 @@ body {
 
 .file-tree::-webkit-scrollbar {
     width: 10px;
+    height: 10px; /* 添加横向滚动条高度 */
 }
 
 .file-tree::-webkit-scrollbar-track {
@@ -484,6 +485,10 @@ body {
     height: 24px;
     flex-shrink: 0;
     user-select: none;
+    position: sticky; /* 固定在顶部 */
+    top: 0;
+    z-index: 1;
+    min-width: fit-content; /* 内容宽度不够时允许滚动 */
 }
 
 .column-header {
@@ -559,6 +564,7 @@ body {
     border-radius: 4px;
     transition: background-color 0.1s;
     white-space: nowrap;
+    min-width: fit-content; /* 保持与header宽度一致,允许横向滚动 */
 }
 
 .new-folder-wrapper {
