@@ -1579,11 +1579,11 @@ export abstract class DualPanelBase {
                 }
             } else {
                 // Remote panel
-                if (!this._remoteSftp) {
+                if (!this._currentHost || !this._currentAuthConfig) {
                     vscode.window.showErrorMessage('Not connected to remote server');
                     return;
                 }
-                nodes = await this.readRemoteDirectory(directoryPath);
+                nodes = await this.readRemoteDirectory(this._currentHost, this._currentAuthConfig, directoryPath);
             }
 
             // Send results to webview
@@ -1615,11 +1615,11 @@ export abstract class DualPanelBase {
                 }
             } else {
                 // Remote panel
-                if (!this._remoteSftp) {
+                if (!this._currentHost || !this._currentAuthConfig) {
                     vscode.window.showErrorMessage('Not connected to remote server');
                     return;
                 }
-                nodes = await this.readRemoteDirectory(folderPath);
+                nodes = await this.readRemoteDirectory(this._currentHost, this._currentAuthConfig, folderPath);
             }
 
             // Send results to webview
@@ -1650,11 +1650,11 @@ export abstract class DualPanelBase {
                 }
             } else {
                 // Remote panel
-                if (!this._remoteSftp) {
+                if (!this._currentHost || !this._currentAuthConfig) {
                     vscode.window.showErrorMessage('Not connected to remote server');
                     return;
                 }
-                nodes = await this.readRemoteDirectory(parentPath);
+                nodes = await this.readRemoteDirectory(this._currentHost, this._currentAuthConfig, parentPath);
             }
 
             // Send results to webview
