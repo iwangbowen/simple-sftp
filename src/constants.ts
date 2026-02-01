@@ -42,15 +42,15 @@ export const PARALLEL_TRANSFER = {
  */
 export function getParallelTransferConfig() {
   const vscode = require('vscode');
-  const config = vscode.workspace.getConfiguration('simpleSftp.parallelTransfer');
+  const config: any = vscode.workspace.getConfiguration('simpleSftp.parallelTransfer');
 
   const MB = 1024 * 1024;
 
   return {
-    enabled: config.get<boolean>('enabled', PARALLEL_TRANSFER.ENABLED),
-    threshold: config.get<number>('threshold', PARALLEL_TRANSFER.THRESHOLD / MB) * MB,
-    chunkSize: config.get<number>('chunkSize', PARALLEL_TRANSFER.CHUNK_SIZE / MB) * MB,
-    maxConcurrent: config.get<number>('maxConcurrent', PARALLEL_TRANSFER.MAX_CONCURRENT),
+    enabled: config.get('enabled', PARALLEL_TRANSFER.ENABLED) as boolean,
+    threshold: (config.get('threshold', PARALLEL_TRANSFER.THRESHOLD / MB) as number) * MB,
+    chunkSize: (config.get('chunkSize', PARALLEL_TRANSFER.CHUNK_SIZE / MB) as number) * MB,
+    maxConcurrent: config.get('maxConcurrent', PARALLEL_TRANSFER.MAX_CONCURRENT) as number,
   };
 }
 
