@@ -237,7 +237,6 @@ describe('RemoteBrowserService', () => {
         port: 2222,
         username: 'admin',
         defaultRemotePath: '/srv',
-        defaultLocalPath: '/local',
         group: 'Production'
       };
 
@@ -829,8 +828,9 @@ describe('RemoteBrowserService', () => {
       });
 
       it('should accept upload handler with complex logic', () => {
-        const complexHandler = vi.fn((items: unknown[]) => {
-          return items.map(item => ({ ...item as object, processed: true }));
+        const complexHandler = vi.fn(async (config: HostConfig, authConfig: HostAuthConfig, remotePath: string, isDirectory: boolean) => {
+          // Complex upload logic
+          await Promise.resolve();
         });
 
         const svc = new RemoteBrowserService(mockHostManager, complexHandler);
