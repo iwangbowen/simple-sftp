@@ -70,7 +70,7 @@ describe('constants', () => {
 
     describe('PARALLEL_TRANSFER', () => {
         it('should have valid default values', () => {
-            expect(PARALLEL_TRANSFER.ENABLED).toBe(true);
+            expect(PARALLEL_TRANSFER.ENABLED).toBe(false); // Disabled by default due to compatibility issues
             expect(PARALLEL_TRANSFER.CHUNK_SIZE).toBe(10 * 1024 * 1024);
             expect(PARALLEL_TRANSFER.MAX_CONCURRENT).toBe(5);
             expect(PARALLEL_TRANSFER.THRESHOLD).toBe(100 * 1024 * 1024);
