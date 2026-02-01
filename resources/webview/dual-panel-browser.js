@@ -2748,11 +2748,19 @@
                 loadDirectory(panel, element.dataset.path);
                 closeBreadcrumbDropdown();
             } else {
-                // Single click: show dropdown after delay
-                breadcrumbClickTimers[segmentKey] = setTimeout(() => {
-                    breadcrumbClickTimers[segmentKey] = null;
-                    showBreadcrumbDropdown(element, panel, element.dataset.path, true);
-                }, 250);
+                // Check if dropdown is already showing for this path
+                if (breadcrumbDropdown &&
+                    breadcrumbDropdown.dataset.panel === panel &&
+                    breadcrumbDropdown.dataset.path === element.dataset.path) {
+                    // Same path - close dropdown immediately, no timer
+                    closeBreadcrumbDropdown();
+                } else {
+                    // Different path or no dropdown - show it after delay
+                    breadcrumbClickTimers[segmentKey] = setTimeout(() => {
+                        breadcrumbClickTimers[segmentKey] = null;
+                        showBreadcrumbDropdown(element, panel, element.dataset.path, true);
+                    }, 250);
+                }
             }
         });
         breadcrumb.appendChild(rootSpan);
@@ -2788,8 +2796,16 @@
 
                 segment.addEventListener('click', function(e) {
                     const element = this;
-                    // No double-click handling for current segment, just show dropdown
-                    showBreadcrumbDropdown(element, panel, element.dataset.path, false);
+                    // Check if dropdown is already showing for this path
+                    if (breadcrumbDropdown &&
+                        breadcrumbDropdown.dataset.panel === panel &&
+                        breadcrumbDropdown.dataset.path === element.dataset.path) {
+                        // Same path - close dropdown
+                        closeBreadcrumbDropdown();
+                    } else {
+                        // Different path or no dropdown - show it
+                        showBreadcrumbDropdown(element, panel, element.dataset.path, false);
+                    }
                 });
             } else {
                 // Other segments: single click dropdown, double click navigate
@@ -2807,11 +2823,19 @@
                         loadDirectory(panel, element.dataset.path);
                         closeBreadcrumbDropdown();
                     } else {
-                        // Single click: show dropdown after delay
-                        breadcrumbClickTimers[segmentKey] = setTimeout(() => {
-                            breadcrumbClickTimers[segmentKey] = null;
-                            showBreadcrumbDropdown(element, panel, element.dataset.path, false);
-                        }, 250);
+                        // Check if dropdown is already showing for this path
+                        if (breadcrumbDropdown &&
+                            breadcrumbDropdown.dataset.panel === panel &&
+                            breadcrumbDropdown.dataset.path === element.dataset.path) {
+                            // Same path - close dropdown immediately, no timer
+                            closeBreadcrumbDropdown();
+                        } else {
+                            // Different path or no dropdown - show it after delay
+                            breadcrumbClickTimers[segmentKey] = setTimeout(() => {
+                                breadcrumbClickTimers[segmentKey] = null;
+                                showBreadcrumbDropdown(element, panel, element.dataset.path, false);
+                            }, 250);
+                        }
                     }
                 });
             }
