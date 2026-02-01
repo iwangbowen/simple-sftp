@@ -1,6 +1,5 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as os from 'node:os';
 import { Client, ConnectConfig } from 'ssh2';
 // @ts-ignore
 import SftpClient from 'ssh2-sftp-client';
