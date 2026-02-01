@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.4.2 - 2026-02-02
+
+- **Fixed**: Empty file opening error - now properly handles zero-byte files
+- **Changed**: Parallel transfer disabled by default due to proxy/tunnel compatibility issues
+
+---
+
 ## 4.4.1 - 2026-02-01
 
 - **UI Enhancement**: Expanded file icon mappings (280+ extensions), refined breadcrumb hover style, updated local panel icon to desktop device
