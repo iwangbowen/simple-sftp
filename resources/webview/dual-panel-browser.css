@@ -331,6 +331,7 @@ body {
 
 /* ===== Breadcrumb Navigation ===== */
 .breadcrumb {
+    position: relative; /* For breadcrumb dropdown positioning */
     display: flex;
     align-items: center;
     gap: 2px;
@@ -374,6 +375,11 @@ body {
 .breadcrumb-current {
     font-weight: 500;
     color: var(--vscode-titleBar-activeForeground);
+    cursor: pointer;
+}
+
+.breadcrumb-current:hover {
+    background-color: var(--vscode-list-hoverBackground);
 }
 
 .breadcrumb-separator {
@@ -382,6 +388,115 @@ body {
     opacity: 0.7;
     flex-shrink: 0; /* 分隔符不压缩 */
     padding: 0 2px;
+}
+
+/* ===== Breadcrumb Dropdown ===== */
+.breadcrumb-dropdown {
+    position: absolute;
+    z-index: 1000;
+    background-color: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border);
+    box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+    border-radius: 4px;
+    min-width: 200px;
+    max-width: 400px;
+    max-height: 400px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.breadcrumb-dropdown-loading {
+    padding: 12px;
+    text-align: center;
+    color: var(--vscode-foreground);
+    opacity: 0.7;
+}
+
+.breadcrumb-dropdown-loading .codicon {
+    margin-right: 6px;
+    font-size: 14px;
+}
+
+.breadcrumb-dropdown-list {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.breadcrumb-dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: var(--vscode-menu-foreground);
+    background-color: var(--vscode-menu-background);
+    transition: background-color 0.1s;
+    gap: 6px;
+}
+
+.breadcrumb-dropdown-item:hover {
+    background-color: var(--vscode-list-hoverBackground);
+    color: var(--vscode-list-hoverForeground);
+}
+
+.breadcrumb-dropdown-item.selected {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+    font-weight: 500;
+}
+
+.breadcrumb-dropdown-item .codicon {
+    flex-shrink: 0;
+    font-size: 14px;
+}
+
+.breadcrumb-dropdown-item .codicon-folder {
+    color: var(--vscode-symbolIcon-folderForeground, #dcb67a);
+}
+
+.breadcrumb-dropdown-item .codicon-file {
+    color: var(--vscode-symbolIcon-fileForeground, inherit);
+}
+
+.breadcrumb-dropdown-item-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.breadcrumb-dropdown-chevron {
+    margin-left: auto;
+    opacity: 0.6;
+    font-size: 12px;
+}
+
+.breadcrumb-dropdown-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--vscode-foreground);
+    opacity: 0.5;
+    font-size: 11px;
+}
+
+/* ===== Breadcrumb Submenu ===== */
+.breadcrumb-submenu {
+    position: fixed;
+    z-index: 1001;
+    background-color: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border);
+    box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+    border-radius: 4px;
+    min-width: 200px;
+    max-width: 400px;
+    max-height: 400px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.breadcrumb-submenu.breadcrumb-submenu-nested {
+    z-index: 1002;
 }
 
 

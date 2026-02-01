@@ -32,6 +32,14 @@
         local: { column: 'name', direction: 'asc' },
         remote: { column: 'name', direction: 'asc' }
     };
+    /** @type {HTMLElement | null} */
+    let breadcrumbDropdown = null;
+    /** @type {Object.<string, number>} */
+    let breadcrumbClickTimers = {};
+    /** @type {HTMLElement | null} */
+    let breadcrumbSubMenu = null;
+    /** @type {number | null} */
+    let breadcrumbHoverTimer = null;
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -1513,6 +1521,369 @@
     }
 
     /**
+     * Close breadcrumb dropdown
+     */
+    function closeBreadcrumbDropdown() {
+        if (breadcrumbDropdown && breadcrumbDropdown.parentElement) {
+            breadcrumbDropdown.parentElement.removeChild(breadcrumbDropdown);
+            breadcrumbDropdown = null;
+        }
+        closeBreadcrumbSubMenu();
+    }
+
+    /**
+     * Close breadcrumb submenu
+     */
+    function closeBreadcrumbSubMenu() {
+        if (breadcrumbSubMenu && breadcrumbSubMenu.parentElement) {
+            breadcrumbSubMenu.parentElement.removeChild(breadcrumbSubMenu);
+            breadcrumbSubMenu = null;
+        }
+        if (breadcrumbHoverTimer) {
+            clearTimeout(breadcrumbHoverTimer);
+            breadcrumbHoverTimer = null;
+        }
+    }
+
+    /**
+     * Show breadcrumb submenu for a folder
+     * @param {HTMLElement} parentItem - The folder item element
+     * @param {string} panel - 'local' | 'remote'
+     * @param {string} folderPath - The path of the folder
+     */
+    async function showBreadcrumbSubMenu(parentItem, panel, folderPath) {
+        // Close existing submenu
+        closeBreadcrumbSubMenu();
+
+        // Request directory listing from backend
+        vscode.postMessage({
+            command: 'getBreadcrumbSubMenu',
+            panel: panel,
+            path: folderPath
+        });
+
+        // Create and show submenu (will be populated when backend responds)
+        breadcrumbSubMenu = document.createElement('div');
+        breadcrumbSubMenu.className = 'breadcrumb-submenu';
+        breadcrumbSubMenu.dataset.panel = panel;
+        breadcrumbSubMenu.dataset.path = folderPath;
+        breadcrumbSubMenu.innerHTML = `
+            <div class="breadcrumb-dropdown-loading">
+                <span class="codicon codicon-loading codicon-modifier-spin"></span>
+            </div>
+        `;
+
+        // Position submenu to the right of the parent breadcrumbDropdown
+        const dropdownRect = breadcrumbDropdown.getBoundingClientRect();
+        const parentRect = parentItem.getBoundingClientRect();
+
+        breadcrumbSubMenu.style.position = 'fixed';
+        breadcrumbSubMenu.style.top = `${parentRect.top}px`;
+        breadcrumbSubMenu.style.left = `${dropdownRect.right - 2}px`; // Slight overlap
+        breadcrumbSubMenu.style.zIndex = '1001';
+
+        document.body.appendChild(breadcrumbSubMenu);
+
+        // Keep submenu open when hovering over it
+        breadcrumbSubMenu.addEventListener('mouseenter', () => {
+            if (breadcrumbHoverTimer) {
+                clearTimeout(breadcrumbHoverTimer);
+                breadcrumbHoverTimer = null;
+            }
+        });
+
+        breadcrumbSubMenu.addEventListener('mouseleave', () => {
+            breadcrumbHoverTimer = setTimeout(closeBreadcrumbSubMenu, 300);
+        });
+    }
+
+    /**
+     * Show breadcrumb dropdown menu
+     * @param {HTMLElement} segment - The breadcrumb segment element
+     * @param {string} panel - 'local' | 'remote'
+     * @param {string} path - The path of the breadcrumb segment
+     * @param {boolean} isRoot - Whether this is the root segment
+     */
+    async function showBreadcrumbDropdown(segment, panel, path, isRoot) {
+        console.log('[Breadcrumb] showBreadcrumbDropdown called:', { panel, path, isRoot });
+
+        // Close any existing dropdown
+        closeBreadcrumbDropdown();
+
+        // Request directory listing from backend
+        console.log('[Breadcrumb] Sending getBreadcrumbDirectory message');
+        vscode.postMessage({
+            command: 'getBreadcrumbDirectory',
+            panel: panel,
+            path: path,
+            isRoot: isRoot
+        });
+
+        // Create and show dropdown (will be populated when backend responds)
+        breadcrumbDropdown = document.createElement('div');
+        breadcrumbDropdown.className = 'breadcrumb-dropdown';
+        breadcrumbDropdown.dataset.panel = panel;
+        breadcrumbDropdown.dataset.path = path;
+        breadcrumbDropdown.innerHTML = `
+            <div class="breadcrumb-dropdown-loading">
+                <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                Loading...
+            </div>
+        `;
+
+        // Position dropdown below the segment
+        const rect = segment.getBoundingClientRect();
+        const breadcrumbContainer = segment.closest('.breadcrumb');
+        if (!breadcrumbContainer) {
+            console.error('[Breadcrumb] breadcrumbContainer not found!');
+            return;
+        }
+
+        // Position dropdown below the breadcrumb container using fixed positioning
+        // This avoids being clipped by overflow-y: hidden on breadcrumb container
+        const containerRect = breadcrumbContainer.getBoundingClientRect();
+        breadcrumbDropdown.style.position = 'fixed';
+        breadcrumbDropdown.style.top = `${containerRect.bottom + 2}px`; // 2px gap below breadcrumb
+        breadcrumbDropdown.style.left = `${rect.left}px`;
+        breadcrumbDropdown.style.zIndex = '1000';
+
+        // Add to body instead of breadcrumb container to avoid overflow hidden
+        document.body.appendChild(breadcrumbDropdown);
+        console.log('[Breadcrumb] Dropdown element created and appended to body', breadcrumbDropdown);
+
+        // Click outside to close
+        const closeHandler = (e) => {
+            if (!breadcrumbDropdown || !breadcrumbDropdown.contains(e.target)) {
+                closeBreadcrumbDropdown();
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => {
+            document.addEventListener('click', closeHandler);
+        }, 10);
+    }
+
+    /**
+     * Render breadcrumb dropdown content
+     * @param {Object} data - Directory data from backend
+     */
+    function renderBreadcrumbDropdown(data) {
+        console.log('[Breadcrumb] renderBreadcrumbDropdown called, breadcrumbDropdown exists:', !!breadcrumbDropdown, 'data:', data);
+
+        if (!breadcrumbDropdown) {
+            console.warn('[Breadcrumb] breadcrumbDropdown is null, cannot render');
+            return;
+        }
+
+        const { panel, path, nodes, currentPath } = data;
+
+        // Clear loading state
+        breadcrumbDropdown.innerHTML = '';
+
+        // Create scrollable list
+        const list = document.createElement('div');
+        list.className = 'breadcrumb-dropdown-list';
+
+        // Sort: folders first, then files, alphabetically
+        const folders = nodes.filter(n => n.isDirectory).sort((a, b) => a.name.localeCompare(b.name));
+        const files = nodes.filter(n => !n.isDirectory).sort((a, b) => a.name.localeCompare(b.name));
+        const allNodes = [...folders, ...files];
+
+        console.log('[Breadcrumb] Rendering', allNodes.length, 'nodes');
+
+        allNodes.forEach(node => {
+            const item = document.createElement('div');
+            item.className = 'breadcrumb-dropdown-item';
+            if (node.path === currentPath) {
+                item.classList.add('selected');
+            }
+
+            const icon = document.createElement('span');
+            icon.className = `codicon ${node.isDirectory ? 'codicon-folder' : 'codicon-file'}`;
+            item.appendChild(icon);
+
+            const label = document.createElement('span');
+            label.className = 'breadcrumb-dropdown-item-label';
+            label.textContent = node.name;
+            item.appendChild(label);
+
+            // Folders can expand to show children
+            if (node.isDirectory) {
+                const chevron = document.createElement('span');
+                chevron.className = 'codicon codicon-chevron-right breadcrumb-dropdown-chevron';
+                item.appendChild(chevron);
+
+                // Click to navigate
+                item.addEventListener('click', () => {
+                    loadDirectory(panel, node.path);
+                    closeBreadcrumbDropdown();
+                });
+
+                // Hover to show children in submenu
+                let hoverTimer = null;
+                item.addEventListener('mouseenter', () => {
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    hoverTimer = setTimeout(() => {
+                        showBreadcrumbSubMenu(item, panel, node.path);
+                    }, 200);
+                });
+
+                item.addEventListener('mouseleave', () => {
+                    if (hoverTimer) {
+                        clearTimeout(hoverTimer);
+                        hoverTimer = null;
+                    }
+                    // Delay closing to allow moving to submenu
+                    if (breadcrumbHoverTimer) clearTimeout(breadcrumbHoverTimer);
+                    breadcrumbHoverTimer = setTimeout(closeBreadcrumbSubMenu, 300);
+                });
+            } else {
+                // Files just navigate
+                item.addEventListener('click', () => {
+                    // For files, navigate to parent directory
+                    const separator = panel === 'local' && node.path.includes('\\') ? '\\' : '/';
+                    const parentPath = node.path.substring(0, node.path.lastIndexOf(separator));
+                    loadDirectory(panel, parentPath || '/');
+                    closeBreadcrumbDropdown();
+                });
+            }
+
+            list.appendChild(item);
+        });
+
+        breadcrumbDropdown.appendChild(list);
+    }
+
+    /**
+     * Render breadcrumb submenu content
+     * @param {Object} data - Directory data from backend
+     */
+    function renderBreadcrumbSubMenu(data) {
+        if (!breadcrumbSubMenu) return;
+
+        const { panel, nodes } = data;
+
+        // Clear loading state
+        breadcrumbSubMenu.innerHTML = '';
+
+        if (!nodes || nodes.length === 0) {
+            breadcrumbSubMenu.innerHTML = '<div class="breadcrumb-dropdown-empty">Empty folder</div>';
+            return;
+        }
+
+        // Create scrollable list
+        const list = document.createElement('div');
+        list.className = 'breadcrumb-dropdown-list';
+
+        // Sort: folders first, then files, alphabetically
+        const folders = nodes.filter(n => n.isDirectory).sort((a, b) => a.name.localeCompare(b.name));
+        const files = nodes.filter(n => !n.isDirectory).sort((a, b) => a.name.localeCompare(b.name));
+        const allNodes = [...folders, ...files];
+
+        allNodes.forEach(node => {
+            const item = document.createElement('div');
+            item.className = 'breadcrumb-dropdown-item';
+
+            const icon = document.createElement('span');
+            icon.className = `codicon ${node.isDirectory ? 'codicon-folder' : 'codicon-file'}`;
+            item.appendChild(icon);
+
+            const label = document.createElement('span');
+            label.className = 'breadcrumb-dropdown-item-label';
+            label.textContent = node.name;
+            item.appendChild(label);
+
+            if (node.isDirectory) {
+                const chevron = document.createElement('span');
+                chevron.className = 'codicon codicon-chevron-right breadcrumb-dropdown-chevron';
+                item.appendChild(chevron);
+
+                // Click to navigate
+                item.addEventListener('click', () => {
+                    loadDirectory(panel, node.path);
+                    closeBreadcrumbDropdown();
+                });
+
+                // Hover to show children (recursive submenu)
+                let hoverTimer = null;
+                item.addEventListener('mouseenter', () => {
+                    if (hoverTimer) clearTimeout(hoverTimer);
+                    hoverTimer = setTimeout(() => {
+                        // Close current deeper level submenus
+                        const currentSubMenu = breadcrumbSubMenu;
+
+                        // Request new submenu
+                        vscode.postMessage({
+                            command: 'getBreadcrumbSubMenu',
+                            panel: panel,
+                            path: node.path
+                        });
+
+                        // Create new submenu for this folder
+                        const newSubMenu = document.createElement('div');
+                        newSubMenu.className = 'breadcrumb-submenu breadcrumb-submenu-nested';
+                        newSubMenu.dataset.panel = panel;
+                        newSubMenu.dataset.path = node.path;
+                        newSubMenu.innerHTML = `
+                            <div class="breadcrumb-dropdown-loading">
+                                <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                            </div>
+                        `;
+
+                        const itemRect = item.getBoundingClientRect();
+                        const subMenuRect = currentSubMenu.getBoundingClientRect();
+
+                        newSubMenu.style.position = 'fixed';
+                        newSubMenu.style.top = `${itemRect.top}px`;
+                        newSubMenu.style.left = `${subMenuRect.right - 2}px`;
+                        newSubMenu.style.zIndex = '1002';
+
+                        document.body.appendChild(newSubMenu);
+
+                        // Store as current nested submenu (temporary, will be replaced by handler)
+                        newSubMenu.nestedSubMenu = true;
+
+                        // Keep submenu open when hovering over it
+                        newSubMenu.addEventListener('mouseenter', () => {
+                            if (breadcrumbHoverTimer) {
+                                clearTimeout(breadcrumbHoverTimer);
+                                breadcrumbHoverTimer = null;
+                            }
+                        });
+
+                        newSubMenu.addEventListener('mouseleave', () => {
+                            breadcrumbHoverTimer = setTimeout(() => {
+                                if (newSubMenu.parentElement) {
+                                    newSubMenu.parentElement.removeChild(newSubMenu);
+                                }
+                            }, 300);
+                        });
+                    }, 200);
+                });
+
+                item.addEventListener('mouseleave', () => {
+                    if (hoverTimer) {
+                        clearTimeout(hoverTimer);
+                        hoverTimer = null;
+                    }
+                });
+            } else {
+                // Files: click to navigate to parent directory
+                item.addEventListener('click', () => {
+                    const separator = panel === 'local' && node.path.includes('\\') ? '\\' : '/';
+                    const parentPath = node.path.substring(0, node.path.lastIndexOf(separator));
+                    loadDirectory(panel, parentPath || '/');
+                    closeBreadcrumbDropdown();
+                });
+            }
+
+            list.appendChild(item);
+        });
+
+        breadcrumbSubMenu.appendChild(list);
+    }
+
+    /**
      * Render bookmarks in dropdown
      * @param {Array<{name: string, path: string}>} bookmarks
      */
@@ -2437,9 +2808,26 @@
         }
         rootSpan.dataset.path = isWindows ? segments[0] + separator : '/';
         rootSpan.dataset.panel = panel;
-        rootSpan.title = 'Go to root';
-        rootSpan.addEventListener('click', function() {
-            loadDirectory(panel, this.dataset.path);
+        rootSpan.title = 'Click for dropdown, double-click to navigate';
+
+        // Single click: show dropdown, double click: navigate
+        rootSpan.addEventListener('click', function(e) {
+            const element = this; // Save element reference
+            const segmentKey = `${panel}_root`;
+
+            if (breadcrumbClickTimers[segmentKey]) {
+                // Double click: navigate
+                clearTimeout(breadcrumbClickTimers[segmentKey]);
+                breadcrumbClickTimers[segmentKey] = null;
+                loadDirectory(panel, element.dataset.path);
+                closeBreadcrumbDropdown();
+            } else {
+                // Single click: show dropdown after delay
+                breadcrumbClickTimers[segmentKey] = setTimeout(() => {
+                    breadcrumbClickTimers[segmentKey] = null;
+                    showBreadcrumbDropdown(element, panel, element.dataset.path, true);
+                }, 250);
+            }
         });
         breadcrumb.appendChild(rootSpan);
 
@@ -2463,16 +2851,43 @@
             segment.textContent = segments[i];
             segment.dataset.path = paths[i + (isWindows ? 0 : 1)];
             segment.dataset.panel = panel;
-            segment.title = `Go to ${segment.dataset.path}`;
 
-            // Make all but last segment clickable
-            if (i < segments.length - 1) {
-                segment.classList.add('breadcrumb-clickable');
-                segment.addEventListener('click', function() {
-                    loadDirectory(panel, this.dataset.path);
+            // All segments support dropdown (single click)
+            const isLastSegment = (i === segments.length - 1);
+
+            if (isLastSegment) {
+                // Current segment: only show dropdown, no navigation
+                segment.classList.add('breadcrumb-current');
+                segment.title = 'Click for dropdown';
+
+                segment.addEventListener('click', function(e) {
+                    const element = this;
+                    // No double-click handling for current segment, just show dropdown
+                    showBreadcrumbDropdown(element, panel, element.dataset.path, false);
                 });
             } else {
-                segment.classList.add('breadcrumb-current');
+                // Other segments: single click dropdown, double click navigate
+                segment.classList.add('breadcrumb-clickable');
+                segment.title = 'Click for dropdown, double-click to navigate';
+
+                segment.addEventListener('click', function(e) {
+                    const element = this; // Save element reference
+                    const segmentKey = `${panel}_${element.dataset.path}`;
+
+                    if (breadcrumbClickTimers[segmentKey]) {
+                        // Double click: navigate
+                        clearTimeout(breadcrumbClickTimers[segmentKey]);
+                        breadcrumbClickTimers[segmentKey] = null;
+                        loadDirectory(panel, element.dataset.path);
+                        closeBreadcrumbDropdown();
+                    } else {
+                        // Single click: show dropdown after delay
+                        breadcrumbClickTimers[segmentKey] = setTimeout(() => {
+                            breadcrumbClickTimers[segmentKey] = null;
+                            showBreadcrumbDropdown(element, panel, element.dataset.path, false);
+                        }, 250);
+                    }
+                });
             }
 
             breadcrumb.appendChild(segment);
@@ -2591,6 +3006,16 @@
                 currentRemotePath = message.data.path;
                 renderBreadcrumb('remote', message.data.path);
                 renderFileTree('remote', message.data.nodes);
+                break;
+
+            case 'breadcrumbDirectory':
+                // Render breadcrumb dropdown directory listing
+                renderBreadcrumbDropdown(message.data);
+                break;
+
+            case 'breadcrumbSubMenu':
+                // Render breadcrumb submenu directory listing
+                renderBreadcrumbSubMenu(message.data);
                 break;
 
             case 'triggerCreateFolder':

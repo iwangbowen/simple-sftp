@@ -254,6 +254,14 @@ export abstract class DualPanelBase {
                 await this.handleAddBookmark(message.data);
                 break;
 
+            case 'getBreadcrumbDirectory':
+                await this.handleGetBreadcrumbDirectory(message.panel, message.path, message.isRoot);
+                break;
+
+            case 'getBreadcrumbSubMenu':
+                await this.handleGetBreadcrumbSubMenu(message.panel, message.path);
+                break;
+
             case 'performSearch':
                 await this.performSearch(message.data);
                 break;
@@ -1525,6 +1533,103 @@ export abstract class DualPanelBase {
         } catch (error: any) {
             logger.error(`Failed to add bookmark: ${error}`);
             vscode.window.showErrorMessage(`Failed to add bookmark: ${error.message}`);
+        }
+    }
+
+    protected async handleGetBreadcrumbDirectory(panel: string, clickedPath: string, isRoot: boolean): Promise<void> {
+        try {
+            let directoryPath: string;
+            let currentPath: string = clickedPath;
+
+            // Determine which directory to load
+            if (isRoot) {
+                // For root segment, just use the clicked path as is
+                directoryPath = clickedPath;
+            } else {
+                // For non-root segments, get the parent directory
+                const isWindows = panel === 'local' && /^[A-Za-z]:/.test(clickedPath);
+                const separator = panel === 'local' && isWindows ? '\\' : '/';
+
+                // Remove trailing separator if exists
+                const normalizedPath = clickedPath.endsWith(separator) && clickedPath.length > 1
+                    ? clickedPath.slice(0, -1)
+                    : clickedPath;
+
+                const lastSep = normalizedPath.lastIndexOf(separator);
+                directoryPath = lastSep > 0 ? normalizedPath.substring(0, lastSep) : separator;
+
+                // For Windows root (e.g., "C:"), add separator
+                if (isWindows && directoryPath.length === 2 && directoryPath.endsWith(':')) {
+                    directoryPath += separator;
+                }
+            }
+
+            // Load directory contents
+            let nodes: FileNode[] = [];
+
+            if (panel === 'local') {
+                if (directoryPath === 'drives://') {
+                    nodes = await this.listWindowsDrives();
+                } else {
+                    nodes = await this.readLocalDirectory(directoryPath);
+                }
+            } else {
+                // Remote panel
+                if (!this._remoteSftp) {
+                    vscode.window.showErrorMessage('Not connected to remote server');
+                    return;
+                }
+                nodes = await this.readRemoteDirectory(directoryPath);
+            }
+
+            // Send results to webview
+            this.postMessage({
+                command: 'breadcrumbDirectory',
+                data: {
+                    panel: panel,
+                    path: directoryPath,
+                    nodes: nodes,
+                    currentPath: currentPath
+                }
+            });
+        } catch (error: any) {
+            logger.error(`Failed to load breadcrumb directory: ${error}`);
+            vscode.window.showErrorMessage(`Failed to load directory: ${error.message}`);
+        }
+    }
+
+    protected async handleGetBreadcrumbSubMenu(panel: string, folderPath: string): Promise<void> {
+        try {
+            // Load directory contents
+            let nodes: FileNode[] = [];
+
+            if (panel === 'local') {
+                if (folderPath === 'drives://') {
+                    nodes = await this.listWindowsDrives();
+                } else {
+                    nodes = await this.readLocalDirectory(folderPath);
+                }
+            } else {
+                // Remote panel
+                if (!this._remoteSftp) {
+                    vscode.window.showErrorMessage('Not connected to remote server');
+                    return;
+                }
+                nodes = await this.readRemoteDirectory(folderPath);
+            }
+
+            // Send results to webview
+            this.postMessage({
+                command: 'breadcrumbSubMenu',
+                data: {
+                    panel: panel,
+                    path: folderPath,
+                    nodes: nodes
+                }
+            });
+        } catch (error: any) {
+            logger.error(`Failed to load breadcrumb submenu: ${error}`);
+            // Don't show error message for submenu, just fail silently
         }
     }
 
