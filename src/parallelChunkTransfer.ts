@@ -218,7 +218,7 @@ export class ParallelChunkTransferManager {
         logger.info('Falling back to normal single-file upload...');
         // Use normal upload (fastPut) as fallback
         const connectConfig = this.buildConnectConfig(config, authConfig);
-        const { sftpClient } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+        const { sftpClient, connectionId } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
 
         try {
           let lastProgressTime = 0;
@@ -459,10 +459,10 @@ export class ParallelChunkTransferManager {
       });
       const writeStream = fs.createWriteStream(localChunkPath);
 
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         readStream.on('error', reject);
         writeStream.on('error', reject);
-        writeStream.on('finish', resolve);
+        writeStream.on('finish', () => resolve());
         readStream.pipe(writeStream);
       });
 
