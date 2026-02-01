@@ -1628,7 +1628,7 @@
     function createBreadcrumbTreeItem(node, panel, currentPath, level) {
         const item = document.createElement('div');
         item.className = 'breadcrumb-dropdown-item';
-        item.style.paddingLeft = `${10 + level * 16}px`; // Indent based on level
+        item.style.paddingLeft = `${8 + level * 12}px`; // Indent based on level (更紧凑)
         item.dataset.path = node.path;
         item.dataset.isDirectory = node.isDirectory;
 
@@ -1664,7 +1664,11 @@
                 closeBreadcrumbDropdown();
             });
         } else {
-            // File (no chevron)
+            // File (add spacer to align with folders)
+            const spacer = document.createElement('span');
+            spacer.className = 'breadcrumb-tree-spacer';
+            item.appendChild(spacer);
+
             const icon = document.createElement('span');
             icon.className = 'codicon codicon-file';
             item.appendChild(icon);
@@ -1719,7 +1723,7 @@
             // Show loading indicator
             const loadingItem = document.createElement('div');
             loadingItem.className = 'breadcrumb-dropdown-item breadcrumb-tree-loading';
-            loadingItem.style.paddingLeft = `${10 + (level + 1) * 16}px`;
+            loadingItem.style.paddingLeft = `${8 + (level + 1) * 12}px`;
             loadingItem.innerHTML = '<span class="codicon codicon-loading codicon-modifier-spin"></span> Loading...';
 
             // Insert after current item
@@ -1774,7 +1778,7 @@
             // Empty folder - show placeholder
             const emptyItem = document.createElement('div');
             emptyItem.className = 'breadcrumb-dropdown-item breadcrumb-tree-empty';
-            emptyItem.style.paddingLeft = `${10 + level * 16}px`;
+            emptyItem.style.paddingLeft = `${8 + level * 12}px`;
             emptyItem.textContent = 'Empty folder';
 
             if (parentItem.nextElementSibling) {
