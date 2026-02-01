@@ -291,6 +291,12 @@
         "icon": "$(note)"
       },
       {
+        "command": "simpleSftp.changeBookmarkColor",
+        "title": "Change Color",
+        "category": "Simple SFTP",
+        "icon": "$(symbol-color)"
+      },
+      {
         "command": "simpleSftp.deleteBookmark",
         "title": "Delete Bookmark",
         "category": "Simple SFTP",
@@ -795,6 +801,10 @@
           "when": "false"
         },
         {
+          "command": "simpleSftp.changeBookmarkColor",
+          "when": "false"
+        },
+        {
           "command": "simpleSftp.deleteBookmark",
           "when": "false"
         },
@@ -1067,6 +1077,11 @@
           "command": "simpleSftp.editBookmarkDescription",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "1_edit@2"
+        },
+        {
+          "command": "simpleSftp.changeBookmarkColor",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
+          "group": "1_edit@3"
         },
         {
           "command": "simpleSftp.deleteBookmark",

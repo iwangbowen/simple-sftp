@@ -200,6 +200,59 @@ export class BookmarkService {
   }
 
   /**
+   * Change bookmark color
+   */
+  async changeBookmarkColor(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'bookmark') {
+      vscode.window.showWarningMessage('Please select a bookmark');
+      return;
+    }
+
+    const bookmark = item.data as PathBookmark;
+    const hostId = item.hostId;
+
+    if (!hostId) {
+      return;
+    }
+
+    // Available colors (same as host colors)
+    const colors = [
+      { label: '🔴 Red', value: 'red' },
+      { label: '🟢 Green', value: 'green' },
+      { label: '🔵 Blue', value: 'blue' },
+      { label: '🟡 Yellow', value: 'yellow' },
+      { label: '🟠 Orange', value: 'orange' },
+      { label: '🟣 Purple', value: 'purple' },
+      { label: '⚫ Default (No color)', value: undefined }
+    ];
+
+    // Find current color label
+    const currentColor = colors.find(c => c.value === bookmark.color);
+    const currentLabel = currentColor?.label || '⚫ Default (No color)';
+
+    const selected = await vscode.window.showQuickPick(colors, {
+      placeHolder: `Current: ${currentLabel}`,
+      title: 'Select Bookmark Color'
+    });
+
+    if (!selected) {
+      return; // User cancelled
+    }
+
+    // Check if color actually changed
+    if (selected.value === bookmark.color) {
+      return;
+    }
+
+    try {
+      await this.hostManager.updateBookmarkColor(hostId, bookmark.name, selected.value);
+      this.treeProvider.refresh();
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to change bookmark color: ${error}`);
+    }
+  }
+
+  /**
    * Browse files from a bookmark using QuickPick
    */
   async browseBookmark(item: HostTreeItem): Promise<void> {

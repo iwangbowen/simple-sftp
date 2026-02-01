@@ -461,6 +461,31 @@ export class HostManager {
   }
 
   /**
+   * Update a bookmark's color
+   */
+  async updateBookmarkColor(hostId: string, bookmarkName: string, color?: string): Promise<void> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+
+    if (!host?.bookmarks) {
+      return;
+    }
+
+    const bookmark = host.bookmarks.find(b => b.name === bookmarkName);
+    if (!bookmark) {
+      return;
+    }
+
+    // Set or remove color
+    if (color) {
+      bookmark.color = color;
+    } else {
+      delete bookmark.color;
+    }
+    await this.saveData(data);
+  }
+
+  /**
    * Generate unique ID
    */
   private generateId(): string {

@@ -132,6 +132,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleSftp.editBookmarkDescription', (item: HostTreeItem) =>
         this.bookmarkService.editBookmarkDescription(item)
       ),
+      vscode.commands.registerCommand('simpleSftp.changeBookmarkColor', (item: HostTreeItem) =>
+        this.bookmarkService.changeBookmarkColor(item)
+      ),
       vscode.commands.registerCommand('simpleSftp.deleteBookmark', (item: HostTreeItem) =>
         this.bookmarkService.deleteBookmark(item)
       ),

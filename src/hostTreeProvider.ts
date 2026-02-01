@@ -79,12 +79,18 @@ export class HostTreeItem extends vscode.TreeItem {
     } else if (type === 'bookmark') {
       const bookmark = data as PathBookmark;
       this.contextValue = 'bookmark';
-      this.iconPath = new vscode.ThemeIcon('bookmark');
+      // Show bookmark icon with color if set
+      this.iconPath = bookmark.color
+        ? new vscode.ThemeIcon('bookmark', new vscode.ThemeColor(`charts.${bookmark.color}`))
+        : new vscode.ThemeIcon('bookmark');
       this.description = bookmark.path;
       // Build tooltip with description if available
       const tooltipParts = [`Path: ${bookmark.path}`];
       if (bookmark.description) {
         tooltipParts.push(`Description: ${bookmark.description}`);
+      }
+      if (bookmark.color) {
+        tooltipParts.push(`Color: ${bookmark.color}`);
       }
       this.tooltip = tooltipParts.join('\n');
     } else {

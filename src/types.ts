@@ -8,6 +8,8 @@ export interface PathBookmark {
   path: string;
   /** 书签说明/备注 */
   description?: string;
+  /** 书签颜色,用于视觉识别 */
+  color?: string;
 }
 
 /**
