@@ -70,10 +70,10 @@ export class HostTreeItem extends vscode.TreeItem {
 
       this.description = `${host.username}@${host.host}:${host.port}`;
       this.tooltip = this.generateTooltip(host, hasAuth);
-      // Click host opens advanced configuration webview
+      // Click host opens dual panel browser
       this.command = {
-        command: 'simpleSftp.configureHostAdvanced',
-        title: 'Advanced Configuration',
+        command: 'simpleSftp.openDualPanelBrowser',
+        title: 'Open SFTP Browser',
         arguments: [this]
       };
     } else if (type === 'bookmark') {
@@ -93,6 +93,12 @@ export class HostTreeItem extends vscode.TreeItem {
         tooltipParts.push(`Color: ${bookmark.color}`);
       }
       this.tooltip = tooltipParts.join('\n');
+      // Click bookmark opens dual panel browser at bookmark path
+      this.command = {
+        command: 'simpleSftp.browseBookmarkWebview',
+        title: 'Open Bookmark',
+        arguments: [this]
+      };
     } else {
       this.contextValue = 'group';
       this.iconPath = new vscode.ThemeIcon('folder');

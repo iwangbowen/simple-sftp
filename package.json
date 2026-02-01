@@ -969,14 +969,9 @@
       ],
       "view/item/context": [
         {
-          "command": "simpleSftp.openDualPanelBrowser",
-          "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "inline@1"
-        },
-        {
           "command": "simpleSftp.openPortForwarding",
           "when": "view == simpleSftp.hosts && viewItem == host",
-          "group": "inline@2"
+          "group": "inline@1"
         },
         {
           "command": "simpleSftp.browseFiles",
@@ -1057,11 +1052,6 @@
           "command": "simpleSftp.deleteHost",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "9_danger@1"
-        },
-        {
-          "command": "simpleSftp.browseBookmarkWebview",
-          "when": "view == simpleSftp.hosts && viewItem == bookmark",
-          "group": "inline@1"
         },
         {
           "command": "simpleSftp.browseBookmark",
