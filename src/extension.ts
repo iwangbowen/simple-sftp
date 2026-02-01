@@ -407,6 +407,17 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      const host = item.data;
+
+      // Check if authentication is configured
+      const authConfig = await authManager.getAuth(host.id);
+      if (!authConfig) {
+        vscode.window.showWarningMessage(
+          `No authentication configured for ${host.name}. Please configure authentication first.`
+        );
+        return;
+      }
+
       // Extract initialPath if provided (e.g., from bookmark navigation)
       const initialPath = item.initialPath;
 
