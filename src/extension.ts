@@ -488,6 +488,14 @@ export async function activate(context: vscode.ExtensionContext) {
         await dualPanelProvider.executeCreateFolder(args);
       }
     }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.createFile', async (args) => {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.executeCreateFile(args);
+      } else {
+        await dualPanelProvider.executeCreateFile(args);
+      }
+    }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.addBookmark', async (args) => {
       const activeManager = getActiveManager();
 
@@ -552,6 +560,15 @@ export async function activate(context: vscode.ExtensionContext) {
         dualPanelProvider.postMessageToWebview(messageData);
       }
     }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.localMore.newFile', async () => {
+      const activeManager = getActiveManager();
+      const messageData = { command: 'createFileLocal' };
+      if (activeManager === 'editor') {
+        dualPanelEditorManager.postMessageToWebview(messageData);
+      } else {
+        dualPanelProvider.postMessageToWebview(messageData);
+      }
+    }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.localMore.uploadSelected', async () => {
       const activeManager = getActiveManager();
       const messageData = { command: 'uploadSelected' };
@@ -565,6 +582,15 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('simpleSftp.dualPanel.remoteMore.newFolder', async () => {
       const activeManager = getActiveManager();
       const messageData = { command: 'createFolderRemote' };
+      if (activeManager === 'editor') {
+        dualPanelEditorManager.postMessageToWebview(messageData);
+      } else {
+        dualPanelProvider.postMessageToWebview(messageData);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.remoteMore.newFile', async () => {
+      const activeManager = getActiveManager();
+      const messageData = { command: 'createFileRemote' };
       if (activeManager === 'editor') {
         dualPanelEditorManager.postMessageToWebview(messageData);
       } else {

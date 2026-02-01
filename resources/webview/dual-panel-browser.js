@@ -1774,6 +1774,168 @@
         });
     }
 
+    function createFile(panel) {
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+
+        // 移除已存在的新建项(如果有)
+        const existingWrapper = treeContainer.querySelector('.new-file-wrapper');
+        if (existingWrapper) {
+            existingWrapper.remove();
+        }
+
+        // 创建包装容器
+        const wrapper = document.createElement('div');
+        wrapper.className = 'new-file-wrapper';
+
+        // 创建新的内联编辑项
+        const newItem = document.createElement('div');
+        newItem.className = 'tree-item new-file-item';
+
+        // Icon
+        const icon = document.createElement('span');
+        icon.className = 'codicon codicon-file tree-item-icon';
+        newItem.appendChild(icon);
+
+        // Input
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'tree-item-input';
+        input.placeholder = 'File name (e.g., example.txt)';
+        newItem.appendChild(input);
+
+        // 将项添加到包装容器
+        wrapper.appendChild(newItem);
+
+        // Error message (在项外面)
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'tree-item-error';
+        errorMsg.style.display = 'none';
+        wrapper.appendChild(errorMsg);
+
+        // 插入到文件树顶部(返回上一级按钮之后)
+        const backItem = treeContainer.querySelector('.back-item');
+        if (backItem && backItem.nextSibling) {
+            treeContainer.insertBefore(wrapper, backItem.nextSibling);
+        } else if (backItem) {
+            treeContainer.appendChild(wrapper);
+        } else {
+            treeContainer.insertBefore(wrapper, treeContainer.firstChild);
+        }
+
+        // 聚焦输入框
+        input.focus();
+
+        /**
+         * 验证文件名称
+         * @param {string} name - 文件名称
+         * @returns {string|null} - 错误信息或null
+         */
+        const validateFileName = (name) => {
+            // 空名称
+            if (!name || name.trim().length === 0) {
+                return 'A file name must be provided';
+            }
+
+            const trimmedName = name.trim();
+
+            // 不允许路径分隔符(文件必须在当前目录创建)
+            if (trimmedName.includes('/') || trimmedName.includes('\\')) {
+                return String.raw`File name cannot contain path separators (/ or \)`;
+            }
+
+            // 不能以点开头或结尾
+            if (trimmedName.startsWith('.') || trimmedName.endsWith('.')) {
+                return 'File name cannot start or end with a period';
+            }
+
+            // 不能只包含点和空格
+            if (/^[.\s]+$/.test(trimmedName)) {
+                return 'File name cannot consist only of periods and spaces';
+            }
+
+            // Windows/Linux 禁用字符
+            const invalidChars = /[\\/:*?"<>|]/;
+            if (invalidChars.test(trimmedName)) {
+                return String.raw`File name cannot contain: \ / : * ? " < > |`;
+            }
+
+            // Windows 保留名称
+            const reservedNames = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+            const nameWithoutExt = trimmedName.split('.')[0];
+            if (reservedNames.test(nameWithoutExt)) {
+                return `"${nameWithoutExt}" is reserved by the system`;
+            }
+
+            // 长度限制
+            if (trimmedName.length > 255) {
+                return 'File name is too long (maximum 255 characters)';
+            }
+
+            return null; // 验证通过
+        };
+
+        // 实时验证
+        input.addEventListener('input', () => {
+            const error = validateFileName(input.value);
+            if (error) {
+                errorMsg.textContent = error;
+                errorMsg.style.display = 'block';
+                input.classList.add('has-error');
+            } else {
+                errorMsg.style.display = 'none';
+                input.classList.remove('has-error');
+            }
+        });
+
+        // 处理输入框事件
+        const finishCreation = async (confirm) => {
+            if (confirm && input.value.trim()) {
+                const fileName = input.value.trim();
+
+                // 最终验证
+                const error = validateFileName(fileName);
+                if (error) {
+                    errorMsg.textContent = error;
+                    errorMsg.style.display = 'block';
+                    input.classList.add('has-error');
+                    input.focus();
+                    return;
+                }
+
+                // 发送创建请求
+                const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+                vscode.postMessage({
+                    command: 'createFile',
+                    data: {
+                        parentPath: currentPath,
+                        name: fileName,
+                        panel: panel
+                    }
+                });
+            }
+
+            // 移除输入项
+            wrapper.remove();
+        };
+
+        // Enter 确认
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishCreation(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finishCreation(false);
+            }
+        });
+
+        // 失去焦点时取消
+        input.addEventListener('blur', () => {
+            setTimeout(() => finishCreation(false), 150);
+        });
+    }
+
     function uploadSelected() {
         const localItems = selectedItems.filter(item => item.dataset.panel === 'local');
         if (localItems.length === 0) {
@@ -2243,6 +2405,11 @@
                 createFolder(message.panel);
                 break;
 
+            case 'triggerCreateFile':
+                // Trigger inline file creation from context menu
+                createFile(message.panel);
+                break;
+
             case 'triggerDelete':
                 // Trigger delete confirmation with current selection
                 showDeleteConfirmation();
@@ -2394,12 +2561,20 @@
                 createFolder('local');
                 break;
 
+            case 'createFileLocal':
+                createFile('local');
+                break;
+
             case 'uploadSelected':
                 uploadSelected();
                 break;
 
             case 'createFolderRemote':
                 createFolder('remote');
+                break;
+
+            case 'createFileRemote':
+                createFile('remote');
                 break;
 
             case 'downloadSelected':

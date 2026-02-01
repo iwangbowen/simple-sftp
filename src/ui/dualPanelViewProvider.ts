@@ -148,6 +148,16 @@ export class DualPanelViewProvider extends DualPanelBase implements vscode.Webvi
         await super.executeCreateFolder(args);
     }
 
+    public async executeCreateFile(args: any): Promise<void> {
+        if (!this._view) {
+            await this.ensureViewVisible();
+            if (!this._view) {
+                return;
+            }
+        }
+        await super.executeCreateFile(args);
+    }
+
     public async executeUpload(args: any): Promise<void> {
         if (!this._view) {
             await this.ensureViewVisible();

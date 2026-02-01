@@ -173,6 +173,14 @@ export class DualPanelEditorManager extends DualPanelBase {
         await super.executeCreateFolder(args);
     }
 
+    public async executeCreateFile(args: any): Promise<void> {
+        if (!this.currentPanel) {
+            vscode.window.showWarningMessage('No active file browser panel');
+            return;
+        }
+        await super.executeCreateFile(args);
+    }
+
     public async executeUpload(args: any): Promise<void> {
         if (!this.currentPanel) {
             vscode.window.showWarningMessage('No active file browser panel');

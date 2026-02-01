@@ -825,6 +825,21 @@ export class SshConnectionManager {
   }
 
   /**
+   * Create a remote file (empty file)
+   */
+  static async createRemoteFile(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string
+  ): Promise<void> {
+    return this.withConnection(config, authConfig, async (sftp) => {
+      // Create empty file by writing empty buffer
+      await sftp.put(Buffer.from(''), remotePath);
+      logger.info(`Created remote file: ${remotePath}`);
+    });
+  }
+
+  /**
    * Rename a remote file or folder
    */
   static async renameRemoteFile(

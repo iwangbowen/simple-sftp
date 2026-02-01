@@ -501,6 +501,12 @@
         "icon": "$(new-folder)"
       },
       {
+        "command": "simpleSftp.dualPanel.createFile",
+        "title": "New File",
+        "category": "Simple SFTP",
+        "icon": "$(new-file)"
+      },
+      {
         "command": "simpleSftp.dualPanel.refresh",
         "title": "Refresh",
         "category": "Simple SFTP",
@@ -531,6 +537,12 @@
         "icon": "$(new-folder)"
       },
       {
+        "command": "simpleSftp.dualPanel.localMore.newFile",
+        "title": "New File",
+        "category": "Simple SFTP",
+        "icon": "$(new-file)"
+      },
+      {
         "command": "simpleSftp.dualPanel.localMore.uploadSelected",
         "title": "Upload Selected",
         "category": "Simple SFTP",
@@ -541,6 +553,12 @@
         "title": "New Folder",
         "category": "Simple SFTP",
         "icon": "$(new-folder)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.remoteMore.newFile",
+        "title": "New File",
+        "category": "Simple SFTP",
+        "icon": "$(new-file)"
       },
       {
         "command": "simpleSftp.dualPanel.remoteMore.downloadSelected",
@@ -584,6 +602,11 @@
           "group": "2_operations@2"
         },
         {
+          "command": "simpleSftp.dualPanel.createFile",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
+          "group": "2_operations@2.5"
+        },
+        {
           "command": "simpleSftp.dualPanel.rename",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
           "group": "2_operations@3"
@@ -624,6 +647,11 @@
           "group": "1_actions@1"
         },
         {
+          "command": "simpleSftp.dualPanel.localMore.newFile",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'localMore'",
+          "group": "1_actions@1.5"
+        },
+        {
           "command": "simpleSftp.dualPanel.localMore.uploadSelected",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'localMore'",
           "group": "1_actions@2"
@@ -632,6 +660,11 @@
           "command": "simpleSftp.dualPanel.remoteMore.newFolder",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteMore'",
           "group": "1_actions@1"
+        },
+        {
+          "command": "simpleSftp.dualPanel.remoteMore.newFile",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteMore'",
+          "group": "1_actions@1.5"
         },
         {
           "command": "simpleSftp.dualPanel.remoteMore.downloadSelected",

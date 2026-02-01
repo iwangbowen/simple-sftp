@@ -174,6 +174,10 @@ export abstract class DualPanelBase {
                 await this.handleCreateFolder(message.data);
                 break;
 
+            case 'createFile':
+                await this.handleCreateFile(message.data);
+                break;
+
             case 'delete':
                 await this.handleDelete(message.data);
                 break;
@@ -613,6 +617,37 @@ export abstract class DualPanelBase {
         } catch (error) {
             logger.error(`Create folder failed: ${error}`);
             vscode.window.showErrorMessage(`Create folder failed: ${error}`);
+        }
+    }
+
+    protected async handleCreateFile(data: any): Promise<void> {
+        const { parentPath, name, panel } = data;
+
+        try {
+            if (panel === 'local') {
+                const filePath = path.join(parentPath, name);
+                // Create empty file
+                await fs.promises.writeFile(filePath, '', 'utf8');
+                await this.loadLocalDirectory(parentPath);
+                this.updateStatus(`Created file: ${name}`);
+            } else if (panel === 'remote') {
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    vscode.window.showErrorMessage('No host selected');
+                    return;
+                }
+
+                const filePath = path.posix.join(parentPath, name);
+                await SshConnectionManager.createRemoteFile(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    filePath
+                );
+                await this.loadRemoteDirectory(parentPath);
+                this.updateStatus(`Created file: ${name}`);
+            }
+        } catch (error) {
+            logger.error(`Create file failed: ${error}`);
+            vscode.window.showErrorMessage(`Create file failed: ${error}`);
         }
     }
 
@@ -1383,6 +1418,22 @@ export abstract class DualPanelBase {
         // Send message to webview to trigger inline folder creation
         this.postMessage({
             command: 'triggerCreateFolder',
+            panel: panel
+        });
+    }
+
+    public async executeCreateFile(args: any): Promise<void> {
+        const { panel } = args;
+        const parentPath = panel === 'local' ? this._localRootPath : this._remoteRootPath;
+
+        if (!parentPath) {
+            vscode.window.showErrorMessage(`No ${panel} path selected`);
+            return;
+        }
+
+        // Send message to webview to trigger inline file creation
+        this.postMessage({
+            command: 'triggerCreateFile',
             panel: panel
         });
     }
