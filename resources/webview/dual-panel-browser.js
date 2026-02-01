@@ -27,6 +27,11 @@
     let clickTimer = null;
     /** @type {string} */
     let lastActivePanel = 'remote';
+    /** @type {Object.<string, {column: string, direction: 'asc' | 'desc'}>} */
+    let sortState = {
+        local: { column: 'name', direction: 'asc' },
+        remote: { column: 'name', direction: 'asc' }
+    };
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -43,6 +48,7 @@
         initializeEventListeners();
         initializeResizer();
         initializeSearchView();
+        initializeColumnHeaders();
         // Initialize port forwarding using shared module
         if (typeof PortForwardModule !== 'undefined') {
             PortForwardModule.init({ vscode, isStandalone: false, showCloseButton: true });
@@ -287,6 +293,153 @@
 
 
 
+    // ===== 文件排序 =====
+    /**
+     * @param {Array<Object>} nodes - 文件节点数组
+     * @param {string} panel - 'local' | 'remote'
+     * @returns {Array<Object>} 排序后的节点数组
+     */
+    function sortFileList(nodes, panel) {
+        const state = sortState[panel];
+        const folders = nodes.filter(n => n.isDirectory);
+        const files = nodes.filter(n => !n.isDirectory);
+
+        const compareFn = (a, b) => {
+            let result = 0;
+            switch (state.column) {
+                case 'name':
+                    result = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+                    break;
+                case 'size':
+                    result = (a.size || 0) - (b.size || 0);
+                    break;
+                case 'time':
+                    result = (a.modifiedTime || 0) - (b.modifiedTime || 0);
+                    break;
+                default:
+                    result = 0;
+            }
+            return state.direction === 'asc' ? result : -result;
+        };
+
+        folders.sort(compareFn);
+        files.sort(compareFn);
+
+        return [...folders, ...files];
+    }
+
+    /**
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function updateColumnHeaders(panel) {
+        const header = document.getElementById(`${panel}-tree-header`);
+        if (!header) return;
+
+        const state = sortState[panel];
+        header.querySelectorAll('.column-header').forEach(col => {
+            col.classList.remove('sorted-asc', 'sorted-desc');
+            const colName = col.dataset.column;
+            if (colName === state.column) {
+                col.classList.add(`sorted-${state.direction}`);
+            }
+        });
+    }
+
+    /**
+     * @param {string} panel - 'local' | 'remote'
+     * @param {string} column - 列名
+     */
+    function handleColumnHeaderClick(panel, column) {
+        const state = sortState[panel];
+        if (state.column === column) {
+            // 切换排序方向
+            state.direction = state.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            // 新列,默认升序
+            state.column = column;
+            state.direction = 'asc';
+        }
+
+        // 对当前DOM中的tree-item进行排序
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+
+        const items = Array.from(treeContainer.querySelectorAll('.tree-item:not(.back-item)'));
+
+        // 按照文件夹和文件分组
+        const folders = items.filter(item => item.dataset.isDir === 'true');
+        const files = items.filter(item => item.dataset.isDir !== 'true');
+
+        // 排序比较函数
+        const compareFn = (a, b) => {
+            let result = 0;
+            switch (column) {
+                case 'name':
+                    result = a.dataset.name.localeCompare(b.dataset.name, undefined, { numeric: true, sensitivity: 'base' });
+                    break;
+                case 'size': {
+                    const sizeA = Number.parseFloat(a.dataset.size || '0');
+                    const sizeB = Number.parseFloat(b.dataset.size || '0');
+                    result = sizeA - sizeB;
+                    break;
+                }
+                case 'time': {
+                    const timeA = Number.parseFloat(a.dataset.modifiedTime || '0');
+                    const timeB = Number.parseFloat(b.dataset.modifiedTime || '0');
+                    result = timeA - timeB;
+                    break;
+                }
+                default:
+                    result = 0;
+            }
+            return state.direction === 'asc' ? result : -result;
+        };
+
+        folders.sort(compareFn);
+        files.sort(compareFn);
+
+        // 重新排列DOM元素
+        const sortedItems = [...folders, ...files];
+        const backItem = treeContainer.querySelector('.back-item');
+
+        // 清空非表头元素
+        Array.from(treeContainer.children).forEach(child => {
+            if (!child.classList.contains('file-tree-header')) {
+                child.remove();
+            }
+        });
+
+        // 重新添加
+        if (backItem) {
+            treeContainer.appendChild(backItem);
+        }
+        sortedItems.forEach(item => {
+            treeContainer.appendChild(item);
+        });
+
+        // 更新列头排序指示器
+        updateColumnHeaders(panel);
+    }
+
+    /**
+     * 初始化列头点击事件
+     */
+    function initializeColumnHeaders() {
+        ['local', 'remote'].forEach(panel => {
+            const header = document.getElementById(`${panel}-tree-header`);
+            if (!header) return;
+
+            header.querySelectorAll('.column-header[data-column]').forEach(col => {
+                col.addEventListener('click', () => {
+                    const column = col.dataset.column;
+                    if (column) {
+                        handleColumnHeaderClick(panel, column);
+                    }
+                });
+            });
+        });
+    }
+
     // ===== 文件树渲染 =====
     /**
      * @param {string} panel - 'local' | 'remote'
@@ -305,8 +458,15 @@
             searchInput.value = '';
         }
 
-        // 清空内容
-        treeContainer.innerHTML = '';
+        // 清空内容 (保留列头)
+        Array.from(treeContainer.children).forEach(child => {
+            if (!child.classList.contains('file-tree-header')) {
+                child.remove();
+            }
+        });
+
+        // 排序节点
+        const sortedNodes = sortFileList(nodes, panel);
 
         // 添加返回上一级按钮(如果不是根目录)
         const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
@@ -316,10 +476,13 @@
         }
 
         // 渲染当前目录的所有文件和文件夹
-        nodes.forEach(node => {
+        sortedNodes.forEach(node => {
             const item = createTreeItem(node, panel);
             treeContainer.appendChild(item);
         });
+
+        // 更新列头排序指示器
+        updateColumnHeaders(panel);
     }
 
     /**
@@ -330,6 +493,11 @@
     function createBackItem(panel) {
         const item = document.createElement('div');
         item.className = 'tree-item back-item';
+        // 添加必要的data属性以保持一致性
+        item.dataset.name = '..';
+        item.dataset.isDir = 'true';
+        item.dataset.modifiedTime = '0';
+        item.dataset.size = '0';
 
         // Icon
         const icon = document.createElement('span');
@@ -341,6 +509,22 @@
         label.className = 'tree-item-label';
         label.textContent = '..';
         item.appendChild(label);
+
+        // 添加空列以保持对齐
+        const time = document.createElement('span');
+        time.className = 'tree-item-time';
+        time.textContent = '';
+        item.appendChild(time);
+
+        const permissions = document.createElement('span');
+        permissions.className = 'tree-item-permissions';
+        permissions.textContent = '';
+        item.appendChild(permissions);
+
+        const size = document.createElement('span');
+        size.className = 'tree-item-size';
+        size.textContent = '';
+        item.appendChild(size);
 
         // Click to go back
         item.addEventListener('click', () => {
@@ -367,6 +551,9 @@
         item.dataset.panel = panel;
         item.dataset.name = node.name;
         item.dataset.type = node.isDirectory ? 'directory' : 'file';
+        // 将modifiedTime转换为timestamp数字用于排序
+        item.dataset.modifiedTime = node.modifiedTime ? new Date(node.modifiedTime).getTime().toString() : '0';
+        item.dataset.size = (node.size || 0).toString(); // 保存原始大小用于排序
 
         // VS Code Native Context Menu
         const contextData = {
@@ -393,23 +580,20 @@
         label.textContent = node.name;
         item.appendChild(label);
 
-        // Modified time
-        if (node.modifiedTime) {
-            const time = document.createElement('span');
-            time.className = 'tree-item-time';
-            time.textContent = formatTime(node.modifiedTime);
-            item.appendChild(time);
-        }
+        // Modified time - 始终添加,保持列对齐
+        const time = document.createElement('span');
+        time.className = 'tree-item-time';
+        time.textContent = node.modifiedTime ? formatTime(node.modifiedTime) : '';
+        item.appendChild(time);
 
-        // Permissions (for both local and remote files)
-        console.log(`createTreeItem: panel=${panel}, node.permissions=${node.permissions}, node.mode=${node.mode}`);
+        // Permissions - 始终添加,保持列对齐
+        const permissions = document.createElement('span');
+        permissions.className = 'tree-item-permissions';
         if (node.permissions) {
-            const permissions = document.createElement('span');
-            permissions.className = 'tree-item-permissions';
             permissions.textContent = node.permissions;
             permissions.title = `Mode: ${node.mode ? node.mode.toString(8) : 'N/A'}`;
-            item.appendChild(permissions);
         }
+        item.appendChild(permissions);
 
         // Size (for files) or placeholder (for folders)
         const size = document.createElement('span');
@@ -644,12 +828,21 @@
         const treeContainer = document.getElementById(`${panel}-tree`);
         if (!treeContainer) return;
 
-        treeContainer.innerHTML = `
-            <div class="loading">
-                <span class="codicon codicon-loading codicon-modifier-spin"></span>
-                Loading ${panel} files...
-            </div>
+        // 清空内容但保留表头
+        Array.from(treeContainer.children).forEach(child => {
+            if (!child.classList.contains('file-tree-header')) {
+                child.remove();
+            }
+        });
+
+        // 添加loading元素
+        const loading = document.createElement('div');
+        loading.className = 'loading';
+        loading.innerHTML = `
+            <span class="codicon codicon-loading codicon-modifier-spin"></span>
+            Loading ${panel} files...
         `;
+        treeContainer.appendChild(loading);
     }
 
     /**
@@ -2481,12 +2674,21 @@
                 // 立即显示远程加载状态,不等待延迟
                 const remoteTree = document.getElementById('remote-tree');
                 if (remoteTree) {
-                    remoteTree.innerHTML = `
-                        <div class="loading">
-                            <span class="codicon codicon-loading codicon-modifier-spin"></span>
-                            Loading remote files...
-                        </div>
+                    // 清空内容但保留表头
+                    Array.from(remoteTree.children).forEach(child => {
+                        if (!child.classList.contains('file-tree-header')) {
+                            child.remove();
+                        }
+                    });
+
+                    // 添加loading元素
+                    const loading = document.createElement('div');
+                    loading.className = 'loading';
+                    loading.innerHTML = `
+                        <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                        Loading remote files...
                     `;
+                    remoteTree.appendChild(loading);
                 }
                 break;
             }
@@ -2666,7 +2868,17 @@
         `;
 
         localTree.innerHTML = selectionHTML;
-        remoteTree.innerHTML = '<div class="empty-message">← Select a host to start browsing</div>';
+
+        // Remote panel: 清空内容但保留表头
+        Array.from(remoteTree.children).forEach(child => {
+            if (!child.classList.contains('file-tree-header')) {
+                child.remove();
+            }
+        });
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'empty-message';
+        emptyMsg.textContent = '← Select a host to start browsing';
+        remoteTree.appendChild(emptyMsg);
 
         // 添加主机点击事件
         document.querySelectorAll('.host-item').forEach(item => {

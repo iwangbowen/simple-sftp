@@ -41,6 +41,23 @@
                     </button>
                 </div>
                 <div class="file-tree" id="local-tree" data-panel="local">
+                    <div class="file-tree-header" id="local-tree-header">
+                        <div class="column-header column-name" data-column="name" title="Sort by name">
+                            <span class="column-label">Name</span>
+                            <span class="sort-indicator"></span>
+                        </div>
+                        <div class="column-header column-time" data-column="time" title="Sort by modified time">
+                            <span class="column-label">Modified</span>
+                            <span class="sort-indicator"></span>
+                        </div>
+                        <div class="column-header column-permissions">
+                            <span class="column-label">Permissions</span>
+                        </div>
+                        <div class="column-header column-size" data-column="size" title="Sort by size">
+                            <span class="column-label">Size</span>
+                            <span class="sort-indicator"></span>
+                        </div>
+                    </div>
                     <div class="loading">
                         <span class="codicon codicon-loading codicon-modifier-spin"></span>
                         Loading local files...
@@ -94,6 +111,23 @@
 
                 <!-- Remote File Tree (default view) -->
                 <div class="file-tree" id="remote-tree" data-panel="remote">
+                    <div class="file-tree-header" id="remote-tree-header">
+                        <div class="column-header column-name" data-column="name" title="Sort by name">
+                            <span class="column-label">Name</span>
+                            <span class="sort-indicator"></span>
+                        </div>
+                        <div class="column-header column-time" data-column="time" title="Sort by modified time">
+                            <span class="column-label">Modified</span>
+                            <span class="sort-indicator"></span>
+                        </div>
+                        <div class="column-header column-permissions">
+                            <span class="column-label">Permissions</span>
+                        </div>
+                        <div class="column-header column-size" data-column="size" title="Sort by size">
+                            <span class="column-label">Size</span>
+                            <span class="sort-indicator"></span>
+                        </div>
+                    </div>
                     <div class="loading">
                         <span class="codicon codicon-loading codicon-modifier-spin"></span>
                         Loading remote files...

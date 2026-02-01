@@ -455,8 +455,10 @@ body {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 4px;
+    padding: 0;
     user-select: none;
+    display: flex;
+    flex-direction: column;
 }
 
 .file-tree::-webkit-scrollbar {
@@ -470,6 +472,83 @@ body {
 .file-tree::-webkit-scrollbar-thumb {
     background: var(--vscode-scrollbarSlider-hoverBackground);
     border-radius: 5px;
+}
+
+/* File Tree Header (Column Headers) */
+.file-tree-header {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    background-color: var(--vscode-sideBar-background);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    height: 24px;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.column-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+    cursor: default;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.column-header[data-column] {
+    cursor: pointer;
+}
+
+.column-header[data-column]:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.column-name {
+    flex: 1;
+    min-width: 120px;
+    padding-left: 24px; /* 为icon预留空间 (icon:16px + margin-right:8px) */
+}
+
+.column-time {
+    width: 140px;
+    flex-shrink: 0;
+}
+
+.column-permissions {
+    width: 90px;
+    flex-shrink: 0;
+}
+
+.column-size {
+    width: 80px;
+    flex-shrink: 0;
+    text-align: right;
+    justify-content: flex-end;
+}
+
+.sort-indicator {
+    display: none;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.column-header.sorted-asc .sort-indicator::before {
+    content: '↑';
+    display: inline;
+}
+
+.column-header.sorted-desc .sort-indicator::before {
+    content: '↓';
+    display: inline;
+}
+
+.column-header.sorted-asc .sort-indicator,
+.column-header.sorted-desc .sort-indicator {
+    display: inline-block;
 }
 
 .tree-item {
@@ -558,13 +637,13 @@ body {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 100px;
+    min-width: 120px; /* 与column-name一致 */
 }
 
 /* Inline rename input */
 .tree-item-rename-input {
     flex: 1;
-    min-width: 100px;
+    min-width: 120px; /* 与tree-item-label一致 */
     padding: 0 2px;
     background-color: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
@@ -583,18 +662,16 @@ body {
 .tree-item-time {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
-    margin-left: 12px;
     flex-shrink: 0;
-    min-width: 80px;
-    text-align: right;
+    width: 140px;
+    text-align: left;
 }
 
 .tree-item-permissions {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
-    margin-left: 12px;
     flex-shrink: 0;
-    min-width: 80px;
+    width: 90px;
     text-align: left;
     font-family: 'Courier New', Courier, monospace;
 }
@@ -602,9 +679,8 @@ body {
 .tree-item-size {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
-    margin-left: 8px;
     flex-shrink: 0;
-    min-width: 60px;
+    width: 80px;
     text-align: right;
 }
 
