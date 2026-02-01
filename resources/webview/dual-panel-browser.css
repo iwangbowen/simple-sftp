@@ -1,5 +1,17 @@
 /* Dual Panel File Browser Styles - 复用 VS Code 主题 */
 
+/* ===== CSS变量:列宽度定义 ===== */
+:root {
+    --column-name-min: 120px;
+    --column-time-width: 140px;
+    --column-permissions-width: 90px;
+    --column-size-width: 80px;
+    --icon-space: 32px;
+    --item-padding: 16px;
+    /* 计算tree-item的最小宽度 = 所有列宽度之和 */
+    --tree-item-min-width: calc(var(--column-name-min) + var(--column-time-width) + var(--column-permissions-width) + var(--column-size-width) + var(--icon-space) + var(--item-padding));
+}
+
 /* ===== 全局样式 ===== */
 * {
     box-sizing: border-box;
@@ -514,22 +526,22 @@ body {
 
 .column-name {
     flex: 1;
-    min-width: 120px;
+    min-width: var(--column-name-min);
     padding-left: 24px; /* 为icon预留空间 (icon:16px + margin-right:8px) */
 }
 
 .column-time {
-    width: 140px;
+    width: var(--column-time-width);
     flex-shrink: 0;
 }
 
 .column-permissions {
-    width: 90px;
+    width: var(--column-permissions-width);
     flex-shrink: 0;
 }
 
 .column-size {
-    width: 80px;
+    width: var(--column-size-width);
     flex-shrink: 0;
     text-align: right;
     justify-content: flex-end;
@@ -564,7 +576,7 @@ body {
     border-radius: 4px;
     transition: background-color 0.1s;
     white-space: nowrap;
-    min-width: fit-content; /* 保持与header宽度一致,允许横向滚动 */
+    min-width: var(--tree-item-min-width); /* 使用计算的最小宽度,支持横向滚动 */
 }
 
 .new-folder-wrapper {
@@ -643,13 +655,15 @@ body {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 120px; /* 与column-name一致 */
+    min-width: var(--column-name-min); /* 使用CSS变量 */
+    padding-right: 12px; /* 与下一列保持间距 */
+    /* 不设置max-width,让它自适应容器剩余空间 */
 }
 
 /* Inline rename input */
 .tree-item-rename-input {
     flex: 1;
-    min-width: 120px; /* 与tree-item-label一致 */
+    min-width: var(--column-name-min); /* 与tree-item-label一致 */
     padding: 0 2px;
     background-color: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
@@ -669,7 +683,7 @@ body {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
     flex-shrink: 0;
-    width: 140px;
+    width: var(--column-time-width);
     text-align: left;
 }
 
@@ -677,7 +691,7 @@ body {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
     flex-shrink: 0;
-    width: 90px;
+    width: var(--column-permissions-width);
     text-align: left;
     font-family: 'Courier New', Courier, monospace;
 }
@@ -686,7 +700,7 @@ body {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
     flex-shrink: 0;
-    width: 80px;
+    width: var(--column-size-width);
     text-align: right;
 }
 
