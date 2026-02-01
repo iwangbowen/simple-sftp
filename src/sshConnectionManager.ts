@@ -1014,15 +1014,35 @@ export class SshConnectionManager {
   ): Promise<Buffer> {
     return this.withConnection(config, authConfig, async (sftp) => {
       logger.info(`Reading remote file: ${remotePath}`);
-      const result = await sftp.get(remotePath);
 
-      // Ensure we return a Buffer
-      if (Buffer.isBuffer(result)) {
-        return result;
-      } else if (typeof result === 'string') {
-        return Buffer.from(result, 'utf-8');
-      } else {
-        throw new TypeError('Unexpected response type from sftp.get()');
+      try {
+        // First check if file exists and get its size
+        const stats = await sftp.stat(remotePath);
+
+        // If file is empty (size === 0), return empty buffer directly
+        if (stats.size === 0) {
+          logger.info(`File is empty (0 bytes): ${remotePath}`);
+          return Buffer.alloc(0);
+        }
+
+        // Read non-empty file
+        const result = await sftp.get(remotePath);
+
+        // Ensure we return a Buffer
+        if (Buffer.isBuffer(result)) {
+          return result;
+        } else if (typeof result === 'string') {
+          return Buffer.from(result, 'utf-8');
+        } else if (result === null || result === undefined) {
+          // Some SFTP servers return null/undefined for empty files
+          logger.warn(`sftp.get() returned null/undefined for ${remotePath}, returning empty buffer`);
+          return Buffer.alloc(0);
+        } else {
+          throw new TypeError('Unexpected response type from sftp.get()');
+        }
+      } catch (error) {
+        logger.error(`Failed to read remote file ${remotePath}: ${error}`);
+        throw error;
       }
     });
   }
