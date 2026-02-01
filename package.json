@@ -1278,8 +1278,8 @@
         },
         "simpleSftp.parallelTransfer.enabled": {
           "type": "boolean",
-          "default": true,
-          "description": "Enable parallel chunk-based transfer for large files. When enabled, large files will be split into chunks and transferred concurrently for faster speeds."
+          "default": false,
+          "markdownDescription": "**⚠️ Advanced Feature**: Enable parallel chunk-based transfer for large files.\n\n**Important**: This feature requires:\n- Direct SFTP connection (not compatible with proxies, jump hosts, or tunnel-based connections)\n- SFTP server support for concurrent connections\n- Sufficient network bandwidth\n\n**Known Issues**:\n- May fail with proxy/bastion host setups\n- May cause connection errors on some SFTP servers\n- May require firewall configuration for multiple connections\n\nOnly enable if you understand the requirements and have tested it works in your environment."
         },
         "simpleSftp.parallelTransfer.threshold": {
           "type": "number",

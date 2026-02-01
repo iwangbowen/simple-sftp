@@ -33,7 +33,7 @@ export const PARALLEL_TRANSFER = {
   CHUNK_SIZE: 10 * 1024 * 1024,        // 10MB per chunk
   MAX_CONCURRENT: 5,                    // Maximum concurrent chunk transfers
   THRESHOLD: 100 * 1024 * 1024,         // Minimum file size to use parallel transfer (100MB)
-  ENABLED: true,                        // Enable/disable parallel transfer feature
+  ENABLED: false,                       // Enable/disable parallel transfer feature (disabled by default due to compatibility issues)
 } as const;
 
 /**

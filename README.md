@@ -284,8 +284,20 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
 
 #### Parallel Transfer (Large Files)
 
-- **simpleSftp.parallelTransfer.enabled** (boolean, default: `true`)
+> **⚠️ Warning**: Parallel transfer is an advanced feature that may not work with all SFTP server configurations. Only enable if you have tested it in your environment.
+
+- **simpleSftp.parallelTransfer.enabled** (boolean, default: `false`)
   Enable parallel chunk-based transfer for large files
+
+  **Requirements**:
+  - Direct SFTP connection (not compatible with proxies, jump hosts, or tunnels)
+  - SFTP server support for concurrent connections
+  - Sufficient network bandwidth
+
+  **Known Issues**:
+  - May fail with proxy/bastion host setups
+  - May cause connection errors on some SFTP servers
+  - May require firewall configuration for multiple connections
 
 - **simpleSftp.parallelTransfer.threshold** (number, default: `100`, minimum: 10)
   Minimum file size (MB) to trigger parallel transfer
@@ -656,8 +668,20 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 #### 并行传输(大文件)
 
-- **simpleSftp.parallelTransfer.enabled** (布尔值,默认: `true`)
+> **⚠️ 警告**: 并行传输是高级功能,可能不适用于所有SFTP服务器配置。仅在您的环境中测试成功后再启用。
+
+- **simpleSftp.parallelTransfer.enabled** (布尔值,默认: `false`)
   为大文件启用基于并行分块的传输
+
+  **要求**:
+  - 直连SFTP服务器(不兼容代理、跳板机或隧道)
+  - SFTP服务器支持并发连接
+  - 足够的网络带宽
+
+  **已知问题**:
+  - 代理/跳板机环境下可能失败
+  - 某些SFTP服务器可能出现连接错误
+  - 可能需要防火墙配置以允许多连接
 
 - **simpleSftp.parallelTransfer.threshold** (数字,默认: `100`,最小值: 10)
   触发并行传输的最小文件大小(MB)
