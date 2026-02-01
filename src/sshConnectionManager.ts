@@ -155,7 +155,7 @@ export class SshConnectionManager {
   /**
    * 列出远程目录（包含文件和文件夹）
    */
-  static async listRemoteFiles(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<Array<{name: string, type: 'file' | 'directory', size: number, mode?: number, permissions?: string, owner?: number, group?: number}>> {
+  static async listRemoteFiles(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<Array<{name: string, type: 'file' | 'directory', size: number, mode?: number, permissions?: string, owner?: number, group?: number, mtime?: number}>> {
     return this.withConnection(config, authConfig, async (sftp) => {
       const list = await sftp.list(remotePath);
 
@@ -180,7 +180,8 @@ export class SshConnectionManager {
                 mode: stats.mode,
                 permissions: stats.mode ? this.formatPermissions(stats.mode) : undefined,
                 owner: stats.uid,
-                group: stats.gid
+                group: stats.gid,
+                mtime: stats.mtime || stats.modifyTime || item.modifyTime // 添加修改时间
               };
             } catch (error) {
               // Fallback to basic info if stat fails
@@ -192,7 +193,8 @@ export class SshConnectionManager {
                 mode: undefined,
                 permissions: undefined,
                 owner: undefined,
-                group: undefined
+                group: undefined,
+                mtime: item.modifyTime // Fallback时也尝试获取修改时间
               };
             }
           })

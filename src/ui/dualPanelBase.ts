@@ -454,7 +454,7 @@ export abstract class DualPanelBase {
             path: path.posix.join(dirPath, item.name),
             isDirectory: item.type === 'directory',
             size: item.type === 'file' ? item.size : undefined,
-            modifiedTime: new Date(),
+            modifiedTime: item.mtime ? new Date(item.mtime) : new Date(), // 将时间戳转换为Date对象
             mode: item.mode,
             permissions: item.permissions,
             owner: item.owner,
