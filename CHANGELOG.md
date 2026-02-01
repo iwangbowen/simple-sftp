@@ -1,5 +1,15 @@
 # Change Log
 
+## 4.5.0 - 2026-02-03
+
+- **File Browser**: Added sortable column headers (name, time, size)
+- **Fix**: Remote files show correct modification times
+- **UI**: Responsive file list with auto-truncate and horizontal scrolling
+- **TreeView**: Click host/bookmark opens SFTP directly
+- **Bookmarks**: Color customization via context menu
+
+---
+
 ## 4.4.2 - 2026-02-02
 
 - **Fixed**: Empty file opening error - now properly handles zero-byte files
