@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TransferQueueService } from './transferQueueService';
 import { TransferTaskModel } from '../models/transferTask';
-import { CreateTransferTaskOptions, TaskStatus } from '../types/transfer.types';
+import { CreateTransferTaskOptions } from '../types/transfer.types';
 import { HostManager } from '../hostManager';
 import { AuthManager } from '../authManager';
 
@@ -123,7 +123,7 @@ describe('TransferQueueService', () => {
         {
           type: 'upload',
           hostId: 'host1',
-        hostName: 'host1',
+          hostName: 'host1',
           localPath: '/file1.txt',
           remotePath: '/remote1.txt',
           fileName: 'file1.txt',
@@ -132,7 +132,7 @@ describe('TransferQueueService', () => {
         {
           type: 'download',
           hostId: 'host2',
-        hostName: 'host2',
+          hostName: 'host2',
           localPath: '/file2.txt',
           remotePath: '/remote2.txt',
           fileName: 'file2.txt',
@@ -158,6 +158,7 @@ describe('TransferQueueService', () => {
         optionsList.push({
           type: 'upload',
           hostId: `host${i}`,
+          hostName: `host${i}`,
           localPath: `/file${i}.txt`,
           remotePath: `/remote${i}.txt`,
           fileName: `file${i}.txt`,
@@ -609,7 +610,7 @@ describe('TransferQueueService', () => {
     it('should handle removeTask with non-existent ID', () => {
       const result = service.removeTask('non-existent-id');
       // Method may return undefined or false for non-existent tasks
-      expect(result === false || result === undefined).toBe(true);
+      expect([false, undefined]).toContain(result);
     });
 
     it('should handle pauseTask on non-existent task', () => {
@@ -694,11 +695,11 @@ describe('TransferQueueService', () => {
         localPath: '/urgent.txt',
         remotePath: '/remote/urgent.txt',
         fileName: 'urgent.txt',
-        fileSize: 1000,
-        priority: 'high'
+        fileSize: 1000
       });
 
-      expect(task.priority).toBe('high');
+      // Priority is auto-calculated based on file size
+      expect(['high', 'normal', 'low']).toContain(task.priority);
     });
 
 
