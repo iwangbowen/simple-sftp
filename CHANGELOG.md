@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.6.0 - 2026-02-02
+
+- **File Browser**: Enhanced breadcrumb navigation with VS Code-style tree dropdown (single-click shows dropdown, double-click navigates, click again to close)
+
+---
+
 ## 4.5.0 - 2026-02-03
 
 - **File Browser**: Added sortable column headers (name, time, size)
