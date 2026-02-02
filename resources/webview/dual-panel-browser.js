@@ -1575,11 +1575,23 @@
         // Add to body instead of breadcrumb container to avoid overflow hidden
         document.body.appendChild(breadcrumbDropdown);
 
+        // ESC to close
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeBreadcrumbDropdown();
+                document.removeEventListener('keydown', escHandler);
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
         // Click outside to close
         const closeHandler = (e) => {
             if (!breadcrumbDropdown || !breadcrumbDropdown.contains(e.target)) {
                 closeBreadcrumbDropdown();
                 document.removeEventListener('click', closeHandler);
+                document.removeEventListener('keydown', escHandler);
             }
         };
         setTimeout(() => {
