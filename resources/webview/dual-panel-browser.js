@@ -1530,10 +1530,11 @@
      * Show breadcrumb dropdown menu
      * @param {HTMLElement} segment - The breadcrumb segment element
      * @param {string} panel - 'local' | 'remote'
-     * @param {string} path - The path of the breadcrumb segment
+     * @param {string} path - The path to load directory contents from
      * @param {boolean} isRoot - Whether this is the root segment
+     * @param {string} [highlightPath] - Optional path to highlight in the dropdown
      */
-    async function showBreadcrumbDropdown(segment, panel, path, isRoot) {
+    async function showBreadcrumbDropdown(segment, panel, path, isRoot, highlightPath) {
         // Close any existing dropdown
         closeBreadcrumbDropdown();
 
@@ -1542,7 +1543,8 @@
             command: 'getBreadcrumbDirectory',
             panel: panel,
             path: path,
-            isRoot: isRoot
+            isRoot: isRoot,
+            highlightPath: highlightPath || path
         });
 
         // Create and show dropdown (will be populated when backend responds)
@@ -1550,6 +1552,7 @@
         breadcrumbDropdown.className = 'breadcrumb-dropdown';
         breadcrumbDropdown.dataset.panel = panel;
         breadcrumbDropdown.dataset.path = path;
+        breadcrumbDropdown.dataset.highlightPath = highlightPath || path;
         breadcrumbDropdown.innerHTML = `
             <div class="breadcrumb-dropdown-loading">
                 <span class="codicon codicon-loading codicon-modifier-spin"></span>
@@ -2802,21 +2805,32 @@
             const isLastSegment = (i === segments.length - 1);
 
             if (isLastSegment) {
-                // Current segment: only show dropdown, no navigation
+                // Current segment: show parent directory dropdown (to see siblings)
                 segment.classList.add('breadcrumb-current');
-                segment.title = 'Click for dropdown';
+                segment.title = 'Click to show sibling folders';
 
                 segment.addEventListener('click', function(e) {
                     const element = this;
-                    // Check if dropdown is already showing for this path
+                    // Get parent path of current segment
+                    const currentSegmentPath = element.dataset.path;
+                    const parentPath = getParentPath(currentSegmentPath, panel);
+
+                    // If no parent path (root), don't show dropdown
+                    if (!parentPath || parentPath === currentSegmentPath) {
+                        return;
+                    }
+
+                    // Check if dropdown is already showing for this parent path
                     if (breadcrumbDropdown &&
                         breadcrumbDropdown.dataset.panel === panel &&
-                        breadcrumbDropdown.dataset.path === element.dataset.path) {
-                        // Same path - close dropdown
+                        breadcrumbDropdown.dataset.path === parentPath) {
+                        // Same parent path - close dropdown
                         closeBreadcrumbDropdown();
                     } else {
-                        // Different path or no dropdown - show it
-                        showBreadcrumbDropdown(element, panel, element.dataset.path, false);
+                        // Different path or no dropdown - show parent directory content
+                        // Pass isRoot=true so backend uses parentPath directly (don't get parent again)
+                        // Pass current segment path as highlightPath to highlight current folder
+                        showBreadcrumbDropdown(element, panel, parentPath, true, currentSegmentPath);
                     }
                 });
             } else {

@@ -255,7 +255,7 @@ export abstract class DualPanelBase {
                 break;
 
             case 'getBreadcrumbDirectory':
-                await this.handleGetBreadcrumbDirectory(message.panel, message.path, message.isRoot);
+                await this.handleGetBreadcrumbDirectory(message.panel, message.path, message.isRoot, message.highlightPath);
                 break;
 
             case 'getBreadcrumbSubMenu':
@@ -1540,10 +1540,11 @@ export abstract class DualPanelBase {
         }
     }
 
-    protected async handleGetBreadcrumbDirectory(panel: string, clickedPath: string, isRoot: boolean): Promise<void> {
+    protected async handleGetBreadcrumbDirectory(panel: string, clickedPath: string, isRoot: boolean, highlightPath?: string): Promise<void> {
         try {
             let directoryPath: string;
-            let currentPath: string = clickedPath;
+            // Use highlightPath if provided, otherwise use clickedPath
+            let currentPath: string = highlightPath || clickedPath;
 
             // Determine which directory to load
             if (isRoot) {
