@@ -503,9 +503,9 @@
         item.dataset.modifiedTime = '0';
         item.dataset.size = '0';
 
-        // Icon
+        // Icon placeholder (keep for alignment)
         const icon = document.createElement('span');
-        icon.className = 'codicon codicon-arrow-up tree-item-icon';
+        icon.className = 'tree-item-icon';
         item.appendChild(icon);
 
         // Label
