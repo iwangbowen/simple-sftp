@@ -3162,7 +3162,7 @@
                 break;
             }
 
-            case 'updateStatus':
+case 'updateStatus':
                 document.getElementById('status-text').textContent = message.text;
                 break;
 

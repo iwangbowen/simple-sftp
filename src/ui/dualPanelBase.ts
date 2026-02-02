@@ -739,9 +739,11 @@ export abstract class DualPanelBase {
         let successCount = 0;
         let failCount = 0;
         const errors: string[] = [];
+        const totalCount = items.length;
 
         try {
-            for (const item of items) {
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
                 const { path: itemPath, isDir } = item;
 
                 try {
@@ -772,6 +774,9 @@ export abstract class DualPanelBase {
                     errors.push(`${fileName}: ${error}`);
                     logger.error(`Failed to delete ${itemPath}: ${error}`);
                 }
+
+                // Update status text with progress
+                this.updateStatus(`Deleting ${successCount + failCount} / ${totalCount} items...`);
             }
 
             // Refresh the directory
@@ -781,17 +786,18 @@ export abstract class DualPanelBase {
                 await this.loadRemoteDirectory(this._remoteRootPath);
             }
 
-            // Show result
+            // Show final result
             if (failCount === 0) {
                 this.updateStatus(`Successfully deleted ${successCount} item(s)`);
             } else {
                 const errorMessage = `Deleted ${successCount} item(s), ${failCount} failed:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
                 vscode.window.showWarningMessage(errorMessage);
-                this.updateStatus(`Batch delete completed with ${failCount} error(s)`);
+                this.updateStatus(`Deleted ${successCount} item(s), ${failCount} failed`);
             }
         } catch (error) {
             logger.error(`Batch delete failed: ${error}`);
             vscode.window.showErrorMessage(`Batch delete failed: ${error}`);
+            this.updateStatus('Batch delete failed');
         }
     }
 
