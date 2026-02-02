@@ -348,7 +348,7 @@ export class RemoteBrowserService {
       });
 
       // Handle selection
-      quickPick.onDidAccept(() => {
+      quickPick.onDidAccept(async () => {
         const selected = quickPick.selectedItems[0] as any;
 
         if (!selected) {
@@ -372,12 +372,17 @@ export class RemoteBrowserService {
             });
           }
         } else if (mode === 'sync' && selected.item) {
-          // Sync mode: enter directory if it's a directory
+          // Sync mode: enter directory if it's a directory, open file if it's a file
           if (selected.item.type === 'directory') {
             const targetPath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
             loadDirectory(targetPath);
+          } else {
+            // Open the file in editor
+            const filePath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
+            const uri = vscode.Uri.parse(`sftp://${config.id}${filePath}`);
+            logger.info(`Opening remote file: ${filePath}`);
+            await vscode.commands.executeCommand('vscode.open', uri, { preview: false });
           }
-          // For files in sync mode, do nothing (use buttons for upload/download)
         } else if ((mode === 'selectPath' || mode === 'selectBookmark') && selected.dirName) {
           const targetPath = `${currentPath}/${selected.dirName}`.replace(/\/\//g, '/');
           loadDirectory(targetPath);
