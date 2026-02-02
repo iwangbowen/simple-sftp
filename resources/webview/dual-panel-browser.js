@@ -4423,7 +4423,7 @@ case 'updateStatus':
 
         // Update elements
         const itemCountEl = panelEl.querySelector('.item-count');
-        const selectedCountEl = panelEl.querySelector('.selected-count');
+        const selectedCountEl = panelEl.querySelector('.selection-info');
 
         if (itemCountEl) {
             itemCountEl.textContent = `${itemCount} items`;
