@@ -777,6 +777,12 @@ export abstract class DualPanelBase {
 
                 // Update status text with progress
                 this.updateStatus(`Deleting ${successCount + failCount} / ${totalCount} items...`);
+
+                this.postMessage({
+                    command: 'updateFooterProgress',
+                    panel: panel,
+                    message: `Deleting ${successCount + failCount}/${totalCount}...`
+                });
             }
 
             // Refresh the directory

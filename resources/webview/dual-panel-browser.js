@@ -3121,6 +3121,10 @@
                 }
                 break;
 
+            case 'updateFooterProgress':
+                showFooterProgress(message.panel, message.message);
+                break;
+
             case 'getSelectedForUpload':
                 // Upload selected local files
                 uploadSelected();
