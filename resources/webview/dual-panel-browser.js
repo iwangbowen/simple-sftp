@@ -3188,8 +3188,20 @@
             }
 
 case 'updateStatus':
-                document.getElementById('status-text').textContent = message.text;
-                break;
+                // Update progress message in any panel that is currently showing progress
+                ['local', 'remote'].forEach(panel => {
+                    const panelEl = document.querySelector(`.${panel}-panel`);
+                    if (panelEl) {
+                        const footerProgress = panelEl.querySelector('.footer-progress');
+                        // Only update if the progress footer is currently visible
+                        if (footerProgress && footerProgress.style.display !== 'none') {
+                            const msgEl = footerProgress.querySelector('.progress-message');
+                            if (msgEl) {
+                                msgEl.textContent = message.text;
+                            }
+                        }
+                    }
+                });
 
             case 'updateQueue':
                 document.getElementById('queue-text').textContent = `${message.count} active tasks`;
