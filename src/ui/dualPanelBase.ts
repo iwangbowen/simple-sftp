@@ -1295,6 +1295,17 @@ export abstract class DualPanelBase {
         });
     }
 
+    public async executeCopyFullPath(args: any): Promise<void> {
+        const filePath = args?.filePath;
+        if (!filePath) {
+            vscode.window.showErrorMessage('No file path available');
+            return;
+        }
+
+        await vscode.env.clipboard.writeText(filePath);
+        vscode.window.showInformationMessage(`Copied: ${filePath}`);
+    }
+
     public async executeDelete(args: any): Promise<void> {
         // Request webview to trigger delete confirmation with current selection
         this.postMessage({
