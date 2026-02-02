@@ -36,6 +36,8 @@
     let breadcrumbDropdown = null;
     /** @type {Object.<string, number>} */
     let breadcrumbClickTimers = {};
+    /** @type {Object.<string, number>} */
+    let breadcrumbTreeLoadingTimers = {};
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -1735,30 +1737,39 @@
             chevron.classList.add('codicon-chevron-down');
             chevron.title = 'Collapse';
 
-            // Show loading indicator
-            const loadingItem = document.createElement('div');
-            loadingItem.className = 'breadcrumb-dropdown-item breadcrumb-tree-loading';
-            loadingItem.style.paddingLeft = `${8 + (level + 1) * 12}px`;
-            loadingItem.innerHTML = '<span class="codicon codicon-loading codicon-modifier-spin"></span> Loading...';
+            // Delay showing loading indicator to reduce visual clutter for fast operations
+            const timerId = `${node.path}_${Date.now()}`;
+            breadcrumbTreeLoadingTimers[timerId] = setTimeout(() => {
+                // Only show loading if still pending (not already loaded)
+                if (item.dataset.pendingExpansion === 'true') {
+                    const loadingItem = document.createElement('div');
+                    loadingItem.className = 'breadcrumb-dropdown-item breadcrumb-tree-loading';
+                    loadingItem.style.paddingLeft = `${8 + (level + 1) * 12}px`;
+                    loadingItem.innerHTML = '<span class="codicon codicon-loading codicon-modifier-spin"></span> Loading...';
+                    loadingItem.dataset.timerId = timerId;
 
-            // Insert after current item
-            if (item.nextElementSibling) {
-                item.parentElement.insertBefore(loadingItem, item.nextElementSibling);
-            } else {
-                item.parentElement.appendChild(loadingItem);
-            }
+                    // Insert after current item
+                    if (item.nextElementSibling) {
+                        item.parentElement.insertBefore(loadingItem, item.nextElementSibling);
+                    } else {
+                        item.parentElement.appendChild(loadingItem);
+                    }
+                }
+                delete breadcrumbTreeLoadingTimers[timerId];
+            }, 500); // 500ms delay before showing loading
 
             // Request children from backend
             vscode.postMessage({
                 command: 'getBreadcrumbTreeChildren',
                 panel: panel,
                 path: node.path,
-                parentItemId: `${node.path}_${Date.now()}` // Unique ID for this expansion
+                parentItemId: timerId
             });
 
             // Store context for when response arrives
             item.dataset.pendingExpansion = 'true';
             item.dataset.expansionLevel = level + 1;
+            item.dataset.timerId = timerId;
         }
     }
 
@@ -1779,7 +1790,14 @@
 
         if (!parentItem) return;
 
-        // Remove loading indicator
+        // Cancel loading timer if still pending
+        const timerId = parentItem.dataset.timerId;
+        if (timerId && breadcrumbTreeLoadingTimers[timerId]) {
+            clearTimeout(breadcrumbTreeLoadingTimers[timerId]);
+            delete breadcrumbTreeLoadingTimers[timerId];
+        }
+
+        // Remove loading indicator if it was shown
         let nextItem = parentItem.nextElementSibling;
         if (nextItem && nextItem.classList.contains('breadcrumb-tree-loading')) {
             nextItem.remove();
@@ -1787,20 +1805,11 @@
 
         // Clear pending flag
         delete parentItem.dataset.pendingExpansion;
+        delete parentItem.dataset.timerId;
         const level = parseInt(parentItem.dataset.expansionLevel);
 
         if (!nodes || nodes.length === 0) {
-            // Empty folder - show placeholder
-            const emptyItem = document.createElement('div');
-            emptyItem.className = 'breadcrumb-dropdown-item breadcrumb-tree-empty';
-            emptyItem.style.paddingLeft = `${8 + level * 12}px`;
-            emptyItem.textContent = 'Empty folder';
-
-            if (parentItem.nextElementSibling) {
-                list.insertBefore(emptyItem, parentItem.nextElementSibling);
-            } else {
-                list.appendChild(emptyItem);
-            }
+            // Empty folder - no content to display
             return;
         }
 
