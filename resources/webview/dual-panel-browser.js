@@ -3305,11 +3305,11 @@
                         <div class="host-item-wrapper">
                             <div class="host-item" data-host-id="${host.id}">
                                 ${host.starred ? '<span class="codicon codicon-star-full host-star"></span>' : '<span class="codicon codicon-remote host-icon"></span>'}
-                                ${host.hasAuth ? '' : '<span class="codicon codicon-warning host-no-auth" title="No authentication configured"></span>'}
                                 <div class="host-info">
                                     <div class="host-name">
                                         ${host.name}
                                         ${host.group ? `<span class="host-group">[${host.group}]</span>` : ''}
+                                        ${!host.hasAuth ? '<span class="codicon codicon-warning auth-warning-icon" title="Authentication not configured"></span>' : ''}
                                     </div>
                                     <div class="host-details">${host.username}@${host.host}:${host.port}</div>
                                 </div>

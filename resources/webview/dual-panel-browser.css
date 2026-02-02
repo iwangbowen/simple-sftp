@@ -1035,6 +1035,13 @@ body {
     font-weight: normal;
 }
 
+.auth-warning-icon {
+    margin-left: 6px;
+    font-size: 13px;
+    color: var(--vscode-editorWarning-foreground);
+    vertical-align: middle;
+}
+
 .host-no-auth {
     margin-left: 6px;
     font-size: 14px;
