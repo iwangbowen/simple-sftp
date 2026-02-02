@@ -3500,9 +3500,11 @@
 
         // Note: More dropdown menus are now native VS Code context menus
 
-        // Start search button
+        // Start search button (both inline and standalone for compatibility)
         const searchButton = document.getElementById('start-search-button');
+        const searchButtonInline = document.getElementById('start-search-button-inline');
         searchButton?.addEventListener('click', performSearch);
+        searchButtonInline?.addEventListener('click', performSearch);
 
         // Clear results button
         const clearButton = document.getElementById('clear-search-results');

@@ -152,7 +152,7 @@
                             <input type="text"
                                    id="search-query-input"
                                    class="search-query-input"
-                                   placeholder="Search (e.g., *.ts, test*)"
+                                   placeholder="Search by filename (e.g., *.ts, test*)"
                                    spellcheck="false"
                                    autocomplete="off">
                             <div class="search-input-actions">
@@ -167,6 +167,9 @@
                                 </button>
                                 <button class="search-toggle-button" id="toggle-search-details" title="Toggle Search Details">
                                     <span class="codicon codicon-ellipsis"></span>
+                                </button>
+                                <button class="search-action-button" id="start-search-button-inline" title="Search">
+                                    <span class="codicon codicon-search"></span>
                                 </button>
                             </div>
                         </div>
@@ -195,7 +198,7 @@
                         <!-- Search Options -->
                         <div class="search-options">
                             <label class="search-option-checkbox">
-                                <input type="checkbox" id="search-filename-only">
+                                <input type="checkbox" id="search-filename-only" checked>
                                 <span>Search by filename only</span>
                             </label>
                             <label class="search-option-checkbox">
@@ -203,12 +206,6 @@
                                 <span>Case sensitive</span>
                             </label>
                         </div>
-
-                        <!-- Search Button -->
-                        <button class="search-button" id="start-search-button">
-                            <span class="codicon codicon-search"></span>
-                            Search
-                        </button>
                     </div>
 
                     <!-- Search Results -->
