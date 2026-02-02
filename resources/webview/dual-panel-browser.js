@@ -1675,9 +1675,21 @@
             label.textContent = node.name;
             item.appendChild(label);
 
-            // Click folder name to navigate
+            // Click folder name to navigate or update search path
             label.addEventListener('click', () => {
-                loadDirectory(panel, node.path);
+                if (panel === 'remote' && isSearchViewVisible) {
+                    // In search view: update search path and breadcrumb
+                    const pathInput = document.getElementById('search-path-input');
+                    if (pathInput) {
+                        pathInput.value = node.path;
+                        currentSearchPath = node.path;
+                        currentRemotePath = node.path;
+                        renderBreadcrumb('remote', node.path);
+                    }
+                } else {
+                    // In file tree view: navigate
+                    loadDirectory(panel, node.path);
+                }
                 closeBreadcrumbDropdown();
             });
         } else {
@@ -1695,11 +1707,24 @@
             label.textContent = node.name;
             item.appendChild(label);
 
-            // Click file to navigate to parent directory
+            // Click file to navigate to parent directory or update search path
             item.addEventListener('click', () => {
                 const separator = panel === 'local' && node.path.includes('\\') ? '\\' : '/';
                 const parentPath = node.path.substring(0, node.path.lastIndexOf(separator));
-                loadDirectory(panel, parentPath || '/');
+
+                if (panel === 'remote' && isSearchViewVisible) {
+                    // In search view: update search path to parent directory and breadcrumb
+                    const pathInput = document.getElementById('search-path-input');
+                    if (pathInput) {
+                        pathInput.value = parentPath || '/';
+                        currentSearchPath = parentPath || '/';
+                        currentRemotePath = parentPath || '/';
+                        renderBreadcrumb('remote', parentPath || '/');
+                    }
+                } else {
+                    // In file tree view: navigate to parent
+                    loadDirectory(panel, parentPath || '/');
+                }
                 closeBreadcrumbDropdown();
             });
         }
@@ -2766,10 +2791,23 @@
             const segmentKey = `${panel}_root`;
 
             if (breadcrumbClickTimers[segmentKey]) {
-                // Double click: navigate
+                // Double click: navigate or update search path
                 clearTimeout(breadcrumbClickTimers[segmentKey]);
                 breadcrumbClickTimers[segmentKey] = null;
-                loadDirectory(panel, element.dataset.path);
+
+                if (panel === 'remote' && isSearchViewVisible) {
+                    // In search view: update search path and breadcrumb
+                    const pathInput = document.getElementById('search-path-input');
+                    if (pathInput) {
+                        pathInput.value = element.dataset.path;
+                        currentSearchPath = element.dataset.path;
+                        currentRemotePath = element.dataset.path;
+                        renderBreadcrumb('remote', element.dataset.path);
+                    }
+                } else {
+                    // In file tree view: navigate
+                    loadDirectory(panel, element.dataset.path);
+                }
                 closeBreadcrumbDropdown();
             } else {
                 // Check if dropdown is already showing for this path
@@ -2852,10 +2890,23 @@
                     const segmentKey = `${panel}_${element.dataset.path}`;
 
                     if (breadcrumbClickTimers[segmentKey]) {
-                        // Double click: navigate
+                        // Double click: navigate or update search path
                         clearTimeout(breadcrumbClickTimers[segmentKey]);
                         breadcrumbClickTimers[segmentKey] = null;
-                        loadDirectory(panel, element.dataset.path);
+
+                        if (panel === 'remote' && isSearchViewVisible) {
+                            // In search view: update search path and breadcrumb
+                            const pathInput = document.getElementById('search-path-input');
+                            if (pathInput) {
+                                pathInput.value = element.dataset.path;
+                                currentSearchPath = element.dataset.path;
+                                currentRemotePath = element.dataset.path;
+                                renderBreadcrumb('remote', element.dataset.path);
+                            }
+                        } else {
+                            // In file tree view: navigate
+                            loadDirectory(panel, element.dataset.path);
+                        }
                         closeBreadcrumbDropdown();
                     } else {
                         // Check if dropdown is already showing for this path
