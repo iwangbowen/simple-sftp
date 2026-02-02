@@ -1685,6 +1685,8 @@
                         currentSearchPath = node.path;
                         currentRemotePath = node.path;
                         renderBreadcrumb('remote', node.path);
+                        // Load directory in background for when user returns to file tree
+                        loadDirectory('remote', node.path);
                     }
                 } else {
                     // In file tree view: navigate
@@ -1720,6 +1722,8 @@
                         currentSearchPath = parentPath || '/';
                         currentRemotePath = parentPath || '/';
                         renderBreadcrumb('remote', parentPath || '/');
+                        // Load directory in background for when user returns to file tree
+                        loadDirectory('remote', parentPath || '/');
                     }
                 } else {
                     // In file tree view: navigate to parent
@@ -2803,6 +2807,8 @@
                         currentSearchPath = element.dataset.path;
                         currentRemotePath = element.dataset.path;
                         renderBreadcrumb('remote', element.dataset.path);
+                        // Load directory in background for when user returns to file tree
+                        loadDirectory('remote', element.dataset.path);
                     }
                 } else {
                     // In file tree view: navigate
@@ -2902,6 +2908,8 @@
                                 currentSearchPath = element.dataset.path;
                                 currentRemotePath = element.dataset.path;
                                 renderBreadcrumb('remote', element.dataset.path);
+                                // Load directory in background for when user returns to file tree
+                                loadDirectory('remote', element.dataset.path);
                             }
                         } else {
                             // In file tree view: navigate
