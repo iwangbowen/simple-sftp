@@ -1,5 +1,10 @@
 # Change Log
 
+## 4.6.5 - 2026-02-02
+
+- **UI**: Improved dual-panel browser footer layout - split into separate statistics bars for local and remote panels
+- **UX**: Live "Deleting X / Y items..." progress counter in footer during batch delete operations
+
 ## 4.6.4 - 2026-02-02
 
 - **UX**: Real-time delete progress text
