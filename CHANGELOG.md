@@ -1,5 +1,9 @@
 # Change Log
 
+## 4.6.6 - 2026-02-02
+
+- **UI**: More compact bookmark list design in host selection view (reduced padding and tighter spacing)
+
 ## 4.6.5 - 2026-02-02
 
 - **UI**: Improved dual-panel browser footer layout - split into separate statistics bars for local and remote panels
