@@ -1,5 +1,9 @@
 # Change Log
 
+## 4.6.1 - 2026-02-02
+
+- **Fix**: Breadcrumb dropdown toggle issue - fixed bug where clicking breadcrumb segment did not close dropdown as expected
+
 ## 4.6.0 - 2026-02-02
 
 - **File Browser**: Enhanced breadcrumb navigation with VS Code-style tree dropdown (single-click shows dropdown, double-click navigates, click again to close)
