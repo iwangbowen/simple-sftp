@@ -162,8 +162,8 @@ body {
 
 .bookmark-dropdown-item {
     display: flex;
-    align-items: flex-start;
-    padding: 10px 12px;
+    align-items: center;
+    padding: 6px 12px;
     cursor: pointer;
     transition: background-color 0.1s;
     border-left: 3px solid transparent;
@@ -182,7 +182,7 @@ body {
 .bookmark-dropdown-item-name {
     font-size: 12px;
     font-weight: 500;
-    margin-bottom: 2px;
+    margin-bottom: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -197,7 +197,7 @@ body {
 }
 
 .bookmark-dropdown-empty {
-    padding: 20px;
+    padding: 12px;
     text-align: center;
     color: var(--vscode-descriptionForeground);
     font-size: 12px;
