@@ -1,5 +1,9 @@
 # Change Log
 
+## 4.6.3 - 2026-02-02
+
+- **UX**: Breadcrumb current folder clickable, Copy Full Path context menu, removed back button arrow icon, QuickPick file click opens file directly
+
 ## 4.6.2 - 2026-02-02
 
 - **UX**: Added ESC key support to close breadcrumb path dropdown
