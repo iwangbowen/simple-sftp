@@ -1,5 +1,9 @@
 # Change Log
 
+## 4.6.2 - 2026-02-02
+
+- **UX**: Added ESC key support to close breadcrumb path dropdown
+
 ## 4.6.1 - 2026-02-02
 
 - **Fix**: Breadcrumb dropdown toggle issue - fixed bug where clicking breadcrumb segment did not close dropdown as expected
