@@ -489,6 +489,9 @@
 
         // 更新列头排序指示器
         updateColumnHeaders(panel);
+
+        // Update footer stats (total items)
+        updateFooterStats(panel);
     }
 
     /**
@@ -720,6 +723,7 @@
             items.forEach(item => {
                 item.style.display = 'flex';
             });
+            updateFooterStats(panel);
             return;
         }
 
@@ -749,6 +753,9 @@
                 item.style.display = 'none';
             }
         });
+
+        // Update footer stats
+        updateFooterStats(panel);
     }
 
     /**
@@ -1971,6 +1978,10 @@
 
         // Update context variables for menu visibility
         updateContextVariables();
+
+        // Update footer stats
+        updateFooterStats('local');
+        updateFooterStats('remote');
     }
 
     /**
@@ -2002,6 +2013,9 @@
 
         // Update context variables for menu visibility
         updateContextVariables();
+
+        // Update footer stats
+        updateFooterStats(panel);
     }
 
     /**
@@ -2015,6 +2029,10 @@
 
         // Update context variables for menu visibility
         updateContextVariables();
+
+        // Update footer stats
+        updateFooterStats('local');
+        updateFooterStats('remote');
     }
 
     /**
@@ -3089,6 +3107,9 @@
 
             case 'deleteConfirmationResult':
                 if (message.data.confirmed) {
+                    // Show progress
+                    showFooterProgress(message.data.panel, 'Deleting...');
+
                     // Perform actual deletion
                     vscode.postMessage({
                         command: 'batchDelete',
@@ -4370,6 +4391,96 @@ case 'updateStatus':
     if (typeof window !== 'undefined') {
         window.updateMoreButtonToBackButton = updateMoreButtonToBackButton;
         window.restoreMoreButtonToNormal = restoreMoreButtonToNormal;
+    }
+
+    // ===== Footer Stats & Progress =====
+    /**
+     * Update footer statistics for a panel
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function updateFooterStats(panel) {
+        // Find footer elements
+        const panelEl = document.querySelector(`.${panel}-panel`);
+        if (!panelEl) return;
+
+        const footerStats = panelEl.querySelector('.footer-stats');
+        const footerProgress = panelEl.querySelector('.footer-progress');
+
+        // Ensure stats are visible and progress is hidden by default
+        if (footerStats) footerStats.style.display = 'flex';
+        if (footerProgress) footerProgress.style.display = 'none';
+
+        // Count items
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+
+        // Count all displayable items (excluding back item and empty messages)
+        const items = Array.from(treeContainer.querySelectorAll('.tree-item:not(.back-item):not(.new-folder-wrapper):not(.new-file-wrapper)'));
+        const itemCount = items.length;
+
+        // Count selected items in this panel
+        const selectedCount = selectedItems.filter(item => item.dataset.panel === panel).length;
+
+        // Update elements
+        const itemCountEl = panelEl.querySelector('.item-count');
+        const selectedCountEl = panelEl.querySelector('.selected-count');
+
+        if (itemCountEl) {
+            itemCountEl.textContent = `${itemCount} items`;
+        } // Wait, the CSS for item-count was empty, but I populated the HTML.
+
+        if (selectedCountEl) {
+            if (selectedCount > 0) {
+                selectedCountEl.textContent = `${selectedCount} selected`;
+                selectedCountEl.style.display = 'inline';
+            } else {
+                selectedCountEl.style.display = 'none';
+            }
+        }
+    }
+
+    /**
+     * Show progress message in panel footer
+     * @param {string} panel - 'local' | 'remote'
+     * @param {string} message - Message to display
+     */
+    function showFooterProgress(panel, message) {
+        const panelEl = document.querySelector(`.${panel}-panel`);
+        if (!panelEl) return;
+
+        const footerStats = panelEl.querySelector('.footer-stats');
+        const footerProgress = panelEl.querySelector('.footer-progress');
+        const progressMessage = panelEl.querySelector('.progress-message');
+
+        if (footerStats) footerStats.style.display = 'none';
+        if (footerProgress) {
+            footerProgress.style.display = 'flex';
+            if (progressMessage) progressMessage.textContent = message;
+        }
+    }
+
+    /**
+     * Hide progress and show stats
+     * @param {string} panel - 'local' | 'remote'
+     * @param {number} delay - Delay in ms before hiding
+     */
+    function hideFooterProgress(panel, delay = 0) {
+        if (delay > 0) {
+            setTimeout(() => hideFooterProgress(panel, 0), delay);
+            return;
+        }
+
+        const panelEl = document.querySelector(`.${panel}-panel`);
+        if (!panelEl) return;
+
+        const footerStats = panelEl.querySelector('.footer-stats');
+        const footerProgress = panelEl.querySelector('.footer-progress');
+
+        if (footerProgress) footerProgress.style.display = 'none';
+        if (footerStats) footerStats.style.display = 'flex';
+
+        // Update stats to ensure they are current
+        updateFooterStats(panel);
     }
 
     // Initialize batch rename when DOM is ready

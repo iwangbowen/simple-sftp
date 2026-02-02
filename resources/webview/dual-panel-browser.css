@@ -2575,3 +2575,58 @@ body {
 .port-forward-action-btn.forward:hover {
     color: var(--vscode-textLink-activeForeground);
 }
+
+/* ===== Panel Footer ===== */
+.panel-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 8px;
+    background-color: var(--vscode-statusBar-background);
+    color: var(--vscode-statusBar-foreground);
+    border-top: 1px solid var(--vscode-panel-border);
+    font-size: 11px;
+    min-height: 22px;
+    flex-shrink: 0;
+}
+
+.footer-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-count {
+    /* Standard count */
+}
+
+.selected-count {
+    /* Distinct color for selection */
+    color: var(--vscode-textLink-foreground);
+    display: none; /* Hidden by default */
+}
+
+.selected-count::before {
+    content: "|";
+    margin-right: 8px;
+    opacity: 0.6;
+    color: var(--vscode-statusBar-foreground);
+}
+
+.footer-progress {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.footer-progress .progress-message {
+    font-style: italic;
+}
+
+.footer-progress .codicon-loading {
+    font-size: 12px;
+}
