@@ -575,7 +575,16 @@ export class HostManager {
       throw new Error('Host not found');
     }
 
-    // Build SSH Config format
+    const { TimeUtils } = await import('./timeUtils');
+    const configBlocks: string[] = [];
+
+    // Add header comment (same as exportAllHostsToSshConfig)
+    configBlocks.push('# SSH Config exported from Simple SFTP');
+    configBlocks.push(`# Export Date: ${TimeUtils.getCurrentISOTime()}`);
+    configBlocks.push('# Note: Authentication details (private keys, passwords) are not included for security');
+    configBlocks.push('');
+
+    // Build SSH Config format for the host
     const lines: string[] = [];
     lines.push(`Host ${host.name}`);
     lines.push(`    HostName ${host.host}`);
@@ -584,11 +593,9 @@ export class HostManager {
     }
     lines.push(`    User ${host.username}`);
 
-    // Add optional configurations if available
-    // Note: Authentication details (private key path, etc.) are not exported for security reasons
-    // Users need to configure these separately in their SSH config
+    configBlocks.push(lines.join('\n'));
 
-    return lines.join('\n');
+    return configBlocks.join('\n');
   }
 
   /**
@@ -601,11 +608,12 @@ export class HostManager {
       return '# No hosts configured';
     }
 
+    const { TimeUtils } = await import('./timeUtils');
     const configBlocks: string[] = [];
 
     // Add header comment
     configBlocks.push('# SSH Config exported from Simple SFTP');
-    configBlocks.push(`# Export Date: ${new Date().toISOString()}`);
+    configBlocks.push(`# Export Date: ${TimeUtils.getCurrentISOTime()}`);
     configBlocks.push('# Note: Authentication details (private keys, passwords) are not included for security');
     configBlocks.push('');
 

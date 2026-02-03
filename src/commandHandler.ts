@@ -1125,22 +1125,11 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       const hostName = host?.name ?? 'host';
 
       // Create a safe filename from host name
-      const safeFileName = hostName.toLowerCase().replaceAll(/[^\w\-]+/g, '-');
-
-      // Create a URI for the untitled document with a meaningful name
-      const uri = vscode.Uri.parse(`untitled:${safeFileName}-ssh-config.conf`);
-
-      // Create a new document with SSH Config content
-      const document = await vscode.workspace.openTextDocument(uri);
-
-      // Edit the document to insert content
-      const edit = new vscode.WorkspaceEdit();
-      edit.insert(uri, new vscode.Position(0, 0), sshConfigData);
-      await vscode.workspace.applyEdit(edit);
-
-      // Show the document in the editor with ssh_config language
-      const editor = await vscode.window.showTextDocument(document);
-      await vscode.languages.setTextDocumentLanguage(document, 'ssh_config');
+      // Keep Chinese characters, replace special chars with -, then clean up
+      const safeFileName = hostName
+        .replaceAll(/[^\w\u4e00-\u9fa5\-]+/g, '-') // Replace non-alphanumeric, non-Chinese chars with -
+        .replaceAll(/\-+/g, '-') // Replace multiple consecutive - with single -
+        .replace(/^\-+|\-+$/g, ''); // Remove leading and trailing -
 
       // Show information message with tips
       vscode.window.showInformationMessage(
