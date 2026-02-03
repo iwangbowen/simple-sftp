@@ -96,6 +96,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleSftp.exportHost', (item: HostTreeItem) =>
         this.exportHost(item)
       ),
+      vscode.commands.registerCommand('simpleSftp.exportHostToSshConfig', (item: HostTreeItem) =>
+        this.exportHostToSshConfig(item)
+      ),
       vscode.commands.registerCommand('simpleSftp.importHosts', () =>
         this.importHosts()
       ),
@@ -1061,6 +1064,41 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       await this.saveExportFile(jsonData, fileName);
     } catch (error) {
       vscode.window.showErrorMessage(`Export failed: ${error}`);
+    }
+  }
+
+  /**
+   * Export a single host to SSH Config format and display in editor
+   */
+  private async exportHostToSshConfig(item: HostTreeItem): Promise<void> {
+    if (item.contextValue !== 'host') {
+      return;
+    }
+
+    try {
+      const hostId = (item.data as HostConfig).id;
+      const sshConfigData = await this.hostManager.exportHostToSshConfig(hostId);
+      const host = (await this.hostManager.getHosts()).find(h => h.id === hostId);
+      const hostName = host?.name ?? 'host';
+
+      // Create a new untitled document with SSH Config content
+      const document = await vscode.workspace.openTextDocument({
+        content: sshConfigData,
+        language: 'ssh_config'
+      });
+
+      // Show the document in the editor
+      await vscode.window.showTextDocument(document);
+
+      // Show information message with tips
+      vscode.window.showInformationMessage(
+        `SSH Config for "${hostName}" opened in editor. You can copy and paste it to your ~/.ssh/config file.`
+      );
+
+      logger.info(`Exported host ${hostName} to SSH Config format`);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Export to SSH Config failed: ${error}`);
+      logger.error(`Export to SSH Config failed:`, error as Error);
     }
   }
 

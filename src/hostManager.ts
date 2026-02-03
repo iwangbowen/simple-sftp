@@ -565,6 +565,33 @@ export class HostManager {
   }
 
   /**
+   * Export a single host to SSH Config format
+   */
+  async exportHostToSshConfig(hostId: string): Promise<string> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+
+    if (!host) {
+      throw new Error('Host not found');
+    }
+
+    // Build SSH Config format
+    const lines: string[] = [];
+    lines.push(`Host ${host.name}`);
+    lines.push(`    HostName ${host.host}`);
+    if (host.port && host.port !== 22) {
+      lines.push(`    Port ${host.port}`);
+    }
+    lines.push(`    User ${host.username}`);
+
+    // Add optional configurations if available
+    // Note: Authentication details (private key path, etc.) are not exported for security reasons
+    // Users need to configure these separately in their SSH config
+
+    return lines.join('\n');
+  }
+
+  /**
    * Import hosts from JSON data
    * Returns: { imported: number, skipped: number, message: string }
    */
