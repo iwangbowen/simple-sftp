@@ -135,6 +135,19 @@
                 toggleHistoryRow(index);
             });
         });
+
+        // Restore expanded state
+        const state = vscode.getState();
+        if (state && state.expandedRows) {
+            state.expandedRows.forEach(index => {
+                const expandIcon = document.querySelector(`.expand-icon[data-index="${index}"]`);
+                const historyRow = document.querySelector(`.history-row[data-index="${index}"]`);
+                if (expandIcon && historyRow) {
+                    expandIcon.classList.add('expanded');
+                    historyRow.classList.add('expanded');
+                }
+            });
+        }
     }
 
     /**
@@ -145,8 +158,19 @@
         const historyRow = document.querySelector(`.history-row[data-index="${index}"]`);
 
         if (expandIcon && historyRow) {
-            expandIcon.classList.toggle('expanded');
+            const isExpanded = expandIcon.classList.toggle('expanded');
             historyRow.classList.toggle('expanded');
+
+            // Save state
+            const state = vscode.getState() || { expandedRows: [] };
+            if (isExpanded) {
+                if (!state.expandedRows.includes(index)) {
+                    state.expandedRows.push(index);
+                }
+            } else {
+                state.expandedRows = state.expandedRows.filter(i => i !== index);
+            }
+            vscode.setState(state);
         }
     }
 
