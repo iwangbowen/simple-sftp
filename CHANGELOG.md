@@ -3,6 +3,7 @@
 ## 4.6.7 - 2026-02-03
 
 - **UX**: Cleaned up command palette - hid 27 context-specific commands
+- **UI**: Connection Pool Status now displays in minimalist WebView with detailed connection info and auto-refresh
 
 ## 4.6.6 - 2026-02-02
 
