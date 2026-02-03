@@ -530,4 +530,60 @@ export class SshConnectionPool {
       byHost
     };
   }
+
+  /**
+   * Get detailed connection pool status including individual connection info
+   */
+  getDetailedPoolStatus(): {
+    totalConnections: number;
+    activeConnections: number;
+    idleConnections: number;
+    connections: Array<{
+      hostId: string;
+      status: 'active' | 'idle';
+      createdAt: string;
+      lastUsed: string;
+      idleTime: number;
+    }>;
+  } {
+    const connections: Array<{
+      hostId: string;
+      status: 'active' | 'idle';
+      createdAt: string;
+      lastUsed: string;
+      idleTime: number;
+    }> = [];
+
+    let totalActive = 0;
+    let totalIdle = 0;
+    const now = Date.now();
+
+    for (const [hostId, conns] of this.pool.entries()) {
+      for (const conn of conns) {
+        const idleTime = now - conn.lastUsed;
+        const status = conn.inUse ? 'active' : 'idle';
+
+        if (conn.inUse) {
+          totalActive++;
+        } else {
+          totalIdle++;
+        }
+
+        connections.push({
+          hostId,
+          status,
+          createdAt: new Date(conn.lastUsed - idleTime).toISOString(),
+          lastUsed: new Date(conn.lastUsed).toISOString(),
+          idleTime
+        });
+      }
+    }
+
+    return {
+      totalConnections: connections.length,
+      activeConnections: totalActive,
+      idleConnections: totalIdle,
+      connections
+    };
+  }
 }

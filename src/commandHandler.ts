@@ -16,6 +16,7 @@ import { TransferQueueService } from './services/transferQueueService';
 import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { HostConfigProvider } from './ui/hostConfigProvider';
 import { ResourceDashboardProvider } from './ui/resourceDashboardProvider';
+import { ConnectionPoolProvider } from './ui/connectionPoolProvider';
 import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS } from './constants';
 
 export class CommandHandler {
@@ -2654,19 +2655,11 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
   }
 
   private showConnectionPoolStatus(): void {
-    const pool = SshConnectionPool.getInstance();
-    const status = pool.getPoolStatus();
+    if (!this.extensionContext) {
+      vscode.window.showErrorMessage('Extension not fully initialized');
+      return;
+    }
 
-    const message = `SSH Connection Pool Status:
-
-Total Connections: ${status.totalConnections}
-Active (In Use): ${status.activeConnections}
-Idle (Available): ${status.idleConnections}
-
-Connection pool helps improve performance by reusing SSH connections.
-Idle connections will be automatically closed after 5 minutes of inactivity.`;
-
-    vscode.window.showInformationMessage(message, { modal: true });
-    logger.info(`Connection Pool Status - Total: ${status.totalConnections}, Active: ${status.activeConnections}, Idle: ${status.idleConnections}`);
+    ConnectionPoolProvider.createOrShow(this.extensionContext.extensionUri);
   }
 }
