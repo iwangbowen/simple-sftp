@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { SshConnectionPool } from '../sshConnectionPool';
+import { HostManager } from '../hostManager';
 import { logger } from '../logger';
 
 /**
@@ -11,12 +12,15 @@ export class ConnectionPoolProvider {
   private static currentPanel: ConnectionPoolProvider | undefined;
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
+  private readonly hostManager: HostManager;
   private disposables: vscode.Disposable[] = [];
   private refreshInterval?: NodeJS.Timeout;
+  private currentRefreshIntervalMs: number = 5000; // Default 5 seconds
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, hostManager: HostManager) {
     this.panel = panel;
     this.extensionUri = extensionUri;
+    this.hostManager = hostManager;
 
     // Set webview content
     this.panel.webview.html = this.getHtmlContent(this.panel.webview);
@@ -43,16 +47,17 @@ export class ConnectionPoolProvider {
     // Load initial data
     this.loadConnectionPoolData();
 
-    // Auto-refresh every 5 seconds
-    this.refreshInterval = setInterval(() => {
-      this.loadConnectionPoolData();
-    }, 5000);
+    // Send current refresh interval to webview
+    this.sendRefreshInterval();
+
+    // Auto-refresh with default interval
+    this.startAutoRefresh();
   }
 
   /**
    * Create or show the connection pool status panel
    */
-  public static createOrShow(extensionUri: vscode.Uri): ConnectionPoolProvider {
+  public static createOrShow(extensionUri: vscode.Uri, hostManager: HostManager): ConnectionPoolProvider {
     const column = vscode.ViewColumn.One;
 
     // If panel already exists, reveal it and refresh
@@ -80,7 +85,7 @@ export class ConnectionPoolProvider {
     // Set icon for the webview tab
     panel.iconPath = new vscode.ThemeIcon('dashboard');
 
-    const provider = new ConnectionPoolProvider(panel, extensionUri);
+    const provider = new ConnectionPoolProvider(panel, extensionUri, hostManager);
     ConnectionPoolProvider.currentPanel = provider;
 
     return provider;
@@ -94,7 +99,46 @@ export class ConnectionPoolProvider {
       case 'refresh':
         this.loadConnectionPoolData();
         break;
+      case 'changeRefreshInterval':
+        this.changeRefreshInterval(message.intervalMs);
+        break;
     }
+  }
+
+  /**
+   * Change the auto-refresh interval
+   */
+  private changeRefreshInterval(intervalMs: number): void {
+    this.currentRefreshIntervalMs = intervalMs;
+    this.startAutoRefresh();
+    this.sendRefreshInterval();
+    logger.info(`Connection pool refresh interval changed to ${intervalMs}ms`);
+  }
+
+  /**
+   * Start or restart the auto-refresh timer
+   */
+  private startAutoRefresh(): void {
+    // Clear existing interval
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = undefined;
+    }
+
+    // Start new interval
+    this.refreshInterval = setInterval(() => {
+      this.loadConnectionPoolData();
+    }, this.currentRefreshIntervalMs);
+  }
+
+  /**
+   * Send current refresh interval to webview
+   */
+  private sendRefreshInterval(): void {
+    this.panel.webview.postMessage({
+      command: 'updateRefreshInterval',
+      intervalMs: this.currentRefreshIntervalMs
+    });
   }
 
   /**
@@ -104,10 +148,23 @@ export class ConnectionPoolProvider {
     try {
       const pool = SshConnectionPool.getInstance();
       const status = pool.getDetailedPoolStatus();
+      const hosts = this.hostManager.getHostsSync();
+
+      // Replace hostId with hostName
+      const enrichedConnections = status.connections.map(conn => {
+        const host = hosts.find(h => h.id === conn.hostId);
+        return {
+          ...conn,
+          hostName: host?.name || conn.hostId // Fallback to hostId if host not found
+        };
+      });
 
       this.panel.webview.postMessage({
         command: 'updateData',
-        data: status
+        data: {
+          ...status,
+          connections: enrichedConnections
+        }
       });
     } catch (error) {
       logger.error('Failed to load connection pool data', error as Error);
@@ -148,9 +205,21 @@ export class ConnectionPoolProvider {
                 <i class="codicon codicon-dashboard"></i>
                 SSH Connection Pool Status
             </div>
-            <button class="icon-button" id="refreshBtn" title="Refresh">
-                <i class="codicon codicon-refresh"></i>
-            </button>
+            <div class="header-controls">
+                <div class="refresh-interval-selector">
+                    <label for="refreshIntervalSelect">Refresh:</label>
+                    <select id="refreshIntervalSelect">
+                        <option value="2000">2s</option>
+                        <option value="5000" selected>5s</option>
+                        <option value="10000">10s</option>
+                        <option value="30000">30s</option>
+                        <option value="60000">1m</option>
+                    </select>
+                </div>
+                <button class="icon-button" id="refreshBtn" title="Refresh">
+                    <i class="codicon codicon-refresh"></i>
+                </button>
+            </div>
         </div>
 
         <div class="summary">

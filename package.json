@@ -1076,6 +1076,11 @@
           "group": "2_export@2"
         },
         {
+          "command": "simpleSftp.showConnectionPool",
+          "when": "view == simpleSftp.hosts",
+          "group": "3_monitor@1"
+        },
+        {
           "command": "simpleSftp.refreshPortForwardings",
           "when": "view == simpleSftp.portForwardings",
           "group": "navigation@1"

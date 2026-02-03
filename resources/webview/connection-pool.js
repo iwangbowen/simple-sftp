@@ -4,6 +4,7 @@
     const vscode = acquireVsCodeApi();
 
     const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIntervalSelect = document.getElementById('refreshIntervalSelect');
     const totalConnectionsEl = document.getElementById('totalConnections');
     const activeConnectionsEl = document.getElementById('activeConnections');
     const idleConnectionsEl = document.getElementById('idleConnections');
@@ -14,6 +15,15 @@
         vscode.postMessage({ command: 'refresh' });
     });
 
+    // Handle refresh interval change
+    refreshIntervalSelect?.addEventListener('change', (e) => {
+        const intervalMs = parseInt(e.target.value, 10);
+        vscode.postMessage({
+            command: 'changeRefreshInterval',
+            intervalMs: intervalMs
+        });
+    });
+
     // Listen for messages from the extension
     window.addEventListener('message', event => {
         const message = event.data;
@@ -21,8 +31,20 @@
             case 'updateData':
                 updateConnectionPoolData(message.data);
                 break;
+            case 'updateRefreshInterval':
+                updateRefreshIntervalSelector(message.intervalMs);
+                break;
         }
     });
+
+    /**
+     * Update refresh interval selector
+     */
+    function updateRefreshIntervalSelector(intervalMs) {
+        if (refreshIntervalSelect) {
+            refreshIntervalSelect.value = intervalMs.toString();
+        }
+    }
 
     /**
      * Update connection pool data display
@@ -60,7 +82,7 @@
 
             return `
                 <tr>
-                    <td>${escapeHtml(conn.hostId)}</td>
+                    <td>${escapeHtml(conn.hostName)}</td>
                     <td>
                         <span class="status-badge ${statusClass}">
                             <i class="codicon codicon-${statusIcon}"></i>

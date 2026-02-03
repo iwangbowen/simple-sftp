@@ -46,6 +46,44 @@ body {
     font-size: 16px;
 }
 
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.refresh-interval-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.refresh-interval-selector label {
+    color: var(--vscode-titleBar-activeForeground);
+    font-weight: 500;
+}
+
+.refresh-interval-selector select {
+    background-color: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-family: var(--vscode-font-family);
+    cursor: pointer;
+    outline: none;
+}
+
+.refresh-interval-selector select:hover {
+    background-color: var(--vscode-dropdown-listBackground);
+}
+
+.refresh-interval-selector select:focus {
+    border-color: var(--vscode-focusBorder);
+}
+
 .icon-button {
     background: transparent;
     border: none;

@@ -2660,6 +2660,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       return;
     }
 
-    ConnectionPoolProvider.createOrShow(this.extensionContext.extensionUri);
+    ConnectionPoolProvider.createOrShow(this.extensionContext.extensionUri, this.hostManager);
   }
 }
