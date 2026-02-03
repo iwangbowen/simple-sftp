@@ -1,5 +1,9 @@
 # Change Log
 
+## 4.6.8 - 2026-02-03
+
+- **Feature**: Connection Pool displays operation history (create/acquire/reuse/release) with expandable rows, usage count, and persistent collapse state across auto-refresh
+
 ## 4.6.7 - 2026-02-03
 
 - **UX**: Cleaned up command palette - hid 27 context-specific commands
