@@ -173,6 +173,12 @@
         "icon": "$(export)"
       },
       {
+        "command": "simpleSftp.exportAllHostsToSshConfig",
+        "title": "Export All to SSH Config",
+        "category": "Simple SFTP",
+        "icon": "$(file-code)"
+      },
+      {
         "command": "simpleSftp.exportGroup",
         "title": "Export Group",
         "category": "Simple SFTP",
@@ -727,6 +733,9 @@
           "command": "simpleSftp.exportAllHosts"
         },
         {
+          "command": "simpleSftp.exportAllHostsToSshConfig"
+        },
+        {
           "command": "simpleSftp.exportGroup",
           "when": "false"
         },
@@ -951,6 +960,11 @@
           "command": "simpleSftp.exportAllHosts",
           "when": "view == simpleSftp.hosts",
           "group": "1_import@2"
+        },
+        {
+          "command": "simpleSftp.exportAllHostsToSshConfig",
+          "when": "view == simpleSftp.hosts",
+          "group": "1_import@2.5"
         },
         {
           "command": "simpleSftp.importHosts",

@@ -592,6 +592,41 @@ export class HostManager {
   }
 
   /**
+   * Export all hosts to SSH Config format
+   */
+  async exportAllHostsToSshConfig(): Promise<string> {
+    const data = await this.loadData();
+
+    if (data.hosts.length === 0) {
+      return '# No hosts configured';
+    }
+
+    const configBlocks: string[] = [];
+
+    // Add header comment
+    configBlocks.push('# SSH Config exported from Simple SFTP');
+    configBlocks.push(`# Export Date: ${new Date().toISOString()}`);
+    configBlocks.push('# Note: Authentication details (private keys, passwords) are not included for security');
+    configBlocks.push('');
+
+    // Export each host
+    for (const host of data.hosts) {
+      const lines: string[] = [];
+      lines.push(`Host ${host.name}`);
+      lines.push(`    HostName ${host.host}`);
+      if (host.port && host.port !== 22) {
+        lines.push(`    Port ${host.port}`);
+      }
+      lines.push(`    User ${host.username}`);
+
+      configBlocks.push(lines.join('\n'));
+      configBlocks.push(''); // Empty line between hosts
+    }
+
+    return configBlocks.join('\n');
+  }
+
+  /**
    * Import hosts from JSON data
    * Returns: { imported: number, skipped: number, message: string }
    */
