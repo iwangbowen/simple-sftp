@@ -101,7 +101,15 @@
      * Format ISO timestamp to readable time
      */
     function formatTime(isoString) {
+        if (!isoString) {
+            return 'N/A';
+        }
+
         const date = new Date(isoString);
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);

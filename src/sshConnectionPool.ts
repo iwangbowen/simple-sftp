@@ -18,6 +18,8 @@ interface PooledConnection {
   hostId: string;
   /** 连接配置 */
   config: ConnectConfig;
+  /** 创建时间 */
+  createdAt: number;
   /** 最后使用时间 */
   lastUsed: number;
   /** 是否正在使用 */
@@ -339,12 +341,14 @@ export class SshConnectionPool {
   ): PooledConnection {
     const connections = this.pool.get(key) || [];
 
+    const now = Date.now();
     const pooledConn: PooledConnection = {
       client,
       sftpClient,
       hostId: config.id,
       config: {} as ConnectConfig, // 不存储敏感配置
-      lastUsed: Date.now(),
+      createdAt: now,
+      lastUsed: now,
       inUse: true,
       isReady: true
     };
@@ -572,7 +576,7 @@ export class SshConnectionPool {
         connections.push({
           hostId,
           status,
-          createdAt: new Date(conn.lastUsed - idleTime).toISOString(),
+          createdAt: new Date(conn.createdAt || conn.lastUsed).toISOString(),
           lastUsed: new Date(conn.lastUsed).toISOString(),
           idleTime
         });

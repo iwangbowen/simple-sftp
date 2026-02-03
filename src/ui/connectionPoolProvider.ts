@@ -154,15 +154,23 @@ export class ConnectionPoolProvider {
       const enrichedConnections = status.connections.map(conn => {
         const host = hosts.find(h => h.id === conn.hostId);
         return {
-          ...conn,
-          hostName: host?.name || conn.hostId // Fallback to hostId if host not found
+          hostId: conn.hostId,
+          hostName: host?.name || conn.hostId, // Fallback to hostId if host not found
+          status: conn.status,
+          createdAt: conn.createdAt,
+          lastUsed: conn.lastUsed,
+          idleTime: conn.idleTime
         };
       });
+
+      logger.debug(`Connection pool data: ${JSON.stringify(enrichedConnections)}`);
 
       this.panel.webview.postMessage({
         command: 'updateData',
         data: {
-          ...status,
+          totalConnections: status.totalConnections,
+          activeConnections: status.activeConnections,
+          idleConnections: status.idleConnections,
           connections: enrichedConnections
         }
       });
