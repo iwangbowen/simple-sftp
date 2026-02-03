@@ -160,7 +160,9 @@ export class ConnectionPoolProvider {
           status: conn.status,
           createdAt: conn.createdAt,
           lastUsed: conn.lastUsed,
-          idleTime: conn.idleTime
+          idleTime: conn.idleTime,
+          usageCount: conn.usageCount,
+          operationHistory: conn.operationHistory
         };
       });
 

@@ -67,21 +67,26 @@
         if (data.connections.length === 0) {
             tableBody.innerHTML = `
                 <tr class="empty-state">
-                    <td colspan="5">No connections in pool</td>
+                    <td colspan="7">No connections in pool</td>
                 </tr>
             `;
             return;
         }
 
-        tableBody.innerHTML = data.connections.map(conn => {
+        tableBody.innerHTML = data.connections.map((conn, index) => {
             const statusIcon = conn.status === 'active' ? 'pulse' : 'circle-large-outline';
             const statusClass = conn.status;
             const createdTime = formatTime(conn.createdAt);
             const lastUsedTime = formatTime(conn.lastUsed);
             const idleTimeFormatted = formatIdleTime(conn.idleTime);
+            const hasHistory = conn.operationHistory && conn.operationHistory.length > 0;
+            const expandIcon = hasHistory ? 'chevron-right' : '';
 
             return `
-                <tr>
+                <tr class="connection-row" data-index="${index}">
+                    <td>
+                        ${hasHistory ? `<i class="codicon codicon-${expandIcon} expand-icon" data-index="${index}"></i>` : ''}
+                    </td>
                     <td>${escapeHtml(conn.hostName)}</td>
                     <td>
                         <span class="status-badge ${statusClass}">
@@ -92,9 +97,70 @@
                     <td><span class="time">${createdTime}</span></td>
                     <td><span class="time">${lastUsedTime}</span></td>
                     <td><span class="time">${idleTimeFormatted}</span></td>
+                    <td>${conn.usageCount || 0}</td>
                 </tr>
+                ${hasHistory ? `
+                <tr class="history-row" data-index="${index}">
+                    <td colspan="7">
+                        <div class="history-content">
+                            <div class="history-title">
+                                <i class="codicon codicon-history"></i> Operation History (Last ${conn.operationHistory.length})
+                            </div>
+                            <div class="history-items">
+                                ${conn.operationHistory.map(op => {
+                                    const icon = getOperationIcon(op.operation);
+                                    return `
+                                        <div class="history-item">
+                                            <span class="history-operation ${op.operation}">
+                                                <i class="codicon codicon-${icon}"></i>
+                                                ${op.operation}
+                                            </span>
+                                            <span class="history-timestamp">${formatTime(op.timestamp)}</span>
+                                            <span class="history-description">${escapeHtml(op.description || '')}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                ` : ''}
             `;
         }).join('');
+
+        // Add click event listeners to expand icons
+        document.querySelectorAll('.expand-icon').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                const index = e.target.getAttribute('data-index');
+                toggleHistoryRow(index);
+            });
+        });
+    }
+
+    /**
+     * Toggle history row visibility
+     */
+    function toggleHistoryRow(index) {
+        const expandIcon = document.querySelector(`.expand-icon[data-index="${index}"]`);
+        const historyRow = document.querySelector(`.history-row[data-index="${index}"]`);
+
+        if (expandIcon && historyRow) {
+            expandIcon.classList.toggle('expanded');
+            historyRow.classList.toggle('expanded');
+        }
+    }
+
+    /**
+     * Get icon for operation type
+     */
+    function getOperationIcon(operation) {
+        const icons = {
+            'create': 'add',
+            'acquire': 'debug-start',
+            'reuse': 'refresh',
+            'release': 'debug-stop'
+        };
+        return icons[operation] || 'circle-filled';
     }
 
     /**

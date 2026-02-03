@@ -266,3 +266,107 @@ body {
 .table-container::-webkit-scrollbar-thumb:hover {
     background: var(--vscode-scrollbarSlider-hoverBackground);
 }
+
+/* Expand/Collapse Icon */
+.expand-icon {
+    cursor: pointer;
+    color: var(--vscode-foreground);
+    transition: transform 0.2s ease;
+    user-select: none;
+}
+
+.expand-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.expand-icon:hover {
+    color: var(--vscode-textLink-foreground);
+}
+
+/* History Row */
+.history-row {
+    display: none;
+}
+
+.history-row.expanded {
+    display: table-row;
+}
+
+.history-row td {
+    background-color: var(--vscode-editor-inactiveSelectionBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    padding: 0;
+}
+
+.history-content {
+    padding: 12px 24px 12px 48px;
+}
+
+.history-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--vscode-descriptionForeground);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: 12px;
+    color: var(--vscode-foreground);
+}
+
+.history-operation {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 80px;
+    font-weight: 500;
+}
+
+.history-operation i {
+    font-size: 11px;
+}
+
+.history-operation.create {
+    color: var(--vscode-charts-green);
+}
+
+.history-operation.acquire {
+    color: var(--vscode-testing-iconPassed);
+}
+
+.history-operation.reuse {
+    color: var(--vscode-charts-blue);
+}
+
+.history-operation.release {
+    color: var(--vscode-charts-orange);
+}
+
+.history-timestamp {
+    color: var(--vscode-descriptionForeground);
+    font-family: var(--vscode-editor-font-family);
+    min-width: 140px;
+}
+
+.history-description {
+    color: var(--vscode-foreground);
+    flex: 1;
+}
+
+.no-history {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+    font-size: 12px;
+}

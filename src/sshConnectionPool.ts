@@ -7,6 +7,18 @@ import { establishMultiHopConnection } from './utils/jumpHostHelper';
 import type { AuthManager } from './authManager';
 
 /**
+ * 操作历史记录类型
+ */
+interface OperationHistory {
+  /** 操作类型 */
+  operation: 'acquire' | 'release' | 'create' | 'reuse';
+  /** 操作时间戳 */
+  timestamp: number;
+  /** 操作描述 */
+  description?: string;
+}
+
+/**
  * SSH 连接池条目
  */
 interface PooledConnection {
@@ -28,6 +40,10 @@ interface PooledConnection {
   isReady: boolean;
   /** 跳板机连接 (如果使用跳板机,支持多跳) */
   jumpConns?: Client[];
+  /** 操作历史记录 */
+  operationHistory: OperationHistory[];
+  /** 使用次数 */
+  usageCount: number;
 }
 
 /**
@@ -130,6 +146,12 @@ export class SshConnectionPool {
       logger.info(`[ConnectionPool] Reusing connection for ${config.name} (${inUseCount + 1}/${readyCount} in use)`);
       available.inUse = true;
       available.lastUsed = Date.now();
+      available.usageCount++;
+      available.operationHistory.push({
+        operation: 'reuse',
+        timestamp: Date.now(),
+        description: 'Connection reused'
+      });
 
       // 如果没有 SFTP 客户端,创建一个
       if (!available.sftpClient) {
@@ -151,14 +173,22 @@ export class SshConnectionPool {
     }
 
     // 创建占位符,防止竞态条件
+    const now = Date.now();
     const placeholder: PooledConnection = {
       client: null as any,
       sftpClient: null,
       hostId: config.id,
       config: {} as ConnectConfig,
-      lastUsed: Date.now(),
+      createdAt: now,
+      lastUsed: now,
       inUse: true,
-      isReady: false  // 标记为未就绪
+      isReady: false,  // 标记为未就绪
+      operationHistory: [{
+        operation: 'create',
+        timestamp: now,
+        description: 'Connection initiated'
+      }],
+      usageCount: 1
     };
     connections.push(placeholder);
     this.pool.set(key, connections);
@@ -196,6 +226,11 @@ export class SshConnectionPool {
       placeholder.sftpClient = sftpClient;
       placeholder.isReady = true;
       placeholder.jumpConns = jumpConns;  // Store jump connections for cleanup
+      placeholder.operationHistory.push({
+        operation: 'acquire',
+        timestamp: Date.now(),
+        description: 'Connection established'
+      });
       logger.info(`[ConnectionPool] Connection ${connIndex} ready for ${config.name}. Total: ${connections.length}`);
 
       return {
@@ -238,6 +273,12 @@ export class SshConnectionPool {
           logger.info(`[ConnectionPool] Connection became available for ${config.name} (${inUseCount + 1}/${readyCount} in use)`);
           available.inUse = true;
           available.lastUsed = Date.now();
+          available.usageCount++;
+          available.operationHistory.push({
+            operation: 'reuse',
+            timestamp: Date.now(),
+            description: 'Connection reused after wait'
+          });
 
           if (!available.sftpClient) {
             available.sftpClient = await this.createSftpClient(available.client);
@@ -438,6 +479,11 @@ export class SshConnectionPool {
     if (conn) {
       conn.inUse = false;
       conn.lastUsed = Date.now();
+      conn.operationHistory.push({
+        operation: 'release',
+        timestamp: Date.now(),
+        description: 'Connection released'
+      });
       const inUseCount = connections.filter(c => c.inUse).length;
       logger.info(`[ConnectionPool] Released connection for ${config.name} (${inUseCount}/${connections.length} in use)`);
     } else {
@@ -548,6 +594,12 @@ export class SshConnectionPool {
       createdAt: string;
       lastUsed: string;
       idleTime: number;
+      usageCount: number;
+      operationHistory: Array<{
+        operation: string;
+        timestamp: string;
+        description?: string;
+      }>;
     }>;
   } {
     const connections: Array<{
@@ -578,7 +630,13 @@ export class SshConnectionPool {
           status,
           createdAt: new Date(conn.createdAt || conn.lastUsed).toISOString(),
           lastUsed: new Date(conn.lastUsed).toISOString(),
-          idleTime
+          idleTime,
+          usageCount: conn.usageCount || 0,
+          operationHistory: (conn.operationHistory || []).slice(-10).map(op => ({
+            operation: op.operation,
+            timestamp: new Date(op.timestamp).toISOString(),
+            description: op.description
+          }))
         });
       }
     }
