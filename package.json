@@ -957,19 +957,19 @@
           "group": "1_import@1"
         },
         {
-          "command": "simpleSftp.exportAllHosts",
+          "command": "simpleSftp.importHosts",
           "when": "view == simpleSftp.hosts",
           "group": "1_import@2"
         },
         {
-          "command": "simpleSftp.exportAllHostsToSshConfig",
+          "command": "simpleSftp.exportAllHosts",
           "when": "view == simpleSftp.hosts",
-          "group": "1_import@2.5"
+          "group": "2_export@1"
         },
         {
-          "command": "simpleSftp.importHosts",
+          "command": "simpleSftp.exportAllHostsToSshConfig",
           "when": "view == simpleSftp.hosts",
-          "group": "1_import@3"
+          "group": "2_export@2"
         },
         {
           "command": "simpleSftp.refreshPortForwardings",
