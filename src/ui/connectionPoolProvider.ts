@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { SshConnectionPool } from '../sshConnectionPool';
 import { HostManager } from '../hostManager';
 import { logger } from '../logger';
@@ -196,85 +197,19 @@ export class ConnectionPoolProvider {
 
     const nonce = this.getNonce();
 
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-    <link href="${codiconsUri}" rel="stylesheet">
-    <link href="${styleUri}" rel="stylesheet">
-    <title>SSH Connection Pool Status</title>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="title">
-                <i class="codicon codicon-dashboard"></i>
-                SSH Connection Pool Status
-            </div>
-            <div class="header-controls">
-                <div class="refresh-interval-selector">
-                    <label for="refreshIntervalSelect">Refresh:</label>
-                    <select id="refreshIntervalSelect">
-                        <option value="2000">2s</option>
-                        <option value="5000" selected>5s</option>
-                        <option value="10000">10s</option>
-                        <option value="30000">30s</option>
-                        <option value="60000">1m</option>
-                    </select>
-                </div>
-                <button class="icon-button" id="refreshBtn" title="Refresh">
-                    <i class="codicon codicon-refresh"></i>
-                </button>
-            </div>
-        </div>
+    // Read HTML template file
+    const htmlPath = path.join(this.extensionUri.fsPath, 'resources', 'webview', 'connection-pool.html');
+    let html = fs.readFileSync(htmlPath, 'utf8');
 
-        <div class="summary">
-            <div class="summary-item">
-                <div class="summary-label">Total Connections</div>
-                <div class="summary-value" id="totalConnections">0</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Active (In Use)</div>
-                <div class="summary-value active" id="activeConnections">0</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Idle (Available)</div>
-                <div class="summary-value idle" id="idleConnections">0</div>
-            </div>
-        </div>
+    // Replace placeholders
+    html = html
+      .replace(/\{\{cspSource\}\}/g, webview.cspSource)
+      .replace(/\{\{nonce\}\}/g, nonce)
+      .replace(/\{\{codiconsUri\}\}/g, codiconsUri.toString())
+      .replace(/\{\{styleUri\}\}/g, styleUri.toString())
+      .replace(/\{\{scriptUri\}\}/g, scriptUri.toString());
 
-        <div class="table-container">
-            <table class="connections-table">
-                <thead>
-                    <tr>
-                        <th>Host</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th>Last Used</th>
-                        <th>Idle Time</th>
-                    </tr>
-                </thead>
-                <tbody id="connectionsTableBody">
-                    <tr class="empty-state">
-                        <td colspan="5">No connections in pool</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="footer">
-            <div class="info-text">
-                <i class="codicon codicon-info"></i>
-                Connection pool improves performance by reusing SSH connections. Idle connections are automatically closed after 5 minutes.
-            </div>
-        </div>
-    </div>
-
-    <script nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
+    return html;
   }
 
   /**
