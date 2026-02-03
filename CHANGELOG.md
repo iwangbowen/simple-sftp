@@ -1,5 +1,9 @@
 # Change Log
 
+## 4.6.7 - 2026-02-03
+
+- **UX**: Cleaned up command palette - hid 27 context-specific commands
+
 ## 4.6.6 - 2026-02-02
 
 - **UI**: More compact bookmark list design in host selection view (reduced padding and tighter spacing)
