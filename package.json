@@ -933,6 +933,110 @@
         {
           "command": "simpleSftp.openDualPanelBrowser",
           "when": "false"
+        },
+        {
+          "command": "simpleSftp.startPortForward",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.stopPortForward",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.deletePortForward",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.refreshPortForwardings",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.openPortForwarding",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.upload",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.download",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.delete",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.changePermissions",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.rename",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.batchRename",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.copyFullPath",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.createFile",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.createFolder",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.refresh",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.addBookmark",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.selectForCompare",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.compareWithSelected",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.localMore.newFile",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.localMore.newFolder",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.localMore.uploadSelected",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.remoteMore.newFile",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.remoteMore.newFolder",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.remoteMore.downloadSelected",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.remoteMore.portForwarding",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.remoteMore.searchFiles",
+          "when": "false"
         }
       ],
       "view/title": [
