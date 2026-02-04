@@ -2494,7 +2494,20 @@ export abstract class DualPanelBase {
                 }
 
                 try {
-                    // Use existing listRemoteFiles method which handles connection pooling
+                    // First, get the folder's own stats
+                    let folderMtime: number = Date.now();
+                    try {
+                        const folderStat = await SshConnectionManager.getRemoteFileStat(
+                            this._currentHost,
+                            this._currentAuthConfig,
+                            folderPath
+                        );
+                        folderMtime = folderStat.mtime;
+                    } catch (statError) {
+                        logger.warn(`Failed to get folder stat, using current time: ${statError}`);
+                    }
+
+                    // Then list the folder contents
                     const items = await SshConnectionManager.listRemoteFiles(
                         this._currentHost,
                         this._currentAuthConfig,
@@ -2504,7 +2517,6 @@ export abstract class DualPanelBase {
                     const folders: string[] = [];
                     const files: string[] = [];
                     let totalSize = 0;
-                    let latestMtime = 0;
 
                     for (const item of items) {
                         if (item.name === '.' || item.name === '..') {
@@ -2517,11 +2529,6 @@ export abstract class DualPanelBase {
                             files.push(item.name);
                             totalSize += item.size || 0;
                         }
-
-                        // Track latest modification time
-                        if (item.mtime && item.mtime > latestMtime) {
-                            latestMtime = item.mtime;
-                        }
                     }
 
                     // Get the folder name from path
@@ -2532,7 +2539,7 @@ export abstract class DualPanelBase {
                         command: 'folderDetails',
                         data: {
                             name: folderName,
-                            modifiedTime: latestMtime > 0 ? TimeUtils.formatTime(latestMtime) : TimeUtils.formatTime(Date.now()),
+                            modifiedTime: TimeUtils.formatTime(folderMtime),
                             size: totalSize,
                             folders: [...folders].sort((a, b) => a.localeCompare(b)),
                             files: [...files].sort((a, b) => a.localeCompare(b))

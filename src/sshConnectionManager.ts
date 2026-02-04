@@ -204,6 +204,23 @@ export class SshConnectionManager {
   }
 
   /**
+   * Get remote file/folder statistics
+   * @param config Host configuration
+   * @param authConfig Authentication configuration
+   * @param remotePath Path to the remote file/folder
+   * @returns File statistics including mtime
+   */
+  static async getRemoteFileStat(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<{size: number, mtime: number}> {
+    return this.withConnection(config, authConfig, async (sftp) => {
+      const stats: any = await sftp.stat(remotePath);
+      return {
+        size: stats.size || 0,
+        mtime: stats.mtime || stats.modifyTime || Date.now()
+      };
+    });
+  }
+
+  /**
    * Format Unix file mode to rwx string
    * @param mode Unix file mode (e.g., 0o100644)
    * @returns Permission string (e.g., "rw-r--r--")
