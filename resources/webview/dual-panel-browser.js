@@ -512,28 +512,12 @@
             const name = item.dataset.name;
 
             // Request folder details from backend
-            // Tooltip will only show when data arrives
+            // Tooltip will only show when data arrives from updateTooltipWithFolderDetails
             tooltipRequestController = new AbortController();
             vscode.postMessage({
                 command: 'getFolderDetails',
                 data: { path, panel }
             });
-
-            // Set timeout for showing partial data if loading takes >3 seconds
-            setTimeout(() => {
-                if (currentTooltipItem === item && !fileTooltip.classList.contains('visible')) {
-                    // Show tooltip with timeout message (without size)
-                    fileTooltip.innerHTML = `
-                        <div class="tooltip-header">${name}</div>
-                        <div class="tooltip-section">
-                            <span class="tooltip-label">Modified Date:</span>
-                            <span class="tooltip-value">Loading timeout</span>
-                        </div>
-                    `;
-                    positionTooltip(event);
-                    fileTooltip.classList.add('visible');
-                }
-            }, 3000);
 
         }, 750);
     }
