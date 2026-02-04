@@ -2460,17 +2460,57 @@ export abstract class DualPanelBase {
                         }
                     }
 
-                    // Calculate folder size (approximate - just count direct files)
-                    let totalSize = 0;
-                    for (const file of entries) {
-                        const filePath = path.join(folderPath, file);
+                    // Calculate folder size recursively with timeout
+                    let totalSize: number | null = null;
+                    const sizeCalculationTimeout = 3000; // 3 seconds
+                    const startTime = Date.now();
+
+                    const calculateSize = async (dirPath: string): Promise<number> => {
+                        // Check if timeout exceeded
+                        if (Date.now() - startTime > sizeCalculationTimeout) {
+                            throw new Error('Timeout');
+                        }
+
+                        let size = 0;
                         try {
-                            const fileStat = await fs.promises.stat(filePath);
-                            if (!fileStat.isDirectory()) {
-                                totalSize += fileStat.size;
+                            const dirEntries = await fs.promises.readdir(dirPath);
+                            for (const entry of dirEntries) {
+                                // Check timeout before each iteration
+                                if (Date.now() - startTime > sizeCalculationTimeout) {
+                                    throw new Error('Timeout');
+                                }
+
+                                const entryPath = path.join(dirPath, entry);
+                                try {
+                                    const entryStat = await fs.promises.stat(entryPath);
+                                    if (entryStat.isDirectory()) {
+                                        // Recursively calculate subdirectory size (no depth limit)
+                                        size += await calculateSize(entryPath);
+                                    } else {
+                                        size += entryStat.size;
+                                    }
+                                } catch (error: any) {
+                                    if (error.message === 'Timeout') {
+                                        throw error;
+                                    }
+                                    // Skip files/folders we can't access
+                                }
                             }
-                        } catch {
-                            // Skip files we can't access
+                        } catch (error: any) {
+                            if (error.message === 'Timeout') {
+                                throw error;
+                            }
+                            // Skip if we can't read the directory
+                        }
+                        return size;
+                    };
+
+                    try {
+                        totalSize = await calculateSize(folderPath);
+                    } catch (error: any) {
+                        if (error.message === 'Timeout') {
+                            logger.warn('Folder size calculation timed out');
+                            totalSize = null; // Don't show size if timeout
                         }
                     }
 
@@ -2479,7 +2519,8 @@ export abstract class DualPanelBase {
                         data: {
                             name: path.basename(folderPath),
                             modifiedTime: TimeUtils.formatTime(stat.mtime.getTime()),
-                            size: totalSize,
+                            size: totalSize !== null ? totalSize : undefined, // undefined if timeout
+                            sizeTimedOut: totalSize === null,
                             folders: [...folders].sort((a, b) => a.localeCompare(b)),
                             files: [...files].sort((a, b) => a.localeCompare(b))
                         }
@@ -2516,7 +2557,6 @@ export abstract class DualPanelBase {
 
                     const folders: string[] = [];
                     const files: string[] = [];
-                    let totalSize = 0;
 
                     for (const item of items) {
                         if (item.name === '.' || item.name === '..') {
@@ -2527,7 +2567,64 @@ export abstract class DualPanelBase {
                             folders.push(item.name);
                         } else {
                             files.push(item.name);
-                            totalSize += item.size || 0;
+                        }
+                    }
+
+                    // Calculate folder size recursively with timeout
+                    let totalSize: number | null = null;
+                    const sizeCalculationTimeout = 3000; // 3 seconds
+                    const startTime = Date.now();
+                    const host = this._currentHost;
+                    const authConfig = this._currentAuthConfig;
+
+                    const calculateRemoteSize = async (remotePath: string): Promise<number> => {
+                        // Check if timeout exceeded
+                        if (Date.now() - startTime > sizeCalculationTimeout) {
+                            throw new Error('Timeout');
+                        }
+
+                        let size = 0;
+                        try {
+                            const dirItems = await SshConnectionManager.listRemoteFiles(
+                                host,
+                                authConfig,
+                                remotePath
+                            );
+
+                            for (const item of dirItems) {
+                                if (item.name === '.' || item.name === '..') {
+                                    continue;
+                                }
+
+                                // Check timeout before each iteration
+                                if (Date.now() - startTime > sizeCalculationTimeout) {
+                                    throw new Error('Timeout');
+                                }
+
+                                if (item.type === 'directory') {
+                                    // Recursively calculate subdirectory size (no depth limit)
+                                    const subPath = `${remotePath}/${item.name}`.replaceAll('//', '/');
+                                    size += await calculateRemoteSize(subPath);
+                                } else {
+                                    size += item.size || 0;
+                                }
+                            }
+                        } catch (error: any) {
+                            if (error.message === 'Timeout') {
+                                throw error;
+                            }
+                            // Skip directories we can't access
+                            logger.warn(`Failed to calculate size for ${remotePath}: ${error}`);
+                        }
+                        return size;
+                    };
+
+                    try {
+                        totalSize = await calculateRemoteSize(folderPath);
+                    } catch (error: any) {
+                        if (error.message === 'Timeout') {
+                            logger.warn('Remote folder size calculation timed out');
+                            totalSize = null; // Don't show size if timeout
                         }
                     }
 
@@ -2540,7 +2637,8 @@ export abstract class DualPanelBase {
                         data: {
                             name: folderName,
                             modifiedTime: TimeUtils.formatTime(folderMtime),
-                            size: totalSize,
+                            size: totalSize !== null ? totalSize : undefined, // undefined if timeout
+                            sizeTimedOut: totalSize === null,
                             folders: [...folders].sort((a, b) => a.localeCompare(b)),
                             files: [...files].sort((a, b) => a.localeCompare(b))
                         }

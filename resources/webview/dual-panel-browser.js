@@ -577,10 +577,20 @@
             return;
         }
 
-        const { name, modifiedTime, size, folders, files } = data;
+        const { name, modifiedTime, size, sizeTimedOut, folders, files } = data;
 
         // Modified time is already formatted by backend (TimeUtils.formatTime)
         const modifiedDate = modifiedTime || 'Unknown';
+
+        // Handle size display based on timeout
+        let sizeDisplay;
+        if (sizeTimedOut) {
+            sizeDisplay = 'Calculating...';
+        } else if (size !== undefined && size !== null) {
+            sizeDisplay = formatFileSize(size);
+        } else {
+            sizeDisplay = 'Unknown';
+        }
 
         let html = `
             <div class="tooltip-header">${name}</div>
@@ -590,7 +600,7 @@
             </div>
             <div class="tooltip-section">
                 <div class="tooltip-label">Size</div>
-                <div class="tooltip-value">${formatFileSize(size || 0)}</div>
+                <div class="tooltip-value">${sizeDisplay}</div>
             </div>
         `;
 
