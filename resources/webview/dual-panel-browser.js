@@ -38,6 +38,12 @@
     let breadcrumbClickTimers = {};
     /** @type {Object.<string, number>} */
     let breadcrumbTreeLoadingTimers = {};
+    /** @type {HTMLElement | null} */
+    let fileTooltip = null;
+    /** @type {number | null} */
+    let tooltipShowTimer = null;
+    /** @type {AbortController | null} */
+    let tooltipRequestController = null;
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -70,6 +76,9 @@
 
         // 通知扩展 WebView 已准备就绪
         vscode.postMessage({ command: 'ready' });
+
+        // Initialize file tooltip
+        initializeFileTooltip();
     });
 
     // ===== 事件监听器 =====
@@ -446,6 +455,241 @@
         });
     }
 
+    // ===== File Tooltip Functions =====
+    /**
+     * Initialize file/folder tooltip
+     */
+    function initializeFileTooltip() {
+        // Create tooltip element
+        fileTooltip = document.createElement('div');
+        fileTooltip.className = 'file-tooltip';
+        document.body.appendChild(fileTooltip);
+    }
+
+    /**
+     * Show tooltip for file/folder
+     * @param {HTMLElement} item - Tree item element
+     * @param {MouseEvent} event - Mouse event
+     */
+    function showFileTooltip(item, event) {
+        // Clear any existing timer
+        if (tooltipShowTimer) {
+            clearTimeout(tooltipShowTimer);
+            tooltipShowTimer = null;
+        }
+
+        // Cancel any pending request
+        if (tooltipRequestController) {
+            tooltipRequestController.abort();
+            tooltipRequestController = null;
+        }
+
+        // Only show tooltip for directories
+        const isDir = item.dataset.isDir === 'true';
+        if (!isDir) {
+            // For files, show simple tooltip with basic info
+            showFileBasicTooltip(item, event);
+            return;
+        }
+
+        // Set timeout to delay tooltip display (500ms)
+        tooltipShowTimer = setTimeout(() => {
+            const path = item.dataset.path;
+            const panel = item.dataset.panel;
+            const name = item.dataset.name;
+
+            // Show loading state
+            fileTooltip.innerHTML = `
+                <div class="tooltip-header">${name}</div>
+                <div class="tooltip-loading">
+                    <span class="codicon codicon-loading codicon-modifier-spin"></span>
+                    Loading folder details...
+                </div>
+            `;
+            positionTooltip(event);
+            fileTooltip.classList.add('visible');
+
+            // Request folder details from backend
+            tooltipRequestController = new AbortController();
+            vscode.postMessage({
+                command: 'getFolderDetails',
+                data: { path, panel }
+            });
+
+        }, 500);
+    }
+
+    /**
+     * Show basic tooltip for files
+     * @param {HTMLElement} item - Tree item element
+     * @param {MouseEvent} event - Mouse event
+     */
+    function showFileBasicTooltip(item, event) {
+        const name = item.dataset.name;
+        const modifiedTime = item.dataset.modifiedTime;
+        const size = item.dataset.size;
+
+        const modifiedDate = modifiedTime && modifiedTime !== '0'
+            ? new Date(parseInt(modifiedTime, 10)).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            })
+            : 'Unknown';
+
+        const sizeText = formatFileSize(parseInt(size, 10));
+
+        fileTooltip.innerHTML = `
+            <div class="tooltip-header">${name}</div>
+            <div class="tooltip-section">
+                <div class="tooltip-label">修改日期</div>
+                <div class="tooltip-value">${modifiedDate}</div>
+            </div>
+            <div class="tooltip-section">
+                <div class="tooltip-label">大小</div>
+                <div class="tooltip-value">${sizeText}</div>
+            </div>
+        `;
+
+        positionTooltip(event);
+        fileTooltip.classList.add('visible');
+    }
+
+    /**
+     * Update tooltip with folder details
+     * @param {Object} data - Folder details data
+     */
+    function updateTooltipWithFolderDetails(data) {
+        if (!fileTooltip || !fileTooltip.classList.contains('visible')) {
+            return;
+        }
+
+        const { name, modifiedTime, size, folders, files } = data;
+
+        const modifiedDate = modifiedTime
+            ? new Date(modifiedTime).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            })
+            : 'Unknown';
+
+        let html = `
+            <div class="tooltip-header">${name}</div>
+            <div class="tooltip-section">
+                <div class="tooltip-label">修改日期</div>
+                <div class="tooltip-value">${modifiedDate}</div>
+            </div>
+            <div class="tooltip-section">
+                <div class="tooltip-label">大小</div>
+                <div class="tooltip-value">${formatFileSize(size || 0)}</div>
+            </div>
+        `;
+
+        // Show folders
+        if (folders && folders.length > 0) {
+            const maxShow = 10;
+            const hasMore = folders.length > maxShow;
+            const displayFolders = folders.slice(0, maxShow);
+
+            html += `
+                <div class="tooltip-section">
+                    <div class="tooltip-label">文件夹 (${folders.length})</div>
+                    <div class="tooltip-list">
+                        ${displayFolders.map(f => `
+                            <div class="tooltip-list-item">
+                                <span class="codicon codicon-folder"></span>
+                                ${f}
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${hasMore ? `<div class="tooltip-more">...还有 ${folders.length - maxShow} 个文件夹</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Show files
+        if (files && files.length > 0) {
+            const maxShow = 10;
+            const hasMore = files.length > maxShow;
+            const displayFiles = files.slice(0, maxShow);
+
+            html += `
+                <div class="tooltip-section">
+                    <div class="tooltip-label">文件 (${files.length})</div>
+                    <div class="tooltip-list">
+                        ${displayFiles.map(f => `
+                            <div class="tooltip-list-item">
+                                <span class="codicon codicon-file"></span>
+                                ${f}
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${hasMore ? `<div class="tooltip-more">...还有 ${files.length - maxShow} 个文件</div>` : ''}
+                </div>
+            `;
+        }
+
+        fileTooltip.innerHTML = html;
+    }
+
+    /**
+     * Hide tooltip
+     */
+    function hideFileTooltip() {
+        // Clear any existing timer
+        if (tooltipShowTimer) {
+            clearTimeout(tooltipShowTimer);
+            tooltipShowTimer = null;
+        }
+
+        // Cancel any pending request
+        if (tooltipRequestController) {
+            tooltipRequestController.abort();
+            tooltipRequestController = null;
+        }
+
+        if (fileTooltip) {
+            fileTooltip.classList.remove('visible');
+        }
+    }
+
+    /**
+     * Position tooltip near mouse cursor
+     * @param {MouseEvent} event - Mouse event
+     */
+    function positionTooltip(event) {
+        if (!fileTooltip) return;
+
+        const offset = 10;
+        let x = event.clientX + offset;
+        let y = event.clientY + offset;
+
+        // Ensure tooltip doesn't go off-screen
+        const rect = fileTooltip.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        // Adjust horizontal position if needed
+        if (x + rect.width > windowWidth) {
+            x = event.clientX - rect.width - offset;
+        }
+
+        // Adjust vertical position if needed
+        if (y + rect.height > windowHeight) {
+            y = event.clientY - rect.height - offset;
+        }
+
+        fileTooltip.style.left = `${x}px`;
+        fileTooltip.style.top = `${y}px`;
+    }
+
     // ===== 文件树渲染 =====
     /**
      * @param {string} panel - 'local' | 'remote'
@@ -663,6 +907,22 @@
                 selectItem(item, false, false);
             } else {
                 console.log(`Item already selected: ${node.path}, total selected: ${selectedItems.length}`);
+            }
+        });
+
+        // Tooltip on hover
+        item.addEventListener('mouseenter', (e) => {
+            showFileTooltip(item, e);
+        });
+
+        item.addEventListener('mouseleave', () => {
+            hideFileTooltip();
+        });
+
+        item.addEventListener('mousemove', (e) => {
+            // Update tooltip position as mouse moves
+            if (fileTooltip && fileTooltip.classList.contains('visible')) {
+                positionTooltip(e);
             }
         });
 
@@ -3249,6 +3509,11 @@ case 'updateStatus':
                 // Update search history
                 searchHistory = message.data || [];
                 searchHistoryIndex = -1;
+                break;
+
+            case 'folderDetails':
+                // Update tooltip with folder details
+                updateTooltipWithFolderDetails(message.data);
                 break;
 
             case 'portForwardings':

@@ -309,6 +309,10 @@ export abstract class DualPanelBase {
                 await this.handleScanLocalPorts();
                 break;
 
+            case 'getFolderDetails':
+                await this.handleGetFolderDetails(message.data);
+                break;
+
             case 'openBrowser':
                 await this.handleOpenBrowser(message.address);
                 break;
@@ -2425,6 +2429,120 @@ export abstract class DualPanelBase {
                 command: 'localPorts',
                 data: []
             });
+        }
+    }
+
+    protected async handleGetFolderDetails(data: { path: string; panel: string }): Promise<void> {
+        try {
+            const { path: folderPath, panel } = data;
+
+            if (panel === 'local') {
+                // Get local folder details
+                try {
+                    const stat = await fs.promises.stat(folderPath);
+                    const entries = await fs.promises.readdir(folderPath);
+
+                    const folders: string[] = [];
+                    const files: string[] = [];
+
+                    for (const entry of entries) {
+                        const entryPath = path.join(folderPath, entry);
+                        try {
+                            const entryStat = await fs.promises.stat(entryPath);
+                            if (entryStat.isDirectory()) {
+                                folders.push(entry);
+                            } else {
+                                files.push(entry);
+                            }
+                        } catch {
+                            // Skip entries we can't access
+                        }
+                    }
+
+                    // Calculate folder size (approximate - just count direct files)
+                    let totalSize = 0;
+                    for (const file of entries) {
+                        const filePath = path.join(folderPath, file);
+                        try {
+                            const fileStat = await fs.promises.stat(filePath);
+                            if (!fileStat.isDirectory()) {
+                                totalSize += fileStat.size;
+                            }
+                        } catch {
+                            // Skip files we can't access
+                        }
+                    }
+
+                    this.postMessage({
+                        command: 'folderDetails',
+                        data: {
+                            name: path.basename(folderPath),
+                            modifiedTime: stat.mtime.toISOString(),
+                            size: totalSize,
+                            folders: [...folders].sort((a, b) => a.localeCompare(b)),
+                            files: [...files].sort((a, b) => a.localeCompare(b))
+                        }
+                    });
+                } catch (error: any) {
+                    logger.error(`Failed to get local folder details: ${error.message}`);
+                }
+            } else if (panel === 'remote') {
+                // Get remote folder details
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    return;
+                }
+
+                try {
+                    // Use existing listRemoteFiles method which handles connection pooling
+                    const items = await SshConnectionManager.listRemoteFiles(
+                        this._currentHost,
+                        this._currentAuthConfig,
+                        folderPath
+                    );
+
+                    const folders: string[] = [];
+                    const files: string[] = [];
+                    let totalSize = 0;
+                    let latestMtime = 0;
+
+                    for (const item of items) {
+                        if (item.name === '.' || item.name === '..') {
+                            continue;
+                        }
+
+                        if (item.type === 'directory') {
+                            folders.push(item.name);
+                        } else {
+                            files.push(item.name);
+                            totalSize += item.size || 0;
+                        }
+
+                        // Track latest modification time
+                        if (item.mtime && item.mtime > latestMtime) {
+                            latestMtime = item.mtime;
+                        }
+                    }
+
+                    // Get the folder name from path
+                    const parts = folderPath.split('/').filter(Boolean);
+                    const folderName = parts.length > 0 ? parts[parts.length - 1] : folderPath;
+
+                    this.postMessage({
+                        command: 'folderDetails',
+                        data: {
+                            name: folderName,
+                            modifiedTime: latestMtime > 0 ? new Date(latestMtime * 1000).toISOString() : new Date().toISOString(),
+                            size: totalSize,
+                            folders: [...folders].sort((a, b) => a.localeCompare(b)),
+                            files: [...files].sort((a, b) => a.localeCompare(b))
+                        }
+                    });
+                } catch (error: any) {
+                    logger.error(`Failed to get remote folder details: ${error.message}`);
+                }
+            }
+        } catch (error: any) {
+            logger.error(`Failed to get folder details: ${error.message}`);
         }
     }
 

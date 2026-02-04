@@ -2631,3 +2631,92 @@ body {
 .footer-progress .codicon-loading {
     font-size: 12px;
 }
+
+/* ===== File/Folder Hover Tooltip ===== */
+.file-tooltip {
+    position: fixed;
+    z-index: 10000;
+    background-color: var(--vscode-editorHoverWidget-background);
+    border: 1px solid var(--vscode-editorHoverWidget-border);
+    border-radius: 3px;
+    box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+    padding: 8px 12px;
+    max-width: 400px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.file-tooltip.visible {
+    opacity: 1;
+}
+
+.tooltip-header {
+    font-weight: 500;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    color: var(--vscode-editorHoverWidget-foreground);
+}
+
+.tooltip-section {
+    margin-bottom: 8px;
+}
+
+.tooltip-section:last-child {
+    margin-bottom: 0;
+}
+
+.tooltip-label {
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.tooltip-value {
+    color: var(--vscode-editorHoverWidget-foreground);
+    font-family: var(--vscode-editor-font-family);
+}
+
+.tooltip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.tooltip-list-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    background-color: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+.tooltip-list-item .codicon {
+    font-size: 12px;
+}
+
+.tooltip-loading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+
+.tooltip-loading .codicon {
+    font-size: 14px;
+}
+
+.tooltip-more {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+    font-size: 11px;
+    margin-top: 4px;
+}
