@@ -601,6 +601,12 @@
         "title": "Search Files",
         "category": "Simple SFTP",
         "icon": "$(search)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.openInTerminal",
+        "title": "Open in Terminal",
+        "category": "Simple SFTP",
+        "icon": "$(terminal)"
       }
     ],
     "menus": {
@@ -654,6 +660,11 @@
           "command": "simpleSftp.dualPanel.addBookmark",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'remoteFile' || webviewSection == 'remoteEmpty')",
           "group": "2_operations@5"
+        },
+        {
+          "command": "simpleSftp.dualPanel.openInTerminal",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'localEmpty' || webviewSection == 'remoteFile' || webviewSection == 'remoteEmpty')",
+          "group": "2_operations@6"
         },
         {
           "command": "simpleSftp.dualPanel.selectForCompare",
@@ -1036,6 +1047,10 @@
         },
         {
           "command": "simpleSftp.dualPanel.remoteMore.searchFiles",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.openInTerminal",
           "when": "false"
         }
       ],

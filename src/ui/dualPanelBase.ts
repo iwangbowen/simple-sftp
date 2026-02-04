@@ -1487,6 +1487,80 @@ export abstract class DualPanelBase {
         });
     }
 
+    public async openInTerminal(args: any): Promise<void> {
+        // Extract panel and current path
+        const { panel, filePath, isDirectory, currentPath } = args;
+
+        // Determine the directory path to open
+        let targetPath: string;
+
+        if (filePath) {
+            // If a specific file/folder is selected
+            targetPath = isDirectory ? filePath : path.dirname(filePath);
+        } else if (currentPath) {
+            // If using current directory
+            targetPath = currentPath;
+        } else {
+            // Fallback to root path
+            targetPath = panel === 'local' ? this._localRootPath || process.cwd() : this._remoteRootPath || '/';
+        }
+
+        if (panel === 'local') {
+            // Open local terminal at the specified path
+            const terminal = vscode.window.createTerminal({
+                name: `Terminal: ${path.basename(targetPath)}`,
+                cwd: targetPath,
+                iconPath: new vscode.ThemeIcon('terminal')
+            });
+
+            terminal.show();
+            logger.info(`Opened local terminal at: ${targetPath}`);
+        } else {
+            // Open SSH terminal and navigate to the remote path
+            if (!this._currentHost || !this._currentAuthConfig) {
+                vscode.window.showErrorMessage('No remote host connected');
+                return;
+            }
+
+            const config = this._currentHost;
+            const authConfig = this._currentAuthConfig;
+
+            // Build the SSH command arguments
+            const args: string[] = [];
+
+            // Add port if not default
+            if (config.port && config.port !== 22) {
+                args.push('-p', config.port.toString());
+            }
+
+            // Add identity file if using private key auth
+            if (authConfig.authType === 'privateKey' && authConfig.privateKeyPath) {
+                args.push('-i', authConfig.privateKeyPath);
+            }
+
+            // Force pseudo-terminal allocation to allow command execution
+            args.push('-t');
+
+            // Add the connection string
+            args.push(`${config.username}@${config.host}`);
+
+            // Add command to change directory and start shell
+            // Using cd && exec $SHELL to change directory and replace process with a new shell
+            args.push(`cd '${targetPath}' && exec \\$SHELL`);
+
+            // Create and show the terminal
+            const terminal = vscode.window.createTerminal({
+                name: `SSH: ${config.name} (${path.basename(targetPath)})`,
+                shellPath: 'ssh',
+                shellArgs: args,
+                iconPath: new vscode.ThemeIcon('terminal')
+            });
+
+            terminal.show();
+            logger.info(`Opened SSH terminal at remote path: ${targetPath}`);
+        }
+    }
+
     protected async handleGetBookmarks(): Promise<void> {
         if (!this._currentHost) {
             logger.debug('No current host, sending empty bookmarks');

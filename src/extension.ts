@@ -642,6 +642,14 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         dualPanelProvider.postMessageToWebview(messageData);
       }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.openInTerminal', async (args) => {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.openInTerminal(args);
+      } else {
+        await dualPanelProvider.openInTerminal(args);
+      }
     })
   );
   logger.info('Transfer queue commands registered');
