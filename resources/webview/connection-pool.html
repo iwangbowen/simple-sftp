@@ -10,7 +10,21 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <div class="summary">
+            <div class="summary-stats">
+                <div class="summary-item">
+                    <div class="summary-label">Total Connections</div>
+                    <div class="summary-value" id="totalConnections">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Active (In Use)</div>
+                    <div class="summary-value active" id="activeConnections">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Idle (Available)</div>
+                    <div class="summary-value idle" id="idleConnections">0</div>
+                </div>
+            </div>
             <div class="header-controls">
                 <div class="refresh-interval-selector">
                     <label for="refreshIntervalSelect">Refresh:</label>
@@ -25,21 +39,6 @@
                 <button class="icon-button" id="refreshBtn" title="Refresh">
                     <i class="codicon codicon-refresh"></i>
                 </button>
-            </div>
-        </div>
-
-        <div class="summary">
-            <div class="summary-item">
-                <div class="summary-label">Total Connections</div>
-                <div class="summary-value" id="totalConnections">0</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Active (In Use)</div>
-                <div class="summary-value active" id="activeConnections">0</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Idle (Available)</div>
-                <div class="summary-value idle" id="idleConnections">0</div>
             </div>
         </div>
 
