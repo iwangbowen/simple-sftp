@@ -1538,25 +1538,25 @@ export abstract class DualPanelBase {
                 args.push('-i', authConfig.privateKeyPath);
             }
 
-            // Force pseudo-terminal allocation to allow command execution
-            args.push('-t');
-
             // Add the connection string
             args.push(`${config.username}@${config.host}`);
 
-            // Add command to change directory and start shell
-            // Using cd && exec $SHELL to change directory and replace process with a new shell
-            args.push(`cd '${targetPath}' && exec \\$SHELL`);
-
             // Create and show the terminal
             const terminal = vscode.window.createTerminal({
-                name: `SSH: ${config.name} (${path.basename(targetPath)})`,
+                name: `SSH: ${config.name}`,
                 shellPath: 'ssh',
                 shellArgs: args,
                 iconPath: new vscode.ThemeIcon('terminal')
             });
 
             terminal.show();
+
+            // After connection, navigate to the target directory
+            // Small delay to ensure connection is established
+            setTimeout(() => {
+                terminal.sendText(`cd '${targetPath.replace(/'/g, "'\\''")}'`);
+            }, 500);
+
             logger.info(`Opened SSH terminal at remote path: ${targetPath}`);
         }
     }
