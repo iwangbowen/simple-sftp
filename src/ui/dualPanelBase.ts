@@ -2532,7 +2532,7 @@ export abstract class DualPanelBase {
                         command: 'folderDetails',
                         data: {
                             name: folderName,
-                            modifiedTime: latestMtime > 0 ? TimeUtils.formatTime(latestMtime * 1000) : TimeUtils.formatTime(Date.now()),
+                            modifiedTime: latestMtime > 0 ? TimeUtils.formatTime(latestMtime) : TimeUtils.formatTime(Date.now()),
                             size: totalSize,
                             folders: [...folders].sort((a, b) => a.localeCompare(b)),
                             files: [...files].sort((a, b) => a.localeCompare(b))
