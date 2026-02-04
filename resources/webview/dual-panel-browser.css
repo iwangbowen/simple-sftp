@@ -2643,7 +2643,7 @@ body {
     padding: 8px 12px;
     max-width: 400px;
     font-size: 12px;
-    pointer-events: none;
+    pointer-events: auto; /* Enable mouse events for Alt+hover interaction */
     opacity: 0;
     transition: opacity 0.15s ease-in-out;
 }

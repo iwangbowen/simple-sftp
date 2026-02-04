@@ -48,6 +48,10 @@
     let currentTooltipItem = null;
     /** @type {MouseEvent | null} */
     let currentTooltipEvent = null;
+    /** @type {boolean} */
+    let isAltKeyPressed = false;
+    /** @type {boolean} */
+    let isMouseOnTooltip = false;
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -468,6 +472,36 @@
         fileTooltip = document.createElement('div');
         fileTooltip.className = 'file-tooltip';
         document.body.appendChild(fileTooltip);
+
+        // Track Alt key state
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Alt') {
+                isAltKeyPressed = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Alt') {
+                isAltKeyPressed = false;
+                // If mouse is not on tooltip and Alt is released, hide tooltip
+                if (!isMouseOnTooltip && fileTooltip && fileTooltip.classList.contains('visible')) {
+                    hideFileTooltip();
+                }
+            }
+        });
+
+        // Track mouse on tooltip
+        fileTooltip.addEventListener('mouseenter', () => {
+            isMouseOnTooltip = true;
+        });
+
+        fileTooltip.addEventListener('mouseleave', () => {
+            isMouseOnTooltip = false;
+            // If Alt is not pressed, hide tooltip when mouse leaves
+            if (!isAltKeyPressed) {
+                hideFileTooltip();
+            }
+        });
     }
 
     /**
@@ -915,15 +949,24 @@
         });
 
         item.addEventListener('mouseleave', () => {
-            hideFileTooltip();
-        });
+            // Check if tooltip is visible
+            const isTooltipVisible = fileTooltip && fileTooltip.classList.contains('visible');
 
-        item.addEventListener('mousemove', (e) => {
-            // Update tooltip position as mouse moves
-            if (fileTooltip && fileTooltip.classList.contains('visible')) {
-                positionTooltip(e);
+            if (!isTooltipVisible) {
+                // Tooltip not shown yet, cancel it
+                hideFileTooltip();
+            } else {
+                // Tooltip is visible, delay to allow mouse to enter tooltip if Alt is pressed
+                setTimeout(() => {
+                    // Only hide if Alt is not pressed or mouse is not on tooltip
+                    if (!isAltKeyPressed || !isMouseOnTooltip) {
+                        hideFileTooltip();
+                    }
+                }, 50); // Small delay to allow transition to tooltip
             }
         });
+
+        // No mousemove handler - tooltip stays fixed at initial position
 
         return item;
     }
