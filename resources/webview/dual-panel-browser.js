@@ -517,16 +517,12 @@
             // Set timeout for showing partial data if loading takes >3 seconds
             setTimeout(() => {
                 if (currentTooltipItem === item && !fileTooltip.classList.contains('visible')) {
-                    // Show tooltip with timeout message
+                    // Show tooltip with timeout message (without size)
                     fileTooltip.innerHTML = `
                         <div class="tooltip-header">${name}</div>
                         <div class="tooltip-section">
-                            <div class="tooltip-label">Modified Date</div>
-                            <div class="tooltip-value">Loading timeout</div>
-                        </div>
-                        <div class="tooltip-section">
-                            <div class="tooltip-label">Size</div>
-                            <div class="tooltip-value">Unknown</div>
+                            <span class="tooltip-label">Modified Date:</span>
+                            <span class="tooltip-value">Loading timeout</span>
                         </div>
                     `;
                     positionTooltip(event);
