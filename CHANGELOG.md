@@ -1,5 +1,10 @@
 # Change Log
 
+## 4.7.0 - 2026-02-03
+
+- **Feature**: Display total size of selected files in dual-panel browser footer
+- **Feature**: "Open in Terminal" context menu option for both local and remote panels - automatically navigates to selected directory
+
 ## 4.6.8 - 2026-02-03
 
 - **Feature**: Connection Pool displays operation history (create/acquire/reuse/release) with expandable rows, usage count, and persistent collapse state across auto-refresh
