@@ -4435,7 +4435,22 @@ case 'updateStatus':
         const itemCount = items.length;
 
         // Count selected items in this panel
-        const selectedCount = selectedItems.filter(item => item.dataset.panel === panel).length;
+        const selectedInPanel = selectedItems.filter(item => item.dataset.panel === panel);
+        const selectedCount = selectedInPanel.length;
+
+        // Calculate total size of selected files (excluding directories)
+        let totalSize = 0;
+        let fileCount = 0;
+        selectedInPanel.forEach(item => {
+            // Only count files, not directories
+            if (item.dataset.isDir !== 'true' && item.dataset.size) {
+                const size = Number.parseFloat(item.dataset.size);
+                if (!isNaN(size)) {
+                    totalSize += size;
+                    fileCount++;
+                }
+            }
+        });
 
         // Update elements
         const itemCountEl = panelEl.querySelector('.item-count');
@@ -4443,11 +4458,16 @@ case 'updateStatus':
 
         if (itemCountEl) {
             itemCountEl.textContent = `${itemCount} items`;
-        } // Wait, the CSS for item-count was empty, but I populated the HTML.
+        }
 
         if (selectedCountEl) {
             if (selectedCount > 0) {
-                selectedCountEl.textContent = `${selectedCount} selected`;
+                let text = `${selectedCount} selected`;
+                // Add total size if there are files selected (not just folders)
+                if (fileCount > 0 && totalSize > 0) {
+                    text += ` (${formatFileSize(totalSize)})`;
+                }
+                selectedCountEl.textContent = text;
                 selectedCountEl.style.display = 'inline';
             } else {
                 selectedCountEl.style.display = 'none';
