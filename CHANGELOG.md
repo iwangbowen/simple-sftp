@@ -1,5 +1,9 @@
 # Change Log
 
+## 4.8.0 - 2026-02-03
+
+- **Feature**: File and folder hover tooltips - shows modification time, recursive folder size, and file/folder lists. Hold Alt to select/copy text from tooltip.
+
 ## 4.7.0 - 2026-02-03
 
 - **Feature**: Display total size of selected files in dual-panel browser footer
