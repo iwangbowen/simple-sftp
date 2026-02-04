@@ -602,40 +602,32 @@
             `;
         }
 
-        // Show folders (without icons)
+        // Show folders (without icons, inline style)
         if (folders && folders.length > 0) {
             const maxShow = 10;
             const hasMore = folders.length > maxShow;
             const displayFolders = folders.slice(0, maxShow);
+            const folderText = displayFolders.join(', ');
 
             html += `
                 <div class="tooltip-section">
-                    <div class="tooltip-label">Folders</div>
-                    <div class="tooltip-list">
-                        ${displayFolders.map(f => `
-                            <div class="tooltip-list-item">${f}</div>
-                        `).join('')}
-                    </div>
-                    ${hasMore ? `<div class="tooltip-more">...and ${folders.length - maxShow} more</div>` : ''}
+                    <span class="tooltip-label">Folders:</span>
+                    <span class="tooltip-value">${folderText}${hasMore ? `, ...and ${folders.length - maxShow} more` : ''}</span>
                 </div>
             `;
         }
 
-        // Show files (without icons)
+        // Show files (without icons, inline style)
         if (files && files.length > 0) {
             const maxShow = 10;
             const hasMore = files.length > maxShow;
             const displayFiles = files.slice(0, maxShow);
+            const fileText = displayFiles.join(', ');
 
             html += `
                 <div class="tooltip-section">
-                    <div class="tooltip-label">Files</div>
-                    <div class="tooltip-list">
-                        ${displayFiles.map(f => `
-                            <div class="tooltip-list-item">${f}</div>
-                        `).join('')}
-                    </div>
-                    ${hasMore ? `<div class="tooltip-more">...and ${files.length - maxShow} more</div>` : ''}
+                    <span class="tooltip-label">Files:</span>
+                    <span class="tooltip-value">${fileText}${hasMore ? `, ...and ${files.length - maxShow} more` : ''}</span>
                 </div>
             `;
         }
@@ -889,6 +881,9 @@
         });
 
         item.addEventListener('dblclick', (e) => {
+            // Hide tooltip when double-clicking
+            hideFileTooltip();
+
             // 清除单击定时器
             if (clickTimer) {
                 clearTimeout(clickTimer);
