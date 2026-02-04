@@ -548,8 +548,13 @@
         const modifiedTime = item.dataset.modifiedTime;
         const size = item.dataset.size;
 
-        // Modified time should already be formatted by backend (TimeUtils.formatTime)
-        const modifiedDate = modifiedTime || 'Unknown';
+        // Format modified time from timestamp
+        let modifiedDate = 'Unknown';
+        if (modifiedTime && modifiedTime !== '0') {
+            const timestamp = parseInt(modifiedTime, 10);
+            modifiedDate = formatTime(new Date(timestamp));
+        }
+
         const sizeText = formatFileSize(parseInt(size, 10));
 
         fileTooltip.innerHTML = `
