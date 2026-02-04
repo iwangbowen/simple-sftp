@@ -554,12 +554,12 @@
         fileTooltip.innerHTML = `
             <div class="tooltip-header">${name}</div>
             <div class="tooltip-section">
-                <div class="tooltip-label">Modified Date</div>
-                <div class="tooltip-value">${modifiedDate}</div>
+                <span class="tooltip-label">Modified Date:</span>
+                <span class="tooltip-value">${modifiedDate}</span>
             </div>
             <div class="tooltip-section">
-                <div class="tooltip-label">Size</div>
-                <div class="tooltip-value">${sizeText}</div>
+                <span class="tooltip-label">Size:</span>
+                <span class="tooltip-value">${sizeText}</span>
             </div>
         `;
 
@@ -582,27 +582,25 @@
         // Modified time is already formatted by backend (TimeUtils.formatTime)
         const modifiedDate = modifiedTime || 'Unknown';
 
-        // Handle size display based on timeout
-        let sizeDisplay;
-        if (sizeTimedOut) {
-            sizeDisplay = 'Calculating...';
-        } else if (size !== undefined && size !== null) {
-            sizeDisplay = formatFileSize(size);
-        } else {
-            sizeDisplay = 'Unknown';
-        }
+        let html = `<div class="tooltip-header">${name}</div>`;
 
-        let html = `
-            <div class="tooltip-header">${name}</div>
+        // Modified Date (always show)
+        html += `
             <div class="tooltip-section">
-                <div class="tooltip-label">Modified Date</div>
-                <div class="tooltip-value">${modifiedDate}</div>
-            </div>
-            <div class="tooltip-section">
-                <div class="tooltip-label">Size</div>
-                <div class="tooltip-value">${sizeDisplay}</div>
+                <span class="tooltip-label">Modified Date:</span>
+                <span class="tooltip-value">${modifiedDate}</span>
             </div>
         `;
+
+        // Size (only show if not timed out and has value)
+        if (!sizeTimedOut && size !== undefined && size !== null) {
+            html += `
+                <div class="tooltip-section">
+                    <span class="tooltip-label">Size:</span>
+                    <span class="tooltip-value">${formatFileSize(size)}</span>
+                </div>
+            `;
+        }
 
         // Show folders (without icons)
         if (folders && folders.length > 0) {
@@ -612,7 +610,7 @@
 
             html += `
                 <div class="tooltip-section">
-                    <div class="tooltip-label">Subfolders (${folders.length})</div>
+                    <div class="tooltip-label">Folders</div>
                     <div class="tooltip-list">
                         ${displayFolders.map(f => `
                             <div class="tooltip-list-item">${f}</div>
@@ -631,7 +629,7 @@
 
             html += `
                 <div class="tooltip-section">
-                    <div class="tooltip-label">Files (${files.length})</div>
+                    <div class="tooltip-label">Files</div>
                     <div class="tooltip-list">
                         ${displayFiles.map(f => `
                             <div class="tooltip-list-item">${f}</div>

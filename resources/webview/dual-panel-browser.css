@@ -2662,6 +2662,7 @@ body {
 
 .tooltip-section {
     margin-bottom: 8px;
+    line-height: 1.5;
 }
 
 .tooltip-section:last-child {
@@ -2671,12 +2672,14 @@ body {
 .tooltip-label {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
-    margin-bottom: 4px;
+    margin-right: 6px;
+    display: inline;
 }
 
 .tooltip-value {
     color: var(--vscode-editorHoverWidget-foreground);
     font-family: var(--vscode-editor-font-family);
+    display: inline;
 }
 
 .tooltip-list {
