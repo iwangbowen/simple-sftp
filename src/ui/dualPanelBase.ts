@@ -9,6 +9,7 @@ import { HostManager } from '../hostManager';
 import { logger } from '../logger';
 import { PortForwardService } from '../services/portForwardService';
 import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
+import { TimeUtils } from '../timeUtils';
 
 export interface FileNode {
     name: string;
@@ -2477,7 +2478,7 @@ export abstract class DualPanelBase {
                         command: 'folderDetails',
                         data: {
                             name: path.basename(folderPath),
-                            modifiedTime: stat.mtime.toISOString(),
+                            modifiedTime: TimeUtils.formatTime(stat.mtime.getTime()),
                             size: totalSize,
                             folders: [...folders].sort((a, b) => a.localeCompare(b)),
                             files: [...files].sort((a, b) => a.localeCompare(b))
@@ -2531,7 +2532,7 @@ export abstract class DualPanelBase {
                         command: 'folderDetails',
                         data: {
                             name: folderName,
-                            modifiedTime: latestMtime > 0 ? new Date(latestMtime * 1000).toISOString() : new Date().toISOString(),
+                            modifiedTime: latestMtime > 0 ? TimeUtils.formatTime(latestMtime * 1000) : TimeUtils.formatTime(Date.now()),
                             size: totalSize,
                             folders: [...folders].sort((a, b) => a.localeCompare(b)),
                             files: [...files].sort((a, b) => a.localeCompare(b))

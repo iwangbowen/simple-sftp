@@ -44,6 +44,10 @@
     let tooltipShowTimer = null;
     /** @type {AbortController | null} */
     let tooltipRequestController = null;
+    /** @type {HTMLElement | null} */
+    let currentTooltipItem = null;
+    /** @type {MouseEvent | null} */
+    let currentTooltipEvent = null;
 
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -492,29 +496,43 @@
             return;
         }
 
+        // Store current item and event for later positioning
+        currentTooltipItem = item;
+        currentTooltipEvent = event;
+
         // Set timeout to delay tooltip display (500ms)
         tooltipShowTimer = setTimeout(() => {
             const path = item.dataset.path;
             const panel = item.dataset.panel;
             const name = item.dataset.name;
 
-            // Show loading state
-            fileTooltip.innerHTML = `
-                <div class="tooltip-header">${name}</div>
-                <div class="tooltip-loading">
-                    <span class="codicon codicon-loading codicon-modifier-spin"></span>
-                    Loading folder details...
-                </div>
-            `;
-            positionTooltip(event);
-            fileTooltip.classList.add('visible');
-
             // Request folder details from backend
+            // Tooltip will only show when data arrives
             tooltipRequestController = new AbortController();
             vscode.postMessage({
                 command: 'getFolderDetails',
                 data: { path, panel }
             });
+
+            // Set timeout for showing partial data if loading takes >3 seconds
+            setTimeout(() => {
+                if (currentTooltipItem === item && !fileTooltip.classList.contains('visible')) {
+                    // Show tooltip with timeout message
+                    fileTooltip.innerHTML = `
+                        <div class="tooltip-header">${name}</div>
+                        <div class="tooltip-section">
+                            <div class="tooltip-label">Modified Date</div>
+                            <div class="tooltip-value">Loading timeout</div>
+                        </div>
+                        <div class="tooltip-section">
+                            <div class="tooltip-label">Size</div>
+                            <div class="tooltip-value">Unknown</div>
+                        </div>
+                    `;
+                    positionTooltip(event);
+                    fileTooltip.classList.add('visible');
+                }
+            }, 3000);
 
         }, 500);
     }
@@ -529,27 +547,18 @@
         const modifiedTime = item.dataset.modifiedTime;
         const size = item.dataset.size;
 
-        const modifiedDate = modifiedTime && modifiedTime !== '0'
-            ? new Date(parseInt(modifiedTime, 10)).toLocaleString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            })
-            : 'Unknown';
-
+        // Modified time should already be formatted by backend (TimeUtils.formatTime)
+        const modifiedDate = modifiedTime || 'Unknown';
         const sizeText = formatFileSize(parseInt(size, 10));
 
         fileTooltip.innerHTML = `
             <div class="tooltip-header">${name}</div>
             <div class="tooltip-section">
-                <div class="tooltip-label">修改日期</div>
+                <div class="tooltip-label">Modified Date</div>
                 <div class="tooltip-value">${modifiedDate}</div>
             </div>
             <div class="tooltip-section">
-                <div class="tooltip-label">大小</div>
+                <div class="tooltip-label">Size</div>
                 <div class="tooltip-value">${sizeText}</div>
             </div>
         `;
@@ -563,36 +572,29 @@
      * @param {Object} data - Folder details data
      */
     function updateTooltipWithFolderDetails(data) {
-        if (!fileTooltip || !fileTooltip.classList.contains('visible')) {
+        // Only update if this is still the item we're hovering
+        if (!currentTooltipItem) {
             return;
         }
 
         const { name, modifiedTime, size, folders, files } = data;
 
-        const modifiedDate = modifiedTime
-            ? new Date(modifiedTime).toLocaleString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            })
-            : 'Unknown';
+        // Modified time is already formatted by backend (TimeUtils.formatTime)
+        const modifiedDate = modifiedTime || 'Unknown';
 
         let html = `
             <div class="tooltip-header">${name}</div>
             <div class="tooltip-section">
-                <div class="tooltip-label">修改日期</div>
+                <div class="tooltip-label">Modified Date</div>
                 <div class="tooltip-value">${modifiedDate}</div>
             </div>
             <div class="tooltip-section">
-                <div class="tooltip-label">大小</div>
+                <div class="tooltip-label">Size</div>
                 <div class="tooltip-value">${formatFileSize(size || 0)}</div>
             </div>
         `;
 
-        // Show folders
+        // Show folders (without icons)
         if (folders && folders.length > 0) {
             const maxShow = 10;
             const hasMore = folders.length > maxShow;
@@ -600,21 +602,18 @@
 
             html += `
                 <div class="tooltip-section">
-                    <div class="tooltip-label">文件夹 (${folders.length})</div>
+                    <div class="tooltip-label">Subfolders (${folders.length})</div>
                     <div class="tooltip-list">
                         ${displayFolders.map(f => `
-                            <div class="tooltip-list-item">
-                                <span class="codicon codicon-folder"></span>
-                                ${f}
-                            </div>
+                            <div class="tooltip-list-item">${f}</div>
                         `).join('')}
                     </div>
-                    ${hasMore ? `<div class="tooltip-more">...还有 ${folders.length - maxShow} 个文件夹</div>` : ''}
+                    ${hasMore ? `<div class="tooltip-more">...and ${folders.length - maxShow} more</div>` : ''}
                 </div>
             `;
         }
 
-        // Show files
+        // Show files (without icons)
         if (files && files.length > 0) {
             const maxShow = 10;
             const hasMore = files.length > maxShow;
@@ -622,21 +621,24 @@
 
             html += `
                 <div class="tooltip-section">
-                    <div class="tooltip-label">文件 (${files.length})</div>
+                    <div class="tooltip-label">Files (${files.length})</div>
                     <div class="tooltip-list">
                         ${displayFiles.map(f => `
-                            <div class="tooltip-list-item">
-                                <span class="codicon codicon-file"></span>
-                                ${f}
-                            </div>
+                            <div class="tooltip-list-item">${f}</div>
                         `).join('')}
                     </div>
-                    ${hasMore ? `<div class="tooltip-more">...还有 ${files.length - maxShow} 个文件</div>` : ''}
+                    ${hasMore ? `<div class="tooltip-more">...and ${files.length - maxShow} more</div>` : ''}
                 </div>
             `;
         }
 
         fileTooltip.innerHTML = html;
+
+        // Now show the tooltip with data ready
+        if (currentTooltipEvent) {
+            positionTooltip(currentTooltipEvent);
+        }
+        fileTooltip.classList.add('visible');
     }
 
     /**
@@ -654,6 +656,10 @@
             tooltipRequestController.abort();
             tooltipRequestController = null;
         }
+
+        // Clear current item
+        currentTooltipItem = null;
+        currentTooltipEvent = null;
 
         if (fileTooltip) {
             fileTooltip.classList.remove('visible');
