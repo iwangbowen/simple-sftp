@@ -2644,6 +2644,7 @@ body {
     max-width: 400px;
     font-size: 12px;
     pointer-events: auto; /* Enable mouse events for Alt+hover interaction */
+    user-select: text; /* Allow text selection when Alt is pressed */
     opacity: 0;
     transition: opacity 0.15s ease-in-out;
 }
