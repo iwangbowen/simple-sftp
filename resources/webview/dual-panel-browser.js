@@ -491,8 +491,13 @@
         // Only show tooltip for directories
         const isDir = item.dataset.isDir === 'true';
         if (!isDir) {
-            // For files, show simple tooltip with basic info
-            showFileBasicTooltip(item, event);
+            // For files, show simple tooltip with basic info after delay
+            currentTooltipItem = item;
+            currentTooltipEvent = event;
+
+            tooltipShowTimer = setTimeout(() => {
+                showFileBasicTooltip(item, event);
+            }, 750);
             return;
         }
 
@@ -500,7 +505,7 @@
         currentTooltipItem = item;
         currentTooltipEvent = event;
 
-        // Set timeout to delay tooltip display (500ms)
+        // Set timeout to delay tooltip display (750ms)
         tooltipShowTimer = setTimeout(() => {
             const path = item.dataset.path;
             const panel = item.dataset.panel;
