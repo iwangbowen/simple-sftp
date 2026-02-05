@@ -4,17 +4,33 @@
  * 测试主机配置、分组、书签等功能的协同工作
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HostManager } from '../hostManager';
 import * as vscode from 'vscode';
 
 describe('Host Management Integration Tests', () => {
   let context: vscode.ExtensionContext;
   let hostManager: HostManager;
+  let globalStateStore: Map<string, any>;
 
   beforeEach(async () => {
     // 初始化测试环境
-    context = new vscode.ExtensionContext();
+    globalStateStore = new Map();
+
+    // Mock ExtensionContext
+    context = {
+      globalState: {
+        get: vi.fn((key: string, defaultValue?: any) => {
+          return globalStateStore.get(key) ?? defaultValue;
+        }),
+        update: vi.fn(async (key: string, value: any) => {
+          globalStateStore.set(key, value);
+        }),
+        keys: vi.fn(() => Array.from(globalStateStore.keys())),
+        setKeysForSync: vi.fn()
+      }
+    } as any;
+
     hostManager = new HostManager(context);
 
     await hostManager.initialize();
