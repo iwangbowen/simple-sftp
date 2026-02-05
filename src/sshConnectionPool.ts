@@ -391,7 +391,9 @@ export class SshConnectionPool {
       createdAt: now,
       lastUsed: now,
       inUse: true,
-      isReady: true
+      isReady: true,
+      operationHistory: [{ operation: 'create', timestamp: now }],
+      usageCount: 1
     };
 
     connections.push(pooledConn);
@@ -608,6 +610,12 @@ export class SshConnectionPool {
       createdAt: string;
       lastUsed: string;
       idleTime: number;
+      usageCount: number;
+      operationHistory: Array<{
+        operation: string;
+        timestamp: string;
+        description?: string;
+      }>;
     }> = [];
 
     let totalActive = 0;

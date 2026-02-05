@@ -718,12 +718,12 @@ describe('TransferTaskModel', () => {
 
       task.start();
       task.fail('First error');
-      const firstError = task.error;
+      const firstError = task.lastError;
 
       task.fail('Second error');
 
       expect(task.status).toBe('failed');
-      expect(task.error).toBe(firstError);
+      expect(task.lastError).toBe(firstError);
     });
 
     it('should handle incrementRetry beyond maxRetries', () => {

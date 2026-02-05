@@ -13,6 +13,9 @@ describe('PortForwardService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Reset the singleton instance
+    (PortForwardService as any).instance = undefined;
+
     mockHostManager = {
       getHost: vi.fn(),
       getAllHosts: vi.fn().mockReturnValue([]),
@@ -26,7 +29,7 @@ describe('PortForwardService', () => {
 
     vi.mocked(HostManager).mockImplementation(() => mockHostManager);
 
-    service = new PortForwardService(mockHostManager);
+    service = PortForwardService.getInstance();
   });
 
   describe('Initialization', () => {
@@ -246,7 +249,7 @@ describe('PortForwardService', () => {
     });
 
     it('should clear process info on stop', () => {
-      let forwarding = {
+      let forwarding: any = {
         id: 'pf1',
         runningProcess: 'ssh',
       };
@@ -313,13 +316,11 @@ describe('PortForwardService', () => {
       expect(service.onPortForwardingEvent).toBeDefined();
     });
 
-    it('should handle host configuration changes', (done) => {
+    it('should handle host configuration changes', async () => {
       if (mockHostManager._onHostsChangedCallback) {
         mockHostManager._onHostsChangedCallback();
-        setTimeout(() => {
-          expect(mockHostManager._onHostsChangedCallback).toBeDefined();
-          done();
-        }, 10);
+        await new Promise(resolve => setTimeout(resolve, 10));
+        expect(mockHostManager._onHostsChangedCallback).toBeDefined();
       }
     });
   });

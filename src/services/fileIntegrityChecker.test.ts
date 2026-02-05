@@ -191,7 +191,7 @@ describe('FileIntegrityChecker', () => {
         has: vi.fn(),
         inspect: vi.fn(),
         update: vi.fn()
-      });
+      } as any);
 
       const options = FileIntegrityChecker.getOptionsFromConfig();
 

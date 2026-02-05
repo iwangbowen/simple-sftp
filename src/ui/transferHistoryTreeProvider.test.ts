@@ -49,13 +49,12 @@ describe('TransferHistoryTreeProvider', () => {
 
     it('should get root elements with history', async () => {
       const historyTask = new TransferTaskModel({
-        id: 'task1',
         fileName: 'file.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/file.txt',
         remotePath: '/remote/file.txt',
         fileSize: 1024,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
@@ -67,20 +66,19 @@ describe('TransferHistoryTreeProvider', () => {
     it('should get children for date section', async () => {
       const now = new Date();
       const historyTask = new TransferTaskModel({
-        id: 'task1',
         fileName: 'file.txt',
         type: 'download',
-        status: 'completed',
         localPath: '/local/file.txt',
         remotePath: '/remote/file.txt',
         fileSize: 2048,
+        hostId: 'host1',
         hostName: 'test-host',
       });
-      historyTask.timestamp = now.getTime();
+      historyTask.createdAt = now;
 
       mockHistoryService.getHistory.mockReturnValue([historyTask]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -92,19 +90,18 @@ describe('TransferHistoryTreeProvider', () => {
   describe('Tree Item Creation', () => {
     it('should create tree item for date group', async () => {
       const historyTask = new TransferTaskModel({
-        id: 'task1',
         fileName: 'file.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/file.txt',
         remotePath: '/remote/file.txt',
         fileSize: 1024,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([historyTask]);
       const elements = await provider.getChildren();
-      
+
       if (elements && elements.length > 0) {
         const treeItem = await provider.getTreeItem(elements[0]);
         expect(treeItem).toBeDefined();
@@ -114,19 +111,18 @@ describe('TransferHistoryTreeProvider', () => {
 
     it('should create tree item for history task', async () => {
       const historyTask = new TransferTaskModel({
-        id: 'task1',
         fileName: 'archive.zip',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/archive.zip',
         remotePath: '/remote/archive.zip',
         fileSize: 5000000,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([historyTask]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -141,34 +137,32 @@ describe('TransferHistoryTreeProvider', () => {
   describe('Date Grouping', () => {
     it('should group tasks by date', async () => {
       const today = new TransferTaskModel({
-        id: 'task1',
         fileName: 'today.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/today.txt',
         remotePath: '/remote/today.txt',
         fileSize: 512,
+        hostId: 'host1',
         hostName: 'test-host',
       });
-      today.timestamp = new Date().getTime();
+      today.createdAt = new Date();
 
       const yesterday = new TransferTaskModel({
-        id: 'task2',
         fileName: 'yesterday.txt',
         type: 'download',
-        status: 'completed',
         localPath: '/local/yesterday.txt',
         remotePath: '/remote/yesterday.txt',
         fileSize: 1024,
+        hostId: 'host1',
         hostName: 'test-host',
       });
       const yesterdayTime = new Date();
       yesterdayTime.setDate(yesterdayTime.getDate() - 1);
-      yesterday.timestamp = yesterdayTime.getTime();
+      yesterday.createdAt = yesterdayTime;
 
       mockHistoryService.getHistory.mockReturnValue([today, yesterday]);
       const elements = await provider.getChildren();
-      
+
       expect(Array.isArray(elements)).toBe(true);
       if (elements) {
         expect(elements.length >= 1).toBe(true);
@@ -177,34 +171,33 @@ describe('TransferHistoryTreeProvider', () => {
 
     it('should handle multiple tasks in same day', async () => {
       const task1 = new TransferTaskModel({
-        id: 'task1',
         fileName: 'file1.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/file1.txt',
         remotePath: '/remote/file1.txt',
         fileSize: 512,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       const task2 = new TransferTaskModel({
-        id: 'task2',
         fileName: 'file2.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/file2.txt',
         remotePath: '/remote/file2.txt',
         fileSize: 512,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
-      const now = new Date().getTime();
-      task1.timestamp = now;
-      task2.timestamp = now + 3600000; // 1 hour later
+      const now = new Date();
+      task1.createdAt = now;
+      const laterTime = new Date(now.getTime() + 3600000); // 1 hour later
+      task2.createdAt = laterTime;
 
       mockHistoryService.getHistory.mockReturnValue([task1, task2]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -216,19 +209,18 @@ describe('TransferHistoryTreeProvider', () => {
   describe('Task Status Display', () => {
     it('should display completed task', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'done.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/done.txt',
         remotePath: '/remote/done.txt',
         fileSize: 1024,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -241,20 +233,19 @@ describe('TransferHistoryTreeProvider', () => {
 
     it('should display failed task', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'failed.txt',
         type: 'download',
-        status: 'failed',
         localPath: '/local/failed.txt',
         remotePath: '/remote/failed.txt',
         fileSize: 2048,
+        hostId: 'host1',
         hostName: 'test-host',
-        lastError: 'Connection timeout',
+        maxRetries: 3,
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -267,19 +258,18 @@ describe('TransferHistoryTreeProvider', () => {
 
     it('should display cancelled task', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'cancelled.txt',
         type: 'upload',
-        status: 'cancelled',
         localPath: '/local/cancelled.txt',
         remotePath: '/remote/cancelled.txt',
         fileSize: 512,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -291,19 +281,18 @@ describe('TransferHistoryTreeProvider', () => {
   describe('File Information Display', () => {
     it('should show file name in description', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'document.pdf',
         type: 'download',
-        status: 'completed',
         localPath: '/local/document.pdf',
         remotePath: '/remote/document.pdf',
         fileSize: 1024000,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -316,19 +305,18 @@ describe('TransferHistoryTreeProvider', () => {
 
     it('should display file size', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'large.iso',
         type: 'download',
-        status: 'completed',
         localPath: '/local/large.iso',
         remotePath: '/remote/large.iso',
         fileSize: 4000000000,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -343,19 +331,18 @@ describe('TransferHistoryTreeProvider', () => {
   describe('Host Information', () => {
     it('should display host name', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'file.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/file.txt',
         remotePath: '/remote/file.txt',
         fileSize: 512,
+        hostId: 'prod1',
         hostName: 'production-server',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       expect(task.hostName).toBe('production-server');
     });
   });
@@ -363,19 +350,18 @@ describe('TransferHistoryTreeProvider', () => {
   describe('Icons', () => {
     it('should use icon for upload task', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'file.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/file.txt',
         remotePath: '/remote/file.txt',
         fileSize: 512,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -388,19 +374,18 @@ describe('TransferHistoryTreeProvider', () => {
 
     it('should use icon for download task', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'data.zip',
         type: 'download',
-        status: 'completed',
         localPath: '/local/data.zip',
         remotePath: '/remote/data.zip',
         fileSize: 1024,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -415,19 +400,18 @@ describe('TransferHistoryTreeProvider', () => {
   describe('Tooltip Information', () => {
     it('should provide tooltip with task details', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'backup.tar.gz',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/backup.tar.gz',
         remotePath: '/remote/backup.tar.gz',
         fileSize: 2000000,
+        hostId: 'backup1',
         hostName: 'backup-server',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);
@@ -442,19 +426,18 @@ describe('TransferHistoryTreeProvider', () => {
   describe('Context Values', () => {
     it('should set context value for history task', async () => {
       const task = new TransferTaskModel({
-        id: 'task1',
         fileName: 'file.txt',
         type: 'upload',
-        status: 'completed',
         localPath: '/local/file.txt',
         remotePath: '/remote/file.txt',
         fileSize: 512,
+        hostId: 'host1',
         hostName: 'test-host',
       });
 
       mockHistoryService.getHistory.mockReturnValue([task]);
       const rootElements = await provider.getChildren();
-      
+
       if (rootElements && rootElements.length > 0) {
         const dateSection = rootElements[0];
         const tasks = await provider.getChildren(dateSection);

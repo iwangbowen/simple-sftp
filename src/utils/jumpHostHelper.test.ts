@@ -17,6 +17,7 @@ describe('jumpHostHelper', () => {
     it('should add password authentication', () => {
       const connectConfig: any = {};
       const authConfig: HostAuthConfig = {
+        hostId: 'test-host',
         authType: 'password',
         password: 'mypassword',
       };
@@ -29,6 +30,7 @@ describe('jumpHostHelper', () => {
     it('should add private key authentication', () => {
       const connectConfig: any = {};
       const authConfig: HostAuthConfig = {
+        hostId: 'test-host',
         authType: 'privateKey',
         privateKeyPath: '/home/user/.ssh/id_rsa',
       };
@@ -45,6 +47,7 @@ describe('jumpHostHelper', () => {
     it('should expand tilde in private key path', () => {
       const connectConfig: any = {};
       const authConfig: HostAuthConfig = {
+        hostId: 'test-host',
         authType: 'privateKey',
         privateKeyPath: '~/.ssh/id_rsa',
       };
@@ -61,6 +64,7 @@ describe('jumpHostHelper', () => {
     it('should add passphrase when provided', () => {
       const connectConfig: any = {};
       const authConfig: HostAuthConfig = {
+        hostId: 'test-host',
         authType: 'privateKey',
         privateKeyPath: '/home/user/.ssh/id_rsa',
         passphrase: 'key-passphrase',
@@ -77,6 +81,7 @@ describe('jumpHostHelper', () => {
     it('should throw error for missing private key file', () => {
       const connectConfig: any = {};
       const authConfig: HostAuthConfig = {
+        hostId: 'test-host',
         authType: 'privateKey',
         privateKeyPath: '/nonexistent/key',
       };
@@ -91,6 +96,7 @@ describe('jumpHostHelper', () => {
     it('should add SSH agent on Windows', () => {
       const connectConfig: any = {};
       const authConfig: HostAuthConfig = {
+        hostId: 'test-host',
         authType: 'agent',
       };
 
@@ -114,6 +120,7 @@ describe('jumpHostHelper', () => {
     it('should add SSH agent on Unix', () => {
       const connectConfig: any = {};
       const authConfig: HostAuthConfig = {
+        hostId: 'test-host',
         authType: 'agent',
       };
 
@@ -144,6 +151,7 @@ describe('jumpHostHelper', () => {
     it('should throw error when SSH agent not available on Unix', () => {
       const connectConfig: any = {};
       const authConfig: HostAuthConfig = {
+        hostId: 'test-host',
         authType: 'agent',
       };
 

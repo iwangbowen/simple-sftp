@@ -10,7 +10,6 @@ describe('Types', () => {
         host: 'example.com',
         port: 22,
         username: 'user',
-        authConfig: { authType: 'password' },
       };
 
       expect(host.id).toBe('host1');
@@ -25,13 +24,12 @@ describe('Types', () => {
         host: 'server2.com',
         port: 2222,
         username: 'admin',
-        authConfig: { authType: 'privateKey' },
-        remoteEncoding: 'utf-8',
-        localEncoding: 'utf-8',
+        group: 'production',
+        defaultRemotePath: '/home/admin',
       };
 
-      expect(host.remoteEncoding).toBe('utf-8');
-      expect(host.localEncoding).toBe('utf-8');
+      expect(host.group).toBe('production');
+      expect(host.defaultRemotePath).toBe('/home/admin');
     });
 
     it('should support jump hosts', () => {
@@ -41,9 +39,8 @@ describe('Types', () => {
         host: 'internal.local',
         port: 22,
         username: 'user',
-        authConfig: { authType: 'password' },
         jumpHosts: [
-          { id: 'jump1', host: 'bastion.com', port: 22, username: 'user', authType: 'password' },
+          { host: 'bastion.com', port: 22, username: 'user', authType: 'password' },
         ],
       };
 
@@ -51,27 +48,27 @@ describe('Types', () => {
       expect(host.jumpHosts?.length).toBe(1);
     });
 
-    it('should support port forwardings', () => {
+    it('should support bookmarks', () => {
       const host: HostConfig = {
         id: 'host4',
         name: 'Server 4',
         host: 'example.com',
         port: 22,
         username: 'user',
-        authConfig: { authType: 'password' },
-        portForwardings: [
-          { id: 'pf1', localPort: 3000, remotePort: 3000, status: 'inactive' },
+        bookmarks: [
+          { name: 'Web Root', path: '/var/www/html' },
         ],
       };
 
-      expect(host.portForwardings).toBeDefined();
-      expect(host.portForwardings?.length).toBe(1);
+      expect(host.bookmarks).toBeDefined();
+      expect(host.bookmarks?.length).toBe(1);
     });
   });
 
   describe('HostAuthConfig', () => {
     it('should create password auth config', () => {
       const auth: HostAuthConfig = {
+        hostId: 'host1',
         authType: 'password',
         password: 'secret',
       };
@@ -82,6 +79,7 @@ describe('Types', () => {
 
     it('should create private key auth config', () => {
       const auth: HostAuthConfig = {
+        hostId: 'host1',
         authType: 'privateKey',
         privateKeyPath: '~/.ssh/id_rsa',
       };
@@ -92,6 +90,7 @@ describe('Types', () => {
 
     it('should support passphrase in private key auth', () => {
       const auth: HostAuthConfig = {
+        hostId: 'host1',
         authType: 'privateKey',
         privateKeyPath: '~/.ssh/id_rsa',
         passphrase: 'key-password',
@@ -102,6 +101,7 @@ describe('Types', () => {
 
     it('should create SSH Agent auth config', () => {
       const auth: HostAuthConfig = {
+        hostId: 'host1',
         authType: 'agent',
       };
 
@@ -112,7 +112,6 @@ describe('Types', () => {
   describe('JumpHostConfig', () => {
     it('should create valid jump host config', () => {
       const jumpHost: JumpHostConfig = {
-        id: 'jump1',
         host: 'bastion.example.com',
         port: 22,
         username: 'jumpuser',
@@ -126,7 +125,6 @@ describe('Types', () => {
 
     it('should support private key in jump host', () => {
       const jumpHost: JumpHostConfig = {
-        id: 'jump2',
         host: 'proxy.internal',
         port: 2222,
         username: 'proxy-user',
@@ -140,7 +138,6 @@ describe('Types', () => {
 
     it('should support SSH agent in jump host', () => {
       const jumpHost: JumpHostConfig = {
-        id: 'jump3',
         host: 'agent.example.com',
         port: 22,
         username: 'agent-user',
@@ -152,7 +149,6 @@ describe('Types', () => {
 
     it('should support passphrase in jump host', () => {
       const jumpHost: JumpHostConfig = {
-        id: 'jump4',
         host: 'encrypted.example.com',
         port: 22,
         username: 'user',
@@ -167,31 +163,29 @@ describe('Types', () => {
 
   describe('Host Groups', () => {
     it('should support host grouping', () => {
-      const hostWithGroup: any = {
+      const hostWithGroup: HostConfig = {
         id: 'host1',
         name: 'Server 1',
         host: 'example.com',
         port: 22,
         username: 'user',
-        authConfig: { authType: 'password' },
-        groupId: 'production',
+        group: 'production',
       };
 
-      expect(hostWithGroup.groupId).toBe('production');
+      expect(hostWithGroup.group).toBe('production');
     });
 
-    it('should support host sorting', () => {
-      const host: any = {
+    it('should support starred hosts', () => {
+      const host: HostConfig = {
         id: 'host1',
         name: 'Server 1',
         host: 'example.com',
         port: 22,
         username: 'user',
-        authConfig: { authType: 'password' },
-        sortIndex: 0,
+        starred: true,
       };
 
-      expect(host.sortIndex).toBe(0);
+      expect(host.starred).toBe(true);
     });
   });
 
@@ -212,7 +206,6 @@ describe('Types', () => {
           host: hostname,
           port: 22,
           username: 'user',
-          authConfig: { authType: 'password' },
         };
         expect(host.host).toBe(hostname);
       }
@@ -228,7 +221,6 @@ describe('Types', () => {
           host: 'example.com',
           port,
           username: 'user',
-          authConfig: { authType: 'password' },
         };
         expect(host.port).toBe(port);
       }
@@ -241,29 +233,35 @@ describe('Types', () => {
         host: 'example.com',
         port: 22,
         username: 'user',
-        authConfig: { authType: 'password' },
       };
 
       expect(host.port).toBe(22);
     });
   });
 
-  describe('Encoding Support', () => {
-    it('should support different encodings', () => {
-      const encodings = ['utf-8', 'utf8', 'latin1', 'ascii', 'gbk'];
+  describe('Host Configuration Features', () => {
+    it('should support color coding', () => {
+      const host: HostConfig = {
+        id: 'host1',
+        name: 'Test',
+        host: 'example.com',
+        port: 22,
+        username: 'user',
+        color: '#FF5722',
+      };
+      expect(host.color).toBe('#FF5722');
+    });
 
-      for (const encoding of encodings) {
-        const host: HostConfig = {
-          id: 'host1',
-          name: 'Test',
-          host: 'example.com',
-          port: 22,
-          username: 'user',
-          authConfig: { authType: 'password' },
-          remoteEncoding: encoding as any,
-        };
-        expect(host.remoteEncoding).toBe(encoding);
-      }
+    it('should support recent paths tracking', () => {
+      const host: HostConfig = {
+        id: 'host1',
+        name: 'Test',
+        host: 'example.com',
+        port: 22,
+        username: 'user',
+        recentPaths: ['/var/www', '/home/user'],
+      };
+      expect(host.recentPaths?.length).toBe(2);
     });
   });
 });

@@ -124,8 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.extensionUri,
     transferQueueService,
     authManager,
-    hostManager,
-    sftpFsProvider  // ← 传递 filesystem provider
+    hostManager
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -140,8 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.extensionUri,
     transferQueueService,
     authManager,
-    hostManager,
-    sftpFsProvider  // ← 传递 filesystem provider
+    hostManager
   );
   context.subscriptions.push({
     dispose: () => dualPanelEditorManager.dispose()

@@ -242,7 +242,7 @@ export class SftpFileSystemProvider implements vscode.FileSystemProvider {
 
             await SshConnectionManager.renameRemoteFile(host, authConfig, oldPath, newPath);
 
-            this._fireSoon(
+            this.fireSoon(
                 { type: vscode.FileChangeType.Deleted, uri: oldUri },
                 { type: vscode.FileChangeType.Created, uri: newUri }
             );
