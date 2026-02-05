@@ -484,9 +484,21 @@
       },
       {
         "command": "simpleSftp.dualPanel.download",
-        "title": "Download to Local",
+        "title": "Download to Left Panel",
         "category": "Simple SFTP",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.downloadTo",
+        "title": "Save to...",
+        "category": "Simple SFTP",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.uploadFiles",
+        "title": "Upload Files...",
+        "category": "Simple SFTP",
+        "icon": "$(cloud-upload)"
       },
       {
         "command": "simpleSftp.dualPanel.delete",
@@ -620,6 +632,16 @@
           "command": "simpleSftp.dualPanel.download",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'",
           "group": "1_files@2"
+        },
+        {
+          "command": "simpleSftp.dualPanel.downloadTo",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'",
+          "group": "1_files@3"
+        },
+        {
+          "command": "simpleSftp.dualPanel.uploadFiles",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'remoteFile' || webviewSection == 'remoteEmpty')",
+          "group": "1_files@4"
         },
         {
           "command": "simpleSftp.dualPanel.refresh",
@@ -971,6 +993,14 @@
         },
         {
           "command": "simpleSftp.dualPanel.download",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.downloadTo",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.uploadFiles",
           "when": "false"
         },
         {

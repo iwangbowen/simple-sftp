@@ -197,6 +197,22 @@ export class DualPanelEditorManager extends DualPanelBase {
         await super.executeDownload(args);
     }
 
+    public async executeDownloadTo(args: any): Promise<void> {
+        if (!this.currentPanel) {
+            vscode.window.showWarningMessage('No active file browser panel');
+            return;
+        }
+        await super.executeDownloadTo(args);
+    }
+
+    public async executeUploadFiles(args: any): Promise<void> {
+        if (!this.currentPanel) {
+            vscode.window.showWarningMessage('No active file browser panel');
+            return;
+        }
+        await super.executeUploadFiles(args);
+    }
+
     /**
      * Get count of open panels
      */

@@ -459,6 +459,22 @@ export async function activate(context: vscode.ExtensionContext) {
         await dualPanelProvider.executeDownload(args);
       }
     }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.downloadTo', async (args) => {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.executeDownloadTo(args);
+      } else {
+        await dualPanelProvider.executeDownloadTo(args);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.uploadFiles', async (args) => {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.executeUploadFiles(args);
+      } else {
+        await dualPanelProvider.executeUploadFiles(args);
+      }
+    }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.delete', async (args) => {
       const activeManager = getActiveManager();
       if (activeManager === 'editor') {

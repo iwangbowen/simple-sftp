@@ -1492,6 +1492,145 @@ export abstract class DualPanelBase {
         });
     }
 
+    /**
+     * Download to a user-selected location using VS Code file picker
+     */
+    public async executeDownloadTo(args: any): Promise<void> {
+        if (!this._currentHost) {
+            vscode.window.showErrorMessage('No host selected');
+            return;
+        }
+
+        // Get file path from context
+        const remotePath = args?.filePath;
+        const fileName = args?.fileName || path.posix.basename(remotePath);
+
+        if (!remotePath) {
+            vscode.window.showErrorMessage('No file selected for download');
+            return;
+        }
+
+        // Show folder picker for destination
+        const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+        const selectedFolders = await vscode.window.showOpenDialog({
+            canSelectFiles: false,
+            canSelectFolders: true,
+            canSelectMany: false,
+            openLabel: 'Select Download Location',
+            title: `Download ${fileName} to...`,
+            defaultUri: defaultUri
+        });
+
+        if (!selectedFolders || selectedFolders.length === 0) {
+            return; // User cancelled
+        }
+
+        const localTargetDir = selectedFolders[0].fsPath;
+        const localTargetPath = path.join(localTargetDir, fileName);
+
+        try {
+            this.transferQueueService.addTask({
+                type: 'download',
+                localPath: localTargetPath,
+                remotePath: remotePath,
+                hostId: this._currentHost.id,
+                hostName: this._currentHost.name,
+                fileSize: 0
+            });
+
+            this.updateStatus(`Downloading ${fileName} to ${localTargetDir}...`);
+            vscode.window.showInformationMessage(`Added to download queue: ${fileName}`);
+        } catch (error: any) {
+            logger.error(`Download to failed: ${error}`);
+            vscode.window.showErrorMessage(`Download failed: ${error.message}`);
+        }
+    }
+
+    /**
+     * Upload files using VS Code file picker
+     */
+    public async executeUploadFiles(args: any): Promise<void> {
+        if (!this._currentHost) {
+            vscode.window.showErrorMessage('No host selected');
+            return;
+        }
+
+        // Get target remote path from context (directory or current path)
+        let remoteTargetPath = args?.filePath;
+        const isDirectory = args?.isDirectory === true;
+
+        // If clicking on a file, use its parent directory
+        if (remoteTargetPath && !isDirectory) {
+            remoteTargetPath = path.posix.dirname(remoteTargetPath);
+        }
+
+        // If clicking on empty area, use the currentPath
+        if (!remoteTargetPath) {
+            remoteTargetPath = args?.currentPath || this._remoteRootPath;
+        }
+
+        if (!remoteTargetPath) {
+            vscode.window.showErrorMessage('No target directory for upload');
+            return;
+        }
+
+        // Show file picker to select files to upload
+        const selectedFiles = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: true,
+            canSelectMany: true,
+            openLabel: 'Upload',
+            title: `Upload files to ${remoteTargetPath}`
+        });
+
+        if (!selectedFiles || selectedFiles.length === 0) {
+            return; // User cancelled
+        }
+
+        // Add tasks to transfer queue
+        const tasks: Array<{
+            type: 'upload';
+            hostId: string;
+            hostName: string;
+            localPath: string;
+            remotePath: string;
+            fileSize?: number;
+        }> = [];
+
+        for (const file of selectedFiles) {
+            const localPath = file.fsPath;
+            const fileName = path.basename(localPath);
+            const remoteFilePath = path.posix.join(remoteTargetPath, fileName);
+
+            try {
+                const stat = await fs.promises.stat(localPath);
+                tasks.push({
+                    type: 'upload',
+                    hostId: this._currentHost.id,
+                    hostName: this._currentHost.name,
+                    localPath,
+                    remotePath: remoteFilePath,
+                    fileSize: stat.isDirectory() ? undefined : stat.size
+                });
+            } catch (error) {
+                logger.error(`Failed to stat file ${localPath}: ${error}`);
+                tasks.push({
+                    type: 'upload',
+                    hostId: this._currentHost.id,
+                    hostName: this._currentHost.name,
+                    localPath,
+                    remotePath: remoteFilePath
+                });
+            }
+        }
+
+        if (tasks.length > 0) {
+            this.transferQueueService.addTasks(tasks);
+            this.updateStatus(`Added ${tasks.length} item(s) to upload queue`);
+            vscode.window.showInformationMessage(`Added ${tasks.length} item(s) to upload queue`);
+        }
+    }
+
     public async openInTerminal(args: any): Promise<void> {
         // Extract panel and current path
         const { panel, filePath, isDirectory, currentPath } = args;
