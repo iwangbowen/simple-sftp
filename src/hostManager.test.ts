@@ -5,9 +5,26 @@ import * as vscode from 'vscode';
 describe('HostManager', () => {
   let hostManager: HostManager;
   let mockContext: vscode.ExtensionContext;
+  let globalStateStore: Map<string, any>;
 
   beforeEach(() => {
-    mockContext = new vscode.ExtensionContext();
+    // Create storage for mock context
+    globalStateStore = new Map();
+
+    // Mock ExtensionContext
+    mockContext = {
+      globalState: {
+        get: vi.fn((key: string, defaultValue?: any) => {
+          return globalStateStore.get(key) ?? defaultValue;
+        }),
+        update: vi.fn(async (key: string, value: any) => {
+          globalStateStore.set(key, value);
+        }),
+        keys: vi.fn(() => Array.from(globalStateStore.keys())),
+        setKeysForSync: vi.fn()
+      }
+    } as any;
+
     hostManager = new HostManager(mockContext);
   });
 
