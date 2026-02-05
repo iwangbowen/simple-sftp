@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.9.0 - 2026-02-06
+
+- **Feature**: Added "Download to..." and "Upload Files..." context menu options in remote panel using VS Code native file picker
+- **Feature**: Panel layout setting (`simpleSftp.browser.panelLayout`) - set default layout to equal, local maximized, or remote maximized
+- **Fix**: Hide tooltip when right-click context menu opens
+
 ## 4.8.0 - 2026-02-03
 
 - **Feature**: File and folder hover tooltips - shows modification time, recursive folder size, and file/folder lists. Hold Alt to select/copy text from tooltip.

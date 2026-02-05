@@ -232,6 +232,12 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
 - **simpleSftp.browser.openInEditor** (boolean, default: `true`)
   Open file browser in editor area instead of panel. When enabled, supports multiple browser instances for different hosts.
 
+- **simpleSftp.browser.panelLayout** (enum: `equal`|`localMaximized`|`remoteMaximized`, default: `equal`)
+  Default layout mode for the dual panel file browser:
+  - `equal`: Split panels 50/50
+  - `localMaximized`: Local panel maximized (remote hidden)
+  - `remoteMaximized`: Remote panel maximized (local hidden)
+
 #### Transfer Queue
 
 - **simpleSftp.transferQueue.maxConcurrent** (number, default: `2`, range: 1-10)
@@ -615,6 +621,12 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 - **simpleSftp.browser.openInEditor** (布尔值,默认: `true`)
   在编辑器区域而不是面板中打开文件浏览器。启用后,支持为不同主机打开多个浏览器实例。
+
+- **simpleSftp.browser.panelLayout** (枚举: `equal`|`localMaximized`|`remoteMaximized`,默认: `equal`)
+  双面板文件浏览器的默认布局模式:
+  - `equal`: 平分面板 50/50
+  - `localMaximized`: 本地面板最大化(远程面板隐藏)
+  - `remoteMaximized`: 远程面板最大化(本地面板隐藏)
 
 #### 传输队列
 
