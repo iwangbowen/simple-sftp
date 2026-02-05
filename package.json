@@ -490,7 +490,7 @@
       },
       {
         "command": "simpleSftp.dualPanel.downloadTo",
-        "title": "Save to...",
+        "title": "Download to...",
         "category": "Simple SFTP",
         "icon": "$(cloud-download)"
       },
