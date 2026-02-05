@@ -276,6 +276,12 @@ createdAt!: Date;
    * Mark task as failed
    */
   fail(error: string): void {
+    // If already failed, don't overwrite the original error
+    if (this.status === 'failed') {
+      logger.warn(`Task ${this.id} already failed, ignoring new error: ${error}`);
+      return;
+    }
+
     this.status = 'failed';
     this.completedAt = new Date();
     this.lastError = error;
