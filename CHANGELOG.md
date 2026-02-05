@@ -1,5 +1,9 @@
 # Change Log
 
+## 4.9.1 - 2026-02-06
+
+- **Fix**: Fixed webview upload dialog on Windows/Linux - now allows selecting both files and folders (previously only folders)
+
 ## 4.9.0 - 2026-02-06
 
 - **Feature**: Added "Download to..." and "Upload Files..." context menu options in remote panel using VS Code native file picker
