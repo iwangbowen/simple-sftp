@@ -6,46 +6,66 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
   <title>Task Details</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: var(--vscode-font-family);
       font-size: var(--vscode-font-size);
       color: var(--vscode-foreground);
       background-color: var(--vscode-editor-background);
-      padding: 20px;
-      line-height: 1.6;
+      padding: 12px;
+      line-height: 1.5;
       margin: 0;
     }
 
+    /* Modern Card-based Layout */
     .header {
-      font-size: 1.3em;
-      font-weight: bold;
-      margin-bottom: 25px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid var(--vscode-panel-border);
-      color: var(--vscode-textLink-foreground);
+      font-size: 1.1em;
+      font-weight: 600;
+      margin-bottom: 12px;
+      padding: 0;
+      color: var(--vscode-foreground);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .section {
-      margin-bottom: 20px;
+      background-color: var(--vscode-input-background);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .section:hover {
+      border-color: var(--vscode-focusBorder);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .section-title {
-      font-size: 1.1em;
-      font-weight: bold;
+      font-weight: 600;
       margin-bottom: 10px;
       color: var(--vscode-textLink-activeForeground);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 11px;
     }
 
     .info-grid {
       display: grid;
-      grid-template-columns: 150px 1fr;
-      gap: 8px 15px;
-      margin-bottom: 15px;
+      grid-template-columns: 100px 1fr;
+      gap: 6px 12px;
+      font-size: 0.9em;
     }
 
     .label {
-      font-weight: 600;
+      font-weight: 500;
       color: var(--vscode-descriptionForeground);
+      font-size: 0.85em;
     }
 
     .value {
@@ -54,149 +74,131 @@
     }
 
     .status-badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 3px;
-      font-weight: bold;
-      font-size: 0.9em;
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.75em;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .status-completed {
-      background-color: rgba(78, 201, 176, 0.2);
-      color: #4ec9b0;
-    }
-
-    .status-failed {
-      background-color: rgba(244, 135, 113, 0.2);
-      color: #f48771;
-    }
-
-    .status-running {
-      background-color: rgba(86, 156, 214, 0.2);
-      color: #569cd6;
-    }
-
-    .status-paused {
-      background-color: rgba(220, 220, 170, 0.2);
-      color: #dcdcaa;
-    }
-
-    .status-cancelled {
-      background-color: rgba(133, 133, 133, 0.2);
-      color: #858585;
-    }
-
-    .status-pending {
-      background-color: rgba(212, 212, 212, 0.2);
-      color: #d4d4d4;
-    }
+    .status-completed { background: linear-gradient(135deg, rgba(78, 201, 176, 0.35), rgba(78, 201, 176, 0.25)); color: #7ee3c7; border: 1px solid rgba(78, 201, 176, 0.4); }
+    .status-failed { background: linear-gradient(135deg, rgba(244, 135, 113, 0.35), rgba(244, 135, 113, 0.25)); color: #ffa08a; border: 1px solid rgba(244, 135, 113, 0.4); }
+    .status-running { background: linear-gradient(135deg, rgba(86, 156, 214, 0.35), rgba(86, 156, 214, 0.25)); color: #7db1ed; border: 1px solid rgba(86, 156, 214, 0.4); }
+    .status-paused { background: linear-gradient(135deg, rgba(220, 220, 170, 0.35), rgba(220, 220, 170, 0.25)); color: #f0f0b8; border: 1px solid rgba(220, 220, 170, 0.4); }
+    .status-cancelled { background: linear-gradient(135deg, rgba(133, 133, 133, 0.35), rgba(133, 133, 133, 0.25)); color: #b0b0b0; border: 1px solid rgba(133, 133, 133, 0.4); }
+    .status-pending { background: linear-gradient(135deg, rgba(212, 212, 212, 0.35), rgba(212, 212, 212, 0.25)); color: #ffffff; border: 1px solid rgba(212, 212, 212, 0.4); }
 
     .error-box {
       background-color: var(--vscode-inputValidation-errorBackground);
       border: 1px solid var(--vscode-inputValidation-errorBorder);
-      border-left: 4px solid var(--vscode-inputValidation-errorBorder);
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 3px;
+      border-left: 3px solid var(--vscode-inputValidation-errorBorder);
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 4px;
       font-family: var(--vscode-editor-font-family);
-      font-size: 0.9em;
+      font-size: 0.85em;
       white-space: pre-wrap;
       word-break: break-word;
-    }
-
-    .divider {
-      height: 1px;
-      background-color: var(--vscode-panel-border);
-      margin: 25px 0;
     }
 
     code {
       background-color: var(--vscode-textCodeBlock-background);
       color: var(--vscode-textPreformat-foreground);
-      padding: 2px 6px;
+      padding: 2px 5px;
       border-radius: 3px;
       font-family: var(--vscode-editor-font-family);
-      font-size: 0.9em;
+      font-size: 0.85em;
       border: 1px solid var(--vscode-panel-border);
     }
 
-    /* Progress Bar - Full Width CSS Version */
+    /* Modern Progress Bar */
     .progress-container {
       width: 100%;
-      margin: 20px 0;
+      margin: 12px 0 8px;
     }
 
     .progress-ascii {
-      background-color: var(--vscode-editor-background);
-      border: 1px solid var(--vscode-panel-border);
-      padding: 16px;
-      border-radius: 4px;
-      width: 100%;
-      box-sizing: border-box;
+      background: transparent;
+      border: none;
+      padding: 0;
+      border-radius: 0;
     }
 
     .progress-bar-wrapper {
       width: 100%;
-      height: 20px;
-      background-color: var(--vscode-input-background);
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 2px;
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
       overflow: hidden;
       position: relative;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .progress-bar-fill-visual {
       height: 100%;
-      background-color: var(--vscode-progressBar-background);
+      background: linear-gradient(90deg,
+        var(--vscode-progressBar-background) 0%,
+        var(--vscode-textLink-activeForeground) 100%);
       transition: width 0.3s ease;
-      border-radius: 1px;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 8px rgba(0, 150, 255, 0.3);
+    }
+
+    .progress-bar-fill-visual::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
     }
 
     .progress-stats {
       display: flex;
       flex-wrap: wrap;
-      gap: 20px;
-      align-items: center;
-      font-size: 12px;
+      gap: 12px;
+      font-size: 11px;
     }
 
     .progress-stat-item {
       display: flex;
       align-items: center;
-      gap: 6px;
-      white-space: nowrap;
+      gap: 4px;
     }
 
     .progress-stat-label {
       color: var(--vscode-descriptionForeground);
-      font-size: 11px;
-      letter-spacing: 0.3px;
+      font-size: 10px;
     }
 
     .progress-stat-value {
       color: var(--vscode-foreground);
       font-weight: 600;
-      font-size: 12px;
+      font-size: 11px;
     }
 
-    /* Responsive layout */
     @media (max-width: 600px) {
-      .progress-stats {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-
-      .info-grid {
-        grid-template-columns: 120px 1fr;
-      }
+      .info-grid { grid-template-columns: 90px 1fr; gap: 4px 10px; }
+      .progress-stats { gap: 8px; }
     }
 
-    /* Chunk Progress Section */
+    /* Compact Chunk Progress */
     .chunk-progress-section {
-      margin-top: 30px;
-      padding-top: 20px;
+      margin-top: 10px;
+      padding-top: 10px;
       border-top: 1px solid var(--vscode-panel-border);
     }
 
@@ -204,42 +206,43 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
     .chunk-title {
-      font-size: 1em;
+      font-size: 0.9em;
       font-weight: 600;
       color: var(--vscode-textLink-activeForeground);
     }
 
     .chunk-summary {
-      font-size: 0.9em;
+      font-size: 0.8em;
       color: var(--vscode-descriptionForeground);
     }
 
     .chunk-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      max-height: 500px;
+      gap: 8px;
+      max-height: 400px;
       overflow-y: auto;
     }
 
     .chunk-group {
       border: 1px solid var(--vscode-panel-border);
       border-radius: 4px;
+      overflow: hidden;
     }
 
     .chunk-group-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background-color: var(--vscode-input-background);
+      gap: 6px;
+      padding: 6px 10px;
+      background: linear-gradient(135deg, var(--vscode-input-background), var(--vscode-editor-background));
       cursor: pointer;
       user-select: none;
-      transition: background-color 0.2s ease;
+      transition: all 0.2s ease;
     }
 
     .chunk-group-header:hover {
@@ -247,28 +250,26 @@
     }
 
     .chunk-group-toggle {
-      font-size: 0.8em;
-      color: var(--vscode-foreground);
-      width: 12px;
-      text-align: center;
+      font-size: 0.7em;
+      width: 10px;
     }
 
     .chunk-group-title {
       font-weight: 600;
       flex: 1;
-      color: var(--vscode-foreground);
+      font-size: 0.85em;
     }
 
     .chunk-group-count {
-      font-size: 0.85em;
+      font-size: 0.75em;
       color: var(--vscode-descriptionForeground);
     }
 
     .chunk-group-content {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 10px;
-      padding: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 6px;
+      padding: 6px;
       background-color: var(--vscode-editor-background);
     }
 
@@ -276,61 +277,48 @@
       background-color: var(--vscode-input-background);
       border: 1px solid var(--vscode-panel-border);
       border-radius: 4px;
-      padding: 10px;
+      padding: 6px;
       transition: all 0.2s ease;
+      font-size: 0.85em;
     }
 
     .chunk-item:hover {
       border-color: var(--vscode-focusBorder);
+      transform: translateY(-1px);
     }
 
     .chunk-item-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .chunk-index {
       font-weight: 600;
-      font-size: 0.9em;
-      color: var(--vscode-foreground);
+      font-size: 0.85em;
     }
 
     .chunk-status {
-      font-size: 0.85em;
-      padding: 2px 6px;
-      border-radius: 2px;
-      font-weight: 500;
+      font-size: 0.7em;
+      padding: 2px 5px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
     }
 
-    .chunk-status-pending {
-      background-color: rgba(212, 212, 212, 0.2);
-      color: #d4d4d4;
-    }
-
-    .chunk-status-downloading {
-      background-color: rgba(86, 156, 214, 0.2);
-      color: #569cd6;
-    }
-
-    .chunk-status-completed {
-      background-color: rgba(78, 201, 176, 0.2);
-      color: #4ec9b0;
-    }
-
-    .chunk-status-failed {
-      background-color: rgba(244, 135, 113, 0.2);
-      color: #f48771;
-    }
+    .chunk-status-pending { background-color: rgba(212, 212, 212, 0.3); color: #ffffff; border: 1px solid rgba(212, 212, 212, 0.4); }
+    .chunk-status-downloading { background-color: rgba(86, 156, 214, 0.3); color: #7db1ed; border: 1px solid rgba(86, 156, 214, 0.4); }
+    .chunk-status-completed { background-color: rgba(78, 201, 176, 0.3); color: #7ee3c7; border: 1px solid rgba(78, 201, 176, 0.4); }
+    .chunk-status-failed { background-color: rgba(244, 135, 113, 0.3); color: #ffa08a; border: 1px solid rgba(244, 135, 113, 0.4); }
 
     .chunk-progress-bar {
       width: 100%;
-      height: 6px;
+      height: 4px;
       background-color: var(--vscode-editor-background);
-      border-radius: 3px;
+      border-radius: 2px;
       overflow: hidden;
-      margin: 6px 0;
+      margin: 4px 0;
     }
 
     .chunk-progress-fill {
@@ -342,32 +330,28 @@
     .chunk-info {
       display: flex;
       justify-content: space-between;
-      font-size: 0.75em;
+      font-size: 0.7em;
       color: var(--vscode-descriptionForeground);
     }
 
-    .chunk-size, .chunk-speed {
-      white-space: nowrap;
-    }
+    .chunk-size, .chunk-speed { white-space: nowrap; }
   </style>
 </head>
 <body>
-  <div class="header">{{TITLE}}</div>
-
   <!-- File Information Section -->
   <div class="section">
     <div class="section-title">File Information</div>
     <div class="info-grid">
-      <div class="label">File Name:</div>
+      <div class="label">File:</div>
       <div class="value"><code>{{FILE_NAME}}</code></div>
 
-      <div class="label">File Size:</div>
+      <div class="label">Size:</div>
       <div class="value">{{FILE_SIZE}}</div>
 
-      <div class="label">Local Path:</div>
+      <div class="label">Local:</div>
       <div class="value"><code>{{LOCAL_PATH}}</code></div>
 
-      <div class="label">Remote Path:</div>
+      <div class="label">Remote:</div>
       <div class="value"><code>{{REMOTE_PATH}}</code></div>
 
       <div class="label">Host:</div>
@@ -382,8 +366,6 @@
       </div>
     </div>
   </div>
-
-  <div class="divider"></div>
 
   <!-- Transfer Progress Section -->
   <div class="section">
@@ -410,7 +392,7 @@
             <span class="progress-stat-value" id="speedText">{{CURRENT_SPEED}}</span>
           </div>
           <div class="progress-stat-item" id="estimatedTimeContainer" style="display: none;">
-            <span class="progress-stat-label">Estimated:</span>
+            <span class="progress-stat-label">ETA:</span>
             <span class="progress-stat-value" id="estimatedTimeText">--</span>
           </div>
           <div class="progress-stat-item" id="elapsedContainer">
@@ -423,11 +405,11 @@
 
     {{#HAS_DURATION}}
     <div class="info-grid">
-      <div class="label">Total Duration:</div>
+      <div class="label">Duration:</div>
       <div class="value">{{DURATION}}</div>
 
       {{#HAS_AVG_SPEED}}
-      <div class="label">Average Speed:</div>
+      <div class="label">Avg Speed:</div>
       <div class="value" id="avgSpeed">{{AVG_SPEED}}</div>
       {{/HAS_AVG_SPEED}}
     </div>
@@ -436,7 +418,7 @@
     <!-- Chunk Progress Section (Only shown for parallel transfers) -->
     <div id="chunkProgressSection" class="chunk-progress-section" style="display: none;">
       <div class="chunk-header">
-        <div class="chunk-title">Parallel Download Chunks</div>
+        <div class="chunk-title">Parallel Chunks</div>
         <div class="chunk-summary" id="chunkSummary">0 / 0 completed</div>
       </div>
       <div id="chunkList" class="chunk-list">
@@ -445,28 +427,22 @@
     </div>
   </div>
 
-  <div class="divider"></div>
-
   {{#HAS_RETRIES}}
-  <div class="divider"></div>
   <div class="section">
     <div class="section-title">Retry Information</div>
     <div class="info-grid">
-      <div class="label">Retry Count:</div>
+      <div class="label">Retries:</div>
       <div class="value">{{RETRY_COUNT}} / {{MAX_RETRIES}}</div>
     </div>
   </div>
   {{/HAS_RETRIES}}
 
   {{#HAS_ERROR}}
-  <div class="divider"></div>
   <div class="section">
     <div class="section-title">Error Details</div>
     <div class="error-box">{{ERROR_MESSAGE}}</div>
   </div>
   {{/HAS_ERROR}}
-
-  <div class="divider"></div>
 
   <div class="section">
     <div class="section-title">Timestamps</div>
@@ -486,8 +462,8 @@
     </div>
   </div>
 
-  <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid var(--vscode-panel-border); font-size: 0.85em; color: var(--vscode-descriptionForeground); text-align: center;">
-    Task ID: {{TASK_ID}}
+  <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--vscode-panel-border); font-size: 0.75em; color: var(--vscode-descriptionForeground); text-align: center;">
+    ID: {{TASK_ID}}
   </div>
 
   <script>
@@ -556,8 +532,8 @@
         if (taskData.speed > 0 || taskData.status === 'running') {
           if (speedContainer) speedContainer.style.display = 'flex';
           if (speedText) speedText.textContent = formattedSpeed;
-        } else {
-          if (speedContainer) speedContainer.style.display = 'none';
+        } else if (speedContainer) {
+          speedContainer.style.display = 'none';
         }
 
         // Update estimated time
@@ -567,8 +543,8 @@
         if (taskData.estimatedTime && taskData.estimatedTime > 0 && taskData.status === 'running') {
           if (estimatedTimeContainer) estimatedTimeContainer.style.display = 'flex';
           if (estimatedTimeText) estimatedTimeText.textContent = formatDuration(taskData.estimatedTime);
-        } else {
-          if (estimatedTimeContainer) estimatedTimeContainer.style.display = 'none';
+        } else if (estimatedTimeContainer) {
+          estimatedTimeContainer.style.display = 'none';
         }
 
         // Update status if status badge exists
