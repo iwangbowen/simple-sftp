@@ -1575,13 +1575,51 @@ export abstract class DualPanelBase {
         }
 
         // Show file picker to select files to upload
-        const selectedFiles = await vscode.window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectFolders: true,
-            canSelectMany: true,
-            openLabel: 'Upload',
-            title: `Upload files to ${remoteTargetPath}`
-        });
+        // On Windows/Linux, we need to ask user to select file type first
+        let selectedFiles: vscode.Uri[] | undefined;
+        const isMacOS = process.platform === 'darwin';
+
+        if (isMacOS) {
+            // macOS supports mixed selection
+            selectedFiles = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: true,
+                canSelectMany: true,
+                openLabel: 'Upload',
+                title: `Upload files to ${remoteTargetPath}`
+            });
+        } else {
+            // Windows/Linux: Ask user first
+            const choice = await vscode.window.showQuickPick(
+                [
+                    { label: '$(file) Select Files', value: 'files' },
+                    { label: '$(folder) Select Folders', value: 'folders' },
+                    { label: '$(files) Select Both', value: 'both' }
+                ],
+                {
+                    placeHolder: 'What do you want to upload?',
+                    title: `Upload to ${remoteTargetPath}`
+                }
+            );
+
+            if (!choice) {
+                return;
+            }
+
+            if (choice.value === 'both') {
+                // Allow both, but user may need to select multiple times
+                const message = 'Note: You may need to select files and folders separately due to system limitations.';
+                vscode.window.showInformationMessage(message);
+            }
+
+            selectedFiles = await vscode.window.showOpenDialog({
+                canSelectFiles: choice.value === 'files' || choice.value === 'both',
+                canSelectFolders: choice.value === 'folders' || choice.value === 'both',
+                canSelectMany: true,
+                openLabel: 'Upload',
+                title: `Upload to ${remoteTargetPath}`
+            });
+        }
 
         if (!selectedFiles || selectedFiles.length === 0) {
             return; // User cancelled
