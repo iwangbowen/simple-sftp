@@ -52,6 +52,18 @@ npm run lint           # ESLint check
 npm run publish        # Package and publish to marketplace
 ```
 
+### ⚠️ CRITICAL: Type Safety & Test Validation
+
+After modifying any TypeScript file, ALWAYS execute the following commands to ensure code quality:
+
+```bash
+# 1. Verify TypeScript compilation (no type errors)
+npx tsc --noEmit
+
+# 2. Run all tests (ensure no regressions)
+npm run test
+```
+
 ### Build System
 
 - **Bundler**: esbuild (see `esbuild.js`) - bundles to `out/extension.js`

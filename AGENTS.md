@@ -23,6 +23,20 @@ npm run lint           # ESLint check
 npm run publish        # Package and publish to marketplace
 ```
 
+## Development Workflow
+
+### ⚠️ CRITICAL: Type Safety & Test Validation
+
+After modifying any TypeScript file, ALWAYS execute the following commands to ensure code quality:
+
+```bash
+# 1. Verify TypeScript compilation (no type errors)
+npx tsc --noEmit
+
+# 2. Run all tests (ensure no regressions)
+npm run test
+```
+
 ## Architecture & Codebase Structure
 
 **VS Code Extension** providing SFTP client with port forwarding and SSH configuration sync.
