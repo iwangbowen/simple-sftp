@@ -239,6 +239,10 @@
 
         if (!resizer || !localPanel || !remotePanel) return;
 
+        // Get panel layout configuration from window.panelLayoutConfig
+        const config = window.panelLayoutConfig || {};
+        const panelLayout = config.panelLayout || 'equal';
+
         let isResizing = false;
         let hideIndicatorTimer = null;
 
@@ -277,11 +281,31 @@
             }
         };
 
+        // Apply initial layout based on configuration
+        const applyInitialLayout = () => {
+            switch (panelLayout) {
+                case 'localMaximized':
+                    // Use the existing maximize function
+                    togglePanelMaximize('local');
+                    break;
+                case 'remoteMaximized':
+                    // Use the existing maximize function
+                    togglePanelMaximize('remote');
+                    break;
+                case 'equal':
+                default:
+                    // Equal split - no action needed, default state
+                    updatePercentage(50);
+                    break;
+            }
+        };
+
+        // Apply initial layout
+        applyInitialLayout();
+
         // 双击还原默认尺寸
         resizer.addEventListener('dblclick', () => {
-            localPanel.style.flex = '1';
-            remotePanel.style.flex = '1';
-            updatePercentage(50);
+            applyInitialLayout();
             showIndicator();
             hideIndicator();
         });

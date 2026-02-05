@@ -1948,6 +1948,10 @@ export abstract class DualPanelBase {
             const htmlPath = path.join(this._extensionUri.fsPath, 'resources', 'webview', 'dual-panel-browser.html');
             let html = fs.readFileSync(htmlPath, 'utf8');
 
+            // Get panel layout configuration
+            const config = vscode.workspace.getConfiguration('simpleSftp.browser');
+            const panelLayout = config.get<string>('panelLayout', 'equal');
+
             html = html.replaceAll('{{cspSource}}', webview.cspSource);
             html = html.replaceAll('{{nonce}}', nonce);
             html = html.replaceAll('{{styleUri}}', styleUri.toString());
@@ -1957,6 +1961,7 @@ export abstract class DualPanelBase {
             html = html.replaceAll('{{portForwardScriptUri}}', portForwardScriptUri.toString());
             html = html.replaceAll('{{localPath}}', this._localRootPath || 'No host selected');
             html = html.replaceAll('{{remotePath}}', this._remoteRootPath || 'No host selected');
+            html = html.replaceAll('{{panelLayout}}', panelLayout);
 
             return html;
         } catch (error) {

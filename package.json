@@ -1526,6 +1526,21 @@
           ],
           "default": "http",
           "description": "Default protocol to use when opening browser for port forwarding"
+        },
+        "simpleSftp.browser.panelLayout": {
+          "type": "string",
+          "enum": [
+            "equal",
+            "localMaximized",
+            "remoteMaximized"
+          ],
+          "enumDescriptions": [
+            "Equal split (50/50)",
+            "Local panel maximized (remote panel hidden)",
+            "Remote panel maximized (local panel hidden)"
+          ],
+          "default": "equal",
+          "description": "Default layout mode for the dual panel file browser"
         }
       }
     }
