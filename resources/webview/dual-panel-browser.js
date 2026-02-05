@@ -196,6 +196,9 @@
             });
 
             tree.addEventListener('contextmenu', (e) => {
+                // Hide tooltip when context menu opens
+                hideFileTooltip();
+
                 // Update active panel on right-click too
                 const panel = treeId === 'local-tree' ? 'local' : 'remote';
                 lastActivePanel = panel;
@@ -928,6 +931,9 @@
 
         // Ensure item is selected on right-click (before context menu opens)
         item.addEventListener('contextmenu', (e) => {
+            // Hide tooltip when context menu opens
+            hideFileTooltip();
+
             // Cancel any pending click timer
             if (clickTimer) {
                 clearTimeout(clickTimer);
