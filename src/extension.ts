@@ -19,6 +19,7 @@ import { SftpFileSystemProvider } from './sftpFileSystemProvider';
 import { SshConnectionPool } from './sshConnectionPool';
 import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
+import { migrateHostConfigsToSettings } from './utils/migration';
 
 /**
  * Called when extension is activated
@@ -26,7 +27,10 @@ import { logger } from './logger';
 export async function activate(context: vscode.ExtensionContext) {
   logger.info('=== Extension Activated ===');
 
-  // Initialize host manager (synced via globalState)
+  // Migrate from globalState to settings (v5.0.0)
+  await migrateHostConfigsToSettings(context);
+
+  // Initialize host manager (now using VS Code Settings)
   const hostManager = new HostManager(context);
   await hostManager.initialize();
 

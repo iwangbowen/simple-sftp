@@ -203,6 +203,12 @@ export enum FileType {
   SymbolicLink = 64
 }
 
+export enum ConfigurationTarget {
+  Global = 1,
+  Workspace = 2,
+  WorkspaceFolder = 3
+}
+
 export const tests = {
   createTestController: vi.fn(() => ({
     items: {
@@ -289,6 +295,7 @@ export default {
   ExtensionContext,
   StatusBarAlignment,
   FileType,
+  ConfigurationTarget,
   tests,
   TestRunProfileKind,
   TestMessage,

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HostManager } from './hostManager';
 import * as vscode from 'vscode';
 
@@ -6,10 +6,28 @@ describe('HostManager', () => {
   let hostManager: HostManager;
   let mockContext: vscode.ExtensionContext;
   let globalStateStore: Map<string, any>;
+  let settingsStore: Map<string, any>;
 
   beforeEach(() => {
-    // Create storage for mock context
+    // Create storage for mock context and settings
     globalStateStore = new Map();
+    settingsStore = new Map();
+
+    // Initialize empty arrays for settings
+    settingsStore.set('hosts', []);
+    settingsStore.set('groups', []);
+
+    // Mock workspace.getConfiguration
+    vi.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+      get: vi.fn((key: string, defaultValue?: any) => {
+        return settingsStore.get(key) ?? defaultValue;
+      }),
+      update: vi.fn(async (key: string, value: any) => {
+        settingsStore.set(key, value);
+      }),
+      has: vi.fn((key: string) => settingsStore.has(key)),
+      inspect: vi.fn()
+    } as any);
 
     // Mock ExtensionContext
     mockContext = {

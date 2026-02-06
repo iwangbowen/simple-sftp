@@ -1382,6 +1382,33 @@
     "configuration": {
       "title": "Simple SFTP",
       "properties": {
+        "simpleSftp.hosts": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Host configurations. This setting is automatically synced across devices via VS Code Settings Sync.",
+          "scope": "application",
+          "items": {
+            "type": "object"
+          }
+        },
+        "simpleSftp.groups": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Host groups. This setting is automatically synced across devices via VS Code Settings Sync.",
+          "scope": "application",
+          "items": {
+            "type": "object"
+          }
+        },
+        "simpleSftp.recentUsed": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Recently used host IDs (most recent first, max 5). This setting is automatically synced across devices via VS Code Settings Sync.",
+          "scope": "application",
+          "items": {
+            "type": "string"
+          }
+        },
         "simpleSftp.showDotFiles": {
           "type": "boolean",
           "default": true,

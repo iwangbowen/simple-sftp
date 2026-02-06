@@ -7,28 +7,27 @@ import { logger } from './logger';
 
 /**
  * Host configuration manager
- * Uses globalState with setKeysForSync for cross-device sync
+ * Uses VS Code Settings for cross-device sync (since v5.0.0)
  */
 export class HostManager {
-  private static readonly STORAGE_KEY = 'hostConfigs';
+  private static readonly STORAGE_KEY = 'hostConfigs'; // Kept for backward compatibility
   private readonly context: vscode.ExtensionContext;
   private cachedData: StorageData | null = null;
+  private operationLock: Promise<void> = Promise.resolve();
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
   }
 
   /**
-   * Initialize storage and enable sync
+   * Initialize storage
+   * Note: No longer using globalState.setKeysForSync, using VS Code Settings Sync instead
    */
   async initialize(): Promise<void> {
-    // Register the storage key for Settings Sync
-    this.context.globalState.setKeysForSync([HostManager.STORAGE_KEY]);
-
-    // Log sync configuration
+    // Load data to populate cache
     const data = await this.loadData();
-    logger.info('=== Simple SFTP Sync Configuration ===');
-    logger.info(`Sync Key: ${HostManager.STORAGE_KEY}`);
+    logger.info('=== Simple SFTP Configuration ===');
+    logger.info('Storage: VS Code Settings (synced via Settings Sync)');
     logger.info(`Hosts: ${data.hosts.length}, Groups: ${data.groups.length}`);
     if (data.hosts.length > 0) {
       logger.info('Host List:');
@@ -59,104 +58,118 @@ export class HostManager {
    * Add host
    */
   async addHost(host: Omit<HostConfig, 'id'>): Promise<HostConfig> {
-    const data = await this.loadData();
-    const newHost: HostConfig = {
-      ...host,
-      id: this.generateId(),
-    };
-    data.hosts.push(newHost);
-    await this.saveData(data);
-    return newHost;
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const newHost: HostConfig = {
+        ...host,
+        id: this.generateId(),
+      };
+      data.hosts.push(newHost);
+      await this.saveData(data);
+      return newHost;
+    });
   }
 
   /**
    * Update host
    */
   async updateHost(id: string, updates: Partial<HostConfig>): Promise<void> {
-    const data = await this.loadData();
-    const index = data.hosts.findIndex(h => h.id === id);
-    if (index === -1) {
-      throw new Error('Host not found');
-    }
-    data.hosts[index] = { ...data.hosts[index], ...updates };
-    await this.saveData(data);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const index = data.hosts.findIndex(h => h.id === id);
+      if (index === -1) {
+        throw new Error('Host not found');
+      }
+      data.hosts[index] = { ...data.hosts[index], ...updates };
+      await this.saveData(data);
+    });
   }
 
   /**
    * Delete host
    */
   async deleteHost(id: string): Promise<void> {
-    const data = await this.loadData();
-    data.hosts = data.hosts.filter(h => h.id !== id);
-    await this.saveData(data);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      data.hosts = data.hosts.filter(h => h.id !== id);
+      await this.saveData(data);
+    });
   }
 
   /**
    * Add group
    */
   async addGroup(name: string): Promise<GroupConfig> {
-    const data = await this.loadData();
-    const newGroup: GroupConfig = {
-      id: this.generateId(),
-      name,
-    };
-    data.groups.push(newGroup);
-    await this.saveData(data);
-    return newGroup;
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const newGroup: GroupConfig = {
+        id: this.generateId(),
+        name,
+      };
+      data.groups.push(newGroup);
+      await this.saveData(data);
+      return newGroup;
+    });
   }
 
   /**
    * Update group
    */
   async updateGroup(id: string, name: string): Promise<void> {
-    const data = await this.loadData();
-    const index = data.groups.findIndex(g => g.id === id);
-    if (index === -1) {
-      throw new Error('Group not found');
-    }
-    data.groups[index].name = name;
-    await this.saveData(data);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const index = data.groups.findIndex(g => g.id === id);
+      if (index === -1) {
+        throw new Error('Group not found');
+      }
+      data.groups[index].name = name;
+      await this.saveData(data);
+    });
   }
 
   /**
    * Delete group
    */
   async deleteGroup(id: string): Promise<void> {
-    const data = await this.loadData();
-    data.groups = data.groups.filter(g => g.id !== id);
-    data.hosts.forEach(host => {
-      if (host.group === id) {
-        delete host.group;
-      }
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      data.groups = data.groups.filter(g => g.id !== id);
+      data.hosts.forEach(host => {
+        if (host.group === id) {
+          delete host.group;
+        }
+      });
+      await this.saveData(data);
     });
-    await this.saveData(data);
   }
 
   /**
    * Move host to a different group (or remove from group)
    */
   async moveHostToGroup(hostId: string, targetGroupId?: string): Promise<void> {
-    const data = await this.loadData();
-    const host = data.hosts.find(h => h.id === hostId);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const host = data.hosts.find(h => h.id === hostId);
 
-    if (!host) {
-      throw new Error('Host not found');
-    }
-
-    // If targetGroupId is provided, verify the group exists
-    if (targetGroupId) {
-      const groupExists = data.groups.some(g => g.id === targetGroupId);
-      if (!groupExists) {
-        throw new Error('Target group not found');
+      if (!host) {
+        throw new Error('Host not found');
       }
-      host.group = targetGroupId;
-    } else {
-      // Remove from group (move to root)
-      delete host.group;
-    }
 
-    await this.saveData(data);
-    logger.info(`Moved host ${host.name} to ${targetGroupId ? 'group ' + targetGroupId : 'root'}`);
+      // If targetGroupId is provided, verify the group exists
+      if (targetGroupId) {
+        const groupExists = data.groups.some(g => g.id === targetGroupId);
+        if (!groupExists) {
+          throw new Error('Target group not found');
+        }
+        host.group = targetGroupId;
+      } else {
+        // Remove from group (move to root)
+        delete host.group;
+      }
+
+      await this.saveData(data);
+      logger.info(`Moved host ${host.name} to ${targetGroupId ? 'group ' + targetGroupId : 'root'}`);
+    });
   }
 
   /**
@@ -196,46 +209,48 @@ export class HostManager {
    * Import hosts from SSH config file
    */
   async importFromSshConfig(): Promise<HostConfig[]> {
-    const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
+    return this.withLock(async () => {
+      const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
 
-    if (!fs.existsSync(sshConfigPath)) {
-      throw new Error(`SSH config file not found at: ${sshConfigPath}\n\nCreate one to use the import feature, or add hosts manually.`);
-    }
-
-    const configContent = fs.readFileSync(sshConfigPath, 'utf-8');
-    const entries = this.parseSshConfig(configContent);
-
-    const importedHosts: HostConfig[] = [];
-    const data = await this.loadData();
-
-    for (const entry of entries) {
-      if (!entry.HostName) {
-        continue;
+      if (!fs.existsSync(sshConfigPath)) {
+        throw new Error(`SSH config file not found at: ${sshConfigPath}\n\nCreate one to use the import feature, or add hosts manually.`);
       }
 
-      const exists = data.hosts.some(
-        h => h.host === entry.HostName && h.username === (entry.User || 'root')
-      );
+      const configContent = fs.readFileSync(sshConfigPath, 'utf-8');
+      const entries = this.parseSshConfig(configContent);
 
-      if (!exists) {
-        // Only import basic host information, authentication will be configured separately
-          const newHost: HostConfig = {
-            id: this.generateId(),
-            name: entry.Host,
-            host: entry.HostName,
-            port: entry.Port ? Number.parseInt(entry.Port) : 22,
-            username: entry.User || 'root',
-          };
-        data.hosts.push(newHost);
-        importedHosts.push(newHost);
+      const importedHosts: HostConfig[] = [];
+      const data = await this.loadData();
+
+      for (const entry of entries) {
+        if (!entry.HostName) {
+          continue;
+        }
+
+        const exists = data.hosts.some(
+          h => h.host === entry.HostName && h.username === (entry.User || 'root')
+        );
+
+        if (!exists) {
+          // Only import basic host information, authentication will be configured separately
+            const newHost: HostConfig = {
+              id: this.generateId(),
+              name: entry.Host,
+              host: entry.HostName,
+              port: entry.Port ? Number.parseInt(entry.Port) : 22,
+              username: entry.User || 'root',
+            };
+          data.hosts.push(newHost);
+          importedHosts.push(newHost);
+        }
       }
-    }
 
-    if (importedHosts.length > 0) {
-      await this.saveData(data);
-    }
+      if (importedHosts.length > 0) {
+        await this.saveData(data);
+      }
 
-    return importedHosts;
+      return importedHosts;
+    });
   }
 
   /**
@@ -277,11 +292,39 @@ export class HostManager {
   }
 
   /**
+   * Execute an operation with exclusive lock to prevent race conditions
+   */
+  private async withLock<T>(operation: () => Promise<T>): Promise<T> {
+    const previousOperation = this.operationLock;
+    let resolver: () => void;
+    this.operationLock = new Promise<void>(resolve => {
+      resolver = resolve;
+    });
+
+    try {
+      await previousOperation;
+      return await operation();
+    } finally {
+      resolver!();
+    }
+  }
+
+  /**
    * Load data
    */
   private async loadData(): Promise<StorageData> {
-    const data = this.context.globalState.get<StorageData>(HostManager.STORAGE_KEY);
-    this.cachedData = data || { hosts: [], groups: [], recentUsed: [] };
+    // Read from VS Code Settings (Global scope)
+    const config = vscode.workspace.getConfiguration('simpleSftp');
+    const hosts = config.get<HostConfig[]>('hosts', []);
+    const groups = config.get<GroupConfig[]>('groups', []);
+    const recentUsed = config.get<string[]>('recentUsed', []);
+
+    this.cachedData = {
+      hosts,
+      groups,
+      recentUsed
+    };
+
     return this.cachedData;
   }
 
@@ -300,33 +343,42 @@ export class HostManager {
   }
 
   /**
-   * Save data
+   * Save data to VS Code Settings
    */
   private async saveData(data: StorageData): Promise<void> {
     this.cachedData = data;
-    await this.context.globalState.update(HostManager.STORAGE_KEY, data);
-    logger.info(`Data saved and synced: ${data.hosts.length} hosts, ${data.groups.length} groups`);
+
+    const config = vscode.workspace.getConfiguration('simpleSftp');
+
+    // Save to settings (Global scope for cross-device sync)
+    await config.update('hosts', data.hosts, vscode.ConfigurationTarget.Global);
+    await config.update('groups', data.groups, vscode.ConfigurationTarget.Global);
+    await config.update('recentUsed', data.recentUsed || [], vscode.ConfigurationTarget.Global);
+
+    logger.info(`Data saved to settings: ${data.hosts.length} hosts, ${data.groups.length} groups, ${data.recentUsed?.length || 0} recent`);
   }
 
   /**
    * Record a host as recently used (for upload or download)
    */
   async recordRecentUsed(hostId: string): Promise<void> {
-    const data = await this.loadData();
-    data.recentUsed ??= [];
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      data.recentUsed ??= [];
 
-    // Remove if already exists
-    data.recentUsed = data.recentUsed.filter(id => id !== hostId);
+      // Remove if already exists
+      data.recentUsed = data.recentUsed.filter(id => id !== hostId);
 
-    // Add to front
-    data.recentUsed.unshift(hostId);
+      // Add to front
+      data.recentUsed.unshift(hostId);
 
-    // Keep only last 5
-    if (data.recentUsed.length > 5) {
-      data.recentUsed = data.recentUsed.slice(0, 5);
-    }
+      // Keep only last 5
+      if (data.recentUsed.length > 5) {
+        data.recentUsed = data.recentUsed.slice(0, 5);
+      }
 
-    await this.saveData(data);
+      await this.saveData(data);
+    });
   }
 
   /**
@@ -341,27 +393,29 @@ export class HostManager {
    * Record a recently used path for a specific host
    */
   async recordRecentPath(hostId: string, remotePath: string): Promise<void> {
-    const data = await this.loadData();
-    const host = data.hosts.find(h => h.id === hostId);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const host = data.hosts.find(h => h.id === hostId);
 
-    if (!host) {
-      return;
-    }
+      if (!host) {
+        return;
+      }
 
-    host.recentPaths ??= [];
+      host.recentPaths ??= [];
 
-    // Remove if already exists
-    host.recentPaths = host.recentPaths.filter(p => p !== remotePath);
+      // Remove if already exists
+      host.recentPaths = host.recentPaths.filter(p => p !== remotePath);
 
-    // Add to front
-    host.recentPaths.unshift(remotePath);
+      // Add to front
+      host.recentPaths.unshift(remotePath);
 
-    // Keep only last 10 paths
-    if (host.recentPaths.length > 10) {
-      host.recentPaths = host.recentPaths.slice(0, 10);
-    }
+      // Keep only last 10 paths
+      if (host.recentPaths.length > 10) {
+        host.recentPaths = host.recentPaths.slice(0, 10);
+      }
 
-    await this.saveData(data);
+      await this.saveData(data);
+    });
   }
 
   /**
@@ -377,46 +431,50 @@ export class HostManager {
    * Add a path bookmark for a specific host
    */
   async addBookmark(hostId: string, name: string, path: string, description?: string): Promise<void> {
-    const data = await this.loadData();
-    const host = data.hosts.find(h => h.id === hostId);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const host = data.hosts.find(h => h.id === hostId);
 
-    if (!host) {
-      throw new Error(`Host not found: ${hostId}`);
-    }
+      if (!host) {
+        throw new Error(`Host not found: ${hostId}`);
+      }
 
-    host.bookmarks ??= [];
+      host.bookmarks ??= [];
 
-    // Check if bookmark with same name already exists
-    if (host.bookmarks.some(b => b.name === name)) {
-      throw new Error(`Bookmark with name '${name}' already exists`);
-    }
+      // Check if bookmark with same name already exists
+      if (host.bookmarks.some(b => b.name === name)) {
+        throw new Error(`Bookmark with name '${name}' already exists`);
+      }
 
-    // Only add description if it's not empty
-    const bookmark: PathBookmark = { name, path };
-    if (description) {
-      bookmark.description = description;
-    }
-    host.bookmarks.push(bookmark);
-    await this.saveData(data);
+      // Only add description if it's not empty
+      const bookmark: PathBookmark = { name, path };
+      if (description) {
+        bookmark.description = description;
+      }
+      host.bookmarks.push(bookmark);
+      await this.saveData(data);
+    });
   }
 
   /**
    * Remove a path bookmark for a specific host
    */
   async removeBookmark(hostId: string, name: string): Promise<void> {
-    const data = await this.loadData();
-    const host = data.hosts.find(h => h.id === hostId);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const host = data.hosts.find(h => h.id === hostId);
 
-    if (!host) {
-      return;
-    }
+      if (!host) {
+        return;
+      }
 
-    if (!host.bookmarks) {
-      return;
-    }
+      if (!host.bookmarks) {
+        return;
+      }
 
-    host.bookmarks = host.bookmarks.filter(b => b.name !== name);
-    await this.saveData(data);
+      host.bookmarks = host.bookmarks.filter(b => b.name !== name);
+      await this.saveData(data);
+    });
   }
 
   /**
@@ -432,57 +490,61 @@ export class HostManager {
    * Update a bookmark (rename or change path)
    */
   async updateBookmark(hostId: string, oldName: string, newName: string, newPath: string, newDescription?: string): Promise<void> {
-    const data = await this.loadData();
-    const host = data.hosts.find(h => h.id === hostId);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const host = data.hosts.find(h => h.id === hostId);
 
-    if (!host?.bookmarks) {
-      return;
-    }
+      if (!host?.bookmarks) {
+        return;
+      }
 
-    const bookmark = host.bookmarks.find(b => b.name === oldName);
-    if (!bookmark) {
-      return;
-    }
+      const bookmark = host.bookmarks.find(b => b.name === oldName);
+      if (!bookmark) {
+        return;
+      }
 
-    // Check if new name conflicts with existing bookmark (excluding the one being updated)
-    if (newName !== oldName && host.bookmarks.some(b => b.name === newName)) {
-      throw new Error(`Bookmark with name '${newName}' already exists`);
-    }
+      // Check if new name conflicts with existing bookmark (excluding the one being updated)
+      if (newName !== oldName && host.bookmarks.some(b => b.name === newName)) {
+        throw new Error(`Bookmark with name '${newName}' already exists`);
+      }
 
-    bookmark.name = newName;
-    bookmark.path = newPath;
-    // Only set description if it's provided and not empty, otherwise remove it
-    if (newDescription) {
-      bookmark.description = newDescription;
-    } else {
-      delete bookmark.description;
-    }
-    await this.saveData(data);
+      bookmark.name = newName;
+      bookmark.path = newPath;
+      // Only set description if it's provided and not empty, otherwise remove it
+      if (newDescription) {
+        bookmark.description = newDescription;
+      } else {
+        delete bookmark.description;
+      }
+      await this.saveData(data);
+    });
   }
 
   /**
    * Update a bookmark's color
    */
   async updateBookmarkColor(hostId: string, bookmarkName: string, color?: string): Promise<void> {
-    const data = await this.loadData();
-    const host = data.hosts.find(h => h.id === hostId);
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const host = data.hosts.find(h => h.id === hostId);
 
-    if (!host?.bookmarks) {
-      return;
-    }
+      if (!host?.bookmarks) {
+        return;
+      }
 
-    const bookmark = host.bookmarks.find(b => b.name === bookmarkName);
-    if (!bookmark) {
-      return;
-    }
+      const bookmark = host.bookmarks.find(b => b.name === bookmarkName);
+      if (!bookmark) {
+        return;
+      }
 
-    // Set or remove color
-    if (color) {
-      bookmark.color = color;
-    } else {
-      delete bookmark.color;
-    }
-    await this.saveData(data);
+      // Set or remove color
+      if (color) {
+        bookmark.color = color;
+      } else {
+        delete bookmark.color;
+      }
+      await this.saveData(data);
+    });
   }
 
   /**
@@ -639,23 +701,24 @@ export class HostManager {
    * Returns: { imported: number, skipped: number, message: string }
    */
   async importHosts(jsonData: string): Promise<{ imported: number; skipped: number; message: string }> {
-    let importData: any;
+    return this.withLock(async () => {
+      let importData: any;
 
-    try {
-      importData = JSON.parse(jsonData);
-    } catch (error: any) {
-      throw new Error(`Invalid JSON format: ${error.message || 'Unknown error'}`);
-    }
+      try {
+        importData = JSON.parse(jsonData);
+      } catch (error: any) {
+        throw new Error(`Invalid JSON format: ${error.message || 'Unknown error'}`);
+      }
 
-    // Validate format
-    if (!importData.hosts || !Array.isArray(importData.hosts)) {
-      throw new Error('Invalid import data: missing or invalid hosts array');
-    }
+      // Validate format
+      if (!importData.hosts || !Array.isArray(importData.hosts)) {
+        throw new Error('Invalid import data: missing or invalid hosts array');
+      }
 
-    const data = await this.loadData();
-    let imported = 0;
-    let skipped = 0;
-    const skippedHosts: string[] = [];
+      const data = await this.loadData();
+      let imported = 0;
+      let skipped = 0;
+      const skippedHosts: string[] = [];
 
     // Import groups first (merge if exists)
     const groupIdMapping: Map<string, string> = new Map();
@@ -737,5 +800,6 @@ export class HostManager {
     }
 
     return { imported, skipped, message };
+    });
   }
 }
