@@ -927,67 +927,36 @@ export class SshConnectionManager {
     logger.info(`Starting to delete remote directory: ${remotePath}`);
 
     try {
-      const files = await this.getAllRemoteFiles(sftp, remotePath);
-      logger.info(`Found ${files.length} files to delete in ${remotePath}`);
-
-      // Delete all files first
-      for (const file of files) {
-        try {
-          logger.debug(`Deleting file: ${file}`);
-          await sftp.delete(file);
-          logger.debug(`Deleted file successfully: ${file}`);
-        } catch (error: any) {
-          logger.error(`Failed to delete file ${file}: ${error.message}`);
-          throw new Error(`Failed to delete file ${file}: ${error.message}`);
-        }
-      }
-
-      // Get all directories
-      const dirs: string[] = [];
-      logger.debug(`Reading directory structure: ${remotePath}`);
-      const items = await sftp.list(remotePath);  // Use list() not readdir()
+      // Get list of items in directory
+      logger.debug(`Reading directory: ${remotePath}`);
+      const items = await sftp.list(remotePath);
       logger.debug(`Found ${items.length} items in ${remotePath}`);
 
+      // Process each item
       for (const item of items) {
-        const fullPath = `${remotePath}/${item.name}`.replaceAll('//', '/');
-        logger.debug(`Checking item: ${fullPath}`);
-        const stats = await sftp.stat(fullPath);
+        if (item.name === '.' || item.name === '..') {
+          continue;
+        }
 
-        // Check if it's a directory
-        const isDirectory = (stats.type === 'd');
-        logger.debug(`Item ${fullPath} is ${isDirectory ? 'directory' : 'file'}`);
+        const fullPath = `${remotePath}/${item.name}`.replaceAll('//', '/');
+        const isDirectory = (item.type === 'd');
 
         if (isDirectory) {
-          dirs.push(fullPath);
+          // Recursively delete subdirectory
+          logger.debug(`Recursively deleting subdirectory: ${fullPath}`);
+          await this.deleteRemoteDirectory(sftp, fullPath);
+        } else {
+          // Delete file
+          logger.debug(`Deleting file: ${fullPath}`);
+          await sftp.delete(fullPath);
+          logger.debug(`Deleted file successfully: ${fullPath}`);
         }
       }
 
-      logger.info(`Found ${dirs.length} subdirectories to delete`);
-
-      // Sort directories by depth (deepest first)
-      dirs.sort((a, b) => b.split('/').length - a.split('/').length);
-
-      // Delete directories from deepest to shallowest
-      for (const dir of dirs) {
-        try {
-          logger.debug(`Deleting directory: ${dir}`);
-          await sftp.rmdir(dir);
-          logger.debug(`Deleted directory successfully: ${dir}`);
-        } catch (error: any) {
-          logger.error(`Failed to delete directory ${dir}: ${error.message}`);
-          throw new Error(`Failed to delete directory ${dir}: ${error.message}`);
-        }
-      }
-
-      // Finally delete the root directory
-      try {
-        logger.debug(`Deleting root directory: ${remotePath}`);
-        await sftp.rmdir(remotePath);
-        logger.info(`Deleted remote directory successfully: ${remotePath}`);
-      } catch (error: any) {
-        logger.error(`Failed to delete root directory ${remotePath}: ${error.message}`);
-        throw new Error(`Failed to delete root directory: ${error.message}`);
-      }
+      // Delete the now-empty directory
+      logger.debug(`Deleting empty directory: ${remotePath}`);
+      await sftp.rmdir(remotePath);
+      logger.info(`Deleted remote directory successfully: ${remotePath}`);
     } catch (error: any) {
       logger.error(`Error in deleteRemoteDirectory for ${remotePath}: ${error.message}`);
       throw error;
