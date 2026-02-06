@@ -12,10 +12,27 @@ describe('Host Management Integration Tests', () => {
   let context: vscode.ExtensionContext;
   let hostManager: HostManager;
   let globalStateStore: Map<string, any>;
+  let settingsStore: Map<string, any>;
 
   beforeEach(async () => {
     // 初始化测试环境
     globalStateStore = new Map();
+    settingsStore = new Map();
+
+    // Mock WorkspaceConfiguration
+    const mockConfig = {
+      get: vi.fn((key: string, defaultValue?: any) => {
+        return settingsStore.get(key) ?? defaultValue;
+      }),
+      has: vi.fn(),
+      inspect: vi.fn(),
+      update: vi.fn(async (key: string, value: any) => {
+        settingsStore.set(key, value);
+      })
+    };
+
+    // Mock workspace.getConfiguration
+    vi.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue(mockConfig as any);
 
     // Mock ExtensionContext
     context = {
