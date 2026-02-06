@@ -978,6 +978,15 @@
             showFileTooltip(item, e);
         });
 
+        // Update tooltip position as mouse moves
+        item.addEventListener('mousemove', (e) => {
+            // Only update position if tooltip is not yet visible (during delay period)
+            // Once visible, keep it fixed to prevent jittery movement
+            if (!fileTooltip || !fileTooltip.classList.contains('visible')) {
+                currentTooltipEvent = e;
+            }
+        });
+
         item.addEventListener('mouseleave', () => {
             // Check if tooltip is visible
             const isTooltipVisible = fileTooltip && fileTooltip.classList.contains('visible');
