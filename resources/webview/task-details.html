@@ -126,56 +126,21 @@
 
     .progress-bar-wrapper {
       width: 100%;
-      height: 6px;
-      background-color: rgba(255, 255, 255, 0.05);
-      border-radius: 3px;
+      height: 12px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 0;
       overflow: hidden;
       position: relative;
       margin-bottom: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
     .progress-bar-fill-visual {
       height: 100%;
-      background: linear-gradient(90deg,
-        var(--vscode-progressBar-background) 0%,
-        var(--vscode-textLink-activeForeground) 100%);
+      background: var(--vscode-progressBar-background);
       transition: width 0.3s ease;
-      border-radius: 3px;
+      border-radius: 0;
       position: relative;
-      overflow: hidden;
-      box-shadow: 0 0 8px rgba(0, 150, 255, 0.3);
-    }
-
-    .progress-bar-fill-visual::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; bottom: 0; right: 0;
-      background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.3) 50%,
-        transparent 100%);
-      animation: shimmer 2s infinite;
-    }
-
-    @keyframes shimmer {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-
-    .progress-stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      font-size: 11px;
-    }
-
-    .progress-stat-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
     .progress-stat-label {
       color: var(--vscode-descriptionForeground);
       font-size: 10px;
@@ -311,20 +276,19 @@
 
     .chunk-progress-bar {
       width: 100%;
-      height: 4px;
-      background-color: var(--vscode-editor-background);
-      border-radius: 2px;
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 0;
       overflow: hidden;
       margin: 4px 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .chunk-progress-fill {
       height: 100%;
       background-color: var(--vscode-progressBar-background);
       transition: width 0.3s ease;
-    }
-
-    .chunk-info {
+      border-radius: 0;
       display: flex;
       justify-content: space-between;
       font-size: 0.7em;
