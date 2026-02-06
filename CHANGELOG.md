@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.0.0 - 2026-02-06
+
+- **Breaking Change**: Migrated host configurations from globalState to VS Code Settings Sync for more reliable cross-device synchronization
+
 ## 4.9.1 - 2026-02-06
 
 - **Fix**: Fixed webview upload dialog on Windows/Linux - now allows selecting both files and folders (previously only folders)
