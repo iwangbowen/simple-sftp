@@ -317,7 +317,8 @@ export class HostManager {
     const config = vscode.workspace.getConfiguration('simpleSftp');
     const hosts = config.get<HostConfig[]>('hosts', []);
     const groups = config.get<GroupConfig[]>('groups', []);
-    const recentUsed = config.get<string[]>('recentUsed', []);
+    // recentUsed is kept in memory only (not persisted to settings)
+    const recentUsed = this.cachedData?.recentUsed || [];
 
     this.cachedData = {
       hosts,
@@ -351,11 +352,11 @@ export class HostManager {
     const config = vscode.workspace.getConfiguration('simpleSftp');
 
     // Save to settings (Global scope for cross-device sync)
+    // Note: recentUsed is intentionally not saved (kept in memory only)
     await config.update('hosts', data.hosts, vscode.ConfigurationTarget.Global);
     await config.update('groups', data.groups, vscode.ConfigurationTarget.Global);
-    await config.update('recentUsed', data.recentUsed || [], vscode.ConfigurationTarget.Global);
 
-    logger.info(`Data saved to settings: ${data.hosts.length} hosts, ${data.groups.length} groups, ${data.recentUsed?.length || 0} recent`);
+    logger.info(`Data saved to settings: ${data.hosts.length} hosts, ${data.groups.length} groups`);
   }
 
   /**
