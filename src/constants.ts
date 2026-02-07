@@ -86,9 +86,7 @@ export const COMPRESSION = {
 
 export const THUMBNAIL = {
   MAX_FILE_SIZE: 10 * 1024 * 1024,      // Max file size for thumbnail generation (10MB)
-  CACHE_MAX_SIZE: 100,                  // Maximum number of cached thumbnails (LRU)
-  LAZY_LOAD_THRESHOLD: 50,              // Enable lazy loading if directory has >50 images
-  SIZE: 128,                            // Thumbnail size in pixels (width/height)
+  CACHE_MAX_SIZE: 200,                  // Maximum number of cached thumbnails (LRU)
 
   // Supported image extensions for thumbnail generation
   SUPPORTED_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'],
