@@ -238,6 +238,23 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
   - `localMaximized`: Local panel maximized (remote hidden)
   - `remoteMaximized`: Remote panel maximized (local hidden)
 
+- **simpleSftp.fileView.defaultLayout** (enum: `list`|`grid`, default: `list`)
+  Default file view layout in SFTP file browser:
+  - `list`: Detailed table view with columns (name, modified time, permissions, size)
+  - `grid`: Icon/grid view with image thumbnails (better for visual browsing)
+
+- **simpleSftp.fileView.thumbnailSize** (enum: `96`|`128`|`160`, default: `96`)
+  Thumbnail size for image files in grid view (pixels):
+  - `96`: Small (faster loading, less memory)
+  - `128`: Medium (balanced quality and performance)
+  - `160`: Large (best quality, more memory usage)
+
+- **simpleSftp.fileView.thumbnailCacheSize** (number, default: `200`, range: 50-1000)
+  Maximum number of thumbnails to cache in memory. Higher values improve performance when revisiting folders, but use more memory.
+
+- **simpleSftp.fileView.thumbnailMaxFileSize** (number, default: `10`, range: 1-100)
+  Maximum file size (MB) for thumbnail generation. Files larger than this will use generic icons.
+
 #### Transfer Queue
 
 - **simpleSftp.transferQueue.maxConcurrent** (number, default: `2`, range: 1-10)
@@ -627,6 +644,23 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
   - `equal`: 平分面板 50/50
   - `localMaximized`: 本地面板最大化(远程面板隐藏)
   - `remoteMaximized`: 远程面板最大化(本地面板隐藏)
+
+- **simpleSftp.fileView.defaultLayout** (枚举: `list`|`grid`,默认: `list`)
+  SFTP 文件浏览器的默认视图布局:
+  - `list`: 详细表格视图,包含列(名称、修改时间、权限、大小)
+  - `grid`: 图标/网格视图,带图片缩略图(更适合视觉浏览)
+
+- **simpleSftp.fileView.thumbnailSize** (枚举: `96`|`128`|`160`,默认: `96`)
+  网格视图中图片文件的缩略图大小(像素):
+  - `96`: 小(加载更快,内存占用少)
+  - `128`: 中(质量和性能平衡)
+  - `160`: 大(最佳质量,内存占用多)
+
+- **simpleSftp.fileView.thumbnailCacheSize** (数字,默认: `200`,范围: 50-1000)
+  内存中缓存的缩略图最大数量。数值越大重新访问文件夹时性能越好,但占用内存越多。
+
+- **simpleSftp.fileView.thumbnailMaxFileSize** (数字,默认: `10`,范围: 1-100)
+  缩略图生成的最大文件大小(MB)。大于此大小的文件将使用通用图标。
 
 #### 传输队列
 
