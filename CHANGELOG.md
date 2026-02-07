@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.0 - 2026-02-07
+
+- **Feature**: Added "Duplicate" context menu option for files and folders with interactive QuickInput name editor
+
 ## 5.1.0 - 2026-02-06
 
 - **Feature**: Grid/Icon view mode with image thumbnails - toggle via header button between refresh and maximize
