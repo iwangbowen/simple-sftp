@@ -85,12 +85,28 @@ export const COMPRESSION = {
 } as const;
 
 export const THUMBNAIL = {
-  MAX_FILE_SIZE: 10 * 1024 * 1024,      // Max file size for thumbnail generation (10MB)
-  CACHE_MAX_SIZE: 200,                  // Maximum number of cached thumbnails (LRU)
-
   // Supported image extensions for thumbnail generation
   SUPPORTED_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'],
+
+  // Lazy loading threshold (pixels before loading thumbnail)
+  LAZY_LOAD_THRESHOLD: 200,
 } as const;
+
+/**
+ * Get thumbnail configuration from VS Code settings
+ * Configuration values are retrieved from user settings with sensible defaults
+ */
+export function getThumbnailConfig() {
+  const vscode = require('vscode');
+  const config: any = vscode.workspace.getConfiguration('simpleSftp.fileView');
+
+  const MB = 1024 * 1024;
+
+  return {
+    cacheMaxSize: config.get('thumbnailCacheSize', 200) as number,           // Default: 200 items
+    maxFileSize: (config.get('thumbnailMaxFileSize', 10) as number) * MB,    // Default: 10MB (converted to bytes)
+  };
+}
 
 export const PROMPTS = {
   // Add Host steps

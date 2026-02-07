@@ -3,7 +3,7 @@
 ## 5.1.0 - 2026-02-06
 
 - **Feature**: Grid/Icon view mode with image thumbnails - toggle via header button between refresh and maximize
-- **Performance**: Thumbnail caching (200 items), file size limit (10MB), and lazy loading with Intersection Observer for large directories
+- **Configuration**: Thumbnail cache size (50-1000, default 200) and max file size (1-100MB, default 10MB) are now configurable in settings
 
 ## 5.0.0 - 2026-02-06
 

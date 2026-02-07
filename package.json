@@ -1559,6 +1559,20 @@
             "Large (160x160) - Best quality, more memory usage"
           ]
         },
+        "simpleSftp.fileView.thumbnailCacheSize": {
+          "type": "number",
+          "default": 200,
+          "minimum": 50,
+          "maximum": 1000,
+          "description": "Maximum number of thumbnails to cache in memory. Higher values improve performance when revisiting folders, but use more memory. Default: 200"
+        },
+        "simpleSftp.fileView.thumbnailMaxFileSize": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum file size (in MB) for thumbnail generation. Files larger than this will use generic icons. Default: 10 MB"
+        },
         "simpleSftp.portForwarding.browserType": {
           "type": "string",
           "enum": [
