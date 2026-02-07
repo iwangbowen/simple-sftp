@@ -1,5 +1,10 @@
 # Change Log
 
+## 5.1.0 - 2026-02-06
+
+- **Feature**: Grid/Icon view mode with image thumbnails - toggle via header button between refresh and maximize
+- **Performance**: Thumbnail caching (200 items), file size limit (10MB), and lazy loading with Intersection Observer for large directories
+
 ## 5.0.0 - 2026-02-06
 
 - **Breaking Change**: Migrated host configurations from globalState to VS Code Settings Sync for more reliable cross-device synchronization
