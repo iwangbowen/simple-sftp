@@ -531,6 +531,12 @@
         "icon": "$(copy)"
       },
       {
+        "command": "simpleSftp.dualPanel.duplicate",
+        "title": "Duplicate",
+        "category": "Simple SFTP",
+        "icon": "$(files)"
+      },
+      {
         "command": "simpleSftp.dualPanel.createFile",
         "title": "New File",
         "category": "Simple SFTP",
@@ -684,6 +690,11 @@
           "command": "simpleSftp.dualPanel.copyFullPath",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
           "group": "2_operations@4.5"
+        },
+        {
+          "command": "simpleSftp.dualPanel.duplicate",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
+          "group": "2_operations@4.6"
         },
         {
           "command": "simpleSftp.dualPanel.changePermissions",

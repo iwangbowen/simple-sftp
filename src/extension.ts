@@ -553,6 +553,14 @@ export async function activate(context: vscode.ExtensionContext) {
         await dualPanelProvider.executeCopyFullPath(args);
       }
     }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.duplicate', async (args) => {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.executeDuplicate(args);
+      } else {
+        await dualPanelProvider.executeDuplicate(args);
+      }
+    }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.createFolder', async (args) => {
       const activeManager = getActiveManager();
       if (activeManager === 'editor') {

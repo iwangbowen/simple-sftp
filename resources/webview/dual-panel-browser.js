@@ -3189,6 +3189,42 @@
     }
 
     /**
+     * Duplicate selected items (create copies in the same directory)
+     * @param {string} panel - 'local' or 'remote'
+     */
+    function duplicateSelected(panel) {
+        console.log(`duplicateSelected called with panel: ${panel}`);
+        console.log(`selectedItems count: ${selectedItems.length}`);
+
+        // Filter selected items by panel
+        const items = selectedItems.filter(item => item.dataset.panel === panel);
+
+        console.log(`filtered items count: ${items.length}`);
+
+        if (items.length === 0) {
+            vscode.postMessage({
+                command: 'showError',
+                message: 'No items selected for duplicate'
+            });
+            return;
+        }
+
+        // Collect paths and isDirectory info
+        const paths = items.map(item => item.dataset.path);
+        const isDirectory = items.map(item => item.dataset.isDir === 'true');
+
+        // Send duplicate message to extension
+        vscode.postMessage({
+            command: 'duplicate',
+            data: {
+                panel: panel,
+                paths: paths,
+                isDirectory: isDirectory
+            }
+        });
+    }
+
+    /**
      * Start inline rename for selected item (similar to VS Code Explorer)
      */
     function startInlineRename() {
@@ -3699,6 +3735,11 @@
             case 'triggerBatchRename':
                 // Trigger batch rename with current selection
                 batchRenameSelected(message.panel);
+                break;
+
+            case 'triggerDuplicate':
+                // Trigger duplicate operation with current selection
+                duplicateSelected(message.panel);
                 break;
 
             case 'triggerRename':

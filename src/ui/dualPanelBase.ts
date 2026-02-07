@@ -356,6 +356,10 @@ export abstract class DualPanelBase {
             case 'updateViewMode':
                 // Save view mode preference (no-op for now, handled in webview state)
                 break;
+
+            case 'duplicate':
+                await this.handleDuplicate(message.data);
+                break;
         }
     }
 
@@ -1049,6 +1053,240 @@ export abstract class DualPanelBase {
         );
     }
 
+    /**
+     * Handle copy operation - store selected items for later paste
+     */
+    /**
+     * Handle duplicate operation - create a copy of file/folder in the same directory
+     */
+    protected async handleDuplicate(data: any): Promise<void> {
+        const { paths, panel, isDirectory } = data;
+
+        if (!paths || paths.length === 0) {
+            vscode.window.showErrorMessage('No items selected for duplicate');
+            return;
+        }
+
+        const sourcePaths = Array.isArray(paths) ? paths : [paths];
+        const isDirectories = Array.isArray(isDirectory) ? isDirectory : [isDirectory];
+        const count = sourcePaths.length;
+
+        try {
+            await vscode.window.withProgress(
+                {
+                    location: vscode.ProgressLocation.Notification,
+                    title: `Duplicating ${count} ${count === 1 ? 'item' : 'items'}...`,
+                    cancellable: true
+                },
+                async (progress, token) => {
+                    let successCount = 0;
+                    let failCount = 0;
+                    const errors: string[] = [];
+
+                    for (let i = 0; i < sourcePaths.length; i++) {
+                        if (token.isCancellationRequested) {
+                            break;
+                        }
+
+                        const sourcePath = sourcePaths[i];
+                        const isDir = isDirectories[i];
+                        const itemName = panel === 'local'
+                            ? path.basename(sourcePath)
+                            : path.posix.basename(sourcePath);
+
+                        progress.report({
+                            increment: (1 / count) * 100,
+                            message: `${i + 1}/${count}: ${itemName}`
+                        });
+
+                        try {
+                            // Generate destination path in the same directory
+                            let destPath: string;
+                            if (panel === 'local') {
+                                const dir = path.dirname(sourcePath);
+                                const ext = path.extname(sourcePath);
+                                const base = path.basename(sourcePath, ext);
+                                destPath = path.join(dir, `${base}_copy${ext}`);
+                           } else {
+                                const dir = path.posix.dirname(sourcePath);
+                                const ext = path.posix.extname(sourcePath);
+                                const base = path.posix.basename(sourcePath, ext);
+                                destPath = path.posix.join(dir, `${base}_copy${ext}`);
+                            }
+
+                            // Perform the copy operation
+                            if (panel === 'local') {
+                                await this.duplicateLocal(sourcePath, destPath, isDir);
+                            } else {
+                                await this.duplicateRemote(sourcePath, destPath, isDir);
+                            }
+
+                            successCount++;
+                            logger.info(`Duplicated: ${sourcePath} -> ${destPath}`);
+                        } catch (error) {
+                            failCount++;
+                            const errorMsg = `Failed to duplicate ${itemName}: ${error}`;
+                            errors.push(errorMsg);
+                            logger.error(errorMsg);
+                        }
+                    }
+
+                    // Refresh the directory
+                    const firstPath = sourcePaths[0];
+                    if (panel === 'local') {
+                        const dirPath = path.dirname(firstPath);
+                        await this.loadLocalDirectory(dirPath);
+                    } else {
+                        const dirPath = path.posix.dirname(firstPath);
+                        await this.loadRemoteDirectory(dirPath);
+                    }
+
+                    // Show summary
+                    if (successCount > 0 && failCount === 0) {
+                        this.updateStatus(`Successfully duplicated ${successCount} ${successCount === 1 ? 'item' : 'items'}`);
+                        vscode.window.showInformationMessage(`Successfully duplicated ${successCount} ${successCount === 1 ? 'item' : 'items'}`);
+                    } else if (successCount > 0 && failCount > 0) {
+                        this.updateStatus(`Duplicated ${successCount} items, ${failCount} failed`);
+                        vscode.window.showWarningMessage(
+                            `Duplicated ${successCount} items, ${failCount} failed. Check output for details.`
+                        );
+                        errors.forEach(err => logger.error(err));
+                    } else {
+                        this.updateStatus(`Duplicate operation failed`);
+                        vscode.window.showErrorMessage(`Duplicate operation failed. Check output for details.`);
+                        errors.forEach(err => logger.error(err));
+                    }
+                }
+            );
+        } catch (error) {
+            logger.error(`Duplicate operation failed: ${error}`);
+            vscode.window.showErrorMessage(`Duplicate operation failed: ${error}`);
+        }
+    }
+
+    /**
+     * Duplicate file/folder in local file system
+     */
+    private async duplicateLocal(sourcePath: string, destPath: string, isDirectory: boolean): Promise<void> {
+        // Check if destination exists and generate unique name if needed
+        let finalDestPath = destPath;
+        let counter = 1;
+        while (fs.existsSync(finalDestPath)) {
+            const ext = path.extname(destPath);
+            const base = path.basename(destPath, ext);
+            const dir = path.dirname(destPath);
+            finalDestPath = path.join(dir, `${base}_copy${counter}${ext}`);
+            counter++;
+        }
+
+        if (isDirectory) {
+            await this.copyLocalDirectoryRecursive(sourcePath, finalDestPath);
+        } else {
+            await fs.promises.copyFile(sourcePath, finalDestPath);
+        }
+    }
+
+    /**
+     * Recursively copy local directory
+     */
+    private async copyLocalDirectoryRecursive(sourceDir: string, destDir: string): Promise<void> {
+        await fs.promises.mkdir(destDir, { recursive: true });
+
+        const entries = await fs.promises.readdir(sourceDir, { withFileTypes: true });
+
+        for (const entry of entries) {
+            const sourcePath = path.join(sourceDir, entry.name);
+            const destPath = path.join(destDir, entry.name);
+
+            if (entry.isDirectory()) {
+                await this.copyLocalDirectoryRecursive(sourcePath, destPath);
+            } else {
+                await fs.promises.copyFile(sourcePath, destPath);
+            }
+        }
+    }
+
+    /**
+     * Duplicate file/folder in remote file system
+     * Uses a temporary download-upload approach
+     */
+    private async duplicateRemote(sourcePath: string, destPath: string, isDirectory: boolean): Promise<void> {
+        if (!this._currentHost || !this._currentAuthConfig) {
+            throw new Error('No host selected');
+        }
+
+        // Generate unique destination name if needed
+        let finalDestPath = destPath;
+        let counter = 1;
+        const ext = path.posix.extname(destPath);
+        const base = path.posix.basename(destPath, ext);
+        const dir = path.posix.dirname(destPath);
+
+        // Check if destination exists and generate unique name
+        try {
+            await SshConnectionManager.getFileStats(this._currentHost, this._currentAuthConfig, finalDestPath);
+            // File exists, generate unique name
+            while (true) {
+                try {
+                    finalDestPath = path.posix.join(dir, `${base}_copy${counter}${ext}`);
+                    await SshConnectionManager.getFileStats(this._currentHost, this._currentAuthConfig, finalDestPath);
+                    counter++;
+                } catch {
+                    // File doesn't exist, we can use this name
+                    break;
+                }
+            }
+        } catch {
+            // Destination doesn't exist, use original path
+        }
+
+        // Create a temporary directory for the copy operation
+        const os = await import('node:os');
+        const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'sftp-duplicate-'));
+
+        try {
+            const itemName = path.posix.basename(sourcePath);
+            const tempPath = path.join(tempDir, itemName);
+
+            // Download from source to temp
+            if (isDirectory) {
+                await SshConnectionManager.downloadDirectory(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    sourcePath,
+                    tempPath
+                );
+            } else {
+                await SshConnectionManager.downloadFile(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    sourcePath,
+                    tempPath
+                );
+            }
+
+            // Upload from temp to destination
+            if (isDirectory) {
+                await SshConnectionManager.uploadDirectory(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    tempPath,
+                    finalDestPath
+                );
+            } else {
+                await SshConnectionManager.uploadFile(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    tempPath,
+                    finalDestPath
+                );
+            }
+        } finally {
+            // Clean up temp directory
+            await fs.promises.rm(tempDir, { recursive: true, force: true });
+        }
+    }
+
     protected async handleOpenFile(data: any): Promise<void> {
         const { path: filePath, panel } = data;
 
@@ -1360,6 +1598,23 @@ export abstract class DualPanelBase {
 
         await vscode.env.clipboard.writeText(filePath);
         vscode.window.showInformationMessage(`Copied: ${filePath}`);
+    }
+
+    public async executeDuplicate(args: any): Promise<void> {
+        // Extract panel from args based on webviewSection
+        let panel = 'remote'; // default
+
+        if (args?.webviewSection) {
+            panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+        } else if (args?.panel) {
+            panel = args.panel;
+        }
+
+        // Send message to webview to trigger duplicate operation
+        this.postMessage({
+            command: 'triggerDuplicate',
+            panel: panel
+        });
     }
 
     public async executeDelete(args: any): Promise<void> {
