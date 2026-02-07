@@ -619,6 +619,18 @@
         "title": "Open in Terminal",
         "category": "Simple SFTP",
         "icon": "$(terminal)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.switchToListView",
+        "title": "Switch to List View",
+        "category": "Simple SFTP",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.switchToGridView",
+        "title": "Switch to Icon View",
+        "category": "Simple SFTP",
+        "icon": "$(symbol-namespace)"
       }
     ],
     "menus": {
@@ -702,6 +714,16 @@
           "command": "simpleSftp.dualPanel.delete",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
           "group": "3_dangerous@1"
+        },
+        {
+          "command": "simpleSftp.dualPanel.switchToListView",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
+          "group": "5_view@1"
+        },
+        {
+          "command": "simpleSftp.dualPanel.switchToGridView",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
+          "group": "5_view@2"
         },
         {
           "command": "simpleSftp.dualPanel.localMore.newFile",
@@ -1522,6 +1544,30 @@
           "type": "boolean",
           "default": true,
           "description": "Open file browser in editor area instead of panel area. When enabled, allows opening multiple browser instances for different hosts."
+        },
+        "simpleSftp.fileView.defaultLayout": {
+          "type": "string",
+          "enum": [
+            "list",
+            "grid"
+          ],
+          "default": "list",
+          "description": "Default file view layout in SFTP file browser. 'list' shows detailed table view, 'grid' shows icon/grid view with thumbnails.",
+          "enumDescriptions": [
+            "List view - Shows files in a detailed table with columns (name, modified time, permissions, size)",
+            "Grid view - Shows files as icons/thumbnails in a grid layout (better for visual browsing)"
+          ]
+        },
+        "simpleSftp.fileView.thumbnailSize": {
+          "type": "number",
+          "enum": [96, 128, 160],
+          "default": 96,
+          "description": "Thumbnail size for image files in grid view (in pixels). Larger sizes show more detail but use more memory.",
+          "enumDescriptions": [
+            "Small (96x96) - Faster loading, less memory",
+            "Medium (128x128) - Balanced quality and performance",
+            "Large (160x160) - Best quality, more memory usage"
+          ]
         },
         "simpleSftp.portForwarding.browserType": {
           "type": "string",

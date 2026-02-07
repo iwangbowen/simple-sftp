@@ -257,6 +257,42 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-sftp'));
     }),
 
+    // View mode commands for dual panel browser
+    vscode.commands.registerCommand('simpleSftp.dualPanel.switchToListView', async (args) => {
+      // Extract panel from webviewSection (e.g., 'localFile' => 'local', 'remoteFile' => 'remote')
+      let panel = 'remote'; // default
+      if (args?.webviewSection) {
+        panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+      } else if (args?.panel) {
+        panel = args.panel;
+      }
+
+      const activeManager = getActiveManager();
+
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.switchViewMode(panel, 'list');
+      } else {
+        await dualPanelProvider.switchViewMode(panel, 'list');
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.switchToGridView', async (args) => {
+      // Extract panel from webviewSection
+      let panel = 'remote'; // default
+      if (args?.webviewSection) {
+        panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+      } else if (args?.panel) {
+        panel = args.panel;
+      }
+
+      const activeManager = getActiveManager();
+
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.switchViewMode(panel, 'grid');
+      } else {
+        await dualPanelProvider.switchViewMode(panel, 'grid');
+      }
+    }),
+
     // Port forwarding commands
     vscode.commands.registerCommand('simpleSftp.refreshPortForwardings', () => {
       portForwardingTreeProvider.refresh();

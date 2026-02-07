@@ -49,6 +49,14 @@
     /** @type {MouseEvent | null} */
     let currentTooltipEvent = null;
     /** @type {boolean} */
+    let altKeyPressed = false;
+    /** @type {Object.<string, 'list' | 'grid'>} */
+    let viewMode = {
+        local: 'list',
+        remote: 'list'
+    };
+    /** @type {number} */
+    let thumbnailSize = 96;
     let isAltKeyPressed = false;
     /** @type {boolean} */
     let isMouseOnTooltip = false;
@@ -759,6 +767,19 @@
         const treeContainer = document.getElementById(`${panel}-tree`);
         if (!treeContainer) return;
 
+        // Apply view mode class
+        const currentViewMode = viewMode[panel] || 'list';
+        console.log(`[ViewMode] Rendering ${panel} tree with view mode:`, currentViewMode);
+        if (currentViewMode === 'grid') {
+            treeContainer.classList.add('grid-view');
+            treeContainer.setAttribute('data-thumbnail-size', thumbnailSize.toString());
+            console.log(`[ViewMode] Applied grid-view class to ${panel}-tree`);
+        } else {
+            treeContainer.classList.remove('grid-view');
+            treeContainer.removeAttribute('data-thumbnail-size');
+            console.log(`[ViewMode] Removed grid-view class from ${panel}-tree`);
+        }
+
         // 清空搜索框
         const searchInput = document.getElementById(`${panel}-search`);
         if (searchInput) {
@@ -915,6 +936,64 @@
         }
         item.appendChild(size);
 
+        // Apply grid view layout if enabled
+        const currentViewMode = viewMode[panel] || 'list';
+        if (currentViewMode === 'grid') {
+            // Clear list view structure
+            item.innerHTML = '';
+
+            // Create grid view icon container
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'grid-view-icon-container';
+
+            // Check if this is an image file for thumbnail
+            const isImage = !node.isDirectory && isImageFile(node.name);
+
+            if (isImage) {
+                // Create thumbnail image element
+                const thumbnail = document.createElement('img');
+                thumbnail.className = 'tree-item-thumbnail';
+                thumbnail.alt = node.name;
+                thumbnail.dataset.path = node.path;
+
+                // Add loading indicator
+                const loadingIcon = document.createElement('span');
+                loadingIcon.className = 'codicon codicon-loading thumbnail-loading';
+                iconContainer.appendChild(loadingIcon);
+
+                // Request thumbnail from backend
+                requestThumbnail(node.path, panel, thumbnail, loadingIcon, iconContainer);
+
+                iconContainer.appendChild(thumbnail);
+            } else {
+                // Use icon for non-images
+                const gridIcon = document.createElement('span');
+                gridIcon.className = `codicon tree-item-icon ${getFileIcon(node)}`;
+                iconContainer.appendChild(gridIcon);
+            }
+
+            item.appendChild(iconContainer);
+
+            // Create grid view label section
+            const labelContainer = document.createElement('div');
+            labelContainer.className = 'grid-view-label';
+
+            const gridLabel = document.createElement('span');
+            gridLabel.className = 'tree-item-label';
+            gridLabel.textContent = node.name;
+            labelContainer.appendChild(gridLabel);
+
+            // Show size for files in grid view
+            if (!node.isDirectory && node.size !== undefined) {
+                const gridSize = document.createElement('span');
+                gridSize.className = 'tree-item-size';
+                gridSize.textContent = formatFileSize(node.size);
+                labelContainer.appendChild(gridSize);
+            }
+
+            item.appendChild(labelContainer);
+        }
+
         // Event listeners
         item.addEventListener('click', (e) => {
             // 清除之前的单击定时器
@@ -1011,6 +1090,83 @@
     }
 
     // ===== 辅助函数 =====
+
+    /**
+     * Check if a file is an image based on extension
+     * @param {string} filename
+     * @returns {boolean}
+     */
+    function isImageFile(filename) {
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'];
+        const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
+        return imageExtensions.includes(ext);
+    }
+
+    /**
+     * Request thumbnail from backend
+     * @param {string} path - File path
+     * @param {string} panel - Panel name
+     * @param {HTMLImageElement} thumbnail - Thumbnail image element
+     * @param {HTMLElement} loadingIcon - Loading icon element
+     * @param {HTMLElement} iconContainer - Icon container element
+     */
+    function requestThumbnail(path, panel, thumbnail, loadingIcon, iconContainer) {
+        vscode.postMessage({
+            command: 'generateThumbnail',
+            data: {
+                path,
+                panel,
+                size: thumbnailSize
+            }
+        });
+
+        // Store reference for when thumbnail data arrives
+        thumbnail.dataset.requestId = `${panel}:${path}`;
+
+        // Set timeout to remove loading icon if thumbnail generation fails
+        setTimeout(() => {
+            if (loadingIcon.parentNode === iconContainer) {
+                iconContainer.removeChild(loadingIcon);
+            }
+        }, 10000); // 10 second timeout
+    }
+
+    /**
+     * Switch view mode for a panel
+     * @param {string} panel - Panel name ('local' or 'remote')
+     * @param {'list' | 'grid'} mode - View mode
+     */
+    function switchViewMode(panel, mode) {
+        if (!panel || !mode) {
+            console.error('Invalid switchViewMode parameters:', panel, mode);
+            return;
+        }
+
+        console.log(`[ViewMode] Switching ${panel} panel to ${mode} view`);
+
+        // Update view mode state
+        viewMode[panel] = mode;
+        console.log(`[ViewMode] Updated viewMode state:`, viewMode);
+
+        // Save preference to VS Code settings
+        vscode.postMessage({
+            command: 'updateViewMode',
+            data: { panel, mode }
+        });
+
+        // Re-render the current directory to apply new view mode
+        const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+        console.log(`[ViewMode] Current path for ${panel}:`, currentPath);
+        if (currentPath) {
+            // Request directory reload with unified loadDirectory command
+            vscode.postMessage({
+                command: 'loadDirectory',
+                panel: panel,
+                path: currentPath
+            });
+            console.log(`[ViewMode] Sent loadDirectory command for ${panel} panel`);
+        }
+    }
 
     /**
      * 处理搜索框的键盘事件
@@ -3650,6 +3806,58 @@ case 'updateStatus':
                     closeSearchView();
                 } else {
                     openSearchView();
+                }
+                break;
+
+            case 'switchToListView':
+                // Handle switch to list view command
+                if (message.panel) {
+                    switchViewMode(message.panel, 'list');
+                }
+                break;
+
+            case 'switchToGridView':
+                // Handle switch to grid/icon view command
+                if (message.panel) {
+                    switchViewMode(message.panel, 'grid');
+                }
+                break;
+
+            case 'thumbnailData':
+                // Handle thumbnail data from backend
+                if (message.data && message.data.dataUrl) {
+                    const { panel, path, dataUrl } = message.data;
+                    const requestId = `${panel}:${path}`;
+
+                    // Find thumbnail element with matching request ID
+                    const thumbnails = document.querySelectorAll('.tree-item-thumbnail');
+                    thumbnails.forEach(thumb => {
+                        if (thumb.dataset.requestId === requestId && thumb.parentNode) {
+                            // Remove loading icon
+                            const loadingIcon = thumb.parentNode.querySelector('.thumbnail-loading');
+                            if (loadingIcon) {
+                                loadingIcon.remove();
+                            }
+
+                            // Set thumbnail source
+                            thumb.src = dataUrl;
+                        }
+                    });
+                }
+                break;
+
+            case 'setViewMode':
+                // Initialize view mode from settings
+                if (message.data) {
+                    if (message.data.local) {
+                        viewMode.local = message.data.local;
+                    }
+                    if (message.data.remote) {
+                        viewMode.remote = message.data.remote;
+                    }
+                    if (message.data.thumbnailSize) {
+                        thumbnailSize = message.data.thumbnailSize;
+                    }
                 }
                 break;
         }

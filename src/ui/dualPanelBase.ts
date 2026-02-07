@@ -71,6 +71,13 @@ export abstract class DualPanelBase {
     protected abstract getWebview(): vscode.Webview | undefined;
 
     /**
+     * Public method to switch view mode
+     */
+    public async switchViewMode(panel: string, mode: 'list' | 'grid'): Promise<void> {
+        await this.handleSwitchViewMode(panel, mode);
+    }
+
+    /**
      * Open dual panel for a specific host
      */
     public async openForHost(host: HostConfig, initialPath?: string): Promise<void> {
@@ -109,7 +116,18 @@ export abstract class DualPanelBase {
      */
     protected async handleMessage(message: any): Promise<void> {
         switch (message.command) {
-            case 'ready':
+            case 'ready': {
+                // Send view mode configuration to webview
+                const config = vscode.workspace.getConfiguration('simpleSftp.fileView');
+                this.postMessage({
+                    command: 'setViewMode',
+                    data: {
+                        local: config.get<string>('defaultLayout', 'list'),
+                        remote: config.get<string>('defaultLayout', 'list'),
+                        thumbnailSize: config.get<number>('thumbnailSize', 96)
+                    }
+                });
+
                 if (this._currentHost && this._localRootPath && this._remoteRootPath) {
                     await this.loadLocalDirectory(this._localRootPath);
                     await this.loadRemoteDirectory(this._remoteRootPath);
@@ -117,6 +135,7 @@ export abstract class DualPanelBase {
                     await this.showHostSelection();
                 }
                 break;
+            }
 
             case 'selectHost': {
                 const hostId = message.hostId;
@@ -316,6 +335,22 @@ export abstract class DualPanelBase {
 
             case 'openBrowser':
                 await this.handleOpenBrowser(message.address);
+                break;
+
+            case 'switchToListView':
+                await this.handleSwitchViewMode(message.panel, 'list');
+                break;
+
+            case 'switchToGridView':
+                await this.handleSwitchViewMode(message.panel, 'grid');
+                break;
+
+            case 'generateThumbnail':
+                await this.handleGenerateThumbnail(message.data);
+                break;
+
+            case 'updateViewMode':
+                // Save view mode preference (no-op for now, handled in webview state)
                 break;
         }
     }
@@ -2859,5 +2894,145 @@ export abstract class DualPanelBase {
             logger.error(`Failed to open browser: ${error.message}`);
             vscode.window.showErrorMessage(`Failed to open browser: ${error.message}`);
         }
+    }
+
+    /**
+     * Handle view mode switch
+     */
+    protected async handleSwitchViewMode(panel: string, mode: 'list' | 'grid'): Promise<void> {
+        try {
+            logger.info(`[DualPanelBase] Switching ${panel} panel to ${mode} view`);
+
+            // Send message to webview to switch view mode
+            this.postMessage({
+                command: mode === 'list' ? 'switchToListView' : 'switchToGridView',
+                panel: panel
+            });
+        } catch (error: any) {
+            logger.error(`Failed to switch view mode: ${error.message}`);
+        }
+    }
+
+    /**
+     * Handle thumbnail generation request
+     */
+    protected async handleGenerateThumbnail(data: { path: string; panel: string; size: number }): Promise<void> {
+        try {
+            const { path, panel, size } = data;
+            logger.info(`[DualPanelBase] Generating thumbnail for ${path} (${panel} panel, size: ${size})`);
+
+            let thumbnailData: string | null = null;
+
+            if (panel === 'local') {
+                // Generate thumbnail for local file
+                thumbnailData = await this.generateLocalThumbnail(path, size);
+                logger.info(`[DualPanelBase] Local thumbnail generated: ${thumbnailData ? thumbnailData.substring(0, 50) + '...' : 'null'}`);
+            } else if (panel === 'remote') {
+                // Generate thumbnail for remote file
+                thumbnailData = await this.generateRemoteThumbnail(path, size);
+                logger.info(`[DualPanelBase] Remote thumbnail generated: ${thumbnailData ? thumbnailData.substring(0, 50) + '...' : 'null'}`);
+            }
+
+            if (thumbnailData) {
+                // Send thumbnail data back to webview
+                logger.info(`[DualPanelBase] Sending thumbnail data to webview for ${path}`);
+                this.postMessage({
+                    command: 'thumbnailData',
+                    data: {
+                        path,
+                        panel,
+                        dataUrl: thumbnailData
+                    }
+                });
+            } else {
+                logger.warn(`[DualPanelBase] No thumbnail data generated for ${path}`);
+            }
+        } catch (error: any) {
+            logger.error(`Failed to generate thumbnail: ${error.message}`, error.stack);
+            // Don't show error to user, just log it
+        }
+    }
+
+    /**
+     * Generate thumbnail for local file
+     */
+    private async generateLocalThumbnail(filePath: string, size: number): Promise<string | null> {
+        try {
+            const fs = require('node:fs');
+            const path = require('node:path');
+
+            // Check if file is an image
+            const ext = path.extname(filePath).toLowerCase();
+            const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+
+            if (!imageExtensions.includes(ext)) {
+                return null;
+            }
+
+            // For now, return base64 encoded image data without resizing
+            // TODO: Implement proper image resizing using sharp or similar library
+            const imageBuffer = fs.readFileSync(filePath);
+            const base64 = imageBuffer.toString('base64');
+            const mimeType = this.getMimeType(ext);
+
+            return `data:${mimeType};base64,${base64}`;
+        } catch (error: any) {
+            logger.error(`Failed to generate local thumbnail: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Generate thumbnail for remote file
+     */
+    private async generateRemoteThumbnail(filePath: string, size: number): Promise<string | null> {
+        try {
+            if (!this._currentHost || !this._currentAuthConfig) {
+                return null;
+            }
+
+            const path = require('node:path');
+
+            // Check if file is an image
+            const ext = path.extname(filePath).toLowerCase();
+            const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+
+            if (!imageExtensions.includes(ext)) {
+                return null;
+            }
+
+            // Use SshConnectionManager to read remote file
+            const buffer = await SshConnectionManager.readRemoteFile(
+                this._currentHost,
+                this._currentAuthConfig,
+                filePath
+            );
+
+            // For now, return base64 encoded image data without resizing
+            // TODO: Implement proper image resizing
+            const base64 = buffer.toString('base64');
+            const mimeType = this.getMimeType(ext);
+
+            return `data:${mimeType};base64,${base64}`;
+        } catch (error: any) {
+            logger.error(`Failed to generate remote thumbnail: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Get MIME type for image extension
+     */
+    private getMimeType(ext: string): string {
+        const mimeTypes: Record<string, string> = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.bmp': 'image/bmp',
+            '.webp': 'image/webp',
+            '.svg': 'image/svg+xml'
+        };
+        return mimeTypes[ext.toLowerCase()] || 'application/octet-stream';
     }
 }

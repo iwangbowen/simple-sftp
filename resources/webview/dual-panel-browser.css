@@ -2724,3 +2724,192 @@ body {
     font-size: 11px;
     margin-top: 4px;
 }
+
+/* ===== Grid View Styles ===== */
+/* Grid view layout: icon/thumbnail + name + size below */
+.file-tree.grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 8px;
+    padding: 10px;
+    align-content: start;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Hide table header in grid view */
+.file-tree.grid-view .file-tree-header {
+    display: none;
+}
+
+/* Grid item layout */
+.file-tree.grid-view .tree-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    min-width: 85px;
+    max-width: 110px;
+    min-height: 110px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.1s, transform 0.1s;
+}
+
+.file-tree.grid-view .tree-item:hover {
+    background-color: var(--vscode-list-hoverBackground);
+    transform: translateY(-2px);
+}
+
+.file-tree.grid-view .tree-item.selected {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.file-tree.grid-view .tree-item.opening-file {
+    opacity: 0.7;
+}
+
+/* Grid view icon/thumbnail container */
+.grid-view-icon-container {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 6px;
+    background: var(--vscode-editor-background);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Thumbnail for images */
+.tree-item-thumbnail {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 3px;
+}
+
+/* Fallback icon when no thumbnail - balanced size */
+.grid-view-icon-container .tree-item-icon {
+    font-size: 48px !important;
+    margin: 0;
+    line-height: 1;
+    width: 48px;
+    height: 48px;
+}
+
+.file-tree.grid-view .tree-item-icon.codicon-folder,
+.file-tree.grid-view .tree-item-icon.codicon-folder-opened,
+.file-tree.grid-view .tree-item-icon.codicon-file,
+.file-tree.grid-view .tree-item-icon {
+    font-size: 48px !important;
+    color: var(--vscode-icon-foreground);
+}
+
+/* Grid view label section */
+.grid-view-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    text-align: center;
+    gap: 2px;
+}
+
+.grid-view-label .tree-item-label {
+    font-size: 11px;
+    padding: 0;
+    margin: 0;
+    min-width: auto;
+    max-width: 100%;
+    word-break: break-word;
+    line-height: 1.3;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.grid-view-label .tree-item-size {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* Hide columns in grid view */
+.file-tree.grid-view .tree-item-time,
+.file-tree.grid-view .tree-item-permissions {
+    display: none;
+}
+
+/* Back item special styling in grid view */
+.file-tree.grid-view .tree-item.back-item {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: flex-start;
+    min-height: auto;
+    padding: 6px 12px;
+}
+
+.file-tree.grid-view .tree-item.back-item .grid-view-icon-container {
+    width: auto;
+    height: auto;
+    margin: 0 8px 0 0;
+    background: transparent;
+}
+
+.file-tree.grid-view .tree-item.back-item .tree-item-icon {
+    font-size: 16px;
+}
+
+.file-tree.grid-view .tree-item.back-item .grid-view-label {
+    flex-direction: row;
+    text-align: left;
+}
+
+.file-tree.grid-view .tree-item.back-item .tree-item-label {
+    -webkit-line-clamp: 1;
+}
+
+/* Loading state for thumbnails */
+.thumbnail-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: var(--vscode-progressBar-background);
+    animation: spin 1s linear infinite;
+}
+
+/* Adjust grid columns based on thumbnail size */
+.file-tree.grid-view[data-thumbnail-size="128"] {
+    grid-template-columns: repeat(auto-fill, minmax(144px, 1fr));
+}
+
+.file-tree.grid-view[data-thumbnail-size="128"] .grid-view-icon-container {
+    width: 128px;
+    height: 128px;
+}
+
+.file-tree.grid-view[data-thumbnail-size="128"] .tree-item {
+    min-width: 144px;
+    max-width: 192px;
+}
+
+.file-tree.grid-view[data-thumbnail-size="160"] {
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+}
+
+.file-tree.grid-view[data-thumbnail-size="160"] .grid-view-icon-container {
+    width: 160px;
+    height: 160px;
+}
+
+.file-tree.grid-view[data-thumbnail-size="160"] .tree-item {
+    min-width: 176px;
+    max-width: 224px;
+}
