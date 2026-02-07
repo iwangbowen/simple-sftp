@@ -1069,98 +1069,220 @@ export abstract class DualPanelBase {
 
         const sourcePaths = Array.isArray(paths) ? paths : [paths];
         const isDirectories = Array.isArray(isDirectory) ? isDirectory : [isDirectory];
-        const count = sourcePaths.length;
+
+        // For single item, show input box to get new name
+        if (sourcePaths.length === 1) {
+            const sourcePath = sourcePaths[0];
+            const isDir = isDirectories[0];
+
+            // Get default name suggestion
+            let itemName: string;
+            let dirPath: string;
+            if (panel === 'local') {
+                itemName = path.basename(sourcePath);
+                dirPath = path.dirname(sourcePath);
+            } else {
+                itemName = path.posix.basename(sourcePath);
+                dirPath = path.posix.dirname(sourcePath);
+            }
+
+            // Generate default copy name
+            const ext = panel === 'local' ? path.extname(itemName) : path.posix.extname(itemName);
+            const base = panel === 'local' ? path.basename(itemName, ext) : path.posix.basename(itemName, ext);
+            let defaultName = `${base}_copy${ext}`;
+
+            // Check if default name exists and increment counter
+            let counter = 1;
+            while (true) {
+                const checkPath = panel === 'local'
+                    ? path.join(dirPath, defaultName)
+                    : path.posix.join(dirPath, defaultName);
+
+                const exists = panel === 'local'
+                    ? fs.existsSync(checkPath)
+                    : await this.checkRemoteFileExists(checkPath);
+
+                if (!exists) {
+                    break;
+                }
+
+                defaultName = `${base}_copy${counter}${ext}`;
+                counter++;
+            }
+
+            // Show input box
+            const newName = await vscode.window.showInputBox({
+                prompt: `Enter new name for ${isDir ? 'folder' : 'file'}`,
+                value: defaultName,
+                placeHolder: defaultName,
+                validateInput: (value) => {
+                    if (!value || value.trim() === '') {
+                        return 'Name cannot be empty';
+                    }
+                    if (value === itemName) {
+                        return 'New name must be different from original name';
+                    }
+                    // Check for invalid characters
+                    if (panel === 'local' && /[<>:"|?*]/.test(value)) {
+                        return 'Name contains invalid characters';
+                    }
+                    if (panel === 'remote' && /[\/]/.test(value)) {
+                        return 'Name cannot contain forward slashes';
+                    }
+                    return undefined;
+                }
+            });
+
+            if (!newName) {
+                return; // User cancelled
+            }
+
+            // Perform the duplicate operation
+            try {
+                const destPath = panel === 'local'
+                    ? path.join(dirPath, newName)
+                    : path.posix.join(dirPath, newName);
+
+                await vscode.window.withProgress(
+                    {
+                        location: vscode.ProgressLocation.Notification,
+                        title: `Duplicating ${itemName}...`,
+                        cancellable: false
+                    },
+                    async () => {
+                        if (panel === 'local') {
+                            await this.duplicateLocal(sourcePath, destPath, isDir);
+                        } else {
+                            await this.duplicateRemote(sourcePath, destPath, isDir);
+                        }
+                    }
+                );
+
+                // Refresh the directory
+                if (panel === 'local') {
+                    await this.loadLocalDirectory(dirPath);
+                } else {
+                    await this.loadRemoteDirectory(dirPath);
+                }
+
+                this.updateStatus(`Successfully duplicated to ${newName}`);
+                vscode.window.showInformationMessage(`Successfully duplicated to ${newName}`);
+                logger.info(`Duplicated: ${sourcePath} -> ${destPath}`);
+            } catch (error) {
+                logger.error(`Failed to duplicate: ${error}`);
+                vscode.window.showErrorMessage(`Failed to duplicate: ${error}`);
+            }
+        } else {
+            // For multiple items, duplicate with default names (no user input)
+            const count = sourcePaths.length;
+
+            try {
+                await vscode.window.withProgress(
+                    {
+                        location: vscode.ProgressLocation.Notification,
+                        title: `Duplicating ${count} items...`,
+                        cancellable: true
+                    },
+                    async (progress, token) => {
+                        let successCount = 0;
+                        let failCount = 0;
+                        const errors: string[] = [];
+
+                        for (let i = 0; i < sourcePaths.length; i++) {
+                            if (token.isCancellationRequested) {
+                                break;
+                            }
+
+                            const sourcePath = sourcePaths[i];
+                            const isDir = isDirectories[i];
+                            const itemName = panel === 'local'
+                                ? path.basename(sourcePath)
+                                : path.posix.basename(sourcePath);
+
+                            progress.report({
+                                increment: (1 / count) * 100,
+                                message: `${i + 1}/${count}: ${itemName}`
+                            });
+
+                            try {
+                                // Generate destination path in the same directory
+                                let destPath: string;
+                                if (panel === 'local') {
+                                    const dir = path.dirname(sourcePath);
+                                    const ext = path.extname(sourcePath);
+                                    const base = path.basename(sourcePath, ext);
+                                    destPath = path.join(dir, `${base}_copy${ext}`);
+                                } else {
+                                    const dir = path.posix.dirname(sourcePath);
+                                    const ext = path.posix.extname(sourcePath);
+                                    const base = path.posix.basename(sourcePath, ext);
+                                    destPath = path.posix.join(dir, `${base}_copy${ext}`);
+                                }
+
+                                // Perform the copy operation
+                                if (panel === 'local') {
+                                    await this.duplicateLocal(sourcePath, destPath, isDir);
+                                } else {
+                                    await this.duplicateRemote(sourcePath, destPath, isDir);
+                                }
+
+                                successCount++;
+                                logger.info(`Duplicated: ${sourcePath} -> ${destPath}`);
+                            } catch (error) {
+                                failCount++;
+                                const errorMsg = `Failed to duplicate ${itemName}: ${error}`;
+                                errors.push(errorMsg);
+                                logger.error(errorMsg);
+                            }
+                        }
+
+                        // Refresh the directory
+                        const firstPath = sourcePaths[0];
+                        if (panel === 'local') {
+                            const dirPath = path.dirname(firstPath);
+                            await this.loadLocalDirectory(dirPath);
+                        } else {
+                            const dirPath = path.posix.dirname(firstPath);
+                            await this.loadRemoteDirectory(dirPath);
+                        }
+
+                        // Show summary
+                        if (successCount > 0 && failCount === 0) {
+                            this.updateStatus(`Successfully duplicated ${successCount} ${successCount === 1 ? 'item' : 'items'}`);
+                            vscode.window.showInformationMessage(`Successfully duplicated ${successCount} ${successCount === 1 ? 'item' : 'items'}`);
+                        } else if (successCount > 0 && failCount > 0) {
+                            this.updateStatus(`Duplicated ${successCount} items, ${failCount} failed`);
+                            vscode.window.showWarningMessage(
+                                `Duplicated ${successCount} items, ${failCount} failed. Check output for details.`
+                            );
+                            errors.forEach(err => logger.error(err));
+                        } else {
+                            this.updateStatus(`Duplicate operation failed`);
+                            vscode.window.showErrorMessage(`Duplicate operation failed. Check output for details.`);
+                            errors.forEach(err => logger.error(err));
+                        }
+                    }
+                );
+            } catch (error) {
+                logger.error(`Duplicate operation failed: ${error}`);
+                vscode.window.showErrorMessage(`Duplicate operation failed: ${error}`);
+            }
+        }
+    }
+
+    /**
+     * Check if a remote file exists
+     */
+    private async checkRemoteFileExists(remotePath: string): Promise<boolean> {
+        if (!this._currentHost || !this._currentAuthConfig) {
+            return false;
+        }
 
         try {
-            await vscode.window.withProgress(
-                {
-                    location: vscode.ProgressLocation.Notification,
-                    title: `Duplicating ${count} ${count === 1 ? 'item' : 'items'}...`,
-                    cancellable: true
-                },
-                async (progress, token) => {
-                    let successCount = 0;
-                    let failCount = 0;
-                    const errors: string[] = [];
-
-                    for (let i = 0; i < sourcePaths.length; i++) {
-                        if (token.isCancellationRequested) {
-                            break;
-                        }
-
-                        const sourcePath = sourcePaths[i];
-                        const isDir = isDirectories[i];
-                        const itemName = panel === 'local'
-                            ? path.basename(sourcePath)
-                            : path.posix.basename(sourcePath);
-
-                        progress.report({
-                            increment: (1 / count) * 100,
-                            message: `${i + 1}/${count}: ${itemName}`
-                        });
-
-                        try {
-                            // Generate destination path in the same directory
-                            let destPath: string;
-                            if (panel === 'local') {
-                                const dir = path.dirname(sourcePath);
-                                const ext = path.extname(sourcePath);
-                                const base = path.basename(sourcePath, ext);
-                                destPath = path.join(dir, `${base}_copy${ext}`);
-                           } else {
-                                const dir = path.posix.dirname(sourcePath);
-                                const ext = path.posix.extname(sourcePath);
-                                const base = path.posix.basename(sourcePath, ext);
-                                destPath = path.posix.join(dir, `${base}_copy${ext}`);
-                            }
-
-                            // Perform the copy operation
-                            if (panel === 'local') {
-                                await this.duplicateLocal(sourcePath, destPath, isDir);
-                            } else {
-                                await this.duplicateRemote(sourcePath, destPath, isDir);
-                            }
-
-                            successCount++;
-                            logger.info(`Duplicated: ${sourcePath} -> ${destPath}`);
-                        } catch (error) {
-                            failCount++;
-                            const errorMsg = `Failed to duplicate ${itemName}: ${error}`;
-                            errors.push(errorMsg);
-                            logger.error(errorMsg);
-                        }
-                    }
-
-                    // Refresh the directory
-                    const firstPath = sourcePaths[0];
-                    if (panel === 'local') {
-                        const dirPath = path.dirname(firstPath);
-                        await this.loadLocalDirectory(dirPath);
-                    } else {
-                        const dirPath = path.posix.dirname(firstPath);
-                        await this.loadRemoteDirectory(dirPath);
-                    }
-
-                    // Show summary
-                    if (successCount > 0 && failCount === 0) {
-                        this.updateStatus(`Successfully duplicated ${successCount} ${successCount === 1 ? 'item' : 'items'}`);
-                        vscode.window.showInformationMessage(`Successfully duplicated ${successCount} ${successCount === 1 ? 'item' : 'items'}`);
-                    } else if (successCount > 0 && failCount > 0) {
-                        this.updateStatus(`Duplicated ${successCount} items, ${failCount} failed`);
-                        vscode.window.showWarningMessage(
-                            `Duplicated ${successCount} items, ${failCount} failed. Check output for details.`
-                        );
-                        errors.forEach(err => logger.error(err));
-                    } else {
-                        this.updateStatus(`Duplicate operation failed`);
-                        vscode.window.showErrorMessage(`Duplicate operation failed. Check output for details.`);
-                        errors.forEach(err => logger.error(err));
-                    }
-                }
-            );
-        } catch (error) {
-            logger.error(`Duplicate operation failed: ${error}`);
-            vscode.window.showErrorMessage(`Duplicate operation failed: ${error}`);
+            await SshConnectionManager.getFileStats(this._currentHost, this._currentAuthConfig, remotePath);
+            return true;
+        } catch {
+            return false;
         }
     }
 
