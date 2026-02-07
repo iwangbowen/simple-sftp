@@ -61,6 +61,10 @@
     /** @type {boolean} */
     let isMouseOnTooltip = false;
 
+    // Thumbnail lazy loading
+    /** @type {IntersectionObserver | null} */
+    let thumbnailObserver = null;
+
     // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
         // 从DOM中读取初始路径
@@ -95,6 +99,9 @@
 
         // Initialize file tooltip
         initializeFileTooltip();
+
+        // Initialize thumbnail lazy loading observer
+        initializeThumbnailObserver();
     });
 
     // ===== 事件监听器 =====
@@ -956,13 +963,22 @@
                 thumbnail.alt = node.name;
                 thumbnail.dataset.path = node.path;
 
+                // Store data for lazy loading
+                thumbnail.dataset.thumbnailPath = node.path;
+                thumbnail.dataset.thumbnailPanel = panel;
+                if (node.size !== undefined) {
+                    thumbnail.dataset.thumbnailFilesize = node.size.toString();
+                }
+
                 // Add loading indicator
                 const loadingIcon = document.createElement('span');
                 loadingIcon.className = 'codicon codicon-loading thumbnail-loading';
                 iconContainer.appendChild(loadingIcon);
 
-                // Request thumbnail from backend
-                requestThumbnail(node.path, panel, thumbnail, loadingIcon, iconContainer);
+                // Observe thumbnail for lazy loading
+                if (thumbnailObserver) {
+                    thumbnailObserver.observe(thumbnail);
+                }
 
                 iconContainer.appendChild(thumbnail);
             } else {
@@ -1110,13 +1126,14 @@
      * @param {HTMLElement} loadingIcon - Loading icon element
      * @param {HTMLElement} iconContainer - Icon container element
      */
-    function requestThumbnail(path, panel, thumbnail, loadingIcon, iconContainer) {
+    function requestThumbnail(path, panel, thumbnail, loadingIcon, iconContainer, fileSize) {
         vscode.postMessage({
             command: 'generateThumbnail',
             data: {
                 path,
                 panel,
-                size: thumbnailSize
+                size: thumbnailSize,
+                fileSize: fileSize  // Pass file size for backend size check
             }
         });
 
@@ -1166,6 +1183,49 @@
             });
             console.log(`[ViewMode] Sent loadDirectory command for ${panel} panel`);
         }
+    }
+
+    /**
+     * Initialize Intersection Observer for lazy loading thumbnails
+     */
+    function initializeThumbnailObserver() {
+        if (thumbnailObserver) {
+            return; // Already initialized
+        }
+
+        thumbnailObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const thumbnail = entry.target;
+
+                    // Check if thumbnail has data attributes set
+                    const path = thumbnail.dataset.thumbnailPath;
+                    const panel = thumbnail.dataset.thumbnailPanel;
+                    const fileSize = thumbnail.dataset.thumbnailFilesize;
+
+                    if (path && panel) {
+                        // Find the loading icon and icon container
+                        const iconContainer = thumbnail.parentElement;
+                        const loadingIcon = iconContainer ? iconContainer.querySelector('.thumbnail-loading') : null;
+
+                        // Request thumbnail from backend
+                        requestThumbnail(path, panel, thumbnail, loadingIcon, iconContainer, fileSize ? Number.parseInt(fileSize, 10) : undefined);
+
+                        // Stop observing this thumbnail
+                        thumbnailObserver.unobserve(thumbnail);
+
+                        // Clean up data attributes
+                        delete thumbnail.dataset.thumbnailPath;
+                        delete thumbnail.dataset.thumbnailPanel;
+                        delete thumbnail.dataset.thumbnailFilesize;
+                    }
+                }
+            });
+        }, {
+            root: null, // use viewport as root
+            rootMargin: '50px', // load thumbnails 50px before they enter viewport
+            threshold: 0.01 // trigger when even 1% is visible
+        });
     }
 
     /**

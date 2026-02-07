@@ -84,6 +84,16 @@ export const COMPRESSION = {
   ],
 } as const;
 
+export const THUMBNAIL = {
+  MAX_FILE_SIZE: 10 * 1024 * 1024,      // Max file size for thumbnail generation (10MB)
+  CACHE_MAX_SIZE: 100,                  // Maximum number of cached thumbnails (LRU)
+  LAZY_LOAD_THRESHOLD: 50,              // Enable lazy loading if directory has >50 images
+  SIZE: 128,                            // Thumbnail size in pixels (width/height)
+
+  // Supported image extensions for thumbnail generation
+  SUPPORTED_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'],
+} as const;
+
 export const PROMPTS = {
   // Add Host steps
   hostName: 'Step 1/6: Enter host name',

@@ -7,6 +7,7 @@ import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { logger } from '../logger';
+import { THUMBNAIL } from '../constants';
 import { PortForwardService } from '../services/portForwardService';
 import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
 import { TimeUtils } from '../timeUtils';
@@ -36,6 +37,9 @@ export abstract class DualPanelBase {
     protected _remoteRootPath?: string;
     protected _searchHistory: string[] = [];
     protected readonly MAX_SEARCH_HISTORY = 20;
+
+    // Thumbnail caching
+    private thumbnailCache: Map<string, string> = new Map();
 
     constructor(
         protected readonly _extensionUri: vscode.Uri,
@@ -2916,9 +2920,26 @@ export abstract class DualPanelBase {
     /**
      * Handle thumbnail generation request
      */
-    protected async handleGenerateThumbnail(data: { path: string; panel: string; size: number }): Promise<void> {
+    protected async handleGenerateThumbnail(data: { path: string; panel: string; size: number; fileSize?: number }): Promise<void> {
         try {
-            const { path, panel, size } = data;
+            const { path, panel, size, fileSize } = data;
+
+            // Check cache first
+            const cacheKey = `${panel}:${path}`;
+            const cached = this.getCachedThumbnail(cacheKey);
+            if (cached) {
+                logger.info(`[DualPanelBase] Using cached thumbnail for ${path} (${panel} panel)`);
+                this.postMessage({
+                    command: 'thumbnailData',
+                    data: {
+                        path,
+                        panel,
+                        dataUrl: cached
+                    }
+                });
+                return;
+            }
+
             logger.info(`[DualPanelBase] Generating thumbnail for ${path} (${panel} panel, size: ${size})`);
 
             let thumbnailData: string | null = null;
@@ -2926,16 +2947,17 @@ export abstract class DualPanelBase {
             if (panel === 'local') {
                 // Generate thumbnail for local file
                 thumbnailData = await this.generateLocalThumbnail(path, size);
-                logger.info(`[DualPanelBase] Local thumbnail generated: ${thumbnailData ? thumbnailData.substring(0, 50) + '...' : 'null'}`);
             } else if (panel === 'remote') {
                 // Generate thumbnail for remote file
-                thumbnailData = await this.generateRemoteThumbnail(path, size);
-                logger.info(`[DualPanelBase] Remote thumbnail generated: ${thumbnailData ? thumbnailData.substring(0, 50) + '...' : 'null'}`);
+                thumbnailData = await this.generateRemoteThumbnail(path, size, fileSize);
             }
 
             if (thumbnailData) {
+                // Cache the generated thumbnail
+                this.setCachedThumbnail(cacheKey, thumbnailData);
+
                 // Send thumbnail data back to webview
-                logger.info(`[DualPanelBase] Sending thumbnail data to webview for ${path}`);
+                logger.info(`[DualPanelBase] Thumbnail generated and cached for ${path}`);
                 this.postMessage({
                     command: 'thumbnailData',
                     data: {
@@ -2963,9 +2985,14 @@ export abstract class DualPanelBase {
 
             // Check if file is an image
             const ext = path.extname(filePath).toLowerCase();
-            const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+            if (!THUMBNAIL.SUPPORTED_EXTENSIONS.includes(ext)) {
+                return null;
+            }
 
-            if (!imageExtensions.includes(ext)) {
+            // Check file size (skip if too large)
+            const stats = fs.statSync(filePath);
+            if (stats.size > THUMBNAIL.MAX_FILE_SIZE) {
+                logger.info(`[DualPanelBase] File too large for thumbnail: ${filePath} (${stats.size} bytes)`);
                 return null;
             }
 
@@ -2985,7 +3012,7 @@ export abstract class DualPanelBase {
     /**
      * Generate thumbnail for remote file
      */
-    private async generateRemoteThumbnail(filePath: string, size: number): Promise<string | null> {
+    private async generateRemoteThumbnail(filePath: string, size: number, fileSize?: number): Promise<string | null> {
         try {
             if (!this._currentHost || !this._currentAuthConfig) {
                 return null;
@@ -2995,9 +3022,13 @@ export abstract class DualPanelBase {
 
             // Check if file is an image
             const ext = path.extname(filePath).toLowerCase();
-            const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+            if (!THUMBNAIL.SUPPORTED_EXTENSIONS.includes(ext)) {
+                return null;
+            }
 
-            if (!imageExtensions.includes(ext)) {
+            // Check file size (skip if too large)
+            if (fileSize && fileSize > THUMBNAIL.MAX_FILE_SIZE) {
+                logger.info(`[DualPanelBase] Remote file too large for thumbnail: ${filePath} (${fileSize} bytes)`);
                 return null;
             }
 
@@ -3017,6 +3048,39 @@ export abstract class DualPanelBase {
         } catch (error: any) {
             logger.error(`Failed to generate remote thumbnail: ${error.message}`);
             return null;
+        }
+    }
+
+    /**
+     * Get cached thumbnail (LRU access)
+     */
+    private getCachedThumbnail(key: string): string | null {
+        const value = this.thumbnailCache.get(key);
+        if (value) {
+            // Move to end (most recently used)
+            this.thumbnailCache.delete(key);
+            this.thumbnailCache.set(key, value);
+        }
+        return value || null;
+    }
+
+    /**
+     * Set cached thumbnail (LRU eviction)
+     */
+    private setCachedThumbnail(key: string, value: string): void {
+        // Remove if exists
+        this.thumbnailCache.delete(key);
+
+        // Add to end
+        this.thumbnailCache.set(key, value);
+
+        // Enforce max cache size (LRU eviction)
+        if (this.thumbnailCache.size > THUMBNAIL.CACHE_MAX_SIZE) {
+            const firstKey = this.thumbnailCache.keys().next().value;
+            if (firstKey) {
+                this.thumbnailCache.delete(firstKey);
+                logger.info(`[DualPanelBase] Evicted thumbnail from cache: ${firstKey}`);
+            }
         }
     }
 
