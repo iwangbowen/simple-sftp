@@ -716,16 +716,6 @@
           "group": "3_dangerous@1"
         },
         {
-          "command": "simpleSftp.dualPanel.switchToListView",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
-          "group": "5_view@1"
-        },
-        {
-          "command": "simpleSftp.dualPanel.switchToGridView",
-          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection != 'localMore' && webviewSection != 'remoteMore'",
-          "group": "5_view@2"
-        },
-        {
           "command": "simpleSftp.dualPanel.localMore.newFile",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'localMore'",
           "group": "1_actions@1"

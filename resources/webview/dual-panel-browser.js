@@ -111,6 +111,10 @@
         document.getElementById('refresh-local')?.addEventListener('click', () => refreshPanel('local'));
         document.getElementById('refresh-remote')?.addEventListener('click', () => refreshPanel('remote'));
 
+        // View mode toggle buttons
+        document.getElementById('local-view-toggle')?.addEventListener('click', () => toggleViewModeButton('local'));
+        document.getElementById('remote-view-toggle')?.addEventListener('click', () => toggleViewModeButton('remote'));
+
         // Maximize panel buttons
         document.getElementById('maximize-local')?.addEventListener('click', () => togglePanelMaximize('local'));
         document.getElementById('maximize-remote')?.addEventListener('click', () => togglePanelMaximize('remote'));
@@ -1165,6 +1169,9 @@
         viewMode[panel] = mode;
         console.log(`[ViewMode] Updated viewMode state:`, viewMode);
 
+        // Update view mode button
+        updateViewModeButton(panel, mode);
+
         // Save preference to VS Code settings
         vscode.postMessage({
             command: 'updateViewMode',
@@ -1182,6 +1189,43 @@
                 path: currentPath
             });
             console.log(`[ViewMode] Sent loadDirectory command for ${panel} panel`);
+        }
+    }
+
+    /**
+     * Toggle view mode button for a panel
+     * @param {string} panel - Panel name ('local' or 'remote')
+     */
+    function toggleViewModeButton(panel) {
+        const currentMode = viewMode[panel] || 'list';
+        const newMode = currentMode === 'list' ? 'grid' : 'list';
+        switchViewMode(panel, newMode);
+    }
+
+    /**
+     * Update view mode button icon and title
+     * @param {string} panel - Panel name ('local' or 'remote')
+     * @param {'list' | 'grid'} mode - Current view mode
+     */
+    function updateViewModeButton(panel, mode) {
+        const button = document.getElementById(`${panel}-view-toggle`);
+        if (!button) {
+            return;
+        }
+
+        const icon = button.querySelector('.codicon');
+        if (!icon) {
+            return;
+        }
+
+        if (mode === 'list') {
+            // In list mode, show grid icon to indicate "switch to grid"
+            icon.className = 'codicon codicon-symbol-array';
+            button.title = 'Switch to Grid View';
+        } else {
+            // In grid mode, show list icon to indicate "switch to list"
+            icon.className = 'codicon codicon-list-tree';
+            button.title = 'Switch to List View';
         }
     }
 
@@ -3911,9 +3955,11 @@ case 'updateStatus':
                 if (message.data) {
                     if (message.data.local) {
                         viewMode.local = message.data.local;
+                        updateViewModeButton('local', message.data.local);
                     }
                     if (message.data.remote) {
                         viewMode.remote = message.data.remote;
+                        updateViewModeButton('remote', message.data.remote);
                     }
                     if (message.data.thumbnailSize) {
                         thumbnailSize = message.data.thumbnailSize;
