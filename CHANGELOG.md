@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.2 - 2026-02-10
+
+- **Enhancement**: Optimized speed trend chart with transparent background, refined line width, and interactive mouse hover tooltip for real-time speed display
+
 ## 5.2.1 - 2026-02-10
 
 - **Feature**: Added real-time speed trend chart in transfer task details with historical data visualization
