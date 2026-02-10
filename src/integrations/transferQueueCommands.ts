@@ -215,6 +215,15 @@ export class TransferQueueCommands {
         const duration = task.getDuration();
         const avgSpeed = task.getAverageSpeed();
         existingPanel.webview.html = this.getWebviewContent(task, duration, avgSpeed);
+
+        // Send updated task data to webview (using toJSON for all fields)
+        setTimeout(() => {
+          existingPanel.webview.postMessage({
+            type: 'update',
+            task: task.toJSON()
+          });
+        }, 100);
+
         return;
       } catch (error) {
         // Panel might be disposed, clean up and create new one
@@ -247,6 +256,15 @@ export class TransferQueueCommands {
     // Load HTML content from template
     panel.webview.html = this.getWebviewContent(task, duration, avgSpeed);
 
+    // Send initial task data to webview (using toJSON for all fields)
+    // Use setTimeout to ensure webview is ready to receive messages
+    setTimeout(() => {
+      panel.webview.postMessage({
+        type: 'update',
+        task: task.toJSON()
+      });
+    }, 100);
+
     // Setup real-time updates for running tasks
     if (task.status === 'running' || task.status === 'pending' || task.status === 'paused') {
       const updateInterval = setInterval(() => {
@@ -256,21 +274,10 @@ export class TransferQueueCommands {
           return;
         }
 
-        // Send update message to webview
+        // Send update message to webview (using toJSON for all fields)
         panel.webview.postMessage({
           type: 'update',
-          task: {
-            status: currentTask.status,
-            progress: currentTask.progress,
-            transferred: currentTask.transferred,
-            fileSize: currentTask.fileSize,
-            speed: currentTask.speed,
-            estimatedTime: currentTask.estimatedTime,
-            lastError: currentTask.lastError,
-            startedAt: currentTask.startedAt,
-            chunkProgress: currentTask.chunkProgress,
-            speedHistory: currentTask.speedHistory
-          }
+          task: currentTask.toJSON()
         });
 
         // Stop updating if task is finished
