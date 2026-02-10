@@ -1,5 +1,11 @@
 # Change Log
 
+## 5.2.1 - 2026-02-10
+
+- **Feature**: Added real-time speed trend chart in transfer task details with historical data visualization
+- **Fix**: Corrected transfer speed calculation and display - now using 1-second throttle for accurate speed reporting
+- **Fix**: Made status bar clickable to open running task details
+
 ## 5.2.0 - 2026-02-07
 
 - **Feature**: Added "Duplicate" context menu option for files and folders with interactive QuickInput name editor
