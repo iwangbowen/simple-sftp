@@ -495,6 +495,42 @@ export class TransferQueueCommands {
   }
 
   /**
+   * Show running tasks - called when clicking status bar
+   */
+  async showRunningTasks(): Promise<void> {
+    const runningTasks = this.queueService.getRunningTasks();
+
+    if (runningTasks.length === 0) {
+      vscode.window.showInformationMessage('No tasks currently running');
+      return;
+    }
+
+    // If only one task is running, show its details directly
+    if (runningTasks.length === 1) {
+      await this.showTaskDetails(runningTasks[0]);
+      return;
+    }
+
+    // Multiple tasks running - let user choose
+    const items = runningTasks.map(task => ({
+      label: task.fileName,
+      description: `${task.type} · ${task.progress.toFixed(1)}% · ${this.formatSpeed(task.speed)}`,
+      detail: `${task.hostName} · ${this.formatBytes(task.transferred)} / ${this.formatBytes(task.fileSize)}`,
+      task
+    }));
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Select a running task to view details',
+      matchOnDescription: true,
+      matchOnDetail: true
+    });
+
+    if (selected) {
+      await this.showTaskDetails(selected.task);
+    }
+  }
+
+  /**
    * Show queue statistics
    */
   async showQueueStats(): Promise<void> {

@@ -226,6 +226,9 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
 
     // Info commands
+    vscode.commands.registerCommand('simpleSftp.showRunningTasks', () =>
+      transferQueueCommands.showRunningTasks()
+    ),
     vscode.commands.registerCommand('simpleSftp.showTaskDetails', (task) =>
       transferQueueCommands.showTaskDetails(task)
     ),

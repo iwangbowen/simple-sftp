@@ -38,6 +38,9 @@ export class CommandHandler {
       100
     );
 
+    // Set command for status bar click - show running tasks
+    this.downloadStatusBar.command = 'simpleSftp.showRunningTasks';
+
     // Initialize remote browser service
     this.remoteBrowserService = new RemoteBrowserService(
       hostManager,
