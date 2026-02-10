@@ -812,10 +812,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
       transferStatusBar.text = `$(sync~spin) ${task.fileName}: ${percentage}%${speed}`;
       transferStatusBar.tooltip = `Transferring: ${task.fileName}\n${runningTasks.length} running, ${pendingTasks.length} pending`;
+      transferStatusBar.command = 'simpleSftp.showRunningTasks';
       transferStatusBar.show();
     } else if (pendingTasks.length > 0) {
       transferStatusBar.text = `$(clock) ${pendingTasks.length} pending transfer(s)`;
       transferStatusBar.tooltip = 'Click to view transfer queue';
+      transferStatusBar.command = 'simpleSftp.showRunningTasks';
       transferStatusBar.show();
     } else {
       transferStatusBar.hide();

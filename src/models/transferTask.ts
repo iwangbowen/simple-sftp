@@ -420,6 +420,8 @@ createdAt!: Date;
     task.transferred = data.transferred;
     task.speed = data.speed;
     task.progress = data.progress;
+    task.speedHistory = data.speedHistory || []; // Restore speed history
+    task.chunkProgress = data.chunkProgress || []; // Restore chunk progress
     task.createdAt = new Date(data.createdAt);
     task.startedAt = data.startedAt ? new Date(data.startedAt) : undefined;
     task.completedAt = data.completedAt ? new Date(data.completedAt) : undefined;

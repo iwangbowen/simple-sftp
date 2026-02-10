@@ -534,7 +534,7 @@
         }
       }
 
-      // Draw speed chart with High DPI support
+// Draw speed chart with High DPI support (Ultra Sharp)
       function updateSpeedChart(speedHistory) {
         const chartContainer = document.getElementById('speedChartContainer');
         const canvas = document.getElementById('speedChart');
@@ -547,10 +547,13 @@
         }
 
         chartContainer.style.display = 'block';
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', {
+          alpha: true,
+          desynchronized: true  // Hint for better performance
+        });
 
-        // High DPI Canvas Setup
-        const dpr = window.devicePixelRatio || 1;
+        // Ultra High DPI Canvas Setup - Use 2x minimum for sharpness
+        const dpr = Math.max(window.devicePixelRatio || 1, 2); // At least 2x
         const rect = canvas.getBoundingClientRect();
 
         // Set actual canvas size (accounting for device pixel ratio)
@@ -559,6 +562,9 @@
 
         // Scale all drawing operations
         ctx.scale(dpr, dpr);
+
+        // Disable smoothing for crisper lines
+        ctx.imageSmoothingEnabled = false;
 
         // Use CSS size for layout
         const width = rect.width;
@@ -651,11 +657,12 @@
         });
         ctx.stroke();
 
-        // Draw Y-axis labels (speed)
+        // Draw Y-axis labels (speed) with better text rendering
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.font = '9px var(--vscode-font-family)';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
+        ctx.textRendering = 'optimizeLegibility'; // Better text quality
 
         for (let i = 0; i <= gridLines; i++) {
           const speed = maxSpeed - (speedRange * i / gridLines);

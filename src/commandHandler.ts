@@ -1951,6 +1951,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         // Show status bar for directory download
         this.downloadStatusBar.text = `$(sync~spin) Downloading folder...`;
         this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}`;
+        this.downloadStatusBar.command = 'simpleSftp.showRunningTasks';
         this.downloadStatusBar.show();
 
         await SshConnectionManager.downloadDirectory(
@@ -1974,6 +1975,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         // Show initial status bar
         this.downloadStatusBar.text = `$(sync~spin) Downloading...`;
         this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}`;
+        this.downloadStatusBar.command = 'simpleSftp.showRunningTasks';
         this.downloadStatusBar.show();
 
         await SshConnectionManager.downloadFile(
