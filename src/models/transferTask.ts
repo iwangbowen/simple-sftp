@@ -42,6 +42,9 @@ createdAt!: Date;
   // Private fields for speed calculation
   private lastTransferred: number = 0;
   private lastUpdateTime: number = 0;
+  private lastSpeedCalcTime: number = 0; // 上次计算速度的时间
+  private lastSpeedCalcTransferred: number = 0; // 上次计算速度时的传输量
+  private static readonly SPEED_UPDATE_INTERVAL = 1000; // 速度更新间隔（毫秒）
 
   constructor(options: CreateTransferTaskOptions) {
     this.id = TransferTaskModel.generateId();
@@ -190,22 +193,32 @@ createdAt!: Date;
       }
     }
 
-    // Calculate speed
+    // Calculate speed - 使用节流控制，只在达到更新间隔时才计算
     const now = Date.now();
-    if (this.lastUpdateTime > 0) {
-      const timeDelta = (now - this.lastUpdateTime) / 1000; // seconds
-      if (timeDelta > 0) {
-        const bytesDelta = transferred - this.lastTransferred;
-        this.speed = bytesDelta / timeDelta;
+    const timeDeltaSinceLastSpeedCalc = now - this.lastSpeedCalcTime;
 
-        // Calculate estimated time remaining
-        if (this.speed > 0 && total > 0) {
-          const remaining = total - transferred;
-          this.estimatedTime = (remaining / this.speed) * 1000; // milliseconds
+    // 只有在达到速度更新间隔或者是第一次更新时才重新计算速度
+    if (this.lastSpeedCalcTime === 0 || timeDeltaSinceLastSpeedCalc >= TransferTaskModel.SPEED_UPDATE_INTERVAL) {
+      if (this.lastSpeedCalcTime > 0) {
+        const timeDelta = timeDeltaSinceLastSpeedCalc / 1000; // seconds
+        if (timeDelta > 0) {
+          const bytesDelta = transferred - this.lastSpeedCalcTransferred;
+          this.speed = bytesDelta / timeDelta;
+
+          // Calculate estimated time remaining
+          if (this.speed > 0 && total > 0) {
+            const remaining = total - transferred;
+            this.estimatedTime = (remaining / this.speed) * 1000; // milliseconds
+          }
         }
       }
+
+      // 更新速度计算的基准点
+      this.lastSpeedCalcTime = now;
+      this.lastSpeedCalcTransferred = transferred;
     }
 
+    // 始终更新这些字段用于其他用途
     this.lastTransferred = transferred;
     this.lastUpdateTime = now;
   }
@@ -218,6 +231,13 @@ createdAt!: Date;
       this.status = 'running';
       this.startedAt = this.startedAt || new Date();
       this.abortController = new AbortController();
+
+      // 初始化速度计算的基准点
+      if (this.lastSpeedCalcTime === 0) {
+        this.lastSpeedCalcTime = Date.now();
+        this.lastSpeedCalcTransferred = this.transferred;
+      }
+
       logger.info(`Task ${this.id} started: ${this.fileName}`);
     }
   }

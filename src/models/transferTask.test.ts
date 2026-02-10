@@ -129,11 +129,14 @@ describe('TransferTaskModel', () => {
     it('should calculate speed based on time delta', async () => {
       const task = new TransferTaskModel(defaultOptions);
 
+      // Start task to initialize speed calculation baseline
+      task.start();
+
       // First update
       task.updateProgress(0, 1024 * 1024);
 
-      // Wait and update again
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait at least 1 second for speed update interval
+      await new Promise(resolve => setTimeout(resolve, 1100));
       task.updateProgress(100 * 1024, 1024 * 1024);
 
       expect(task.speed).toBeGreaterThan(0);
@@ -154,8 +157,12 @@ describe('TransferTaskModel', () => {
     it('should calculate estimated time remaining', async () => {
       const task = new TransferTaskModel(defaultOptions);
 
+      // Start task to initialize speed calculation baseline
+      task.start();
+
       task.updateProgress(0, 1024 * 1024);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait at least 1 second for speed update interval
+      await new Promise(resolve => setTimeout(resolve, 1100));
       task.updateProgress(100 * 1024, 1024 * 1024);
 
       expect(task.estimatedTime).toBeDefined();
