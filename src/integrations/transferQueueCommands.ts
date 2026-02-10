@@ -268,7 +268,8 @@ export class TransferQueueCommands {
             estimatedTime: currentTask.estimatedTime,
             lastError: currentTask.lastError,
             startedAt: currentTask.startedAt,
-            chunkProgress: currentTask.chunkProgress
+            chunkProgress: currentTask.chunkProgress,
+            speedHistory: currentTask.speedHistory
           }
         });
 

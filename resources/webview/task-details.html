@@ -364,6 +364,14 @@
       </div>
     </div>
 
+    <!-- Speed Chart - Integrated Design -->
+    <div id="speedChartContainer" style="margin-top: 12px; display: none;">
+      <div style="font-size: 0.7em; color: var(--vscode-descriptionForeground); margin-bottom: 4px; opacity: 0.8; letter-spacing: 0.5px;">
+        SPEED TREND
+      </div>
+      <canvas id="speedChart" style="width: 100%; height: 80px; display: block;"></canvas>
+    </div>
+
     {{#HAS_DURATION}}
     <div class="info-grid">
       <div class="label">Duration:</div>
@@ -519,6 +527,149 @@
         if (taskData.chunkProgress && taskData.chunkProgress.length > 0) {
           updateChunkProgress(taskData.chunkProgress);
         }
+
+        // Update speed chart
+        if (taskData.speedHistory && taskData.speedHistory.length > 0) {
+          updateSpeedChart(taskData.speedHistory);
+        }
+      }
+
+      // Draw speed chart with High DPI support
+      function updateSpeedChart(speedHistory) {
+        const chartContainer = document.getElementById('speedChartContainer');
+        const canvas = document.getElementById('speedChart');
+
+        if (!canvas || !speedHistory || speedHistory.length < 2) {
+          if (chartContainer) {
+            chartContainer.style.display = 'none';
+          }
+          return;
+        }
+
+        chartContainer.style.display = 'block';
+        const ctx = canvas.getContext('2d');
+
+        // High DPI Canvas Setup
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+
+        // Set actual canvas size (accounting for device pixel ratio)
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+
+        // Scale all drawing operations
+        ctx.scale(dpr, dpr);
+
+        // Use CSS size for layout
+        const width = rect.width;
+        const height = rect.height;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+
+        // Calculate scale
+        const maxSpeed = Math.max(...speedHistory.map(s => s.speed), 1); // Avoid division by zero
+        const minSpeed = 0;
+        const speedRange = maxSpeed - minSpeed;
+
+        // Padding
+        const padding = { top: 8, right: 8, bottom: 20, left: 55 };
+        const chartWidth = width - padding.left - padding.right;
+        const chartHeight = height - padding.top - padding.bottom;
+
+        // Draw grid lines (horizontal) - subtle
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 0.5;
+        const gridLines = 3;
+        for (let i = 0; i <= gridLines; i++) {
+          const y = padding.top + (chartHeight * i / gridLines);
+          ctx.beginPath();
+          ctx.moveTo(padding.left, y);
+          ctx.lineTo(padding.left + chartWidth, y);
+          ctx.stroke();
+        }
+
+        // Draw border
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(padding.left, padding.top, chartWidth, chartHeight);
+
+        // Prepare gradient for line
+        const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+        gradient.addColorStop(0, 'rgba(86, 156, 214, 0.9)');
+        gradient.addColorStop(1, 'rgba(86, 156, 214, 0.5)');
+
+        // Prepare gradient for fill
+        const fillGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+        fillGradient.addColorStop(0, 'rgba(86, 156, 214, 0.3)');
+        fillGradient.addColorStop(1, 'rgba(86, 156, 214, 0.05)');
+
+        const dataPoints = speedHistory.slice(-60); // Show last 60 points
+        const xStep = chartWidth / Math.max(dataPoints.length - 1, 1);
+
+        // Draw filled area first
+        ctx.fillStyle = fillGradient;
+        ctx.beginPath();
+
+        dataPoints.forEach((point, index) => {
+          const x = padding.left + (index * xStep);
+          const normalizedSpeed = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
+          const y = padding.top + chartHeight - (normalizedSpeed * chartHeight);
+
+          if (index === 0) {
+            ctx.moveTo(x, padding.top + chartHeight);
+            ctx.lineTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+
+        // Close fill path
+        if (dataPoints.length > 0) {
+          ctx.lineTo(padding.left + (dataPoints.length - 1) * xStep, padding.top + chartHeight);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Draw speed line on top
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+
+        dataPoints.forEach((point, index) => {
+          const x = padding.left + (index * xStep);
+          const normalizedSpeed = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
+          const y = padding.top + chartHeight - (normalizedSpeed * chartHeight);
+
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+
+        // Draw Y-axis labels (speed)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = '9px var(--vscode-font-family)';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        for (let i = 0; i <= gridLines; i++) {
+          const speed = maxSpeed - (speedRange * i / gridLines);
+          const y = padding.top + (chartHeight * i / gridLines);
+          const speedText = formatSpeed(speed);
+          ctx.fillText(speedText, padding.left - 5, y);
+        }
+
+        // Draw X-axis label
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '8px var(--vscode-font-family)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('Time →', padding.left + chartWidth / 2, height - 2);
       }
 
       // Update chunk progress display

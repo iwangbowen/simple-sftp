@@ -25,6 +25,10 @@ export class TransferTaskModel implements TransferTask {
   speed: number;
   progress: number;
 
+  // Speed history for visualization (last N speed samples)
+  speedHistory: Array<{ timestamp: number; speed: number }>;
+  private static readonly MAX_SPEED_HISTORY = 60; // Keep last 60 samples (1 minute at 1 sample/sec)
+
   // Chunk progress (for parallel transfers)
   chunkProgress?: ChunkProgress[];
 
@@ -66,6 +70,7 @@ createdAt!: Date;
     this.transferred = 0;
     this.speed = 0;
     this.progress = 0;
+    this.speedHistory = [];
 
     this.createdAt = new Date();
     this.retryCount = 0;
@@ -204,6 +209,17 @@ createdAt!: Date;
         if (timeDelta > 0) {
           const bytesDelta = transferred - this.lastSpeedCalcTransferred;
           this.speed = bytesDelta / timeDelta;
+
+          // Record speed in history for visualization
+          this.speedHistory.push({
+            timestamp: now,
+            speed: this.speed
+          });
+
+          // Keep only recent history (avoid memory bloat)
+          if (this.speedHistory.length > TransferTaskModel.MAX_SPEED_HISTORY) {
+            this.speedHistory.shift(); // Remove oldest entry
+          }
 
           // Calculate estimated time remaining
           if (this.speed > 0 && total > 0) {
@@ -370,6 +386,7 @@ createdAt!: Date;
       transferred: this.transferred,
       speed: this.speed,
       progress: this.progress,
+      speedHistory: this.speedHistory, // Include speed history for visualization
       chunkProgress: this.chunkProgress, // Include chunk progress
       createdAt: this.createdAt.toISOString(),
       startedAt: this.startedAt?.toISOString(),
