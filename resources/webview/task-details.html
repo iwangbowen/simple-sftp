@@ -536,7 +536,7 @@
         }
       }
 
-// Draw speed chart with Retina-optimized Canvas (Ultra Sharp)
+// Draw speed chart with Retina-optimized Canvas (Ultra Sharp) + Interactive Tooltip
       function updateSpeedChart(speedHistory) {
         const chartContainer = document.getElementById('speedChartContainer');
         const canvas = document.getElementById('speedChart');
@@ -573,127 +573,272 @@
         const width = rect.width;
         const height = rect.height;
 
-        // Clear with transparent background (border/bg handled by container)
-        ctx.clearRect(0, 0, width, height);
+        // Layout padding
+        const padding = { top: 12, right: 12, bottom: 28, left: 70 };
+        const chartWidth = width - padding.left - padding.right;
+        const chartHeight = height - padding.top - padding.bottom;
 
         // Calculate data bounds
         const maxSpeed = Math.max(...speedHistory.map(s => s.speed), 1);
         const minSpeed = 0;
         const speedRange = maxSpeed - minSpeed;
 
-        // Layout padding
-        const padding = { top: 12, right: 12, bottom: 28, left: 70 };
-        const chartWidth = width - padding.left - padding.right;
-        const chartHeight = height - padding.top - padding.bottom;
-
-        // Draw grid lines (5 horizontal lines for reference)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-        ctx.lineWidth = 1;
-        const gridLines = 4;
-
-        for (let i = 0; i <= gridLines; i++) {
-          const y = padding.top + (chartHeight * i / gridLines);
-          ctx.beginPath();
-          ctx.moveTo(padding.left, y);
-          ctx.lineTo(padding.left + chartWidth, y);
-          ctx.stroke();
-        }
-
-        // Create gradients for line and fill
-        const lineGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
-        lineGradient.addColorStop(0, 'rgba(86, 156, 214, 1)');
-        lineGradient.addColorStop(1, 'rgba(86, 156, 214, 0.85)');
-
-        const fillGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
-        fillGradient.addColorStop(0, 'rgba(86, 156, 214, 0.45)');
-        fillGradient.addColorStop(1, 'rgba(86, 156, 214, 0.08)');
-
         // Prepare data points (show last 60)
         const dataPoints = speedHistory.slice(-60);
         const xStep = chartWidth / Math.max(dataPoints.length - 1, 1);
 
-        // Build path for filled area
-        ctx.fillStyle = fillGradient;
-        ctx.beginPath();
+        // Function to draw base chart (static elements)
+        function drawBaseChart() {
+          // Clear with transparent background
+          ctx.clearRect(0, 0, width, height);
 
-        dataPoints.forEach((point, index) => {
-          const x = padding.left + (index * xStep);
-          const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
-          const y = padding.top + chartHeight - (normalized * chartHeight);
+          // Draw grid lines
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = 1;
+          const gridLines = 4;
 
-          if (index === 0) {
-            ctx.moveTo(x, padding.top + chartHeight);
-            ctx.lineTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
+          for (let i = 0; i <= gridLines; i++) {
+            const y = padding.top + (chartHeight * i / gridLines);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(padding.left + chartWidth, y);
+            ctx.stroke();
           }
-        });
 
-        // Close fill path to baseline
-        if (dataPoints.length > 0) {
-          const lastX = padding.left + (dataPoints.length - 1) * xStep;
-          ctx.lineTo(lastX, padding.top + chartHeight);
-          ctx.closePath();
-          ctx.fill();
-        }
+          // Create gradients for line and fill
+          const lineGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+          lineGradient.addColorStop(0, 'rgba(86, 156, 214, 1)');
+          lineGradient.addColorStop(1, 'rgba(86, 156, 214, 0.85)');
 
-        // Draw speed line with subtle glow effect
-        ctx.save();
-        ctx.shadowColor = 'rgba(86, 156, 214, 0.4)';
-        ctx.shadowBlur = 3;
-        ctx.strokeStyle = lineGradient;
-        ctx.lineWidth = 1.5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
+          const fillGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+          fillGradient.addColorStop(0, 'rgba(86, 156, 214, 0.45)');
+          fillGradient.addColorStop(1, 'rgba(86, 156, 214, 0.08)');
 
-        dataPoints.forEach((point, index) => {
-          const x = padding.left + (index * xStep);
-          const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
-          const y = padding.top + chartHeight - (normalized * chartHeight);
+          // Build path for filled area
+          ctx.fillStyle = fillGradient;
+          ctx.beginPath();
 
-          if (index === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
+          dataPoints.forEach((point, index) => {
+            const x = padding.left + (index * xStep);
+            const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
+            const y = padding.top + chartHeight - (normalized * chartHeight);
+
+            if (index === 0) {
+              ctx.moveTo(x, padding.top + chartHeight);
+              ctx.lineTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
+
+          // Close fill path to baseline
+          if (dataPoints.length > 0) {
+            const lastX = padding.left + (dataPoints.length - 1) * xStep;
+            ctx.lineTo(lastX, padding.top + chartHeight);
+            ctx.closePath();
+            ctx.fill();
           }
-        });
 
-        ctx.stroke();
-        ctx.restore();
+          // Draw speed line with subtle glow effect
+          ctx.save();
+          ctx.shadowColor = 'rgba(86, 156, 214, 0.4)';
+          ctx.shadowBlur = 3;
+          ctx.strokeStyle = lineGradient;
+          ctx.lineWidth = 1.5;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
 
-        // Draw Y-axis labels with enhanced readability
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.font = '600 11px var(--vscode-font-family)';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
+          dataPoints.forEach((point, index) => {
+            const x = padding.left + (index * xStep);
+            const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
+            const y = padding.top + chartHeight - (normalized * chartHeight);
 
-        for (let i = 0; i <= gridLines; i++) {
-          const speed = maxSpeed - (speedRange * i / gridLines);
-          const y = padding.top + (chartHeight * i / gridLines);
-          const label = formatSpeed(speed);
+            if (index === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
 
-          // Text shadow for contrast
+          ctx.stroke();
+          ctx.restore();
+
+          // Draw Y-axis labels with enhanced readability
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.font = '600 11px var(--vscode-font-family)';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+
+          for (let i = 0; i <= gridLines; i++) {
+            const speed = maxSpeed - (speedRange * i / gridLines);
+            const y = padding.top + (chartHeight * i / gridLines);
+            const label = formatSpeed(speed);
+
+            // Text shadow for contrast
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.fillText(label, padding.left - 8, y);
+            ctx.restore();
+          }
+
+          // Draw X-axis label
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+          ctx.font = '600 10px var(--vscode-font-family)';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+
           ctx.save();
           ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
           ctx.shadowBlur = 3;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
-          ctx.fillText(label, padding.left - 8, y);
+          ctx.fillText('Time →', padding.left + chartWidth / 2, height - 5);
           ctx.restore();
         }
 
-        // Draw X-axis label
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-        ctx.font = '600 10px var(--vscode-font-family)';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
+        // Function to draw tooltip and crosshair at mouse position
+        function drawTooltip(mouseX, mouseY) {
+          // Find nearest data point
+          let nearestIndex = -1;
+          let minDistance = Infinity;
 
-        ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-        ctx.shadowBlur = 3;
-        ctx.fillText('Time →', padding.left + chartWidth / 2, height - 5);
-        ctx.restore();
+          dataPoints.forEach((point, index) => {
+            const x = padding.left + (index * xStep);
+            const distance = Math.abs(x - mouseX);
+            if (distance < minDistance && distance < xStep * 2) {
+              minDistance = distance;
+              nearestIndex = index;
+            }
+          });
+
+          if (nearestIndex === -1) return;
+
+          const point = dataPoints[nearestIndex];
+          const x = padding.left + (nearestIndex * xStep);
+          const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
+          const y = padding.top + chartHeight - (normalized * chartHeight);
+
+          // Draw vertical crosshair line
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(x, padding.top);
+          ctx.lineTo(x, padding.top + chartHeight);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+
+          // Draw point indicator
+          ctx.save();
+          ctx.fillStyle = 'rgba(86, 156, 214, 1)';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+
+          // Draw tooltip box
+          const speedText = formatSpeed(point.speed);
+          const tooltipPadding = 8;
+          const tooltipHeight = 24;
+
+          // Measure text width
+          ctx.font = '600 11px var(--vscode-font-family)';
+          const textWidth = ctx.measureText(speedText).width;
+          const tooltipWidth = textWidth + tooltipPadding * 2;
+
+          // Position tooltip (avoid edges)
+          let tooltipX = x - tooltipWidth / 2;
+          let tooltipY = y - tooltipHeight - 10;
+
+          // Keep tooltip in bounds
+          if (tooltipX < padding.left) tooltipX = padding.left;
+          if (tooltipX + tooltipWidth > width - padding.right) {
+            tooltipX = width - padding.right - tooltipWidth;
+          }
+          if (tooltipY < padding.top) tooltipY = y + 10;
+
+          // Draw tooltip background with shadow
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 2;
+          ctx.fillStyle = 'rgba(30, 30, 30, 0.95)';
+          ctx.strokeStyle = 'rgba(86, 156, 214, 0.8)';
+          ctx.lineWidth = 1.5;
+
+          // Rounded rectangle
+          const radius = 4;
+          ctx.beginPath();
+          ctx.moveTo(tooltipX + radius, tooltipY);
+          ctx.lineTo(tooltipX + tooltipWidth - radius, tooltipY);
+          ctx.quadraticCurveTo(tooltipX + tooltipWidth, tooltipY, tooltipX + tooltipWidth, tooltipY + radius);
+          ctx.lineTo(tooltipX + tooltipWidth, tooltipY + tooltipHeight - radius);
+          ctx.quadraticCurveTo(tooltipX + tooltipWidth, tooltipY + tooltipHeight, tooltipX + tooltipWidth - radius, tooltipY + tooltipHeight);
+          ctx.lineTo(tooltipX + radius, tooltipY + tooltipHeight);
+          ctx.quadraticCurveTo(tooltipX, tooltipY + tooltipHeight, tooltipX, tooltipY + tooltipHeight - radius);
+          ctx.lineTo(tooltipX, tooltipY + radius);
+          ctx.quadraticCurveTo(tooltipX, tooltipY, tooltipX + radius, tooltipY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+
+          // Draw tooltip text
+          ctx.save();
+          ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+          ctx.font = '600 11px var(--vscode-font-family)';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(speedText, tooltipX + tooltipWidth / 2, tooltipY + tooltipHeight / 2);
+          ctx.restore();
+        }
+
+        // Draw initial chart
+        drawBaseChart();
+
+        // Mouse interaction handler
+        let isHovering = false;
+
+        function handleMouseMove(e) {
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          // Check if mouse is within chart area
+          if (mouseX >= padding.left && mouseX <= padding.left + chartWidth &&
+              mouseY >= padding.top && mouseY <= padding.top + chartHeight) {
+            isHovering = true;
+            canvas.style.cursor = 'crosshair';
+
+            // Redraw chart with tooltip
+            drawBaseChart();
+            drawTooltip(mouseX, mouseY);
+          } else if (isHovering) {
+            isHovering = false;
+            canvas.style.cursor = 'default';
+            drawBaseChart();
+          }
+        }
+
+        function handleMouseLeave() {
+          if (isHovering) {
+            isHovering = false;
+            canvas.style.cursor = 'default';
+            drawBaseChart();
+          }
+        }
+
+        // Remove old listeners (if any)
+        canvas.onmousemove = handleMouseMove;
+        canvas.onmouseleave = handleMouseLeave;
       }
 
       // Update chunk progress display
