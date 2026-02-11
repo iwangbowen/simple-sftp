@@ -892,8 +892,8 @@
             const btn = document.createElement('button');
             btn.className = 'grid-size-btn';
             btn.dataset.size = s.toString();
-            btn.textContent = s === 96 ? 'S' : s === 128 ? 'M' : 'L';
-            btn.title = `${s}px 图标`;
+            btn.textContent = s === 96 ? 'Small' : s === 128 ? 'Medium' : 'Large';
+            btn.title = `${s}px thumbnails`;
 
             // 设置当前激活状态
             if (s === thumbnailSize) {
