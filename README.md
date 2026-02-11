@@ -238,6 +238,14 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
   - `localMaximized`: Local panel maximized (remote hidden)
   - `remoteMaximized`: Remote panel maximized (local hidden)
 
+- **simpleSftp.ui.defaultIconSize** (enum: `96`|`128`|`160`, default: `96`)
+  Default file icon size for grid view (pixels):
+  - `96`: Small icons (saves space)
+  - `128`: Medium icons (balanced)
+  - `160`: Large icons (best visibility)
+
+  Note: This is the initial size when opening the file browser. You can temporarily change icon size using the Small/Medium/Large buttons in grid view without affecting this setting.
+
 - **simpleSftp.fileView.defaultLayout** (enum: `list`|`grid`, default: `list`)
   Default file view layout in SFTP file browser:
   - `list`: Detailed table view with columns (name, modified time, permissions, size)
@@ -644,6 +652,14 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
   - `equal`: 平分面板 50/50
   - `localMaximized`: 本地面板最大化(远程面板隐藏)
   - `remoteMaximized`: 远程面板最大化(本地面板隐藏)
+
+- **simpleSftp.ui.defaultIconSize** (枚举: `96`|`128`|`160`,默认: `96`)
+  网格视图中文件图标的默认大小(像素):
+  - `96`: 小图标(节省空间)
+  - `128`: 中等图标(平衡视觉效果)
+  - `160`: 大图标(最佳可视性)
+
+  注意: 这是打开文件浏览器时的初始大小。您可以在网格视图中使用 Small/Medium/Large 按钮临时更改图标大小,不会影响此设置。
 
 - **simpleSftp.fileView.defaultLayout** (枚举: `list`|`grid`,默认: `list`)
   SFTP 文件浏览器的默认视图布局:

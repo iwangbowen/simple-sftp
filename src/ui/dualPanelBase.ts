@@ -2406,6 +2406,9 @@ export abstract class DualPanelBase {
             const config = vscode.workspace.getConfiguration('simpleSftp.browser');
             const panelLayout = config.get<string>('panelLayout', 'equal');
 
+            const uiConfig = vscode.workspace.getConfiguration('simpleSftp.ui');
+            const defaultIconSize = uiConfig.get<number>('defaultIconSize', 96);
+
             html = html.replaceAll('{{cspSource}}', webview.cspSource);
             html = html.replaceAll('{{nonce}}', nonce);
             html = html.replaceAll('{{styleUri}}', styleUri.toString());
@@ -2416,6 +2419,7 @@ export abstract class DualPanelBase {
             html = html.replaceAll('{{localPath}}', this._localRootPath || 'No host selected');
             html = html.replaceAll('{{remotePath}}', this._remoteRootPath || 'No host selected');
             html = html.replaceAll('{{panelLayout}}', panelLayout);
+            html = html.replaceAll('{{defaultIconSize}}', defaultIconSize.toString());
 
             return html;
         } catch (error) {

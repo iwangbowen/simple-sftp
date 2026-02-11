@@ -56,7 +56,8 @@
         remote: 'list'
     };
     /** @type {number} */
-    let thumbnailSize = 96;
+    // Grid view thumbnail size (96, 128, 160)
+    let thumbnailSize = window.panelLayoutConfig?.defaultIconSize || 96;
     let isAltKeyPressed = false;
     /** @type {boolean} */
     let isMouseOnTooltip = false;

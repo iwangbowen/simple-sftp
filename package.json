@@ -1501,6 +1501,21 @@
           "default": false,
           "description": "Hide the transfer status bar in the bottom status bar. Default: false (show status bar)"
         },
+        "simpleSftp.ui.defaultIconSize": {
+          "type": "number",
+          "enum": [
+            96,
+            128,
+            160
+          ],
+          "default": 96,
+          "enumDescriptions": [
+            "Small (96px thumbnails)",
+            "Medium (128px thumbnails)",
+            "Large (160px thumbnails)"
+          ],
+          "description": "Default icon size for grid view in file browser. This is the initial size when opening the file browser. You can temporarily change the size using the Small/Medium/Large buttons in grid view."
+        },
         "simpleSftp.transfer.preservePermissions": {
           "type": "boolean",
           "default": true,
