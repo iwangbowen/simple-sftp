@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.4 - 2026-02-11
+
+- **Feature**: Added icon size controls (Small/Medium/Large) for Grid View with persistent settings
+
 ## 5.2.3 - 2026-02-11
 
 - **Enhancement**: Migrated speed trend chart from Canvas to SVG for crisp rendering
