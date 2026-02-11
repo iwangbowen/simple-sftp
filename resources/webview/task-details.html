@@ -364,13 +364,17 @@
       </div>
     </div>
 
-    <!-- Speed Chart - Ultra High-DPI Canvas -->
+    <!-- Speed Chart - SVG (Crisp Vector Graphics) -->
     <div id="speedChartContainer" style="margin-top: 12px; display: none;">
       <div style="font-size: 0.7em; color: var(--vscode-descriptionForeground); margin-bottom: 6px; opacity: 0.8; letter-spacing: 0.5px; font-weight: 600;">
         SPEED TREND
       </div>
       <div style="position: relative; width: 100%; height: 140px; background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
-        <canvas id="speedChart" style="width: 100%; height: 100%; display: block;"></canvas>
+        <svg id="speedChart" style="width: 100%; height: 100%; display: block;" xmlns="http://www.w3.org/2000/svg">
+          <!-- Grid lines, chart line, and labels will be dynamically added here -->
+        </svg>
+        <!-- Tooltip overlay -->
+        <div id="chartTooltip" style="position: absolute; display: none; background: rgba(30, 30, 30, 0.95); border: 1.5px solid rgba(86, 156, 214, 0.8); border-radius: 4px; padding: 6px 10px; font-size: 11px; font-weight: 600; color: white; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.5); z-index: 10;"></div>
       </div>
     </div>
 
@@ -536,12 +540,13 @@
         }
       }
 
-// Draw speed chart with Retina-optimized Canvas (Ultra Sharp) + Interactive Tooltip
+// Draw speed chart with SVG (Crisp Vector Graphics) + Interactive Tooltip
       function updateSpeedChart(speedHistory) {
         const chartContainer = document.getElementById('speedChartContainer');
-        const canvas = document.getElementById('speedChart');
+        const svg = document.getElementById('speedChart');
+        const tooltip = document.getElementById('chartTooltip');
 
-        if (!canvas || !speedHistory || speedHistory.length < 2) {
+        if (!svg || !speedHistory || speedHistory.length < 2) {
           if (chartContainer) {
             chartContainer.style.display = 'none';
           }
@@ -549,27 +554,9 @@
         }
 
         chartContainer.style.display = 'block';
-        const ctx = canvas.getContext('2d', {
-          alpha: true,  // Enable transparency for background
-          desynchronized: true
-        });
 
-        // Retina/HiDPI Support - Force 4x for ultra-crisp rendering
-        const dpr = Math.max(window.devicePixelRatio || 1, 4);
-        const rect = canvas.getBoundingClientRect();
-
-        // Set canvas internal resolution
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-
-        // Scale context to match DPI
-        ctx.scale(dpr, dpr);
-
-        // Enable high-quality rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
-        // Logical dimensions (CSS pixels)
+        // Get SVG dimensions
+        const rect = svg.getBoundingClientRect();
         const width = rect.width;
         const height = rect.height;
 
@@ -587,258 +574,263 @@
         const dataPoints = speedHistory.slice(-60);
         const xStep = chartWidth / Math.max(dataPoints.length - 1, 1);
 
-        // Function to draw base chart (static elements)
-        function drawBaseChart() {
-          // Clear with transparent background
-          ctx.clearRect(0, 0, width, height);
+        // Clear existing SVG content
+        svg.innerHTML = '';
 
-          // Draw grid lines
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-          ctx.lineWidth = 1;
-          const gridLines = 4;
+        // Set SVG viewBox for crisp rendering at any size
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.setAttribute('preserveAspectRatio', 'none');
 
-          for (let i = 0; i <= gridLines; i++) {
-            const y = padding.top + (chartHeight * i / gridLines);
-            ctx.beginPath();
-            ctx.moveTo(padding.left, y);
-            ctx.lineTo(padding.left + chartWidth, y);
-            ctx.stroke();
-          }
+        // Create SVG definitions for gradients and filters
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
-          // Create gradients for line and fill
-          const lineGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
-          lineGradient.addColorStop(0, 'rgba(86, 156, 214, 1)');
-          lineGradient.addColorStop(1, 'rgba(86, 156, 214, 0.85)');
+        // Line gradient (vertical)
+        const lineGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        lineGradient.setAttribute('id', 'lineGradient');
+        lineGradient.setAttribute('x1', '0%');
+        lineGradient.setAttribute('y1', '0%');
+        lineGradient.setAttribute('x2', '0%');
+        lineGradient.setAttribute('y2', '100%');
+        lineGradient.innerHTML = `
+          <stop offset="0%" style="stop-color:rgba(86, 156, 214, 1);stop-opacity:1" />
+          <stop offset="100%" style="stop-color:rgba(86, 156, 214, 0.85);stop-opacity:1" />
+        `;
+        defs.appendChild(lineGradient);
 
-          const fillGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
-          fillGradient.addColorStop(0, 'rgba(86, 156, 214, 0.45)');
-          fillGradient.addColorStop(1, 'rgba(86, 156, 214, 0.08)');
+        // Fill gradient (vertical)
+        const fillGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        fillGradient.setAttribute('id', 'fillGradient');
+        fillGradient.setAttribute('x1', '0%');
+        fillGradient.setAttribute('y1', '0%');
+        fillGradient.setAttribute('x2', '0%');
+        fillGradient.setAttribute('y2', '100%');
+        fillGradient.innerHTML = `
+          <stop offset="0%" style="stop-color:rgba(86, 156, 214, 0.45);stop-opacity:1" />
+          <stop offset="100%" style="stop-color:rgba(86, 156, 214, 0.08);stop-opacity:1" />
+        `;
+        defs.appendChild(fillGradient);
 
-          // Build path for filled area
-          ctx.fillStyle = fillGradient;
-          ctx.beginPath();
+        // Glow filter for line
+        const glowFilter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+        glowFilter.setAttribute('id', 'glowFilter');
+        glowFilter.innerHTML = `
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        `;
+        defs.appendChild(glowFilter);
 
-          dataPoints.forEach((point, index) => {
-            const x = padding.left + (index * xStep);
-            const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
-            const y = padding.top + chartHeight - (normalized * chartHeight);
+        svg.appendChild(defs);
 
-            if (index === 0) {
-              ctx.moveTo(x, padding.top + chartHeight);
-              ctx.lineTo(x, y);
-            } else {
-              ctx.lineTo(x, y);
-            }
-          });
-
-          // Close fill path to baseline
-          if (dataPoints.length > 0) {
-            const lastX = padding.left + (dataPoints.length - 1) * xStep;
-            ctx.lineTo(lastX, padding.top + chartHeight);
-            ctx.closePath();
-            ctx.fill();
-          }
-
-          // Draw speed line with subtle glow effect
-          ctx.save();
-          ctx.shadowColor = 'rgba(86, 156, 214, 0.4)';
-          ctx.shadowBlur = 3;
-          ctx.strokeStyle = lineGradient;
-          ctx.lineWidth = 1.5;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.beginPath();
-
-          dataPoints.forEach((point, index) => {
-            const x = padding.left + (index * xStep);
-            const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
-            const y = padding.top + chartHeight - (normalized * chartHeight);
-
-            if (index === 0) {
-              ctx.moveTo(x, y);
-            } else {
-              ctx.lineTo(x, y);
-            }
-          });
-
-          ctx.stroke();
-          ctx.restore();
-
-          // Draw Y-axis labels with enhanced readability
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.font = '600 11px var(--vscode-font-family)';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'middle';
-
-          for (let i = 0; i <= gridLines; i++) {
-            const speed = maxSpeed - (speedRange * i / gridLines);
-            const y = padding.top + (chartHeight * i / gridLines);
-            const label = formatSpeed(speed);
-
-            // Text shadow for contrast
-            ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-            ctx.shadowBlur = 3;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.fillText(label, padding.left - 8, y);
-            ctx.restore();
-          }
-
-          // Draw X-axis label
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-          ctx.font = '600 10px var(--vscode-font-family)';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'bottom';
-
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-          ctx.shadowBlur = 3;
-          ctx.fillText('Time →', padding.left + chartWidth / 2, height - 5);
-          ctx.restore();
+        // Draw grid lines
+        const gridLines = 4;
+        for (let i = 0; i <= gridLines; i++) {
+          const y = padding.top + (chartHeight * i / gridLines);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', padding.left);
+          line.setAttribute('y1', y);
+          line.setAttribute('x2', padding.left + chartWidth);
+          line.setAttribute('y2', y);
+          line.setAttribute('stroke', 'rgba(255, 255, 255, 0.15)');
+          line.setAttribute('stroke-width', '1');
+          line.setAttribute('shape-rendering', 'crispEdges');
+          svg.appendChild(line);
         }
 
-        // Function to draw tooltip and crosshair at mouse position
-        function drawTooltip(mouseX, mouseY) {
-          // Find nearest data point
-          let nearestIndex = -1;
-          let minDistance = Infinity;
-
-          dataPoints.forEach((point, index) => {
-            const x = padding.left + (index * xStep);
-            const distance = Math.abs(x - mouseX);
-            if (distance < minDistance && distance < xStep * 2) {
-              minDistance = distance;
-              nearestIndex = index;
-            }
-          });
-
-          if (nearestIndex === -1) return;
-
-          const point = dataPoints[nearestIndex];
-          const x = padding.left + (nearestIndex * xStep);
+        // Build path data for filled area
+        let fillPathData = '';
+        dataPoints.forEach((point, index) => {
+          const x = padding.left + (index * xStep);
           const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
           const y = padding.top + chartHeight - (normalized * chartHeight);
 
-          // Draw vertical crosshair line
-          ctx.save();
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-          ctx.lineWidth = 1;
-          ctx.setLineDash([4, 4]);
-          ctx.beginPath();
-          ctx.moveTo(x, padding.top);
-          ctx.lineTo(x, padding.top + chartHeight);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.restore();
-
-          // Draw point indicator
-          ctx.save();
-          ctx.fillStyle = 'rgba(86, 156, 214, 1)';
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(x, y, 4, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.stroke();
-          ctx.restore();
-
-          // Draw tooltip box
-          const speedText = formatSpeed(point.speed);
-          const tooltipPadding = 8;
-          const tooltipHeight = 24;
-
-          // Measure text width
-          ctx.font = '600 11px var(--vscode-font-family)';
-          const textWidth = ctx.measureText(speedText).width;
-          const tooltipWidth = textWidth + tooltipPadding * 2;
-
-          // Position tooltip (avoid edges)
-          let tooltipX = x - tooltipWidth / 2;
-          let tooltipY = y - tooltipHeight - 10;
-
-          // Keep tooltip in bounds
-          if (tooltipX < padding.left) tooltipX = padding.left;
-          if (tooltipX + tooltipWidth > width - padding.right) {
-            tooltipX = width - padding.right - tooltipWidth;
+          if (index === 0) {
+            fillPathData += `M ${x} ${padding.top + chartHeight} L ${x} ${y} `;
+          } else {
+            fillPathData += `L ${x} ${y} `;
           }
-          if (tooltipY < padding.top) tooltipY = y + 10;
+        });
 
-          // Draw tooltip background with shadow
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-          ctx.shadowBlur = 8;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 2;
-          ctx.fillStyle = 'rgba(30, 30, 30, 0.95)';
-          ctx.strokeStyle = 'rgba(86, 156, 214, 0.8)';
-          ctx.lineWidth = 1.5;
-
-          // Rounded rectangle
-          const radius = 4;
-          ctx.beginPath();
-          ctx.moveTo(tooltipX + radius, tooltipY);
-          ctx.lineTo(tooltipX + tooltipWidth - radius, tooltipY);
-          ctx.quadraticCurveTo(tooltipX + tooltipWidth, tooltipY, tooltipX + tooltipWidth, tooltipY + radius);
-          ctx.lineTo(tooltipX + tooltipWidth, tooltipY + tooltipHeight - radius);
-          ctx.quadraticCurveTo(tooltipX + tooltipWidth, tooltipY + tooltipHeight, tooltipX + tooltipWidth - radius, tooltipY + tooltipHeight);
-          ctx.lineTo(tooltipX + radius, tooltipY + tooltipHeight);
-          ctx.quadraticCurveTo(tooltipX, tooltipY + tooltipHeight, tooltipX, tooltipY + tooltipHeight - radius);
-          ctx.lineTo(tooltipX, tooltipY + radius);
-          ctx.quadraticCurveTo(tooltipX, tooltipY, tooltipX + radius, tooltipY);
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-          ctx.restore();
-
-          // Draw tooltip text
-          ctx.save();
-          ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-          ctx.font = '600 11px var(--vscode-font-family)';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(speedText, tooltipX + tooltipWidth / 2, tooltipY + tooltipHeight / 2);
-          ctx.restore();
+        // Close fill path to baseline
+        if (dataPoints.length > 0) {
+          const lastX = padding.left + (dataPoints.length - 1) * xStep;
+          fillPathData += `L ${lastX} ${padding.top + chartHeight} Z`;
         }
 
-        // Draw initial chart
-        drawBaseChart();
+        // Draw filled area
+        const fillPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        fillPath.setAttribute('d', fillPathData);
+        fillPath.setAttribute('fill', 'url(#fillGradient)');
+        fillPath.setAttribute('stroke', 'none');
+        svg.appendChild(fillPath);
+
+        // Build path data for speed line
+        let linePathData = '';
+        dataPoints.forEach((point, index) => {
+          const x = padding.left + (index * xStep);
+          const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
+          const y = padding.top + chartHeight - (normalized * chartHeight);
+
+          if (index === 0) {
+            linePathData += `M ${x} ${y} `;
+          } else {
+            linePathData += `L ${x} ${y} `;
+          }
+        });
+
+        // Draw speed line with glow
+        const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        linePath.setAttribute('d', linePathData);
+        linePath.setAttribute('fill', 'none');
+        linePath.setAttribute('stroke', 'url(#lineGradient)');
+        linePath.setAttribute('stroke-width', '1.5');
+        linePath.setAttribute('stroke-linecap', 'round');
+        linePath.setAttribute('stroke-linejoin', 'round');
+        linePath.setAttribute('filter', 'url(#glowFilter)');
+        svg.appendChild(linePath);
+
+        // Draw Y-axis labels
+        for (let i = 0; i <= gridLines; i++) {
+          const speed = maxSpeed - (speedRange * i / gridLines);
+          const y = padding.top + (chartHeight * i / gridLines);
+          const label = formatSpeed(speed);
+
+          // Text with shadow/outline effect
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', padding.left - 8);
+          text.setAttribute('y', y);
+          text.setAttribute('text-anchor', 'end');
+          text.setAttribute('dominant-baseline', 'middle');
+          text.setAttribute('fill', 'rgba(255, 255, 255, 0.9)');
+          text.setAttribute('font-size', '11px');
+          text.setAttribute('font-weight', '600');
+          text.setAttribute('font-family', 'var(--vscode-font-family)');
+          text.setAttribute('style', 'paint-order: stroke; stroke: rgba(0, 0, 0, 0.9); stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round;');
+          text.textContent = label;
+          svg.appendChild(text);
+        }
+
+        // Draw X-axis label
+        const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        xLabel.setAttribute('x', padding.left + chartWidth / 2);
+        xLabel.setAttribute('y', height - 5);
+        xLabel.setAttribute('text-anchor', 'middle');
+        xLabel.setAttribute('dominant-baseline', 'auto');
+        xLabel.setAttribute('fill', 'rgba(255, 255, 255, 0.65)');
+        xLabel.setAttribute('font-size', '10px');
+        xLabel.setAttribute('font-weight', '600');
+        xLabel.setAttribute('font-family', 'var(--vscode-font-family)');
+        xLabel.setAttribute('style', 'paint-order: stroke; stroke: rgba(0, 0, 0, 0.9); stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round;');
+        xLabel.textContent = 'Time →';
+        svg.appendChild(xLabel);
+
+        // Create invisible interaction layer group (added last to be on top)
+        const interactionGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        interactionGroup.setAttribute('id', 'interactionLayer');
+        interactionGroup.style.display = 'none';
+        svg.appendChild(interactionGroup);
 
         // Mouse interaction handler
-        let isHovering = false;
-
         function handleMouseMove(e) {
-          const rect = canvas.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left;
-          const mouseY = e.clientY - rect.top;
+          const svgRect = svg.getBoundingClientRect();
+          const mouseX = e.clientX - svgRect.left;
+          const mouseY = e.clientY - svgRect.top;
 
           // Check if mouse is within chart area
           if (mouseX >= padding.left && mouseX <= padding.left + chartWidth &&
               mouseY >= padding.top && mouseY <= padding.top + chartHeight) {
-            isHovering = true;
-            canvas.style.cursor = 'crosshair';
 
-            // Redraw chart with tooltip
-            drawBaseChart();
-            drawTooltip(mouseX, mouseY);
-          } else if (isHovering) {
-            isHovering = false;
-            canvas.style.cursor = 'default';
-            drawBaseChart();
+            // Find nearest data point
+            let nearestIndex = -1;
+            let minDistance = Infinity;
+
+            dataPoints.forEach((point, index) => {
+              const x = padding.left + (index * xStep);
+              const distance = Math.abs(x - mouseX);
+              if (distance < minDistance && distance < xStep * 2) {
+                minDistance = distance;
+                nearestIndex = index;
+              }
+            });
+
+            if (nearestIndex !== -1) {
+              const point = dataPoints[nearestIndex];
+              const x = padding.left + (nearestIndex * xStep);
+              const normalized = speedRange > 0 ? (point.speed - minSpeed) / speedRange : 0;
+              const y = padding.top + chartHeight - (normalized * chartHeight);
+
+              // Clear and show interaction layer
+              interactionGroup.innerHTML = '';
+              interactionGroup.style.display = 'block';
+              svg.style.cursor = 'crosshair';
+
+              // Draw vertical crosshair line
+              const crosshair = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              crosshair.setAttribute('x1', x);
+              crosshair.setAttribute('y1', padding.top);
+              crosshair.setAttribute('x2', x);
+              crosshair.setAttribute('y2', padding.top + chartHeight);
+              crosshair.setAttribute('stroke', 'rgba(255, 255, 255, 0.4)');
+              crosshair.setAttribute('stroke-width', '1');
+              crosshair.setAttribute('stroke-dasharray', '4,4');
+              interactionGroup.appendChild(crosshair);
+
+              // Draw point indicator
+              const pointCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              pointCircle.setAttribute('cx', x);
+              pointCircle.setAttribute('cy', y);
+              pointCircle.setAttribute('r', '4');
+              pointCircle.setAttribute('fill', 'rgba(86, 156, 214, 1)');
+              pointCircle.setAttribute('stroke', 'rgba(255, 255, 255, 0.9)');
+              pointCircle.setAttribute('stroke-width', '2');
+              interactionGroup.appendChild(pointCircle);
+
+              // Show tooltip
+              const speedText = formatSpeed(point.speed);
+              tooltip.textContent = speedText;
+              tooltip.style.display = 'block';
+
+              // Position tooltip (avoid edges)
+              let tooltipX = e.clientX - svgRect.left;
+              let tooltipY = e.clientY - svgRect.top - 40;
+
+              // Keep tooltip in bounds
+              const tooltipRect = tooltip.getBoundingClientRect();
+              if (tooltipX + tooltipRect.width / 2 > width - padding.right) {
+                tooltipX = width - padding.right - tooltipRect.width / 2;
+              }
+              if (tooltipX - tooltipRect.width / 2 < padding.left) {
+                tooltipX = padding.left + tooltipRect.width / 2;
+              }
+              if (tooltipY < padding.top) {
+                tooltipY = e.clientY - svgRect.top + 20;
+              }
+
+              tooltip.style.left = tooltipX + 'px';
+              tooltip.style.top = tooltipY + 'px';
+              tooltip.style.transform = 'translateX(-50%)';
+            }
+          } else {
+            // Mouse outside chart area
+            interactionGroup.style.display = 'none';
+            interactionGroup.innerHTML = '';
+            tooltip.style.display = 'none';
+            svg.style.cursor = 'default';
           }
         }
 
         function handleMouseLeave() {
-          if (isHovering) {
-            isHovering = false;
-            canvas.style.cursor = 'default';
-            drawBaseChart();
-          }
+          interactionGroup.style.display = 'none';
+          interactionGroup.innerHTML = '';
+          tooltip.style.display = 'none';
+          svg.style.cursor = 'default';
         }
 
-        // Remove old listeners (if any)
-        canvas.onmousemove = handleMouseMove;
-        canvas.onmouseleave = handleMouseLeave;
+        // Attach event listeners
+        svg.onmousemove = handleMouseMove;
+        svg.onmouseleave = handleMouseLeave;
       }
 
       // Update chunk progress display
