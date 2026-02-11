@@ -2800,7 +2800,7 @@ body {
     border-radius: 3px;
 }
 
-/* Fallback icon when no thumbnail - balanced size */
+/* Fallback icon when no thumbnail - balanced size - 默认96px容器 */
 .grid-view-icon-container .tree-item-icon {
     font-size: 48px !important;
     margin: 0;
@@ -2815,6 +2815,20 @@ body {
 .file-tree.grid-view .tree-item-icon {
     font-size: 48px !important;
     color: var(--vscode-icon-foreground);
+}
+
+/* 128px 容器的图标尺寸 */
+.file-tree.grid-view[data-thumbnail-size="128"] .grid-view-icon-container .tree-item-icon {
+    font-size: 80px !important;
+    width: 80px;
+    height: 80px;
+}
+
+/* 160px 容器的图标尺寸 */
+.file-tree.grid-view[data-thumbnail-size="160"] .grid-view-icon-container .tree-item-icon {
+    font-size: 100px !important;
+    width: 100px;
+    height: 100px;
 }
 
 /* Grid view label section */
@@ -2879,6 +2893,49 @@ body {
 
 .file-tree.grid-view .tree-item.back-item .tree-item-label {
     -webkit-line-clamp: 1;
+}
+
+/* Grid size controls - 图标尺寸切换按钮 */
+.grid-size-controls {
+    display: none; /* 默认隐藏,通过JS控制 */
+    align-items: center;
+    gap: 4px;
+    margin-left: auto; /* 靠右对齐 */
+    padding-left: 24px; /* 增加左侧间距,更靠右 */
+}
+
+.grid-size-btn {
+    width: 28px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    padding: 0;
+}
+
+.grid-size-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+    border-color: var(--vscode-button-border);
+}
+
+.grid-size-btn.active {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-focusBorder);
+    box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+/* 阻止悬浮切换按钮时整个back-item高亮 */
+.file-tree.grid-view .tree-item.back-item:has(.grid-size-controls:hover) {
+    background-color: transparent !important;
 }
 
 /* Loading state for thumbnails */

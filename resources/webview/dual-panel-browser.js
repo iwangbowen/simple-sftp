@@ -825,6 +825,19 @@
 
         // Update footer stats (total items)
         updateFooterStats(panel);
+
+        // 显示/隐藏尺寸控件(仅在网格视图下显示)
+        const backItem = treeContainer.querySelector('.back-item');
+        if (backItem) {
+            const sizeControls = backItem.querySelector('.grid-size-controls');
+            if (sizeControls) {
+                if (currentViewMode === 'grid') {
+                    sizeControls.style.display = 'flex';
+                } else {
+                    sizeControls.style.display = 'none';
+                }
+            }
+        }
     }
 
     /**
@@ -867,6 +880,40 @@
         size.className = 'tree-item-size';
         size.textContent = '';
         item.appendChild(size);
+
+        // 添加图标尺寸切换控件 (仅在网格视图下显示)
+        const sizeControls = document.createElement('div');
+        sizeControls.className = 'grid-size-controls';
+        sizeControls.style.display = 'none'; // 默认隐藏,在网格视图下显示
+
+        // 创建三个尺寸按钮
+        const sizes = [96, 128, 160];
+        sizes.forEach(s => {
+            const btn = document.createElement('button');
+            btn.className = 'grid-size-btn';
+            btn.dataset.size = s.toString();
+            btn.textContent = s === 96 ? 'S' : s === 128 ? 'M' : 'L';
+            btn.title = `${s}px 图标`;
+
+            // 设置当前激活状态
+            if (s === thumbnailSize) {
+                btn.classList.add('active');
+            }
+
+            // 点击事件
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止触发返回上一级
+                changeThumbnailSize(panel, Number.parseInt(btn.dataset.size, 10));
+
+                // 更新激活状态
+                sizeControls.querySelectorAll('.grid-size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+
+            sizeControls.appendChild(btn);
+        });
+
+        item.appendChild(sizeControls);
 
         // Click to go back
         item.addEventListener('click', () => {
@@ -1200,6 +1247,35 @@
         const currentMode = viewMode[panel] || 'list';
         const newMode = currentMode === 'list' ? 'grid' : 'list';
         switchViewMode(panel, newMode);
+    }
+
+    /**
+     * Change thumbnail/icon size in grid view
+     * @param {string} panel - Panel name ('local' or 'remote')
+     * @param {number} size - New size (96, 128, or 160)
+     */
+    function changeThumbnailSize(panel, size) {
+        if (![96, 128, 160].includes(size)) {
+            console.error('Invalid thumbnail size:', size);
+            return;
+        }
+
+        console.log(`[ThumbnailSize] Changing ${panel} thumbnail size to ${size}px`);
+        thumbnailSize = size;
+
+        // Update tree container attribute
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (treeContainer && treeContainer.classList.contains('grid-view')) {
+            treeContainer.setAttribute('data-thumbnail-size', size.toString());
+        }
+
+        // Save preference
+        vscode.postMessage({
+            command: 'updateThumbnailSize',
+            data: { panel, size }
+        });
+
+        console.log(`[ThumbnailSize] Updated thumbnail size to ${size}px`);
     }
 
     /**
