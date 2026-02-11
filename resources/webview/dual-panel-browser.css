@@ -2870,9 +2870,10 @@ body {
 /* Back item special styling in grid view */
 .file-tree.grid-view .tree-item.back-item {
     grid-column: 1 / -1;
+    display: flex;
     flex-direction: row;
-    justify-content: flex-start; /* 使用flex-start配合margin-left: auto实现右对齐 */
-    min-height: auto;
+    align-items: center;
+    min-height: 32px; /* 确保最小高度 */
     padding: 6px 12px;
 }
 
@@ -2894,15 +2895,16 @@ body {
 
 .file-tree.grid-view .tree-item.back-item .tree-item-label {
     -webkit-line-clamp: 1;
+    flex: none; /* 不占据剩余空间，让按钮可以靠右 */
 }
 
 /* Grid size controls - 图标尺寸切换按钮 */
 .grid-size-controls {
     display: none; /* 默认隐藏,通过JS控制 */
+    flex-direction: row; /* 水平排列 */
     align-items: center;
     gap: 4px;
-    margin-left: auto; /* 靠右对齐 */
-    padding-left: 24px; /* 增加左侧间距,更靠右 */
+    margin-left: auto; /* 自动靠右 */
 }
 
 .grid-size-btn {
