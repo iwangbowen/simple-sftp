@@ -122,13 +122,14 @@ export abstract class DualPanelBase {
         switch (message.command) {
             case 'ready': {
                 // Send view mode configuration to webview
-                const config = vscode.workspace.getConfiguration('simpleSftp.fileView');
+                const fileViewConfig = vscode.workspace.getConfiguration('simpleSftp.fileView');
+                const uiConfig = vscode.workspace.getConfiguration('simpleSftp.ui');
                 this.postMessage({
                     command: 'setViewMode',
                     data: {
-                        local: config.get<string>('defaultLayout', 'list'),
-                        remote: config.get<string>('defaultLayout', 'list'),
-                        thumbnailSize: config.get<number>('thumbnailSize', 96)
+                        local: fileViewConfig.get<string>('defaultLayout', 'list'),
+                        remote: fileViewConfig.get<string>('defaultLayout', 'list'),
+                        thumbnailSize: uiConfig.get<number>('defaultIconSize', 96)
                     }
                 });
 

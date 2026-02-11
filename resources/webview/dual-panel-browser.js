@@ -58,6 +58,7 @@
     /** @type {number} */
     // Grid view thumbnail size (96, 128, 160)
     let thumbnailSize = window.panelLayoutConfig?.defaultIconSize || 96;
+    console.log('[Config] Initial thumbnail size from settings:', thumbnailSize, 'Config:', window.panelLayoutConfig);
     let isAltKeyPressed = false;
     /** @type {boolean} */
     let isMouseOnTooltip = false;

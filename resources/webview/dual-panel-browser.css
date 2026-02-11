@@ -2862,7 +2862,8 @@ body {
 
 /* Hide columns in grid view */
 .file-tree.grid-view .tree-item-time,
-.file-tree.grid-view .tree-item-permissions {
+.file-tree.grid-view .tree-item-permissions,
+.file-tree.grid-view .tree-item-size {
     display: none;
 }
 
