@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.3 - 2026-02-11
+
+- **Enhancement**: Migrated speed trend chart from Canvas to SVG for crisp rendering at any resolution
+
 ## 5.2.2 - 2026-02-10
 
 - **Enhancement**: Optimized speed trend chart with transparent background, refined line width, and interactive mouse hover tooltip for real-time speed display
