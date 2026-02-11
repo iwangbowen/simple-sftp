@@ -799,6 +799,8 @@ body {
 .tree-item-icon {
     margin-right: 8px;
     flex-shrink: 0;
+    background: transparent !important; /* 移除可能的主题背景色 */
+    /* 确保图标在所有主题下都没有背景 */
 }
 
 .tree-item-label {
@@ -865,6 +867,11 @@ body {
 }
 
 /* 文件类型图标 */
+/* 全局codicon样式 - 确保所有图标元素没有背景 */
+.codicon {
+    background: transparent !important;
+}
+
 .codicon-file {
     color: var(--vscode-icon-foreground);
 }
@@ -2779,7 +2786,7 @@ body {
     align-items: center;
     justify-content: center;
     margin-bottom: 6px;
-    background: var(--vscode-editor-background);
+    background: transparent; /* 使用透明背景,与整体背景融合 */
     border-radius: 4px;
     overflow: hidden;
     position: relative;
