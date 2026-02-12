@@ -72,6 +72,7 @@
         currentIndex: -1,
         rotation: 0
     };
+    let imagePreviewResizeBound = false;
 
     // Thumbnail lazy loading
     /** @type {IntersectionObserver | null} */
@@ -2794,16 +2795,11 @@
             <div class="image-preview-backdrop"></div>
             <div class="image-preview-content" role="dialog" aria-modal="true" aria-label="Image Preview">
                 <div class="image-preview-toolbar">
-                    <button class="image-preview-btn" id="image-preview-prev" title="Previous (←)">
-                        <span class="codicon codicon-chevron-left"></span>
-                    </button>
+                    <div class="image-preview-toolbar-spacer" aria-hidden="true"></div>
                     <div class="image-preview-title" id="image-preview-title">Image Preview</div>
                     <div class="image-preview-actions">
                         <button class="image-preview-btn" id="image-preview-rotate" title="Rotate 90°">
-                            <span class="codicon codicon-refresh"></span>
-                        </button>
-                        <button class="image-preview-btn" id="image-preview-next" title="Next (→)">
-                            <span class="codicon codicon-chevron-right"></span>
+                            <span class="codicon codicon-rotate-right"></span>
                         </button>
                         <button class="image-preview-btn" id="image-preview-close" title="Close (Esc)">
                             <span class="codicon codicon-close"></span>
@@ -2811,7 +2807,15 @@
                     </div>
                 </div>
                 <div class="image-preview-body">
-                    <img id="image-preview-image" class="image-preview-image" alt="Preview" />
+                    <button class="image-preview-nav-btn image-preview-nav-prev" id="image-preview-prev" title="Previous (←)">
+                        <span class="codicon codicon-chevron-left"></span>
+                    </button>
+                    <div class="image-preview-stage">
+                        <img id="image-preview-image" class="image-preview-image" alt="Preview" />
+                    </div>
+                    <button class="image-preview-nav-btn image-preview-nav-next" id="image-preview-next" title="Next (→)">
+                        <span class="codicon codicon-chevron-right"></span>
+                    </button>
                 </div>
             </div>
         `;
@@ -2824,7 +2828,45 @@
         overlay.querySelector('#image-preview-next')?.addEventListener('click', showNextImage);
         overlay.querySelector('#image-preview-rotate')?.addEventListener('click', rotateCurrentImage);
 
+        const previewImage = overlay.querySelector('#image-preview-image');
+        previewImage?.addEventListener('load', () => {
+            updatePreviewImageLayout();
+        });
+
+        if (!imagePreviewResizeBound) {
+            window.addEventListener('resize', () => {
+                if (imagePreviewState.isOpen) {
+                    updatePreviewImageLayout();
+                }
+            });
+            imagePreviewResizeBound = true;
+        }
+
         return overlay;
+    }
+
+    function updatePreviewImageLayout() {
+        if (!imagePreviewState.isOpen) return;
+
+        const overlay = document.getElementById('image-preview-overlay');
+        if (!overlay) return;
+
+        const stage = overlay.querySelector('.image-preview-stage');
+        const img = overlay.querySelector('#image-preview-image');
+        if (!stage || !img || !img.naturalWidth || !img.naturalHeight) return;
+
+        const padding = 24;
+        const availableWidth = Math.max(stage.clientWidth - padding, 1);
+        const availableHeight = Math.max(stage.clientHeight - padding, 1);
+        const isQuarterTurn = imagePreviewState.rotation % 180 !== 0;
+
+        const fitScale = isQuarterTurn
+            ? Math.min(availableWidth / img.naturalHeight, availableHeight / img.naturalWidth, 1)
+            : Math.min(availableWidth / img.naturalWidth, availableHeight / img.naturalHeight, 1);
+
+        img.style.width = `${Math.max(1, Math.floor(img.naturalWidth * fitScale))}px`;
+        img.style.height = `${Math.max(1, Math.floor(img.naturalHeight * fitScale))}px`;
+        img.style.transform = `rotate(${imagePreviewState.rotation}deg)`;
     }
 
     function collectCurrentPanelImages(panel) {
@@ -2879,11 +2921,16 @@
         }
 
         if (img) {
+            img.style.width = '';
+            img.style.height = '';
             img.style.transform = `rotate(${imagePreviewState.rotation}deg)`;
             img.src = '';
             const cachedData = getImageDataUrlForPath(imagePreviewState.panel, currentPath);
             if (cachedData) {
                 img.src = cachedData;
+                if (img.complete) {
+                    updatePreviewImageLayout();
+                }
             } else {
                 requestAndShowImageData(imagePreviewState.panel, currentPath);
             }
@@ -2936,10 +2983,7 @@
     function rotateCurrentImage() {
         if (!imagePreviewState.isOpen) return;
         imagePreviewState.rotation = (imagePreviewState.rotation + 90) % 360;
-        const img = document.getElementById('image-preview-image');
-        if (img) {
-            img.style.transform = `rotate(${imagePreviewState.rotation}deg)`;
-        }
+        updatePreviewImageLayout();
     }
 
     /**
