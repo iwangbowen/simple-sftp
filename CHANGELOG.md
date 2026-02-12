@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.6 - 2026-02-12
+
+- **Feature/UX**: Added in-webview image floating preview from file context menu with keyboard navigation (←/→), rotation, centered title, and side navigation controls.
+
 ## 5.2.5 - 2026-02-12
 
 - **UX**: Refined Grid View top bar interactions (size controls alignment/hover/click behavior) and simplified loading text to `Loading`.
