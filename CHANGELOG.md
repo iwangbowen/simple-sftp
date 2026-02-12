@@ -1,5 +1,10 @@
 # Change Log
 
+## 5.2.5 - 2026-02-12
+
+- **UX**: Refined Grid View top bar interactions (size controls alignment/hover/click behavior) and simplified loading text to `Loading`.
+- **Feature**: Hosts TreeView now supports drag-and-drop sorting with persistent order (including cross-group reordering).
+
 ## 5.2.4 - 2026-02-11
 
 - **Feature**: Added icon size controls (Small/Medium/Large) for Grid View with persistent settings
