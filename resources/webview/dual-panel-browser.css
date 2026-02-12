@@ -2873,6 +2873,11 @@ body {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    align-self: stretch;
     min-height: 32px; /* 确保最小高度 */
     padding: 6px 12px;
 }
@@ -2963,7 +2968,7 @@ body {
     height: 128px;
 }
 
-.file-tree.grid-view[data-thumbnail-size="128"] .tree-item {
+.file-tree.grid-view[data-thumbnail-size="128"] .tree-item:not(.back-item) {
     min-width: 144px;
     max-width: 192px;
 }
@@ -2977,7 +2982,7 @@ body {
     height: 160px;
 }
 
-.file-tree.grid-view[data-thumbnail-size="160"] .tree-item {
+.file-tree.grid-view[data-thumbnail-size="160"] .tree-item:not(.back-item) {
     min-width: 176px;
     max-width: 224px;
 }
