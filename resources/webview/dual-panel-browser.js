@@ -1542,7 +1542,7 @@
         loading.className = 'loading';
         loading.innerHTML = `
             <span class="codicon codicon-loading codicon-modifier-spin"></span>
-            Loading ${panel} files...
+            Loading
         `;
         treeContainer.appendChild(loading);
     }
@@ -3910,7 +3910,7 @@
                     loading.className = 'loading';
                     loading.innerHTML = `
                         <span class="codicon codicon-loading codicon-modifier-spin"></span>
-                        Loading remote files...
+                        Loading
                     `;
                     remoteTree.appendChild(loading);
                 }
