@@ -2799,7 +2799,7 @@
                     <div class="image-preview-title" id="image-preview-title">Image Preview</div>
                     <div class="image-preview-actions">
                         <button class="image-preview-btn" id="image-preview-rotate" title="Rotate 90°">
-                            <span class="codicon codicon-rotate-right"></span>
+                            <span class="codicon codicon-redo"></span>
                         </button>
                         <button class="image-preview-btn" id="image-preview-close" title="Close (Esc)">
                             <span class="codicon codicon-close"></span>

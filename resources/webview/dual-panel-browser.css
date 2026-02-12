@@ -3047,6 +3047,7 @@ body {
 .image-preview-btn {
     width: 28px;
     height: 28px;
+    font-size: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3097,6 +3098,7 @@ body {
     z-index: 2;
     width: 36px;
     height: 36px;
+    font-size: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
