@@ -63,6 +63,16 @@
     /** @type {boolean} */
     let isMouseOnTooltip = false;
 
+    // Image preview overlay state
+    let imagePreviewState = {
+        isOpen: false,
+        panel: 'remote',
+        currentPath: '',
+        imagePaths: [],
+        currentIndex: -1,
+        rotation: 0
+    };
+
     // Thumbnail lazy loading
     /** @type {IntersectionObserver | null} */
     let thumbnailObserver = null;
@@ -963,6 +973,7 @@
             fileName: node.name,
             isDirectory: node.isDirectory,
             isFile: !node.isDirectory,
+            isImage: !node.isDirectory && isImageFile(node.name),
             panel: panel,
             hasFileSelectedForCompare: fileSelectedForCompare !== null,
             isFileSelectedForCompare: fileSelectedForCompare?.path === node.path,
@@ -2762,6 +2773,7 @@
                 fileName: fileName,
                 isDirectory: isDirectory,
                 isFile: !isDirectory,
+                isImage: !isDirectory && isImageFile(fileName || ''),
                 panel: panel,
                 hasFileSelectedForCompare: fileSelectedForCompare !== null,
                 isFileSelectedForCompare: fileSelectedForCompare?.path === filePath,
@@ -2769,6 +2781,165 @@
             };
             item.dataset.vscodeContext = JSON.stringify(contextData);
         });
+    }
+
+    function ensureImagePreviewOverlay() {
+        let overlay = document.getElementById('image-preview-overlay');
+        if (overlay) return overlay;
+
+        overlay = document.createElement('div');
+        overlay.id = 'image-preview-overlay';
+        overlay.className = 'image-preview-overlay';
+        overlay.innerHTML = `
+            <div class="image-preview-backdrop"></div>
+            <div class="image-preview-content" role="dialog" aria-modal="true" aria-label="Image Preview">
+                <div class="image-preview-toolbar">
+                    <button class="image-preview-btn" id="image-preview-prev" title="Previous (←)">
+                        <span class="codicon codicon-chevron-left"></span>
+                    </button>
+                    <div class="image-preview-title" id="image-preview-title">Image Preview</div>
+                    <div class="image-preview-actions">
+                        <button class="image-preview-btn" id="image-preview-rotate" title="Rotate 90°">
+                            <span class="codicon codicon-refresh"></span>
+                        </button>
+                        <button class="image-preview-btn" id="image-preview-next" title="Next (→)">
+                            <span class="codicon codicon-chevron-right"></span>
+                        </button>
+                        <button class="image-preview-btn" id="image-preview-close" title="Close (Esc)">
+                            <span class="codicon codicon-close"></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="image-preview-body">
+                    <img id="image-preview-image" class="image-preview-image" alt="Preview" />
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#image-preview-close')?.addEventListener('click', closeImagePreview);
+        overlay.querySelector('.image-preview-backdrop')?.addEventListener('click', closeImagePreview);
+        overlay.querySelector('#image-preview-prev')?.addEventListener('click', showPreviousImage);
+        overlay.querySelector('#image-preview-next')?.addEventListener('click', showNextImage);
+        overlay.querySelector('#image-preview-rotate')?.addEventListener('click', rotateCurrentImage);
+
+        return overlay;
+    }
+
+    function collectCurrentPanelImages(panel) {
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return [];
+
+        const items = Array.from(treeContainer.querySelectorAll('.tree-item:not(.back-item)'));
+        return items
+            .filter(item => item.dataset.isDir !== 'true' && isImageFile(item.dataset.name || ''))
+            .map(item => item.dataset.path)
+            .filter(Boolean);
+    }
+
+    function getImageDataUrlForPath(panel, filePath) {
+        // Priority 1: already loaded thumbnail in tree
+        const thumbnail = document.querySelector(`.tree-item-thumbnail[data-request-id="${panel}:${filePath}"]`)
+            || Array.from(document.querySelectorAll('.tree-item-thumbnail'))
+                .find(thumb => thumb.dataset.requestId === `${panel}:${filePath}`);
+
+        if (thumbnail && thumbnail.src) {
+            return thumbnail.src;
+        }
+
+        return null;
+    }
+
+    function requestAndShowImageData(panel, filePath) {
+        const size = Math.max(512, thumbnailSize || 512);
+        vscode.postMessage({
+            command: 'generateThumbnail',
+            data: {
+                path: filePath,
+                panel,
+                size
+            }
+        });
+    }
+
+    function renderCurrentPreviewImage() {
+        if (!imagePreviewState.isOpen || imagePreviewState.currentIndex < 0) return;
+
+        const overlay = ensureImagePreviewOverlay();
+        const img = overlay.querySelector('#image-preview-image');
+        const title = overlay.querySelector('#image-preview-title');
+
+        const currentPath = imagePreviewState.imagePaths[imagePreviewState.currentIndex];
+        imagePreviewState.currentPath = currentPath;
+
+        const currentName = currentPath.split('/').pop() || currentPath;
+        if (title) {
+            title.textContent = `${currentName} (${imagePreviewState.currentIndex + 1}/${imagePreviewState.imagePaths.length})`;
+        }
+
+        if (img) {
+            img.style.transform = `rotate(${imagePreviewState.rotation}deg)`;
+            img.src = '';
+            const cachedData = getImageDataUrlForPath(imagePreviewState.panel, currentPath);
+            if (cachedData) {
+                img.src = cachedData;
+            } else {
+                requestAndShowImageData(imagePreviewState.panel, currentPath);
+            }
+        }
+    }
+
+    function openImagePreview(panel, filePath) {
+        const images = collectCurrentPanelImages(panel);
+        if (images.length === 0) return;
+
+        const index = images.findIndex(p => p === filePath);
+        if (index < 0) return;
+
+        imagePreviewState = {
+            isOpen: true,
+            panel,
+            currentPath: filePath,
+            imagePaths: images,
+            currentIndex: index,
+            rotation: 0
+        };
+
+        const overlay = ensureImagePreviewOverlay();
+        overlay.classList.add('visible');
+        renderCurrentPreviewImage();
+    }
+
+    function closeImagePreview() {
+        imagePreviewState.isOpen = false;
+        const overlay = document.getElementById('image-preview-overlay');
+        if (overlay) {
+            overlay.classList.remove('visible');
+        }
+    }
+
+    function showPreviousImage() {
+        if (!imagePreviewState.isOpen || imagePreviewState.imagePaths.length <= 1) return;
+        imagePreviewState.currentIndex = (imagePreviewState.currentIndex - 1 + imagePreviewState.imagePaths.length) % imagePreviewState.imagePaths.length;
+        imagePreviewState.rotation = 0;
+        renderCurrentPreviewImage();
+    }
+
+    function showNextImage() {
+        if (!imagePreviewState.isOpen || imagePreviewState.imagePaths.length <= 1) return;
+        imagePreviewState.currentIndex = (imagePreviewState.currentIndex + 1) % imagePreviewState.imagePaths.length;
+        imagePreviewState.rotation = 0;
+        renderCurrentPreviewImage();
+    }
+
+    function rotateCurrentImage() {
+        if (!imagePreviewState.isOpen) return;
+        imagePreviewState.rotation = (imagePreviewState.rotation + 90) % 360;
+        const img = document.getElementById('image-preview-image');
+        if (img) {
+            img.style.transform = `rotate(${imagePreviewState.rotation}deg)`;
+        }
     }
 
     /**
@@ -3714,6 +3885,26 @@
 
     // ===== 键盘快捷键 =====
     document.addEventListener('keydown', (e) => {
+        if (imagePreviewState.isOpen) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeImagePreview();
+                return;
+            }
+
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                showPreviousImage();
+                return;
+            }
+
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                showNextImage();
+                return;
+            }
+        }
+
         // Ctrl+S: Upload selected local files
         if (e.ctrlKey && e.key === 's') {
             if (selectedItems.length > 0) {
@@ -4076,8 +4267,25 @@ case 'updateStatus':
                             thumb.src = dataUrl;
                         }
                     });
+
+                    // If preview overlay is open and this is current image, update preview image source
+                    if (imagePreviewState.isOpen && imagePreviewState.panel === panel && imagePreviewState.currentPath === path) {
+                        const previewImg = document.getElementById('image-preview-image');
+                        if (previewImg) {
+                            previewImg.src = dataUrl;
+                        }
+                    }
                 }
                 break;
+
+            case 'triggerImagePreview': {
+                const panel = message?.data?.panel;
+                const filePath = message?.data?.filePath;
+                if (panel && filePath) {
+                    openImagePreview(panel, filePath);
+                }
+                break;
+            }
 
             case 'setViewMode':
                 // Initialize view mode from settings

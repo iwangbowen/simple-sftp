@@ -213,6 +213,14 @@ export class DualPanelEditorManager extends DualPanelBase {
         await super.executeUploadFiles(args);
     }
 
+    public async executePreviewImageInWebview(args: any): Promise<void> {
+        if (!this.currentPanel) {
+            vscode.window.showWarningMessage('No active file browser panel');
+            return;
+        }
+        await super.executePreviewImageInWebview(args);
+    }
+
     /**
      * Get count of open panels
      */

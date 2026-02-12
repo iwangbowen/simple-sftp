@@ -627,6 +627,12 @@
         "icon": "$(terminal)"
       },
       {
+        "command": "simpleSftp.dualPanel.previewImageInWebview",
+        "title": "Preview Image in WebView",
+        "category": "Simple SFTP",
+        "icon": "$(preview)"
+      },
+      {
         "command": "simpleSftp.dualPanel.switchToListView",
         "title": "Switch to List View",
         "category": "Simple SFTP",
@@ -655,6 +661,11 @@
           "command": "simpleSftp.dualPanel.downloadTo",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'",
           "group": "1_files@3"
+        },
+        {
+          "command": "simpleSftp.dualPanel.previewImageInWebview",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile') && isImage == true",
+          "group": "1_files@3.5"
         },
         {
           "command": "simpleSftp.dualPanel.uploadFiles",

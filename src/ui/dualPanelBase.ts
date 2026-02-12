@@ -1740,6 +1740,34 @@ export abstract class DualPanelBase {
         });
     }
 
+    public async executePreviewImageInWebview(args: any): Promise<void> {
+        const filePath = args?.filePath;
+        const fileName = args?.fileName;
+
+        if (!filePath) {
+            vscode.window.showErrorMessage('No image file selected');
+            return;
+        }
+
+        // Extract panel from args based on webviewSection
+        let panel = 'remote'; // default
+
+        if (args?.webviewSection) {
+            panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+        } else if (args?.panel) {
+            panel = args.panel;
+        }
+
+        this.postMessage({
+            command: 'triggerImagePreview',
+            data: {
+                panel,
+                filePath,
+                fileName
+            }
+        });
+    }
+
     public async executeDelete(args: any): Promise<void> {
         // Request webview to trigger delete confirmation with current selection
         this.postMessage({

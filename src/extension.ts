@@ -715,6 +715,14 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         await dualPanelProvider.openInTerminal(args);
       }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.previewImageInWebview', async (args) => {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.executePreviewImageInWebview(args);
+      } else {
+        await dualPanelProvider.executePreviewImageInWebview(args);
+      }
     })
   );
   logger.info('Transfer queue commands registered');
