@@ -2880,6 +2880,12 @@ body {
     align-self: stretch;
     min-height: 32px; /* 确保最小高度 */
     padding: 6px 12px;
+    transform: none;
+    transition: background-color 0.1s;
+}
+
+.file-tree.grid-view .tree-item.back-item:hover {
+    transform: none;
 }
 
 .file-tree.grid-view .tree-item.back-item .grid-view-icon-container {
