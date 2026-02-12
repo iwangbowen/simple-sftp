@@ -252,15 +252,8 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
       );
     }
 
-    // Add ungrouped hosts, starred first
+    // Add ungrouped hosts in stored order
     const ungroupedHosts = hosts.filter((h: HostConfig) => !h.group);
-
-    // Sort: starred hosts first, then by name
-    ungroupedHosts.sort((a, b) => {
-      if (a.starred && !b.starred) {return -1;}
-      if (!a.starred && b.starred) {return 1;}
-      return a.name.localeCompare(b.name);
-    });
 
     for (const host of ungroupedHosts) {
       const hasAuth = await this.authManager.hasAuth(host.id);
@@ -289,13 +282,6 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
   private async getHostsInGroup(groupId: string): Promise<HostTreeItem[]> {
     const hosts = await this.hostManager.getHosts();
     const groupHosts = hosts.filter((h: HostConfig) => h.group === groupId);
-
-    // Sort: starred hosts first, then by name
-    groupHosts.sort((a, b) => {
-      if (a.starred && !b.starred) {return -1;}
-      if (!a.starred && b.starred) {return 1;}
-      return a.name.localeCompare(b.name);
-    });
 
     const items: HostTreeItem[] = [];
     for (const host of groupHosts) {
@@ -380,17 +366,19 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
       return;
     }
 
-    // Determine target group ID
+    // Determine target placement info
     let targetGroupId: string | undefined;
+    let targetHostId: string | undefined;
 
     if (target) {
       if (target.type === 'group') {
         // Dropped on a group
         targetGroupId = (target.data as GroupConfig).id;
       } else if (target.type === 'host') {
-        // Dropped on a host - use the host's group
+        // Dropped on a host - reorder relative to this host
         const host = target.data as HostConfig;
         targetGroupId = host.group;
+        targetHostId = host.id;
       } else {
         // Cannot drop on bookmarks
         vscode.window.showWarningMessage('Cannot move hosts to bookmarks');
@@ -401,11 +389,11 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
 
     // Move each dragged host
     try {
-      for (const item of dragData) {
-        if (item.type === 'host') {
-          await this.hostManager.moveHostToGroup(item.id, targetGroupId);
-        }
-      }
+      const draggedHostIds = dragData
+        .filter(item => item.type === 'host')
+        .map(item => item.id);
+
+      await this.hostManager.reorderHostsByDrag(draggedHostIds, targetGroupId, targetHostId);
 
       this.refresh();
     } catch (error: unknown) {

@@ -384,6 +384,94 @@ describe('HostManager', () => {
       const movedHost = hosts.find(h => h.id === host.id);
       expect(movedHost?.group).toBe(group.id);
     });
+
+    it('should reorder host within root when dropped on another host', async () => {
+      await hostManager.initialize();
+
+      const hostA = await hostManager.addHost({
+        name: 'A',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+      const hostB = await hostManager.addHost({
+        name: 'B',
+        host: '192.168.1.2',
+        port: 22,
+        username: 'user'
+      });
+      const hostC = await hostManager.addHost({
+        name: 'C',
+        host: '192.168.1.3',
+        port: 22,
+        username: 'user'
+      });
+
+      // Drop C on A => insert C after A
+      await hostManager.reorderHostsByDrag([hostC.id], undefined, hostA.id);
+
+      const hosts = await hostManager.getHosts();
+      const rootOrder = hosts.filter(h => !h.group).map(h => h.id);
+      expect(rootOrder).toEqual([hostA.id, hostC.id, hostB.id]);
+    });
+
+    it('should move host to target group and append to end when dropped on group', async () => {
+      await hostManager.initialize();
+
+      const group1 = await hostManager.addGroup('Group1');
+      const group2 = await hostManager.addGroup('Group2');
+
+      const hostA = await hostManager.addHost({
+        name: 'A',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user',
+        group: group1.id
+      });
+      const hostB = await hostManager.addHost({
+        name: 'B',
+        host: '192.168.1.2',
+        port: 22,
+        username: 'user',
+        group: group2.id
+      });
+
+      await hostManager.reorderHostsByDrag([hostA.id], group2.id);
+
+      const hosts = await hostManager.getHosts();
+      const group2Order = hosts.filter(h => h.group === group2.id).map(h => h.id);
+      expect(group2Order).toEqual([hostB.id, hostA.id]);
+    });
+
+    it('should preserve relative order of multi-selected hosts when dragging', async () => {
+      await hostManager.initialize();
+
+      const hostA = await hostManager.addHost({
+        name: 'A',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+      const hostB = await hostManager.addHost({
+        name: 'B',
+        host: '192.168.1.2',
+        port: 22,
+        username: 'user'
+      });
+      const hostC = await hostManager.addHost({
+        name: 'C',
+        host: '192.168.1.3',
+        port: 22,
+        username: 'user'
+      });
+
+      // Pass reverse selection order intentionally, should still keep storage relative order A then C
+      await hostManager.reorderHostsByDrag([hostC.id, hostA.id], undefined, hostB.id);
+
+      const hosts = await hostManager.getHosts();
+      const rootOrder = hosts.filter(h => !h.group).map(h => h.id);
+      expect(rootOrder).toEqual([hostB.id, hostA.id, hostC.id]);
+    });
   });
 
   describe('ID Generation', () => {

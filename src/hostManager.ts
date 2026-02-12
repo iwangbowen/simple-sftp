@@ -173,6 +173,93 @@ export class HostManager {
   }
 
   /**
+   * Reorder host(s) by drag-and-drop target.
+   * - If targetHostId is provided: insert dragged hosts after target host.
+   * - If only targetGroupId/root is provided: append to end of that group/root section.
+   * - Preserves relative order of dragged hosts based on current stored order.
+   */
+  async reorderHostsByDrag(hostIds: string[], targetGroupId?: string, targetHostId?: string): Promise<void> {
+    return this.withLock(async () => {
+      const data = await this.loadData();
+
+      const uniqueHostIds = Array.from(new Set(hostIds));
+      if (uniqueHostIds.length === 0) {
+        return;
+      }
+
+      // Validate target group when explicitly provided
+      if (targetGroupId) {
+        const groupExists = data.groups.some(g => g.id === targetGroupId);
+        if (!groupExists) {
+          throw new Error('Target group not found');
+        }
+      }
+
+      // Validate host ids and keep dragged hosts in current stored order
+      const hostIdSet = new Set(uniqueHostIds);
+      const draggedHosts = data.hosts.filter(h => hostIdSet.has(h.id));
+      if (draggedHosts.length !== uniqueHostIds.length) {
+        throw new Error('Host not found');
+      }
+
+      // If target host is dragged too, treat as dropping to group/root end
+      if (targetHostId && hostIdSet.has(targetHostId)) {
+        targetHostId = undefined;
+      }
+
+      // Determine destination group from target host (if provided)
+      let destinationGroupId = targetGroupId;
+      if (targetHostId) {
+        const targetHost = data.hosts.find(h => h.id === targetHostId);
+        if (!targetHost) {
+          throw new Error('Target host not found');
+        }
+        destinationGroupId = targetHost.group;
+      }
+
+      // Remove dragged hosts from original positions
+      data.hosts = data.hosts.filter(h => !hostIdSet.has(h.id));
+
+      // Update group assignment for dragged hosts
+      for (const host of draggedHosts) {
+        if (destinationGroupId) {
+          host.group = destinationGroupId;
+        } else {
+          delete host.group;
+        }
+      }
+
+      // Compute insert index
+      let insertIndex = data.hosts.length;
+      if (targetHostId) {
+        const targetIndex = data.hosts.findIndex(h => h.id === targetHostId);
+        if (targetIndex >= 0) {
+          insertIndex = targetIndex + 1;
+        }
+      } else {
+        let lastIndexInDestination = -1;
+        for (let i = 0; i < data.hosts.length; i++) {
+          const hostGroup = data.hosts[i].group;
+          const inDestination = destinationGroupId ? hostGroup === destinationGroupId : !hostGroup;
+          if (inDestination) {
+            lastIndexInDestination = i;
+          }
+        }
+        if (lastIndexInDestination >= 0) {
+          insertIndex = lastIndexInDestination + 1;
+        }
+      }
+
+      data.hosts.splice(insertIndex, 0, ...draggedHosts);
+      await this.saveData(data);
+
+      logger.info(
+        `Reordered ${draggedHosts.length} host(s) by drag to ${destinationGroupId ? `group ${destinationGroupId}` : 'root'}${targetHostId ? ` after ${targetHostId}` : ''}`
+      );
+    });
+  }
+
+  /**
    * Parse SSH config file and return host configurations (without adding to storage)
    */
   async parseSshConfigFile(): Promise<Omit<HostConfig, 'id'>[]> {
