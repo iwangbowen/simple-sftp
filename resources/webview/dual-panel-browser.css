@@ -2880,11 +2880,14 @@ body {
     align-self: stretch;
     min-height: 32px; /* 确保最小高度 */
     padding: 6px 12px;
+    cursor: default;
+    background-color: transparent;
     transform: none;
     transition: background-color 0.1s;
 }
 
 .file-tree.grid-view .tree-item.back-item:hover {
+    background-color: transparent !important;
     transform: none;
 }
 
@@ -2906,7 +2909,24 @@ body {
 
 .file-tree.grid-view .tree-item.back-item .tree-item-label {
     -webkit-line-clamp: 1;
+    min-width: auto;
+    width: auto;
+    padding-right: 0;
     flex: none; /* 不占据剩余空间，让按钮可以靠右 */
+}
+
+/* Only the dedicated back trigger area is interactive */
+.file-tree.grid-view .tree-item.back-item .back-nav-trigger {
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.file-tree.grid-view .tree-item.back-item .tree-item-label.back-nav-trigger {
+    padding: 2px 8px;
+}
+
+.file-tree.grid-view .tree-item.back-item .back-nav-trigger:hover {
+    background-color: var(--vscode-list-hoverBackground);
 }
 
 /* Grid size controls - 图标尺寸切换按钮 */

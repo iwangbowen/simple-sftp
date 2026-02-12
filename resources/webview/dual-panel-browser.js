@@ -858,12 +858,12 @@
 
         // Icon placeholder (keep for alignment)
         const icon = document.createElement('span');
-        icon.className = 'tree-item-icon';
+        icon.className = 'tree-item-icon back-nav-trigger';
         item.appendChild(icon);
 
         // Label
         const label = document.createElement('span');
-        label.className = 'tree-item-label';
+        label.className = 'tree-item-label back-nav-trigger';
         label.textContent = '..';
         item.appendChild(label);
 
@@ -917,13 +917,23 @@
 
         item.appendChild(sizeControls);
 
-        // Click to go back
-        item.addEventListener('click', () => {
+        // Click to go back (only when clicking '..' label/icon area)
+        const navigateBack = () => {
             const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
             const parentPath = getParentPath(currentPath, panel);
             if (parentPath) {
                 loadDirectory(panel, parentPath);
             }
+        };
+
+        icon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigateBack();
+        });
+
+        label.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigateBack();
         });
 
         return item;
