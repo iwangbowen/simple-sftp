@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.7 - 2026-02-13
+
+- **Fix**: Fixed clickability issue in Grid View where container elements were blocking pointer events on some items
+
 ## 5.2.6 - 2026-02-12
 
 - **Feature/UX**: Added in-webview image floating preview from file context menu with keyboard navigation (←/→), rotation, centered title, and side navigation controls.
