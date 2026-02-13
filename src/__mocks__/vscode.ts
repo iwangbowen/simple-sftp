@@ -51,6 +51,16 @@ export const window = {
     text: '',
     tooltip: ''
   })),
+  createWebviewPanel: vi.fn(() => ({
+    webview: {
+      html: '',
+      postMessage: vi.fn()
+    },
+    viewColumn: 2,
+    iconPath: undefined,
+    reveal: vi.fn(),
+    onDidDispose: vi.fn(() => ({ dispose: vi.fn() }))
+  })),
   showTextDocument: vi.fn(),
   activeTextEditor: undefined,
   visibleTextEditors: [],
@@ -148,7 +158,7 @@ export class EventEmitter {
 }
 
 export class Disposable {
-  constructor(private callOnDispose: () => void) {}
+  constructor(private readonly callOnDispose: () => void) {}
   dispose() {
     this.callOnDispose();
   }
@@ -159,7 +169,7 @@ export class Disposable {
 
 export class ExtensionContext {
   subscriptions: Disposable[] = [];
-  private storage = new Map<string, any>();
+  private readonly storage = new Map<string, any>();
 
   globalState = {
     get: (key: string, defaultValue?: any) => {
@@ -194,6 +204,14 @@ export class ExtensionContext {
 export enum StatusBarAlignment {
   Left = 1,
   Right = 2
+}
+
+export enum ViewColumn {
+  Active = -1,
+  Beside = -2,
+  One = 1,
+  Two = 2,
+  Three = 3
 }
 
 export enum FileType {
@@ -256,7 +274,7 @@ export class DataTransferItem {
 }
 
 export class DataTransfer {
-  private items = new Map<string, DataTransferItem>();
+  private readonly items = new Map<string, DataTransferItem>();
 
   get(mimeType: string): DataTransferItem | undefined {
     return this.items.get(mimeType);
@@ -300,6 +318,7 @@ export default {
   TestRunProfileKind,
   TestMessage,
   ExtensionMode,
+  ViewColumn,
   DataTransferItem,
   DataTransfer,
   debug
