@@ -2,7 +2,7 @@
 
 > [English](#simple-sftp---english) | [中文说明](#simple-sftp---中文说明)
 
-A lightweight VS Code extension for SFTP file transfers, SSH port forwarding, and remote host management with cross-device configuration synchronization.
+A modern and elegantly designed VS Code SFTP extension featuring a sleek, compact dual-panel interface. Experience seamless file transfers, SSH port forwarding, and intelligent remote host management with automatic cross-device synchronization—all in a beautifully streamlined workflow.
 
 ---
 
@@ -10,7 +10,9 @@ A lightweight VS Code extension for SFTP file transfers, SSH port forwarding, an
 
 > [English](#simple-sftp---english) | [中文说明](#simple-sftp---中文说明)
 
-A lightweight VS Code extension for SFTP file transfers, SSH port forwarding, and remote host management with cross-device configuration synchronization.
+✨ **A modern and elegantly designed SFTP extension with a sleek, compact dual-panel interface**
+
+Experience seamless file transfers, SSH port forwarding, and intelligent remote host management with automatic cross-device synchronization—all in a beautifully streamlined workflow that enhances your productivity.
 
 ### Support This Project
 
@@ -419,7 +421,9 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 > [English](#simple-sftp) | [中文说明](#simple-sftp---中文说明)
 
-一个轻量级的 VS Code 扩展,支持 SFTP 文件传输、SSH 端口转发和远程主机管理,并提供跨设备配置同步。
+✨ **现代化设计的 SFTP 扩展，优雅简洁的双面板界面风格**
+
+提供流畅的文件传输、SSH 端口转发和智能远程主机管理，配置跨设备自动同步，带来高效优雅的工作体验，让远程开发更简单更美观。
 
 ### 支持本项目
 
