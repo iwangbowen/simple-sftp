@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { EventEmitter } from 'node:events';
 import { ResourceDashboardService } from './resourceDashboardService';
 
 describe('ResourceDashboardService - parsers and private helpers', () => {
@@ -237,6 +238,129 @@ describe('ResourceDashboardService - parsers and private helpers', () => {
         hostname: 'Unknown',
       });
       expect(spy).toHaveBeenCalledTimes(4);
+    });
+  });
+
+  describe('public parsing methods without real connection', () => {
+    it('getProcessList parses ps output and skips malformed rows', async () => {
+      vi.spyOn(service, 'executeWithConnection').mockImplementation(async (_cfg: any, _auth: any, op: any) => op({}));
+      vi.spyOn(service, 'executeCommand').mockResolvedValue([
+        'USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND',
+        'root 101 9.5 1.2 1000 200 ? Ssl 10:00 00:01 /usr/bin/node server.js',
+        'bad line',
+        'app 202 0.4 0.3 2048 256 ? S 10:01 00:00 /usr/bin/python worker.py',
+      ].join('\n'));
+
+      const result = await ResourceDashboardService.getProcessList({} as any, {} as any, 5);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({ user: 'root', pid: 101, cpu: 9.5, mem: 1.2 });
+      expect(result[1].command).toContain('worker.py');
+    });
+
+    it('getNetworkStats parses /proc/net/dev and ip output', async () => {
+      vi.spyOn(service, 'executeWithConnection').mockImplementation(async (_cfg: any, _auth: any, op: any) => op({}));
+      const cmdSpy = vi.spyOn(service, 'executeCommand')
+        .mockResolvedValueOnce([
+          'Inter-|   Receive                                                |  Transmit',
+          ' face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed',
+          '  lo: 1000 10 0 0 0 0 0 0 1000 10 0 0 0 0 0 0',
+          'eth0: 2000 20 0 0 0 0 0 0 3000 30 0 0 0 0 0 0',
+        ].join('\n'))
+        .mockResolvedValueOnce('lo UNKNOWN 127.0.0.1/8\neth0 UP 192.168.1.2/24');
+
+      const result = await ResourceDashboardService.getNetworkStats({} as any, {} as any);
+      expect(result).toHaveLength(2);
+      expect(result.find((i: any) => i.name === 'eth0')).toMatchObject({
+        rxBytes: 2000,
+        txBytes: 3000,
+        ipAddress: '192.168.1.2',
+        state: 'UP',
+      });
+      expect(cmdSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('getNetworkStats handles missing ip command gracefully', async () => {
+      vi.spyOn(service, 'executeWithConnection').mockImplementation(async (_cfg: any, _auth: any, op: any) => op({}));
+      vi.spyOn(service, 'executeCommand')
+        .mockResolvedValueOnce([
+          'Inter-|   Receive | Transmit',
+          ' face |bytes packets|bytes packets',
+          'eth0: 100 1 0 0 0 0 0 0 200 2 0 0 0 0 0 0',
+        ].join('\n'))
+        .mockRejectedValueOnce(new Error('ip not found'));
+
+      const result = await ResourceDashboardService.getNetworkStats({} as any, {} as any);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ name: 'eth0', state: 'DOWN' });
+    });
+
+    it('getDiskIOStats uses iostat when available', async () => {
+      vi.spyOn(service, 'executeWithConnection').mockImplementation(async (_cfg: any, _auth: any, op: any) => op({}));
+      vi.spyOn(service, 'executeCommand').mockResolvedValue([
+        'Device r/s w/s rkB/s wkB/s %util',
+        'sda 1 1 1 1 1',
+        'Device r/s w/s rkB/s wkB/s rrqm/s wrqm/s r_await w_await aqu-sz rareq-sz wareq-sz svctm %util',
+        'sda 2 3 4 5 0 0 1 1 0.1 1 1 0.1 9.9',
+      ].join('\n'));
+
+      const result = await ResourceDashboardService.getDiskIOStats({} as any, {} as any);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ device: 'sda', reads: 2, writes: 3, utilization: 9.9 });
+    });
+
+    it('getDiskIOStats falls back to diskstats when iostat fails', async () => {
+      vi.spyOn(service, 'executeWithConnection').mockImplementation(async (_cfg: any, _auth: any, op: any) => op({}));
+      vi.spyOn(service, 'executeCommand')
+        .mockRejectedValueOnce(new Error('iostat unavailable'))
+        .mockResolvedValueOnce('8 0 sda 10 0 20 0 30 0 40 0 0 0 0 0');
+
+      const result = await ResourceDashboardService.getDiskIOStats({} as any, {} as any);
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ device: 'sda', readKBps: 10, writeKBps: 20 });
+    });
+  });
+
+  describe('executeCommand stream handling', () => {
+    class MockStream extends EventEmitter {
+      stderr = new EventEmitter();
+    }
+
+    it('resolves stdout when command exits with code 0', async () => {
+      const conn = {
+        exec: (_cmd: string, cb: (err: Error | null, stream: any) => void) => {
+          const stream = new MockStream();
+          cb(null, stream as any);
+          stream.emit('data', Buffer.from('hello '));
+          stream.emit('data', Buffer.from('world'));
+          stream.emit('close', 0);
+        },
+      };
+
+      const result = await service.executeCommand(conn as any, 'echo test');
+      expect(result).toBe('hello world');
+    });
+
+    it('rejects when command exits with non-zero code', async () => {
+      const conn = {
+        exec: (_cmd: string, cb: (err: Error | null, stream: any) => void) => {
+          const stream = new MockStream();
+          cb(null, stream as any);
+          stream.stderr.emit('data', Buffer.from('permission denied'));
+          stream.emit('close', 1);
+        },
+      };
+
+      await expect(service.executeCommand(conn as any, 'cat /root/secret')).rejects.toThrow('Command failed with code 1');
+    });
+
+    it('rejects when exec itself returns error', async () => {
+      const conn = {
+        exec: (_cmd: string, cb: (err: Error | null, stream: any) => void) => {
+          cb(new Error('exec failed'), undefined as any);
+        },
+      };
+
+      await expect(service.executeCommand(conn as any, 'bad')).rejects.toThrow('exec failed');
     });
   });
 });
