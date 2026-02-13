@@ -75,6 +75,40 @@ describe('ResourceDashboardService - parsers and private helpers', () => {
         utilization: 0,
       });
     });
+
+    const matrixCases = Array.from({ length: 120 }, (_, i) => {
+      const reads = (i % 17) + 1;
+      const writes = (i % 13) + 2;
+      const readKBps = (i + 1) * 3.5;
+      const writeKBps = (i + 1) * 2.25;
+      const util = ((i % 100) + 0.5).toFixed(2);
+      return {
+        device: `sd${String.fromCodePoint(97 + (i % 8))}`,
+        reads,
+        writes,
+        readKBps,
+        writeKBps,
+        util,
+      };
+    });
+
+    it.each(matrixCases)('matrix parse #%# device=%s', ({ device, reads, writes, readKBps, writeKBps, util }) => {
+      const output = [
+        'Device r/s w/s rkB/s wkB/s %util',
+        'sda 1 2 3 4 5',
+        'Device r/s w/s rkB/s wkB/s rrqm/s wrqm/s r_await w_await aqu-sz rareq-sz wareq-sz svctm %util',
+        `${device} ${reads} ${writes} ${readKBps} ${writeKBps} 0 0 1 1 0.1 1 1 0.1 ${util}`,
+      ].join('\n');
+
+      const result = service.parseIostatOutput(output);
+      expect(result).toHaveLength(1);
+      expect(result[0].device).toBe(device);
+      expect(result[0].reads).toBe(reads);
+      expect(result[0].writes).toBe(writes);
+      expect(result[0].readKBps).toBe(readKBps);
+      expect(result[0].writeKBps).toBe(writeKBps);
+      expect(result[0].utilization).toBe(Number.parseFloat(util));
+    });
   });
 
   describe('parseDiskstatsOutput - device filtering matrix', () => {
