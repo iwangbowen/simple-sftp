@@ -2790,6 +2790,12 @@ body {
     border-radius: 4px;
     overflow: hidden;
     position: relative;
+    pointer-events: none; /* 让点击事件穿透到父元素 */
+}
+
+/* 确保容器内的子元素也不阻止事件 */
+.grid-view-icon-container * {
+    pointer-events: none;
 }
 
 /* Thumbnail for images */
@@ -2839,6 +2845,12 @@ body {
     width: 100%;
     text-align: center;
     gap: 2px;
+    pointer-events: none; /* 让点击事件穿透到父元素 */
+}
+
+/* 确保标签内的子元素也不阻止事件 */
+.grid-view-label * {
+    pointer-events: none;
 }
 
 .grid-view-label .tree-item-label {
