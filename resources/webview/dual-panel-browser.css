@@ -3007,7 +3007,7 @@ body {
 .image-preview-backdrop {
     position: absolute;
     inset: 0;
-    background: color-mix(in srgb, var(--vscode-editor-background) 70%, black 30%);
+    background: transparent;
 }
 
 .image-preview-content {
@@ -3016,21 +3016,31 @@ body {
     height: min(86vh, 900px);
     display: flex;
     flex-direction: column;
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: transparent;
+    border: none;
     border-radius: 8px;
-    box-shadow: 0 10px 30px var(--vscode-widget-shadow);
+    box-shadow: none;
     overflow: hidden;
 }
 
 .image-preview-toolbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
     display: grid;
     grid-template-columns: 1fr minmax(0, 2fr) 1fr;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
-    background: var(--vscode-sideBar-background);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    padding: 12px 10px 24px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+    border: none;
+    pointer-events: none;
+}
+
+.image-preview-toolbar > * {
+    pointer-events: auto;
 }
 
 .image-preview-toolbar-spacer {
@@ -3042,11 +3052,12 @@ body {
     width: 100%;
     min-width: 0;
     font-size: 12px;
-    color: var(--vscode-foreground);
+    color: rgba(255, 255, 255, 0.9);
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 .image-preview-actions {
@@ -3066,24 +3077,24 @@ body {
     border: 1px solid transparent;
     border-radius: 4px;
     background: transparent;
-    color: var(--vscode-icon-foreground);
+    color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
 }
 
 .image-preview-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground);
-    border-color: var(--vscode-button-border);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 
 .image-preview-body {
-    flex: 1;
-    min-height: 0;
-    position: relative;
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 12px;
     overflow: hidden;
+    background: transparent;
 }
 
 .image-preview-stage {
@@ -3102,6 +3113,8 @@ body {
     transform-origin: center center;
     will-change: transform;
     transition: transform 0.15s ease;
+    border-radius: 4px;
+    filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.7));
 }
 
 .image-preview-nav-btn {
@@ -3114,17 +3127,19 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--vscode-editor-background) 85%, black 15%);
-    color: var(--vscode-icon-foreground);
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
     transform: translateY(-50%);
 }
 
 .image-preview-nav-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground);
-    border-color: var(--vscode-button-border);
+    background: rgba(0, 0, 0, 0.65);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .image-preview-nav-prev {
