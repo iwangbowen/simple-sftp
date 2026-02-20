@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.8 - 2026-02-20
+
+- **UX**: Image preview overlay now uses a fully transparent background — the image floats directly over the file browser with a gradient toolbar overlay and drop shadow
+
 ## 5.2.7 - 2026-02-13
 
 - **Fix**: Fixed clickability issue in Grid View where container elements were blocking pointer events on some items
