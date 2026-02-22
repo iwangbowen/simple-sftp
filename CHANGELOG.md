@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.9 - 2026-02-22
+
+- **UX**: Removed the dark gradient background from the image preview toolbar to make the entire modal fully transparent, and enhanced text shadows for better visibility of the filename and action buttons.
+
 ## 5.2.8 - 2026-02-20
 
 - **UX**: Image preview overlay now uses a fully transparent background — the image floats directly over the file browser with a gradient toolbar overlay and drop shadow

@@ -3034,7 +3034,7 @@ body {
     align-items: center;
     gap: 8px;
     padding: 12px 10px 24px;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+    background: transparent;
     border: none;
     pointer-events: none;
 }
@@ -3057,7 +3057,7 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6);
 }
 
 .image-preview-actions {
@@ -3079,6 +3079,7 @@ body {
     background: transparent;
     color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 .image-preview-btn:hover {
