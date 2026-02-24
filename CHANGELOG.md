@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.12 - 2026-02-24
+
+- **UX**: Redesigned the Activity Bar icon to match the new document-with-arrows style.
+
 ## 5.2.11 - 2026-02-24
 
 - **UX**: Redesigned transfer task details page with sleek compact card layout, terminal-style progress bar (solid fill, blinking cursor, sharp edges), tighter spacing, and fixed broken CSS rules.
