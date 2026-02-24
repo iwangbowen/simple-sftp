@@ -1,26 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Document Outline -->
-  <path d="M 25 25 L 25 10 L 65 10 L 90 35 L 90 90 L 25 90 L 25 75 M 25 45 L 25 55"
+  <!-- Document Outline (expanded to fill viewBox) -->
+  <path d="M 20 30 L 20 5 L 65 5 L 95 35 L 95 95 L 20 95 L 20 75 M 20 50 L 20 55"
         stroke="currentColor" stroke-width="5" fill="none"
         stroke-linejoin="round" stroke-linecap="round"/>
 
   <!-- Folded Corner -->
-  <path d="M 65 10 L 65 35 L 90 35"
+  <path d="M 65 5 L 65 35 L 95 35"
         stroke="currentColor" stroke-width="5" fill="none"
         stroke-linejoin="round" stroke-linecap="round"/>
 
   <!-- Horizontal Lines -->
-  <path d="M 55 50 L 75 50 M 55 75 L 75 75"
+  <path d="M 52 55 L 78 55 M 52 75 L 78 75"
         stroke="currentColor" stroke-width="5" fill="none"
         stroke-linecap="round"/>
 
-  <!-- Top Arrow (Right) -->
-  <path d="M 10 35 L 50 35 M 40 25 L 50 35 L 40 45"
+  <!-- Top Arrow (Right, → exiting left side of document) -->
+  <path d="M 5 38 L 43 38 M 33 28 L 43 38 L 33 48"
         stroke="currentColor" stroke-width="5" fill="none"
         stroke-linejoin="round" stroke-linecap="round"/>
 
-  <!-- Bottom Arrow (Left) -->
-  <path d="M 55 65 L 10 65 M 20 55 L 10 65 L 20 75"
-        stroke="currentColor" stroke-width="5" fill="none"
+  <!-- Bottom Arrow (Left, ← entering left side of document) -->
+  <path d="M 48 65 L 5 65 M 15 55 L 5 65 L 15 75"
         stroke-linejoin="round" stroke-linecap="round"/>
 </svg>
