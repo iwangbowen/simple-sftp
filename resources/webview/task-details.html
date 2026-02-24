@@ -15,88 +15,77 @@
       font-size: var(--vscode-font-size);
       color: var(--vscode-foreground);
       background-color: var(--vscode-editor-background);
-      padding: 12px;
-      line-height: 1.5;
+      padding: 10px;
+      line-height: 1.4;
       margin: 0;
     }
 
-    /* Modern Card-based Layout */
-    .header {
-      font-size: 1.1em;
-      font-weight: 600;
-      margin-bottom: 12px;
-      padding: 0;
-      color: var(--vscode-foreground);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
+    /* Sleek Compact Cards */
     .section {
-      padding: 12px 0;
-      margin-bottom: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .section:last-of-type {
-      border-bottom: none;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
     }
 
     .section-title {
       font-weight: 600;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       color: var(--vscode-textLink-activeForeground);
       text-transform: uppercase;
       letter-spacing: 0.8px;
       font-size: 10px;
-      opacity: 0.7;
+      opacity: 0.6;
     }
 
     .info-grid {
       display: grid;
-      grid-template-columns: 100px 1fr;
-      gap: 6px 12px;
-      font-size: 0.9em;
+      grid-template-columns: 80px 1fr;
+      gap: 3px 10px;
+      font-size: 0.88em;
     }
 
     .label {
       font-weight: 500;
       color: var(--vscode-descriptionForeground);
       font-size: 0.85em;
+      line-height: 1.6;
     }
 
     .value {
       color: var(--vscode-foreground);
       word-break: break-all;
+      line-height: 1.6;
     }
 
     .status-badge {
       display: inline-flex;
       align-items: center;
-      padding: 3px 8px;
-      border-radius: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
       font-weight: 600;
-      font-size: 0.75em;
+      font-size: 0.7em;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .status-completed { background: linear-gradient(135deg, rgba(78, 201, 176, 0.35), rgba(78, 201, 176, 0.25)); color: #7ee3c7; border: 1px solid rgba(78, 201, 176, 0.4); }
-    .status-failed { background: linear-gradient(135deg, rgba(244, 135, 113, 0.35), rgba(244, 135, 113, 0.25)); color: #ffa08a; border: 1px solid rgba(244, 135, 113, 0.4); }
-    .status-running { background: linear-gradient(135deg, rgba(86, 156, 214, 0.35), rgba(86, 156, 214, 0.25)); color: #7db1ed; border: 1px solid rgba(86, 156, 214, 0.4); }
-    .status-paused { background: linear-gradient(135deg, rgba(220, 220, 170, 0.35), rgba(220, 220, 170, 0.25)); color: #f0f0b8; border: 1px solid rgba(220, 220, 170, 0.4); }
-    .status-cancelled { background: linear-gradient(135deg, rgba(133, 133, 133, 0.35), rgba(133, 133, 133, 0.25)); color: #b0b0b0; border: 1px solid rgba(133, 133, 133, 0.4); }
-    .status-pending { background: linear-gradient(135deg, rgba(212, 212, 212, 0.35), rgba(212, 212, 212, 0.25)); color: #ffffff; border: 1px solid rgba(212, 212, 212, 0.4); }
+    .status-completed { background: rgba(78, 201, 176, 0.15); color: #4ec9b0; border: 1px solid rgba(78, 201, 176, 0.3); }
+    .status-failed { background: rgba(244, 135, 113, 0.15); color: #f48771; border: 1px solid rgba(244, 135, 113, 0.3); }
+    .status-running { background: rgba(86, 156, 214, 0.15); color: #569cd6; border: 1px solid rgba(86, 156, 214, 0.3); }
+    .status-paused { background: rgba(220, 220, 170, 0.15); color: #dcdcaa; border: 1px solid rgba(220, 220, 170, 0.3); }
+    .status-cancelled { background: rgba(133, 133, 133, 0.15); color: #858585; border: 1px solid rgba(133, 133, 133, 0.3); }
+    .status-pending { background: rgba(212, 212, 212, 0.15); color: #d4d4d4; border: 1px solid rgba(212, 212, 212, 0.3); }
 
     .error-box {
       background-color: var(--vscode-inputValidation-errorBackground);
       border: 1px solid var(--vscode-inputValidation-errorBorder);
       border-left: 3px solid var(--vscode-inputValidation-errorBorder);
-      padding: 10px;
-      margin-top: 8px;
-      border-radius: 4px;
+      padding: 8px 10px;
+      margin-top: 6px;
+      border-radius: 6px;
       font-family: var(--vscode-editor-font-family);
-      font-size: 0.85em;
+      font-size: 0.82em;
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -104,43 +93,72 @@
     code {
       background-color: var(--vscode-textCodeBlock-background);
       color: var(--vscode-textPreformat-foreground);
-      padding: 2px 5px;
-      border-radius: 3px;
+      padding: 1px 5px;
+      border-radius: 4px;
       font-family: var(--vscode-editor-font-family);
       font-size: 0.85em;
-      border: 1px solid var(--vscode-panel-border);
     }
 
-    /* Modern Progress Bar */
+    /* ── Modern Progress Bar ── */
     .progress-container {
       width: 100%;
-      margin: 12px 0 8px;
+      margin: 8px 0 6px;
     }
 
     .progress-ascii {
       background: transparent;
       border: none;
       padding: 0;
-      border-radius: 0;
     }
 
     .progress-bar-wrapper {
       width: 100%;
-      height: 12px;
-      background-color: rgba(255, 255, 255, 0.1);
+      height: 6px;
+      background: rgba(255, 255, 255, 0.06);
       border-radius: 0;
       overflow: hidden;
       position: relative;
-      margin-bottom: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      margin-bottom: 8px;
+      font-family: var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
     }
 
     .progress-bar-fill-visual {
       height: 100%;
-      background: var(--vscode-progressBar-background);
-      transition: width 0.3s ease;
+      background: #4ec9b0;
+      transition: width 0.3s linear;
       border-radius: 0;
       position: relative;
+    }
+
+    /* Blinking cursor at the leading edge */
+    .progress-bar-fill-visual::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: #fff;
+      animation: blink-cursor 1s step-end infinite;
+    }
+
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .progress-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+    }
+
+    .progress-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     .progress-stat-label {
       color: var(--vscode-descriptionForeground);
       font-size: 10px;
@@ -153,46 +171,46 @@
     }
 
     @media (max-width: 600px) {
-      .info-grid { grid-template-columns: 90px 1fr; gap: 4px 10px; }
-      .progress-stats { gap: 8px; }
+      .info-grid { grid-template-columns: 72px 1fr; gap: 2px 8px; }
+      .progress-stats { gap: 4px 10px; }
     }
 
-    /* Compact Chunk Progress */
+    /* ── Compact Chunk Progress ── */
     .chunk-progress-section {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid var(--vscode-panel-border);
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .chunk-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .chunk-title {
-      font-size: 0.9em;
+      font-size: 0.85em;
       font-weight: 600;
       color: var(--vscode-textLink-activeForeground);
     }
 
     .chunk-summary {
-      font-size: 0.8em;
+      font-size: 0.75em;
       color: var(--vscode-descriptionForeground);
     }
 
     .chunk-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      max-height: 400px;
+      gap: 6px;
+      max-height: 360px;
       overflow-y: auto;
     }
 
     .chunk-group {
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
       overflow: hidden;
     }
 
@@ -200,102 +218,114 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 10px;
-      background: linear-gradient(135deg, var(--vscode-input-background), var(--vscode-editor-background));
+      padding: 5px 10px;
+      background: rgba(255, 255, 255, 0.03);
       cursor: pointer;
       user-select: none;
-      transition: all 0.2s ease;
+      transition: background 0.15s ease;
     }
 
     .chunk-group-header:hover {
-      background-color: var(--vscode-list-hoverBackground);
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .chunk-group-toggle {
-      font-size: 0.7em;
+      font-size: 0.65em;
       width: 10px;
+      opacity: 0.6;
     }
 
     .chunk-group-title {
       font-weight: 600;
       flex: 1;
-      font-size: 0.85em;
+      font-size: 0.82em;
     }
 
     .chunk-group-count {
-      font-size: 0.75em;
+      font-size: 0.72em;
       color: var(--vscode-descriptionForeground);
     }
 
     .chunk-group-content {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 6px;
-      padding: 6px;
-      background-color: var(--vscode-editor-background);
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 5px;
+      padding: 5px;
     }
 
     .chunk-item {
-      background-color: var(--vscode-input-background);
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 4px;
-      padding: 6px;
-      transition: all 0.2s ease;
-      font-size: 0.85em;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      padding: 5px 6px;
+      transition: border-color 0.15s ease;
+      font-size: 0.82em;
     }
 
     .chunk-item:hover {
       border-color: var(--vscode-focusBorder);
-      transform: translateY(-1px);
     }
 
     .chunk-item-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
 
     .chunk-index {
       font-weight: 600;
-      font-size: 0.85em;
+      font-size: 0.82em;
     }
 
     .chunk-status {
-      font-size: 0.7em;
-      padding: 2px 5px;
-      border-radius: 8px;
+      font-size: 0.65em;
+      padding: 1px 5px;
+      border-radius: 6px;
       font-weight: 600;
       text-transform: uppercase;
     }
 
-    .chunk-status-pending { background-color: rgba(212, 212, 212, 0.3); color: #ffffff; border: 1px solid rgba(212, 212, 212, 0.4); }
-    .chunk-status-downloading { background-color: rgba(86, 156, 214, 0.3); color: #7db1ed; border: 1px solid rgba(86, 156, 214, 0.4); }
-    .chunk-status-completed { background-color: rgba(78, 201, 176, 0.3); color: #7ee3c7; border: 1px solid rgba(78, 201, 176, 0.4); }
-    .chunk-status-failed { background-color: rgba(244, 135, 113, 0.3); color: #ffa08a; border: 1px solid rgba(244, 135, 113, 0.4); }
+    .chunk-status-pending { background: rgba(212, 212, 212, 0.15); color: #d4d4d4; border: 1px solid rgba(212, 212, 212, 0.25); }
+    .chunk-status-downloading { background: rgba(86, 156, 214, 0.15); color: #569cd6; border: 1px solid rgba(86, 156, 214, 0.25); }
+    .chunk-status-completed { background: rgba(78, 201, 176, 0.15); color: #4ec9b0; border: 1px solid rgba(78, 201, 176, 0.25); }
+    .chunk-status-failed { background: rgba(244, 135, 113, 0.15); color: #f48771; border: 1px solid rgba(244, 135, 113, 0.25); }
 
     .chunk-progress-bar {
       width: 100%;
-      height: 6px;
-      background-color: rgba(255, 255, 255, 0.1);
+      height: 3px;
+      background: rgba(255, 255, 255, 0.06);
       border-radius: 0;
       overflow: hidden;
-      margin: 4px 0;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      margin: 3px 0;
     }
 
     .chunk-progress-fill {
       height: 100%;
-      background-color: var(--vscode-progressBar-background);
-      transition: width 0.3s ease;
+      background: #4ec9b0;
       border-radius: 0;
+      transition: width 0.3s linear;
+    }
+
+    .chunk-info {
       display: flex;
       justify-content: space-between;
-      font-size: 0.7em;
+      font-size: 0.72em;
       color: var(--vscode-descriptionForeground);
     }
 
     .chunk-size, .chunk-speed { white-space: nowrap; }
+
+    /* ── Footer ── */
+    .task-footer {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.72em;
+      color: var(--vscode-descriptionForeground);
+      text-align: center;
+      opacity: 0.5;
+    }
   </style>
 </head>
 <body>
@@ -365,16 +395,16 @@
     </div>
 
     <!-- Speed Chart - SVG (Crisp Vector Graphics) -->
-    <div id="speedChartContainer" style="margin-top: 12px; display: none;">
-      <div style="font-size: 0.7em; color: var(--vscode-descriptionForeground); margin-bottom: 6px; opacity: 0.8; letter-spacing: 0.5px; font-weight: 600;">
+    <div id="speedChartContainer" style="margin-top: 8px; display: none;">
+      <div style="font-size: 0.65em; color: var(--vscode-descriptionForeground); margin-bottom: 4px; opacity: 0.6; letter-spacing: 0.8px; font-weight: 600; text-transform: uppercase;">
         SPEED TREND
       </div>
-      <div style="position: relative; width: 100%; height: 140px; background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+      <div style="position: relative; width: 100%; height: 120px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 6px; overflow: hidden;">
         <svg id="speedChart" style="width: 100%; height: 100%; display: block;" xmlns="http://www.w3.org/2000/svg">
           <!-- Grid lines, chart line, and labels will be dynamically added here -->
         </svg>
         <!-- Tooltip overlay -->
-        <div id="chartTooltip" style="position: absolute; display: none; background: rgba(30, 30, 30, 0.95); border: 1.5px solid rgba(86, 156, 214, 0.8); border-radius: 4px; padding: 6px 10px; font-size: 11px; font-weight: 600; color: white; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.5); z-index: 10;"></div>
+        <div id="chartTooltip" style="position: absolute; display: none; background: rgba(30, 30, 30, 0.95); border: 1px solid rgba(86, 156, 214, 0.6); border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 600; color: white; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,0.4); z-index: 10;"></div>
       </div>
     </div>
 
@@ -437,9 +467,7 @@
     </div>
   </div>
 
-  <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--vscode-panel-border); font-size: 0.75em; color: var(--vscode-descriptionForeground); text-align: center;">
-    ID: {{TASK_ID}}
-  </div>
+  <div class="task-footer">ID: {{TASK_ID}}</div>
 
   <script>
     (function() {
