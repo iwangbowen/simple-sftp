@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.11 - 2026-02-24
+
+- **UX**: Redesigned transfer task details page with sleek compact card layout, terminal-style progress bar (solid fill, blinking cursor, sharp edges), tighter spacing, and fixed broken CSS rules.
+
 ## 5.2.10 - 2026-02-24
 
 - **UX**: Redesigned the bookmark dropdown list to be more sleek and compact, featuring a single-line layout with icons, better vertical alignment, and improved theme color integration.
