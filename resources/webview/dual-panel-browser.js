@@ -2592,8 +2592,8 @@
             item.className = 'bookmark-dropdown-item';
             item.innerHTML = `
                 <div class="bookmark-dropdown-item-content">
-                    <div class="bookmark-dropdown-item-name">${escapeHtml(bookmark.name)}</div>
-                    <div class="bookmark-dropdown-item-path">${escapeHtml(bookmark.path)}</div>
+                    <div class="bookmark-dropdown-item-name" title="${escapeHtml(bookmark.name)}"><i class="codicon codicon-bookmark"></i> ${escapeHtml(bookmark.name)}</div>
+                    <div class="bookmark-dropdown-item-path" title="${escapeHtml(bookmark.path)}">${escapeHtml(bookmark.path)}</div>
                 </div>
             `;
             item.addEventListener('click', () => {

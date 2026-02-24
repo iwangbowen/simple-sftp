@@ -128,11 +128,11 @@ body {
     top: 100%;
     left: 0;
     margin-top: 4px;
-    min-width: 250px;
-    max-width: 350px;
+    min-width: 300px;
+    max-width: 450px;
     max-height: 400px;
-    background-color: var(--vscode-sideBar-background);
-    border: 1px solid var(--vscode-editorWidget-border);
+    background-color: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border);
     border-radius: 4px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     z-index: 1000;
@@ -163,37 +163,59 @@ body {
 .bookmark-dropdown-item {
     display: flex;
     align-items: center;
-    padding: 4px 12px;
+    padding: 4px 8px;
     cursor: pointer;
     transition: background-color 0.1s;
-    border-left: 3px solid transparent;
+    border-left: 2px solid transparent;
 }
 
 .bookmark-dropdown-item:hover {
-    background-color: var(--vscode-list-hoverBackground);
+    background-color: var(--vscode-menu-selectionBackground);
+    color: var(--vscode-menu-selectionForeground);
     border-left-color: var(--vscode-focusBorder);
 }
 
+.bookmark-dropdown-item:hover .bookmark-dropdown-item-path,
+.bookmark-dropdown-item:hover .bookmark-dropdown-item-name .codicon {
+    color: var(--vscode-menu-selectionForeground);
+}
+
 .bookmark-dropdown-item-content {
-    flex: 1;
-    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    overflow: hidden;
 }
 
 .bookmark-dropdown-item-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
-    font-weight: 500;
-    margin-bottom: 0;
+    font-weight: normal;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 0;
+    max-width: 50%;
+}
+
+.bookmark-dropdown-item-name .codicon {
+    font-size: 14px;
+    color: var(--vscode-icon-foreground);
 }
 
 .bookmark-dropdown-item-path {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--vscode-descriptionForeground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+    text-align: right;
+    opacity: 0.8;
 }
 
 .bookmark-dropdown-empty {
