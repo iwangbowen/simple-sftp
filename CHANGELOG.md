@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.10 - 2026-02-24
+
+- **UX**: Redesigned the bookmark dropdown list to be more sleek and compact, featuring a single-line layout with icons, better vertical alignment, and improved theme color integration.
+
 ## 5.2.9 - 2026-02-22
 
 - **UX**: Removed the dark gradient background from the image preview toolbar to make the entire modal fully transparent, and enhanced text shadows for better visibility of the filename and action buttons.
