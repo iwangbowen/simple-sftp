@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.13 - 2026-02-27
+
+- **Feature**: Added sorting controls to Grid View — a dropdown (Name/Size/Date) and direction toggle button in the toolbar row, keeping sort state in sync with List View.
+
 ## 5.2.12 - 2026-02-24
 
 - **UX**: Redesigned the Activity Bar icon to match the new document-with-arrows style.
