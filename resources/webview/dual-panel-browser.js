@@ -428,6 +428,29 @@
     }
 
     /**
+     * 更新网格视图下排序控件的状态
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function updateGridSortControls(panel) {
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+        const backItem = treeContainer.querySelector('.back-item');
+        if (!backItem) return;
+        const sortControls = backItem.querySelector('.grid-sort-controls');
+        if (!sortControls) return;
+
+        const state = sortState[panel];
+        const select = sortControls.querySelector('.grid-sort-select');
+        if (select) {
+            select.value = state.column;
+        }
+        const dirBtn = sortControls.querySelector('.grid-sort-dir-btn');
+        if (dirBtn) {
+            dirBtn.textContent = state.direction === 'asc' ? '↑' : '↓';
+        }
+    }
+
+    /**
      * @param {string} panel - 'local' | 'remote'
      * @param {string} column - 列名
      */
@@ -501,6 +524,8 @@
 
         // 更新列头排序指示器
         updateColumnHeaders(panel);
+        // 同步更新网格视图排序控件
+        updateGridSortControls(panel);
     }
 
     /**
@@ -839,16 +864,20 @@
         // Update footer stats (total items)
         updateFooterStats(panel);
 
-        // 显示/隐藏尺寸控件(仅在网格视图下显示)
+        // 显示/隐藏网格视图控件(排序控件和尺寸控件)
         const backItem = treeContainer.querySelector('.back-item');
         if (backItem) {
+            const sortControls = backItem.querySelector('.grid-sort-controls');
             const sizeControls = backItem.querySelector('.grid-size-controls');
+            const isGrid = currentViewMode === 'grid';
+            if (sortControls) {
+                sortControls.style.display = isGrid ? 'flex' : 'none';
+            }
             if (sizeControls) {
-                if (currentViewMode === 'grid') {
-                    sizeControls.style.display = 'flex';
-                } else {
-                    sizeControls.style.display = 'none';
-                }
+                sizeControls.style.display = isGrid ? 'flex' : 'none';
+            }
+            if (isGrid) {
+                updateGridSortControls(panel);
             }
         }
     }
@@ -893,6 +922,47 @@
         size.className = 'tree-item-size';
         size.textContent = '';
         item.appendChild(size);
+
+        // 添加排序控件 (仅在网格视图下显示)
+        const sortControls = document.createElement('div');
+        sortControls.className = 'grid-sort-controls';
+        sortControls.style.display = 'none'; // 默认隐藏,在网格视图下显示
+
+        const sortLabel = document.createElement('span');
+        sortLabel.className = 'grid-sort-label';
+        sortLabel.textContent = 'Sort:';
+        sortControls.appendChild(sortLabel);
+
+        const sortSelect = document.createElement('select');
+        sortSelect.className = 'grid-sort-select';
+        sortSelect.title = 'Sort by';
+        [{ value: 'name', text: 'Name' }, { value: 'size', text: 'Size' }, { value: 'time', text: 'Date' }].forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            sortSelect.appendChild(option);
+        });
+        sortSelect.value = sortState[panel].column;
+        sortSelect.addEventListener('click', (e) => e.stopPropagation());
+        sortSelect.addEventListener('change', (e) => {
+            e.stopPropagation();
+            handleColumnHeaderClick(panel, sortSelect.value);
+            updateGridSortControls(panel);
+        });
+        sortControls.appendChild(sortSelect);
+
+        const dirBtn = document.createElement('button');
+        dirBtn.className = 'grid-sort-dir-btn';
+        dirBtn.title = 'Toggle sort direction';
+        dirBtn.textContent = sortState[panel].direction === 'asc' ? '↑' : '↓';
+        dirBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleColumnHeaderClick(panel, sortState[panel].column);
+            updateGridSortControls(panel);
+        });
+        sortControls.appendChild(dirBtn);
+
+        item.appendChild(sortControls);
 
         // 添加图标尺寸切换控件 (仅在网格视图下显示)
         const sizeControls = document.createElement('div');
