@@ -156,6 +156,9 @@ export class CommandHandler {
       ),
       vscode.commands.registerCommand('simpleSftp.refresh', () => this.refresh()),
       vscode.commands.registerCommand('simpleSftp.showLogs', () => this.showLogs()),
+      vscode.commands.registerCommand('simpleSftp.openWalkthrough', () => {
+        vscode.commands.executeCommand('workbench.action.openWalkthrough', 'WangBowen.simple-sftp#simpleSftp.welcome');
+      }),
       vscode.commands.registerCommand('simpleSftp.showConnectionPool', () => this.showConnectionPoolStatus()),
       vscode.commands.registerCommand('simpleSftp.showResourceDashboard', (item: HostTreeItem) =>
         this.showResourceDashboard(item)

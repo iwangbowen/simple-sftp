@@ -31,7 +31,6 @@
     }
   },
   "activationEvents": [
-    "onView:simpleSftp.hosts",
     "onFileSystem:sftp"
   ],
   "main": "./out/extension.js",
@@ -101,7 +100,7 @@
     "viewsWelcome": [
       {
         "view": "simpleSftp.hosts",
-        "contents": "Welcome to Simple SFTP\n\nNo remote hosts configured yet. Get started by adding your first host to upload and download files via SFTP.\n\n[$(add) Add Host](command:simpleSftp.addHost)\n\n[$(cloud-download) Import from SSH Config](command:simpleSftp.importFromSshConfig)\n\nNeed help? Check out the [documentation](https://github.com/iwangbowen/simple-sftp#readme)."
+        "contents": "Welcome to Simple SFTP\n\nNo remote hosts configured yet. Get started by adding your first host to upload and download files via SFTP.\n\n[$(play-circle) Open Walkthrough](command:workbench.action.openWalkthrough?%7B%22category%22%3A%22WangBowen.simple-sftp%23simpleSftp.welcome%22%7D)\n\n[$(add) Add Host](command:simpleSftp.addHost)\n\n[$(cloud-download) Import from SSH Config](command:simpleSftp.importFromSshConfig)\n\nNeed help? Check out the [documentation](https://github.com/iwangbowen/simple-sftp#readme)."
       }
     ],
     "submenus": [
@@ -331,6 +330,12 @@
         "title": "Show Output Logs",
         "category": "Simple SFTP",
         "icon": "$(output)"
+      },
+      {
+        "command": "simpleSftp.openWalkthrough",
+        "title": "Open Walkthrough",
+        "category": "Simple SFTP",
+        "icon": "$(play-circle)"
       },
       {
         "command": "simpleSftp.showConnectionPool",
@@ -1413,6 +1418,47 @@
         }
       ]
     },
+    "walkthroughs": [
+      {
+        "id": "simpleSftp.welcome",
+        "title": "Welcome to Simple SFTP Plus",
+        "description": "A quick guide to manage your remote hosts, explore files, and configure powerful SFTP/SSH tools.",
+        "steps": [
+          {
+            "id": "addHost",
+            "title": "Add and Manage Hosts",
+            "description": "Start by setting up your server environments. Add new remote boundaries and keep them organized via Groups.\n\n[Add Host](command:simpleSftp.addHost)",
+            "media": {
+              "markdown": "resources/walkthrough/add-host.md"
+            }
+          },
+          {
+            "id": "importSettings",
+            "title": "Migrate your SSH Config",
+            "description": "Ready to save some clicks? Seamlessly load your preset configurations by importing `~/.ssh/config`.\n\n[Import from SSH Config](command:simpleSftp.importFromSshConfig)",
+            "media": {
+              "markdown": "resources/walkthrough/import-export.md"
+            }
+          },
+          {
+            "id": "fileBrowser",
+            "title": "Explore with the File Browser",
+            "description": "Click the Webview / File Browser button placed next to each host context to browse files comfortably using the dual-panel system.\n\n[View Hosts](command:simpleSftp.hosts.focus)",
+            "media": {
+              "markdown": "resources/walkthrough/file-browser.md"
+            }
+          },
+          {
+            "id": "portForwarding",
+            "title": "Port Forwarding Tunnels",
+            "description": "Expose remote applications securely mapping ports into your local machine across existing active connections.",
+            "media": {
+              "markdown": "resources/walkthrough/port-forwarding.md"
+            }
+          }
+        ]
+      }
+    ],
     "configuration": {
       "title": "Simple SFTP",
       "properties": {
