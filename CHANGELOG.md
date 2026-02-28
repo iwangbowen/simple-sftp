@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.14 - 2026-02-28
+
+- **Feature**: Added a new interactive Walkthrough for first-time users to explore the Hosts panel, File Browser, and Port Forwarding. Users can also open it via the `Simple SFTP: Open Walkthrough` command.
+
 ## 5.2.13 - 2026-02-27
 
 - **Feature**: Added sorting controls to Grid View — a dropdown (Name/Size/Date) and direction toggle button in the toolbar row, keeping sort state in sync with List View.
