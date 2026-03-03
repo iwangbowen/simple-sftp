@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.15 - 2026-03-03
+
+- **Fix**: Fixed inline rename input in Grid View — the input box now stays within the item bounds with correct width, centered text, and matching font size; also fixed Backspace and Delete keys incorrectly triggering navigation/deletion while renaming.
+
 ## 5.2.14 - 2026-02-28
 
 - **Feature**: Added a new interactive Walkthrough for first-time users to explore the Hosts panel, File Browser, and Port Forwarding. Users can also open it via the `Simple SFTP: Open Walkthrough` command.
