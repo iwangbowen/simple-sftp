@@ -4038,7 +4038,7 @@
                 startInlineRename();
             }
         } else if (e.key === 'Delete') {
-            if (selectedItems.length > 0) {
+            if (selectedItems.length > 0 && !document.activeElement?.classList.contains('tree-item-rename-input')) {
                 e.preventDefault();
                 showDeleteConfirmation();
             }
@@ -4054,6 +4054,7 @@
                 activeElement.id === 'remote-search' ||
                 activeElement.classList.contains('tree-item-input') ||
                 activeElement.classList.contains('rename-input') ||
+                activeElement.classList.contains('tree-item-rename-input') ||
                 activeElement.classList.contains('local-port-input') ||
                 // 检查是否在搜索视图的任何输入框中
                 activeElement.closest('.panel-search-view') ||
