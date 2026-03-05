@@ -1,5 +1,10 @@
 # Change Log
 
+## 5.2.16 - 2026-03-05
+
+- **Feature**: Bookmark nodes in the Hosts panel now support **Open SSH Terminal Here** — opens a terminal at the bookmarked remote path.
+- **Feature**: WebView file browser supports **rubber band selection** — drag on the panel background to select multiple files in both List and Grid views.
+
 ## 5.2.15 - 2026-03-03
 
 - **Fix**: Fixed inline rename input in Grid View — the input box now stays within the item bounds with correct width, centered text, and matching font size; also fixed Backspace and Delete keys incorrectly triggering navigation/deletion while renaming.
