@@ -284,6 +284,12 @@
         "icon": "$(terminal)"
       },
       {
+        "command": "simpleSftp.openSshTerminalAtBookmark",
+        "title": "Open SSH Terminal Here",
+        "category": "Simple SFTP",
+        "icon": "$(terminal)"
+      },
+      {
         "command": "simpleSftp.addBookmark",
         "title": "Add Bookmark",
         "category": "Simple SFTP",
@@ -891,6 +897,10 @@
           "when": "false"
         },
         {
+          "command": "simpleSftp.openSshTerminalAtBookmark",
+          "when": "false"
+        },
+        {
           "command": "simpleSftp.addBookmark",
           "when": "false"
         },
@@ -1290,6 +1300,11 @@
           "command": "simpleSftp.browseBookmark",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "1_browse@1"
+        },
+        {
+          "command": "simpleSftp.openSshTerminalAtBookmark",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
+          "group": "1_browse@2"
         },
         {
           "command": "simpleSftp.renameBookmark",

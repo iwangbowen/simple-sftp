@@ -3278,3 +3278,13 @@ body {
     margin: 0 8px 0 0;
     background: transparent;
 }
+
+/* ===== Rubber Band Selection Rectangle ===== */
+.selection-rect {
+    position: fixed;
+    border: 1px solid var(--vscode-focusBorder);
+    background-color: var(--vscode-list-activeSelectionBackground);
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 1000;
+}

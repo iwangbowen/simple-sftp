@@ -74,6 +74,18 @@
     };
     let imagePreviewResizeBound = false;
 
+    // Rubber band (drag) selection state
+    /** @type {{clientX: number, clientY: number} | null} */
+    let rubberBandStart = null;
+    /** @type {HTMLElement | null} */
+    let rubberBandEl = null;
+    /** @type {string | null} */
+    let rubberBandPanel = null;
+    /** @type {boolean} */
+    let rubberBandActive = false;
+    /** @type {boolean} */
+    let rubberBandWasActive = false;
+
     // Thumbnail lazy loading
     /** @type {IntersectionObserver | null} */
     let thumbnailObserver = null;
@@ -92,6 +104,7 @@
 
         initializeEventListeners();
         initializeResizer();
+        initializeRubberBandSelection();
         initializeSearchView();
         initializeColumnHeaders();
         // Initialize port forwarding using shared module
@@ -221,9 +234,11 @@
                 const panel = treeId === 'local-tree' ? 'local' : 'remote';
                 lastActivePanel = panel;
 
-                // Deselect all when clicking empty area
+                // Deselect all when clicking empty area (skip if rubber band was just used)
                 if (e.target.id === treeId || e.target.classList.contains('file-tree')) {
-                    clearSelection();
+                    if (!rubberBandWasActive) {
+                        clearSelection();
+                    }
                 }
             });
 
@@ -373,6 +388,113 @@
         });
     }
 
+    // ===== 框选 (Rubber Band Selection) =====
+    function initializeRubberBandSelection() {
+        const DRAG_THRESHOLD = 5;
+
+        ['local-tree', 'remote-tree'].forEach(treeId => {
+            const treeContainer = document.getElementById(treeId);
+            if (!treeContainer) return;
+
+            const panel = treeId === 'local-tree' ? 'local' : 'remote';
+
+            treeContainer.addEventListener('mousedown', (e) => {
+                // Only left button
+                if (e.button !== 0) return;
+                // Don't start if pressing on a tree-item (let item handlers handle it)
+                if (e.target.closest('.tree-item')) return;
+                // Don't start if on the file-tree-header (column headers)
+                if (e.target.closest('.file-tree-header')) return;
+                // Don't start on scrollbar area (rough check: near right/bottom edge)
+                const rect = treeContainer.getBoundingClientRect();
+                if (e.clientX > rect.right - 12 || e.clientY > rect.bottom - 12) return;
+
+                rubberBandStart = { clientX: e.clientX, clientY: e.clientY };
+                rubberBandPanel = panel;
+                rubberBandActive = false;
+                // Prevent text selection during drag
+                e.preventDefault();
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!rubberBandStart) return;
+
+            const dx = e.clientX - rubberBandStart.clientX;
+            const dy = e.clientY - rubberBandStart.clientY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (!rubberBandActive && dist < DRAG_THRESHOLD) return;
+
+            if (!rubberBandActive) {
+                rubberBandActive = true;
+                // Create the selection rectangle element
+                rubberBandEl = document.createElement('div');
+                rubberBandEl.className = 'selection-rect';
+                document.body.appendChild(rubberBandEl);
+                // Clear existing selection when rubber band starts
+                selectedItems.forEach(i => i.classList.remove('selected'));
+                selectedItems = [];
+                selectedItem = null;
+                lastSelectedItem = null;
+            }
+
+            const x = Math.min(rubberBandStart.clientX, e.clientX);
+            const y = Math.min(rubberBandStart.clientY, e.clientY);
+            const w = Math.abs(e.clientX - rubberBandStart.clientX);
+            const h = Math.abs(e.clientY - rubberBandStart.clientY);
+
+            rubberBandEl.style.left = x + 'px';
+            rubberBandEl.style.top = y + 'px';
+            rubberBandEl.style.width = w + 'px';
+            rubberBandEl.style.height = h + 'px';
+
+            // Compute which items intersect the selection rect
+            const treeContainer = document.getElementById(`${rubberBandPanel}-tree`);
+            if (!treeContainer) return;
+
+            const selRect = { left: x, top: y, right: x + w, bottom: y + h };
+
+            const allItems = Array.from(
+                treeContainer.querySelectorAll('.tree-item:not(.back-item):not(.new-folder-item)')
+            ).filter(item => item.style.display !== 'none');
+
+            // Apply new selection based on intersection
+            const newSelected = [];
+            allItems.forEach(item => {
+                const r = item.getBoundingClientRect();
+                const intersects = !(selRect.right < r.left || selRect.left > r.right ||
+                                     selRect.bottom < r.top || selRect.top > r.bottom);
+                if (intersects) {
+                    if (!item.classList.contains('selected')) {
+                        item.classList.add('selected');
+                    }
+                    newSelected.push(item);
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+
+            selectedItems = newSelected;
+            selectedItem = selectedItems.length > 0 ? selectedItems[0] : null;
+            updateContextVariables();
+            updateFooterStats('local');
+            updateFooterStats('remote');
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (rubberBandEl) {
+                rubberBandEl.remove();
+                rubberBandEl = null;
+                rubberBandWasActive = true;
+                // Reset flag after click event fires
+                setTimeout(() => { rubberBandWasActive = false; }, 100);
+            }
+            rubberBandStart = null;
+            rubberBandActive = false;
+            rubberBandPanel = null;
+        });
+    }
 
 
     // ===== 文件排序 =====

@@ -6,7 +6,7 @@ import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
 import { HostTreeProvider, HostTreeItem } from './hostTreeProvider';
 import { SshConnectionManager } from './sshConnectionManager';
-import { HostConfig, HostAuthConfig, GroupConfig } from './types';
+import { HostConfig, HostAuthConfig, GroupConfig, PathBookmark } from './types';
 import { logger } from './logger';
 import { SshConnectionPool } from './sshConnectionPool';
 import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/formatUtils';
@@ -132,6 +132,9 @@ export class CommandHandler {
       ),
       vscode.commands.registerCommand('simpleSftp.openSshTerminal', (item: HostTreeItem) =>
         this.openSshTerminal(item)
+      ),
+      vscode.commands.registerCommand('simpleSftp.openSshTerminalAtBookmark', (item: HostTreeItem) =>
+        this.openSshTerminalAtBookmark(item)
       ),
       vscode.commands.registerCommand('simpleSftp.addBookmark', (item: HostTreeItem) =>
         this.bookmarkService.addBookmark(item)
@@ -1716,6 +1719,64 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     terminal.show();
     logger.info(`Opened SSH terminal for host: ${config.name}`);
+  }
+
+  /**
+   * Open SSH Terminal at a bookmark's remote path
+   */
+  private async openSshTerminalAtBookmark(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'bookmark') { return; }
+
+    const bookmark = item.data as PathBookmark;
+    const hostId = item.hostId;
+    if (!hostId) { return; }
+
+    // Get host config
+    const hosts = await this.hostManager.getHosts();
+    const config = hosts.find(h => h.id === hostId);
+    if (!config) {
+      vscode.window.showWarningMessage('Host not found');
+      return;
+    }
+
+    // Get authentication configuration
+    const authConfig = await this.authManager.getAuth(config.id);
+    if (!authConfig) {
+      vscode.window.showErrorMessage('No authentication configured for this host');
+      return;
+    }
+
+    const args: string[] = [];
+
+    // Force TTY allocation so interactive shell works with a remote command
+    args.push('-t');
+
+    // Add port if not default
+    if (config.port && config.port !== 22) {
+      args.push('-p', config.port.toString());
+    }
+
+    // Add identity file if using private key auth
+    if (authConfig.authType === 'privateKey' && authConfig.privateKeyPath) {
+      args.push('-i', authConfig.privateKeyPath);
+    }
+
+    // Add the connection string
+    args.push(`${config.username}@${config.host}`);
+
+    // Add remote command: navigate to bookmark path and start interactive shell
+    const escapedPath = bookmark.path.replace(/'/g, "'\\''" );
+    args.push(`cd '${escapedPath}' && exec $SHELL`);
+
+    const terminal = vscode.window.createTerminal({
+      name: `SSH: ${config.name} [${bookmark.name}]`,
+      shellPath: 'ssh',
+      shellArgs: args,
+      iconPath: new vscode.ThemeIcon('terminal')
+    });
+
+    terminal.show();
+    logger.info(`Opened SSH terminal at bookmark path: ${bookmark.path} on host: ${config.name}`);
   }
 
   /**
