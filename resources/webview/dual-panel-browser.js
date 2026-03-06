@@ -11,6 +11,8 @@
     let selectedItems = [];
     /** @type {HTMLElement | null} */
     let lastSelectedItem = null;
+    /** @type {{panel: string, input: HTMLInputElement, finish: (save: boolean) => void} | null} */
+    let activeInlineRename = null;
     /** @type {string} */
     let currentLocalPath = '';
     /** @type {string} */
@@ -236,6 +238,7 @@
 
                 // Deselect all when clicking empty area (skip if rubber band was just used)
                 if (e.target.id === treeId || e.target.classList.contains('file-tree')) {
+                    commitInlineRenameIfActive();
                     cancelPendingCreation(panel);
                     if (!rubberBandWasActive) {
                         clearSelection();
@@ -3171,6 +3174,17 @@
         treeContainer.querySelector('.new-file-wrapper')?.remove();
     }
 
+    /**
+     * Commit current inline rename if it exists.
+     * @returns {boolean} true if no active rename remains after commit
+     */
+    function commitInlineRenameIfActive() {
+        if (activeInlineRename && activeInlineRename.input.isConnected) {
+            activeInlineRename.finish(true);
+        }
+        return !activeInlineRename || !activeInlineRename.input.isConnected;
+    }
+
     function showPreviousImage() {
         if (!imagePreviewState.isOpen || imagePreviewState.imagePaths.length <= 1) return;
         imagePreviewState.currentIndex = (imagePreviewState.currentIndex - 1 + imagePreviewState.imagePaths.length) % imagePreviewState.imagePaths.length;
@@ -3774,6 +3788,11 @@
      * Start inline rename for selected item (similar to VS Code Explorer)
      */
     function startInlineRename() {
+        // Commit previous inline rename before starting a new one.
+        if (!commitInlineRenameIfActive()) {
+            return;
+        }
+
         // Check if exactly one item is selected
         if (selectedItems.length !== 1) {
             if (selectedItems.length === 0) {
@@ -3801,7 +3820,7 @@
         // Create input element
         const input = document.createElement('input');
         input.type = 'text';
-        input.className = 'tree-item-rename-input';
+        input.className = 'tree-item-input tree-item-rename-input';
         input.value = originalName;
 
         // Replace label with input
@@ -3826,7 +3845,10 @@
         }
 
         // Finish rename function
+        let renameFinished = false;
         const finishRename = (save) => {
+            if (renameFinished) return;
+
             if (save) {
                 const newName = input.value.trim();
 
@@ -3862,10 +3884,16 @@
                 }
             }
 
+            renameFinished = true;
             // Restore label
             input.remove();
             label.style.display = '';
+            if (activeInlineRename?.input === input) {
+                activeInlineRename = null;
+            }
         };
+
+        activeInlineRename = { panel, input, finish: finishRename };
 
         // Handle keyboard events
         input.addEventListener('keydown', (e) => {

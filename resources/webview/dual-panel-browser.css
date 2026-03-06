@@ -841,19 +841,18 @@ body {
 .tree-item-rename-input {
     flex: 1;
     min-width: var(--column-name-min); /* 与tree-item-label一致 */
-    padding: 0 2px;
-    background-color: var(--vscode-input-background);
+    padding: 0;
+    margin: 0;
+    background: transparent;
     color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-focusBorder);
-    border-radius: 2px;
+    border: none;
     font-size: 13px;
     font-family: var(--vscode-font-family);
     outline: none;
-    box-shadow: 0 0 0 1px var(--vscode-focusBorder);
 }
 
 .tree-item-rename-input:focus {
-    background-color: var(--vscode-input-background);
+    background: transparent;
 }
 
 .tree-item-time {
