@@ -236,6 +236,7 @@
 
                 // Deselect all when clicking empty area (skip if rubber band was just used)
                 if (e.target.id === treeId || e.target.classList.contains('file-tree')) {
+                    cancelPendingCreation(panel);
                     if (!rubberBandWasActive) {
                         clearSelection();
                     }
@@ -456,7 +457,7 @@
             const selRect = { left: x, top: y, right: x + w, bottom: y + h };
 
             const allItems = Array.from(
-                treeContainer.querySelectorAll('.tree-item:not(.back-item):not(.new-folder-item)')
+                treeContainer.querySelectorAll('.tree-item:not(.back-item):not(.new-folder-item):not(.new-file-item)')
             ).filter(item => item.style.display !== 'none');
 
             // Apply new selection based on intersection
@@ -2887,7 +2888,7 @@
 
         // Get all visible file items (excluding back button and new folder items)
         const visibleItems = Array.from(
-            treeContainer.querySelectorAll('.tree-item:not(.back-item):not(.new-folder-item)')
+            treeContainer.querySelectorAll('.tree-item:not(.back-item):not(.new-folder-item):not(.new-file-item)')
         ).filter(item => item.style.display !== 'none');
 
         // Clear current selection
@@ -3158,6 +3159,18 @@
         }
     }
 
+    /**
+     * Remove pending inline create items for a panel.
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function cancelPendingCreation(panel) {
+        const treeContainer = document.getElementById(`${panel}-tree`);
+        if (!treeContainer) return;
+
+        treeContainer.querySelector('.new-folder-wrapper')?.remove();
+        treeContainer.querySelector('.new-file-wrapper')?.remove();
+    }
+
     function showPreviousImage() {
         if (!imagePreviewState.isOpen || imagePreviewState.imagePaths.length <= 1) return;
         imagePreviewState.currentIndex = (imagePreviewState.currentIndex - 1 + imagePreviewState.imagePaths.length) % imagePreviewState.imagePaths.length;
@@ -3276,10 +3289,7 @@
         if (!treeContainer) return;
 
         // 移除已存在的新建项(如果有)
-        const existingWrapper = treeContainer.querySelector('.new-folder-wrapper');
-        if (existingWrapper) {
-            existingWrapper.remove();
-        }
+        cancelPendingCreation(panel);
 
         // 创建包装容器
         const wrapper = document.createElement('div');
@@ -3287,19 +3297,41 @@
 
         // 创建新的内联编辑项
         const newItem = document.createElement('div');
-        newItem.className = 'tree-item new-folder-item';
+        newItem.className = 'tree-item new-folder-item inline-create-item';
 
-        // Icon
-        const icon = document.createElement('span');
-        icon.className = 'codicon codicon-folder tree-item-icon';
-        newItem.appendChild(icon);
+        // 根据当前视图模式构建结构
+        const currentViewMode = viewMode[panel] || 'list';
+        if (currentViewMode === 'grid') {
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'grid-view-icon-container';
+            const icon = document.createElement('span');
+            icon.className = 'codicon codicon-folder tree-item-icon';
+            iconContainer.appendChild(icon);
+            newItem.appendChild(iconContainer);
 
-        // Input
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'tree-item-input';
-        input.placeholder = 'Folder name or path (e.g., parent/child)';
-        newItem.appendChild(input);
+            const labelContainer = document.createElement('div');
+            labelContainer.className = 'grid-view-label';
+            newItem.appendChild(labelContainer);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'tree-item-input';
+            input.placeholder = 'Folder name or path (e.g., parent/child)';
+            labelContainer.appendChild(input);
+        } else {
+            const icon = document.createElement('span');
+            icon.className = 'codicon codicon-folder tree-item-icon';
+            newItem.appendChild(icon);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'tree-item-input';
+            input.placeholder = 'Folder name or path (e.g., parent/child)';
+            newItem.appendChild(input);
+        }
+
+        const input = newItem.querySelector('.tree-item-input');
+        if (!input) return;
 
         // 将项添加到包装容器
         wrapper.appendChild(newItem);
@@ -3436,10 +3468,7 @@
         if (!treeContainer) return;
 
         // 移除已存在的新建项(如果有)
-        const existingWrapper = treeContainer.querySelector('.new-file-wrapper');
-        if (existingWrapper) {
-            existingWrapper.remove();
-        }
+        cancelPendingCreation(panel);
 
         // 创建包装容器
         const wrapper = document.createElement('div');
@@ -3447,19 +3476,41 @@
 
         // 创建新的内联编辑项
         const newItem = document.createElement('div');
-        newItem.className = 'tree-item new-file-item';
+        newItem.className = 'tree-item new-file-item inline-create-item';
 
-        // Icon
-        const icon = document.createElement('span');
-        icon.className = 'codicon codicon-file tree-item-icon';
-        newItem.appendChild(icon);
+        // 根据当前视图模式构建结构
+        const currentViewMode = viewMode[panel] || 'list';
+        if (currentViewMode === 'grid') {
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'grid-view-icon-container';
+            const icon = document.createElement('span');
+            icon.className = 'codicon codicon-file tree-item-icon';
+            iconContainer.appendChild(icon);
+            newItem.appendChild(iconContainer);
 
-        // Input
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'tree-item-input';
-        input.placeholder = 'File name (e.g., example.txt)';
-        newItem.appendChild(input);
+            const labelContainer = document.createElement('div');
+            labelContainer.className = 'grid-view-label';
+            newItem.appendChild(labelContainer);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'tree-item-input';
+            input.placeholder = 'File name (e.g., example.txt)';
+            labelContainer.appendChild(input);
+        } else {
+            const icon = document.createElement('span');
+            icon.className = 'codicon codicon-file tree-item-icon';
+            newItem.appendChild(icon);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'tree-item-input';
+            input.placeholder = 'File name (e.g., example.txt)';
+            newItem.appendChild(input);
+        }
+
+        const input = newItem.querySelector('.tree-item-input');
+        if (!input) return;
 
         // 将项添加到包装容器
         wrapper.appendChild(newItem);

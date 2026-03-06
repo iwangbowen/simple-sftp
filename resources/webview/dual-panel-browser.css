@@ -751,12 +751,14 @@ body {
     min-width: var(--tree-item-min-width); /* 使用计算的最小宽度,支持横向滚动 */
 }
 
-.new-folder-wrapper {
+.new-folder-wrapper,
+.new-file-wrapper {
     display: flex;
     flex-direction: column;
 }
 
-.tree-item.new-folder-item {
+.tree-item.new-folder-item,
+.tree-item.new-file-item {
     background-color: var(--vscode-list-activeSelectionBackground);
     border: 1px solid var(--vscode-focusBorder);
     cursor: default;
@@ -790,7 +792,8 @@ body {
     background-color: var(--vscode-list-hoverBackground);
 }
 
-.tree-item.new-folder-item:hover {
+.tree-item.new-folder-item:hover,
+.tree-item.new-file-item:hover {
     background-color: var(--vscode-list-activeSelectionBackground);
 }
 
@@ -2785,6 +2788,22 @@ body {
     transition: background-color 0.1s, transform 0.1s;
 }
 
+/* Keep inline create rows stable in grid mode */
+.file-tree.grid-view .new-folder-wrapper,
+.file-tree.grid-view .new-file-wrapper {
+    min-width: 85px;
+    max-width: 110px;
+}
+
+.file-tree.grid-view .tree-item.inline-create-item {
+    width: 100%;
+    max-width: none;
+}
+
+.file-tree.grid-view .tree-item.inline-create-item .grid-view-label {
+    pointer-events: all;
+}
+
 .file-tree.grid-view .tree-item:hover {
     background-color: var(--vscode-list-hoverBackground);
     transform: translateY(-2px);
@@ -2886,6 +2905,24 @@ body {
     padding: 1px 4px;
     pointer-events: all;
     line-height: 1.3;
+}
+
+.file-tree.grid-view .tree-item.inline-create-item .tree-item-input {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    font-size: 11px;
+    text-align: center;
+    padding: 1px 4px;
+    line-height: 1.3;
+    pointer-events: all;
+}
+
+.file-tree.grid-view .new-folder-wrapper .tree-item-error,
+.file-tree.grid-view .new-file-wrapper .tree-item-error {
+    padding: 4px 0 0 0;
+    text-align: center;
 }
 
 .grid-view-label .tree-item-label {
