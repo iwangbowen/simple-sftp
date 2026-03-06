@@ -1,5 +1,12 @@
 # Change Log
 
+## 5.2.17 - 2026-03-06
+
+- **Fix**: Fixed inline create item layout in Grid View for both **New Folder** and **New File**, so input fields render correctly inside grid cards.
+- **Fix**: Clicking blank area in file tree now cancels pending **New Folder/New File** input.
+- **Fix**: Updated inline rename input style to match the new inline create input style.
+- **UX**: Clicking blank area while inline renaming now commits the rename (same as click-outside confirm behavior).
+
 ## 5.2.16 - 2026-03-05
 
 - **Feature**: Bookmark nodes in the Hosts panel now support **Open SSH Terminal Here** — opens a terminal at the bookmarked remote path.
