@@ -461,6 +461,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // Extract initialPath if provided (e.g., from bookmark navigation)
       const initialPath = item.initialPath;
+      const tabLabel = item.tabLabel;
+      const contextKey = item.contextKey;
 
       // Check configuration to decide which mode to use
       const openInEditor = vscode.workspace
@@ -469,7 +471,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
       if (openInEditor) {
         // Open in editor area (supports multiple instances)
-        await dualPanelEditorManager.openForHost(item.data, initialPath);
+        await dualPanelEditorManager.openForHost(item.data, initialPath, {
+          tabLabel,
+          contextKey
+        });
       } else {
         // Open in panel area (single instance)
         await dualPanelProvider.openForHost(item.data, initialPath);

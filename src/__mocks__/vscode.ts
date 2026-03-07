@@ -42,7 +42,8 @@ export const window = {
   })),
   createTerminal: vi.fn(() => ({
     sendText: vi.fn(),
-    dispose: vi.fn()
+    dispose: vi.fn(),
+    show: vi.fn()
   })),
   createStatusBarItem: vi.fn(() => ({
     show: vi.fn(),
@@ -54,12 +55,19 @@ export const window = {
   createWebviewPanel: vi.fn(() => ({
     webview: {
       html: '',
-      postMessage: vi.fn()
+      postMessage: vi.fn(),
+      onDidReceiveMessage: vi.fn(() => ({ dispose: vi.fn() })),
+      asWebviewUri: vi.fn((value) => value),
+      cspSource: 'mock-csp-source'
     },
+    title: '',
+    active: true,
     viewColumn: 2,
     iconPath: undefined,
     reveal: vi.fn(),
-    onDidDispose: vi.fn(() => ({ dispose: vi.fn() }))
+    dispose: vi.fn(),
+    onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
+    onDidChangeViewState: vi.fn(() => ({ dispose: vi.fn() }))
   })),
   showTextDocument: vi.fn(),
   activeTextEditor: undefined,
@@ -113,7 +121,12 @@ export const commands = {
 
 export const Uri = {
   file: (path: string) => ({ fsPath: path, scheme: 'file', path }),
-  parse: (value: string) => ({ fsPath: value, scheme: 'file', path: value })
+  parse: (value: string) => ({ fsPath: value, scheme: 'file', path: value }),
+  joinPath: (base: { fsPath?: string; path?: string }, ...paths: string[]) => {
+    const segments = [base.fsPath || base.path || '', ...paths].filter(Boolean);
+    const joined = segments.join('/').replace(/\/{2,}/g, '/');
+    return { fsPath: joined, path: joined, scheme: 'file', toString: () => joined };
+  }
 };
 
 export enum TreeItemCollapsibleState {

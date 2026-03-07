@@ -333,7 +333,9 @@ export class BookmarkService {
     await vscode.commands.executeCommand('simpleSftp.openDualPanelBrowser', {
       data: host,
       type: 'host',
-      initialPath: bookmark.path  // Pass bookmark path as initialPath
+      initialPath: bookmark.path,
+      tabLabel: bookmark.name,
+      contextKey: `bookmark:${bookmark.name}`
     });
   }
 }
