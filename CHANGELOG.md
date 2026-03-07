@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.18 - 2026-03-07
+
+- **Fix**: Prevent hidden hover tooltips from blocking hover and cursor feedback on Grid View items.
+
 ## 5.2.17 - 2026-03-06
 
 - **Fix**: Fixed inline create item layout in Grid View for both **New Folder** and **New File**, so input fields render correctly inside grid cards.
