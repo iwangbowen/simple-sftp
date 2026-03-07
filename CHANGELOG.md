@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.19 - 2026-03-07
+
+- **Feature**: Editor webview now opens separate tabs for different host/bookmark contexts while reusing the same tab for the same context.
+
 ## 5.2.18 - 2026-03-07
 
 - **Fix**: Prevent hidden hover tooltips from blocking hover and cursor feedback on Grid View items.
