@@ -681,6 +681,8 @@
         // Create tooltip element
         fileTooltip = document.createElement('div');
         fileTooltip.className = 'file-tooltip';
+        fileTooltip.style.left = '-9999px';
+        fileTooltip.style.top = '-9999px';
         document.body.appendChild(fileTooltip);
 
         // Track Alt key state
@@ -894,9 +896,12 @@
         // Clear current item
         currentTooltipItem = null;
         currentTooltipEvent = null;
+        isMouseOnTooltip = false;
 
         if (fileTooltip) {
             fileTooltip.classList.remove('visible');
+            fileTooltip.style.left = '-9999px';
+            fileTooltip.style.top = '-9999px';
         }
     }
 
