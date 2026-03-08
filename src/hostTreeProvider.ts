@@ -10,6 +10,7 @@ import { logger } from './logger';
 interface DragDropData {
   type: TreeItemType;
   id: string;
+  hostId?: string; // 书签专用:所属主机 ID
 }
 
 /**
@@ -330,6 +331,26 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
+    // Try bookmarks first: all items must be bookmarks from the same host
+    const bookmarks = source.filter(item => item.type === 'bookmark');
+    if (bookmarks.length > 0 && bookmarks.length === source.length) {
+      const firstHostId = bookmarks[0].hostId;
+      if (firstHostId && bookmarks.every(item => item.hostId === firstHostId)) {
+        const dragData: DragDropData[] = bookmarks.map(item => ({
+          type: item.type,
+          id: (item.data as PathBookmark).name,
+          hostId: firstHostId
+        }));
+        dataTransfer.set(
+          'application/vnd.code.tree.simpleSftp.hosts',
+          new vscode.DataTransferItem(dragData)
+        );
+        return;
+      }
+      // Mixed-host bookmarks are not draggable
+      return;
+    }
+
     // Only allow dragging hosts (not groups or bookmarks)
     const hosts = source.filter(item => item.type === 'host');
     if (hosts.length === 0) {
@@ -363,6 +384,12 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
 
     const dragData = transferItem.value as DragDropData[];
     if (!dragData || dragData.length === 0) {
+      return;
+    }
+
+    // Handle bookmark reordering
+    if (dragData[0].type === 'bookmark') {
+      await this.handleBookmarkDrop(dragData, target);
       return;
     }
 
@@ -400,6 +427,49 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem>, 
       const errorMessage = error instanceof Error ? error.message : String(error);
       vscode.window.showErrorMessage(`Failed to move host(s): ${errorMessage}`);
       logger.error(`Failed to move host(s): ${errorMessage}`);
+    }
+  }
+
+  /**
+   * 处理书签放置(排序)
+   */
+  private async handleBookmarkDrop(
+    dragData: DragDropData[],
+    target: HostTreeItem | undefined
+  ): Promise<void> {
+    const hostId = dragData[0].hostId;
+    if (!hostId || dragData.some(item => item.hostId !== hostId)) {
+      vscode.window.showWarningMessage('Cannot reorder bookmarks from different hosts');
+      return;
+    }
+
+    let targetBookmarkName: string | undefined;
+
+    if (target) {
+      if (target.type === 'bookmark' && target.hostId === hostId) {
+        // Insert after the target bookmark
+        targetBookmarkName = (target.data as PathBookmark).name;
+      } else if (target.type === 'host' && (target.data as HostConfig).id === hostId) {
+        // Dropped on the parent host → move to end
+        targetBookmarkName = undefined;
+      } else {
+        vscode.window.showWarningMessage('Bookmarks can only be reordered within the same host');
+        return;
+      }
+    } else {
+      // Dropped to root — not a valid target for bookmarks
+      vscode.window.showWarningMessage('Bookmarks can only be reordered within the same host');
+      return;
+    }
+
+    try {
+      const bookmarkNames = dragData.map(item => item.id);
+      await this.hostManager.reorderBookmarksByDrag(hostId, bookmarkNames, targetBookmarkName);
+      this.refresh();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Failed to reorder bookmark(s): ${errorMessage}`);
+      logger.error(`Failed to reorder bookmark(s): ${errorMessage}`);
     }
   }
 }

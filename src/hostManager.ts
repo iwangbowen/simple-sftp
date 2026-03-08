@@ -636,6 +636,54 @@ export class HostManager {
   }
 
   /**
+   * Reorder bookmarks within a host by drag-and-drop.
+   * - If targetBookmarkName is provided: insert dragged bookmarks after the target.
+   * - If targetBookmarkName is undefined: move dragged bookmarks to the end.
+   * - Preserves relative order of dragged bookmarks based on current stored order.
+   */
+  async reorderBookmarksByDrag(hostId: string, bookmarkNames: string[], targetBookmarkName?: string): Promise<void> {
+    return this.withLock(async () => {
+      const data = await this.loadData();
+      const host = data.hosts.find(h => h.id === hostId);
+
+      if (!host?.bookmarks || host.bookmarks.length === 0) {
+        return;
+      }
+
+      const nameSet = new Set(bookmarkNames);
+
+      // If target is one of the dragged items, treat as move to end
+      if (targetBookmarkName && nameSet.has(targetBookmarkName)) {
+        targetBookmarkName = undefined;
+      }
+
+      // Keep dragged bookmarks in their current stored order
+      const draggedBookmarks = host.bookmarks.filter(b => nameSet.has(b.name));
+      if (draggedBookmarks.length !== bookmarkNames.length) {
+        throw new Error('One or more bookmarks not found');
+      }
+
+      // Remove dragged bookmarks from original positions
+      host.bookmarks = host.bookmarks.filter(b => !nameSet.has(b.name));
+
+      // Compute insert index
+      let insertIndex = host.bookmarks.length;
+      if (targetBookmarkName) {
+        const targetIndex = host.bookmarks.findIndex(b => b.name === targetBookmarkName);
+        if (targetIndex >= 0) {
+          insertIndex = targetIndex + 1;
+        }
+      }
+
+      host.bookmarks.splice(insertIndex, 0, ...draggedBookmarks);
+      await this.saveData(data);
+
+      const placement = targetBookmarkName ? `after '${targetBookmarkName}'` : '(moved to end)';
+      logger.info(`Reordered ${draggedBookmarks.length} bookmark(s) in host ${hostId} ${placement}`);
+    });
+  }
+
+  /**
    * Generate unique ID
    */
   private generateId(): string {
