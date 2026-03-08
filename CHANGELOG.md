@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.20 - 2026-03-08
+
+- **Feature**: Bookmarks in the Hosts panel now support **drag-and-drop reordering** — drag a bookmark within the same host to rearrange its position; the new order is persisted across sessions.
+
 ## 5.2.19 - 2026-03-07
 
 - **Feature**: Editor webview now opens separate tabs for different host/bookmark contexts while reusing the same tab for the same context.
