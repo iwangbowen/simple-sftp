@@ -42,7 +42,7 @@ function deriveTabLabel(initialPath?: string, explicitLabel?: string): string | 
     }
 
     const segments = normalizedPath.split('/').filter(Boolean);
-    return segments.at(-1) || normalizedPath;
+    return segments[segments.length - 1] || normalizedPath;
 }
 
 export function buildDualPanelEditorTarget(
@@ -335,6 +335,14 @@ export class DualPanelEditorManager {
             return;
         }
         await session.executeDuplicate(args);
+    }
+
+    public async executeMove(args: any): Promise<void> {
+        const session = this.getActiveSessionOrWarn();
+        if (!session) {
+            return;
+        }
+        await session.executeMove(args);
     }
 
     public async executePreviewImageInWebview(args: any): Promise<void> {

@@ -3790,6 +3790,42 @@
     }
 
     /**
+     * Move selected items to another path within the same panel
+     * @param {string} panel - 'local' or 'remote'
+     */
+    function moveSelected(panel) {
+        console.log(`moveSelected called with panel: ${panel}`);
+        console.log(`selectedItems count: ${selectedItems.length}`);
+
+        const items = selectedItems.filter(item => item.dataset.panel === panel);
+
+        console.log(`filtered items count: ${items.length}`);
+
+        if (items.length === 0) {
+            vscode.postMessage({
+                command: 'showError',
+                message: 'No items selected for move'
+            });
+            return;
+        }
+
+        const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+
+        vscode.postMessage({
+            command: 'move',
+            data: {
+                panel,
+                currentPath,
+                items: items.map(item => ({
+                    path: item.dataset.path,
+                    name: item.querySelector('.tree-item-label')?.textContent || '',
+                    isDir: item.dataset.isDir === 'true'
+                }))
+            }
+        });
+    }
+
+    /**
      * Start inline rename for selected item (similar to VS Code Explorer)
      */
     function startInlineRename() {
@@ -4342,6 +4378,11 @@
                 duplicateSelected(message.panel);
                 break;
 
+            case 'triggerMove':
+                // Trigger move operation with current selection
+                moveSelected(message.panel);
+                break;
+
             case 'triggerRename':
                 // Trigger inline rename for single file/folder
                 startInlineRename();
@@ -4365,6 +4406,10 @@
 
             case 'updateFooterProgress':
                 showFooterProgress(message.panel, message.message);
+                break;
+
+            case 'clearFooterProgress':
+                hideFooterProgress(message.panel, message.delay || 0);
                 break;
 
             case 'getSelectedForUpload':
@@ -4444,6 +4489,7 @@ case 'updateStatus':
                         }
                     }
                 });
+                break;
 
             case 'updateQueue':
                 document.getElementById('queue-text').textContent = `${message.count} active tasks`;
@@ -5728,6 +5774,11 @@ case 'updateStatus':
     }
 
     // ===== Footer Stats & Progress =====
+    const footerProgressTimers = {
+        local: null,
+        remote: null
+    };
+
     /**
      * Update footer statistics for a panel
      * @param {string} panel - 'local' | 'remote'
@@ -5802,6 +5853,11 @@ case 'updateStatus':
         const panelEl = document.querySelector(`.${panel}-panel`);
         if (!panelEl) return;
 
+        if (footerProgressTimers[panel]) {
+            clearTimeout(footerProgressTimers[panel]);
+            footerProgressTimers[panel] = null;
+        }
+
         const footerStats = panelEl.querySelector('.footer-stats');
         const footerProgress = panelEl.querySelector('.footer-progress');
         const progressMessage = panelEl.querySelector('.progress-message');
@@ -5819,8 +5875,16 @@ case 'updateStatus':
      * @param {number} delay - Delay in ms before hiding
      */
     function hideFooterProgress(panel, delay = 0) {
+        if (footerProgressTimers[panel]) {
+            clearTimeout(footerProgressTimers[panel]);
+            footerProgressTimers[panel] = null;
+        }
+
         if (delay > 0) {
-            setTimeout(() => hideFooterProgress(panel, 0), delay);
+            footerProgressTimers[panel] = setTimeout(() => {
+                footerProgressTimers[panel] = null;
+                hideFooterProgress(panel, 0);
+            }, delay);
             return;
         }
 

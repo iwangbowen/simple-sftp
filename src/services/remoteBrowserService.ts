@@ -73,8 +73,8 @@ export class RemoteBrowserService {
         } else if (mode === 'selectPath') {
           quickPick.buttons = [
             {
-              iconPath: new vscode.ThemeIcon('cloud-upload'),
-              tooltip: 'Upload to current folder'
+              iconPath: new vscode.ThemeIcon('check'),
+              tooltip: 'Use this directory'
             }
           ];
         } else if (mode === 'selectBookmark') {
@@ -115,10 +115,10 @@ export class RemoteBrowserService {
             const sortedDirs = [...filteredDirs].sort((a, b) => a.localeCompare(b));
 
             // Determine button icon and tooltip based on mode
-            const buttonIcon = mode === 'selectBookmark' ? 'bookmark' : 'cloud-upload';
+            const buttonIcon = mode === 'selectBookmark' ? 'bookmark' : 'check';
             const buttonTooltip = mode === 'selectBookmark'
               ? 'Add bookmark for this directory'
-              : 'Upload to this directory';
+              : 'Use this directory';
 
             quickPickItems = [
               {

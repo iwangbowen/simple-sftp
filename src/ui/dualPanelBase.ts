@@ -9,6 +9,7 @@ import { HostManager } from '../hostManager';
 import { logger } from '../logger';
 import { THUMBNAIL, getThumbnailConfig } from '../constants';
 import { PortForwardService } from '../services/portForwardService';
+import { RemoteBrowserService } from '../services/remoteBrowserService';
 import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
 import { TimeUtils } from '../timeUtils';
 
@@ -360,6 +361,10 @@ export abstract class DualPanelBase {
 
             case 'duplicate':
                 await this.handleDuplicate(message.data);
+                break;
+
+            case 'move':
+                await this.handleMove(message.data);
                 break;
         }
     }
@@ -844,15 +849,41 @@ export abstract class DualPanelBase {
             // Show final result
             if (failCount === 0) {
                 this.updateStatus(`Successfully deleted ${successCount} item(s)`);
+                this.postMessage({
+                    command: 'updateFooterProgress',
+                    panel: panel,
+                    message: `Deleted ${successCount} item(s)`
+                });
             } else {
                 const errorMessage = `Deleted ${successCount} item(s), ${failCount} failed:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
                 vscode.window.showWarningMessage(errorMessage);
                 this.updateStatus(`Deleted ${successCount} item(s), ${failCount} failed`);
+                this.postMessage({
+                    command: 'updateFooterProgress',
+                    panel: panel,
+                    message: `Deleted ${successCount}, ${failCount} failed`
+                });
             }
+
+            this.postMessage({
+                command: 'clearFooterProgress',
+                panel: panel,
+                delay: 1500
+            });
         } catch (error) {
             logger.error(`Batch delete failed: ${error}`);
             vscode.window.showErrorMessage(`Batch delete failed: ${error}`);
             this.updateStatus('Batch delete failed');
+            this.postMessage({
+                command: 'updateFooterProgress',
+                panel: panel,
+                message: 'Delete failed'
+            });
+            this.postMessage({
+                command: 'clearFooterProgress',
+                panel: panel,
+                delay: 1500
+            });
         }
     }
 
@@ -1271,6 +1302,147 @@ export abstract class DualPanelBase {
         }
     }
 
+    protected async handleMove(data: any): Promise<void> {
+        const { items, panel, currentPath } = data;
+
+        if (!Array.isArray(items) || items.length === 0) {
+            vscode.window.showErrorMessage('No items selected for move');
+            return;
+        }
+
+        if (panel !== 'local' && panel !== 'remote') {
+            vscode.window.showErrorMessage('Invalid move target panel');
+            return;
+        }
+
+        const activePath = currentPath
+            || (panel === 'local' ? this._localRootPath : this._remoteRootPath);
+
+        if (!activePath) {
+            vscode.window.showErrorMessage(`No ${panel} path selected`);
+            return;
+        }
+
+        const destinationDir = await this.selectMoveDestination(panel, activePath, items.length);
+        if (!destinationDir) {
+            return;
+        }
+
+        const normalizedCurrentPath = this.normalizeComparablePath(activePath, panel);
+        const normalizedDestination = this.normalizeComparablePath(destinationDir, panel);
+
+        if (normalizedCurrentPath === normalizedDestination) {
+            vscode.window.showWarningMessage('Destination folder is the same as the current folder');
+            return;
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+        const errors: string[] = [];
+        const totalCount = items.length;
+
+        this.postMessage({
+            command: 'updateFooterProgress',
+            panel,
+            message: `Moving 0/${totalCount}...`
+        });
+
+        try {
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const sourcePath = item.path as string;
+                const itemName = item.name
+                    || (panel === 'local' ? path.basename(sourcePath) : path.posix.basename(sourcePath));
+                const isDirectory = item.isDir === true;
+
+                try {
+                    if (!sourcePath) {
+                        throw new Error('Item path is missing');
+                    }
+
+                    if (isDirectory && this.isSameOrChildPath(sourcePath, destinationDir, panel)) {
+                        throw new Error('Cannot move a folder into itself or one of its subfolders');
+                    }
+
+                    const targetPath = panel === 'local'
+                        ? path.join(destinationDir, itemName)
+                        : path.posix.join(destinationDir, itemName);
+
+                    const targetExists = panel === 'local'
+                        ? await this.localPathExists(targetPath)
+                        : await this.remotePathExists(targetPath);
+
+                    if (targetExists) {
+                        throw new Error(`Destination already contains "${itemName}"`);
+                    }
+
+                    if (panel === 'local') {
+                        await this.moveLocalItem(sourcePath, targetPath, isDirectory);
+                    } else {
+                        await this.moveRemoteItem(sourcePath, targetPath);
+                    }
+
+                    successCount++;
+                    logger.info(`Moved: ${sourcePath} -> ${targetPath}`);
+                } catch (error) {
+                    failCount++;
+                    const errorMsg = `Failed to move ${itemName}: ${error}`;
+                    errors.push(errorMsg);
+                    logger.error(errorMsg);
+                }
+
+                const processed = successCount + failCount;
+                this.updateStatus(`Moving ${processed}/${totalCount} item(s)...`);
+                this.postMessage({
+                    command: 'updateFooterProgress',
+                    panel,
+                    message: `Moving ${processed}/${totalCount}...`
+                });
+            }
+
+            if (panel === 'local') {
+                await this.loadLocalDirectory(activePath);
+            } else {
+                await this.loadRemoteDirectory(activePath);
+            }
+
+            if (failCount === 0) {
+                this.updateStatus(`Successfully moved ${successCount} item(s)`);
+                this.postMessage({
+                    command: 'updateFooterProgress',
+                    panel,
+                    message: `Moved ${successCount} item(s)`
+                });
+            } else if (successCount > 0) {
+                this.updateStatus(`Moved ${successCount} item(s), ${failCount} failed`);
+                this.postMessage({
+                    command: 'updateFooterProgress',
+                    panel,
+                    message: `Moved ${successCount}, ${failCount} failed`
+                });
+                vscode.window.showWarningMessage(
+                    `Moved ${successCount} item(s), ${failCount} failed:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`
+                );
+            } else {
+                this.updateStatus('Move operation failed');
+                this.postMessage({
+                    command: 'updateFooterProgress',
+                    panel,
+                    message: 'Move failed'
+                });
+                vscode.window.showErrorMessage(
+                    `Move operation failed:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`
+                );
+            }
+        } finally {
+            this.postMessage({
+                command: 'clearFooterProgress',
+                panel,
+                delay: 1500
+            });
+        }
+    }
+
     /**
      * Check if a remote file exists
      */
@@ -1285,6 +1457,123 @@ export abstract class DualPanelBase {
         } catch {
             return false;
         }
+    }
+
+    private async selectMoveDestination(panel: 'local' | 'remote', currentPath: string, itemCount: number): Promise<string | undefined> {
+        if (panel === 'local') {
+            if (currentPath === 'drives://') {
+                vscode.window.showWarningMessage('Please open a local folder before moving items');
+                return undefined;
+            }
+
+            const selectedFolders = await vscode.window.showOpenDialog({
+                canSelectFiles: false,
+                canSelectFolders: true,
+                canSelectMany: false,
+                openLabel: 'Move Here',
+                title: `Select destination folder for ${itemCount} item${itemCount === 1 ? '' : 's'}`,
+                defaultUri: vscode.Uri.file(currentPath)
+            });
+
+            return selectedFolders?.[0]?.fsPath;
+        }
+
+        if (!this._currentHost || !this._currentAuthConfig) {
+            vscode.window.showErrorMessage('No host selected');
+            return undefined;
+        }
+
+        const remoteBrowserService = new RemoteBrowserService(this.hostManager);
+        const result = await remoteBrowserService.browseRemoteFilesGeneric(
+            this._currentHost,
+            this._currentAuthConfig,
+            'selectPath',
+            `Select destination folder for ${itemCount} item${itemCount === 1 ? '' : 's'}`,
+            currentPath
+        );
+
+        return typeof result === 'string' ? result : undefined;
+    }
+
+    private normalizeComparablePath(targetPath: string, panel: 'local' | 'remote'): string {
+        if (panel === 'local') {
+            const resolvedPath = path.resolve(targetPath);
+            return process.platform === 'win32' ? resolvedPath.toLowerCase() : resolvedPath;
+        }
+
+        const normalizedPath = path.posix.normalize(targetPath);
+        return normalizedPath === '' ? '/' : normalizedPath;
+    }
+
+    private isSameOrChildPath(basePath: string, targetPath: string, panel: 'local' | 'remote'): boolean {
+        const normalizedBase = this.normalizeComparablePath(basePath, panel);
+        const normalizedTarget = this.normalizeComparablePath(targetPath, panel);
+
+        if (normalizedBase === normalizedTarget) {
+            return true;
+        }
+
+        const separator = panel === 'local' ? path.sep : path.posix.sep;
+        const baseWithSeparator = normalizedBase.endsWith(separator)
+            ? normalizedBase
+            : `${normalizedBase}${separator}`;
+
+        return normalizedTarget.startsWith(baseWithSeparator);
+    }
+
+    private async localPathExists(targetPath: string): Promise<boolean> {
+        try {
+            await fs.promises.access(targetPath);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private async remotePathExists(targetPath: string): Promise<boolean> {
+        if (!this._currentHost || !this._currentAuthConfig) {
+            return false;
+        }
+
+        try {
+            await SshConnectionManager.getFileStats(this._currentHost, this._currentAuthConfig, targetPath);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private async moveLocalItem(sourcePath: string, targetPath: string, isDirectory: boolean): Promise<void> {
+        try {
+            await fs.promises.rename(sourcePath, targetPath);
+            return;
+        } catch (error: any) {
+            if (error?.code !== 'EXDEV') {
+                throw error;
+            }
+        }
+
+        if (isDirectory) {
+            await this.copyLocalDirectoryRecursive(sourcePath, targetPath);
+            await fs.promises.rm(sourcePath, { recursive: true, force: false });
+            return;
+        }
+
+        await fs.promises.copyFile(sourcePath, targetPath, fs.constants.COPYFILE_EXCL);
+        await fs.promises.unlink(sourcePath);
+    }
+
+    private async moveRemoteItem(sourcePath: string, targetPath: string): Promise<void> {
+        if (!this._currentHost || !this._currentAuthConfig) {
+            throw new Error('No host selected');
+        }
+
+        await SshConnectionManager.renameRemoteFile(
+            this._currentHost,
+            this._currentAuthConfig,
+            sourcePath,
+            targetPath
+        );
     }
 
     /**
@@ -1736,6 +2025,22 @@ export abstract class DualPanelBase {
         // Send message to webview to trigger duplicate operation
         this.postMessage({
             command: 'triggerDuplicate',
+            panel: panel
+        });
+    }
+
+    public async executeMove(args: any): Promise<void> {
+        // Extract panel from args based on webviewSection
+        let panel = 'remote'; // default
+
+        if (args?.webviewSection) {
+            panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+        } else if (args?.panel) {
+            panel = args.panel;
+        }
+
+        this.postMessage({
+            command: 'triggerMove',
             panel: panel
         });
     }

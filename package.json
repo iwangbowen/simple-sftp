@@ -548,6 +548,12 @@
         "icon": "$(files)"
       },
       {
+        "command": "simpleSftp.dualPanel.move",
+        "title": "Move...",
+        "category": "Simple SFTP",
+        "icon": "$(arrow-right)"
+      },
+      {
         "command": "simpleSftp.dualPanel.createFile",
         "title": "New File",
         "category": "Simple SFTP",
@@ -719,6 +725,11 @@
           "group": "2_operations@4.6"
         },
         {
+          "command": "simpleSftp.dualPanel.move",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
+          "group": "2_operations@4.7"
+        },
+        {
           "command": "simpleSftp.dualPanel.changePermissions",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
           "group": "2_operations@5"
@@ -854,6 +865,10 @@
         },
         {
           "command": "simpleSftp.downloadToLocal",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.move",
           "when": "false"
         },
         {
