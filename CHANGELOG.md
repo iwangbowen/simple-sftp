@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.21 - 2026-03-09
+
+- **Feature**: Dual-panel SFTP webview now supports **Move...** for files and folders, including destination path picking and live footer progress feedback for batch moves.
+
 ## 5.2.20 - 2026-03-08
 
 - **Feature**: Bookmarks in the Hosts panel now support **drag-and-drop reordering** — drag a bookmark within the same host to rearrange its position; the new order is persisted across sessions.
