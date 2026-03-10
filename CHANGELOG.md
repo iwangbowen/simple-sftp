@@ -1,5 +1,9 @@
 # Change Log
 
+## 5.2.22 - 2026-03-10
+
+- **Fix**: Reset dual-panel footer selection state when switching or reloading directories, preventing stale selected counts and actions from carrying over to the next view.
+
 ## 5.2.21 - 2026-03-09
 
 - **Feature**: Dual-panel SFTP webview now supports **Move...** for files and folders, including destination path picking and live footer progress feedback for batch moves.
