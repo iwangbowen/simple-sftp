@@ -238,6 +238,26 @@ export class DualPanelViewProvider extends DualPanelBase implements vscode.Webvi
         await super.executePreviewImageInWebview(args);
     }
 
+    public async executeCompress(args: any): Promise<void> {
+        if (!this._view) {
+            await this.ensureViewVisible();
+            if (!this._view) {
+                return;
+            }
+        }
+        await super.executeCompress(args);
+    }
+
+    public async executeDecompress(args: any): Promise<void> {
+        if (!this._view) {
+            await this.ensureViewVisible();
+            if (!this._view) {
+                return;
+            }
+        }
+        await super.executeDecompress(args);
+    }
+
     public selectFileForCompare(context: any): void {
         if (!this._view) {
             vscode.window.showWarningMessage('Please open the file browser panel first');

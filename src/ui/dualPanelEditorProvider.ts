@@ -353,6 +353,22 @@ export class DualPanelEditorManager {
         await session.executePreviewImageInWebview(args);
     }
 
+    public async executeCompress(args: any): Promise<void> {
+        const session = this.getActiveSessionOrWarn();
+        if (!session) {
+            return;
+        }
+        await session.executeCompress(args);
+    }
+
+    public async executeDecompress(args: any): Promise<void> {
+        const session = this.getActiveSessionOrWarn();
+        if (!session) {
+            return;
+        }
+        await session.executeDecompress(args);
+    }
+
     public async openInTerminal(args: any): Promise<void> {
         const session = this.getActiveSessionOrWarn();
         if (!session) {

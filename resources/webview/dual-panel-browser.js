@@ -1180,6 +1180,7 @@
             isDirectory: node.isDirectory,
             isFile: !node.isDirectory,
             isImage: !node.isDirectory && isImageFile(node.name),
+            isArchive: !node.isDirectory && isArchiveFile(node.name),
             panel: panel,
             hasFileSelectedForCompare: fileSelectedForCompare !== null,
             isFileSelectedForCompare: fileSelectedForCompare?.path === node.path,
@@ -1396,6 +1397,15 @@
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'];
         const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
         return imageExtensions.includes(ext);
+    }
+
+    function isArchiveFile(filename) {
+        const lower = filename.toLowerCase();
+        return lower.endsWith('.tar.gz') || lower.endsWith('.tgz') ||
+            lower.endsWith('.tar.bz2') || lower.endsWith('.tbz2') ||
+            lower.endsWith('.tar.xz') || lower.endsWith('.txz') ||
+            lower.endsWith('.tar') || lower.endsWith('.zip') ||
+            lower.endsWith('.gz') || lower.endsWith('.bz2');
     }
 
     /**
@@ -3124,6 +3134,7 @@
                 isDirectory: isDirectory,
                 isFile: !isDirectory,
                 isImage: !isDirectory && isImageFile(fileName || ''),
+                isArchive: !isDirectory && isArchiveFile(fileName || ''),
                 panel: panel,
                 hasFileSelectedForCompare: fileSelectedForCompare !== null,
                 isFileSelectedForCompare: fileSelectedForCompare?.path === filePath,
@@ -3974,6 +3985,40 @@
     }
 
     /**
+     * Compress selected remote items into an archive on the remote server.
+     */
+    function compressSelected() {
+        const items = selectedItems.filter(item => item.dataset.panel === 'remote');
+
+        if (items.length === 0) {
+            vscode.postMessage({
+                command: 'showError',
+                message: 'No remote items selected for compression'
+            });
+            return;
+        }
+
+        const paths = items.map(item => item.dataset.path);
+        vscode.postMessage({
+            command: 'compress',
+            data: {
+                paths: paths,
+                currentPath: currentRemotePath
+            }
+        });
+    }
+
+    /**
+     * Decompress the selected remote archive in its parent directory.
+     */
+    function decompressSelected(filePath) {
+        vscode.postMessage({
+            command: 'decompress',
+            data: { filePath }
+        });
+    }
+
+    /**
      * Start inline rename for selected item (similar to VS Code Explorer)
      */
     function startInlineRename() {
@@ -4529,6 +4574,16 @@
             case 'triggerMove':
                 // Trigger move operation with current selection
                 moveSelected(message.panel);
+                break;
+
+            case 'triggerCompress':
+                // Trigger compress operation with current remote selection
+                compressSelected();
+                break;
+
+            case 'triggerDecompress':
+                // Trigger decompress operation for the given archive file
+                decompressSelected(message.data?.filePath);
                 break;
 
             case 'triggerRename':

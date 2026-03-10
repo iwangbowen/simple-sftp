@@ -736,6 +736,22 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         await dualPanelProvider.executePreviewImageInWebview(args);
       }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.compress', async (args) => {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.executeCompress(args);
+      } else {
+        await dualPanelProvider.executeCompress(args);
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.decompress', async (args) => {
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.executeDecompress(args);
+      } else {
+        await dualPanelProvider.executeDecompress(args);
+      }
     })
   );
   logger.info('Transfer queue commands registered');
