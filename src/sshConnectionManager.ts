@@ -1157,6 +1157,127 @@ export class SshConnectionManager {
   }
 
   /**
+   * Execute a command on the remote server and return its stdout output.
+   */
+  static async executeRemoteCommand(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    command: string
+  ): Promise<string> {
+    const connectConfig = this.buildConnectConfig(config, authConfig);
+    const { client } = await this.connectionPool.getConnection(config, authConfig, connectConfig);
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        let stdout = '';
+        let stderr = '';
+        client.exec(command, (err: Error | undefined, stream: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          stream.on('data', (data: Buffer) => {
+            stdout += data.toString();
+          });
+          stream.stderr.on('data', (data: Buffer) => {
+            stderr += data.toString();
+          });
+          stream.on('close', (code: number) => {
+            if (code !== 0) {
+              reject(new Error(stderr || `Command exited with code ${code}`));
+            } else {
+              resolve(stdout);
+            }
+          });
+          stream.on('error', (error: Error) => {
+            reject(error);
+          });
+        });
+      });
+    } finally {
+      this.connectionPool.releaseConnection(config);
+    }
+  }
+
+  /**
+   * Compress remote files/directories into an archive on the remote server.
+   * @param config Host configuration
+   * @param authConfig Auth configuration
+   * @param sourcePaths Array of absolute remote paths to compress
+   * @param outputPath Absolute remote path for the output archive (e.g. /home/user/archive.tar.gz)
+   * @param format 'tar.gz' | 'zip'
+   */
+  static async compressRemoteFiles(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    sourcePaths: string[],
+    outputPath: string,
+    format: 'tar.gz' | 'zip'
+  ): Promise<void> {
+    if (sourcePaths.length === 0) {
+      throw new Error('No source paths provided for compression');
+    }
+
+    // All source paths must share the same parent directory so we can pass
+    // relative names to tar/zip (avoids embedding full absolute paths).
+    const parentDir = path.posix.dirname(sourcePaths[0]);
+    const relativeNames = sourcePaths.map(p => {
+      const name = path.posix.basename(p);
+      return name.replace(/'/g, "'\\''"); // escape single quotes
+    });
+    const escapedOutput = outputPath.replace(/'/g, "'\\''");
+    const escapedParent = parentDir.replace(/'/g, "'\\''");
+
+    let command: string;
+    if (format === 'zip') {
+      // zip -r output.zip name1 name2 ... (run from parent dir)
+      command = `cd '${escapedParent}' && zip -r '${escapedOutput}' ${relativeNames.map(n => `'${n}'`).join(' ')}`;
+    } else {
+      // tar czf output.tar.gz -C parentDir name1 name2 ...
+      command = `tar czf '${escapedOutput}' -C '${escapedParent}' ${relativeNames.map(n => `'${n}'`).join(' ')}`;
+    }
+
+    await this.executeRemoteCommand(config, authConfig, command);
+  }
+
+  /**
+   * Decompress a remote archive file in place (extracts into the same directory).
+   * Supports .tar.gz / .tgz, .tar.bz2 / .tbz2, .tar.xz, .tar, .zip, .gz, .bz2.
+   */
+  static async decompressRemoteFile(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    filePath: string
+  ): Promise<void> {
+    const destDir = path.posix.dirname(filePath);
+    const escapedFile = filePath.replace(/'/g, "'\\''");
+    const escapedDest = destDir.replace(/'/g, "'\\''");
+
+    const lowerName = path.posix.basename(filePath).toLowerCase();
+    let command: string;
+
+    if (lowerName.endsWith('.tar.gz') || lowerName.endsWith('.tgz')) {
+      command = `tar xzf '${escapedFile}' -C '${escapedDest}'`;
+    } else if (lowerName.endsWith('.tar.bz2') || lowerName.endsWith('.tbz2')) {
+      command = `tar xjf '${escapedFile}' -C '${escapedDest}'`;
+    } else if (lowerName.endsWith('.tar.xz') || lowerName.endsWith('.txz')) {
+      command = `tar xJf '${escapedFile}' -C '${escapedDest}'`;
+    } else if (lowerName.endsWith('.tar')) {
+      command = `tar xf '${escapedFile}' -C '${escapedDest}'`;
+    } else if (lowerName.endsWith('.zip')) {
+      command = `unzip -o '${escapedFile}' -d '${escapedDest}'`;
+    } else if (lowerName.endsWith('.gz')) {
+      // gunzip preserves the original file with -k flag; extract alongside
+      command = `gunzip -k -f '${escapedFile}'`;
+    } else if (lowerName.endsWith('.bz2')) {
+      command = `bunzip2 -k -f '${escapedFile}'`;
+    } else {
+      throw new Error(`Unsupported archive format: ${path.posix.basename(filePath)}`);
+    }
+
+    await this.executeRemoteCommand(config, authConfig, command);
+  }
+
+  /**
    * 递归获取远程目录下所有文件
    */
   private static async getAllRemoteFiles(sftp: any, remotePath: string): Promise<string[]> {

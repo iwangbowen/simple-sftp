@@ -366,6 +366,14 @@ export abstract class DualPanelBase {
             case 'move':
                 await this.handleMove(message.data);
                 break;
+
+            case 'compress':
+                await this.handleCompress(message.data);
+                break;
+
+            case 'decompress':
+                await this.handleDecompress(message.data);
+                break;
         }
     }
 
@@ -1444,6 +1452,122 @@ export abstract class DualPanelBase {
     }
 
     /**
+     * Handle compress request from webview: compress selected remote files/folders into an archive
+     */
+    protected async handleCompress(data: any): Promise<void> {
+        const { paths, currentPath } = data;
+
+        if (!this._currentHost || !this._currentAuthConfig) {
+            vscode.window.showErrorMessage('No host selected');
+            return;
+        }
+
+        if (!paths || paths.length === 0) {
+            vscode.window.showErrorMessage('No items selected for compression');
+            return;
+        }
+
+        // Default output name based on the first selected item
+        const firstName = path.posix.basename(paths[0] as string);
+        const defaultName = `${firstName}.tar.gz`;
+
+        // Ask for output filename
+        const outputName = await vscode.window.showInputBox({
+            prompt: 'Enter archive name',
+            value: defaultName,
+            placeHolder: defaultName,
+            validateInput: (value) => {
+                if (!value || value.trim() === '') {
+                    return 'Archive name cannot be empty';
+                }
+                return undefined;
+            }
+        });
+
+        if (!outputName) {
+            return; // User cancelled
+        }
+
+        // Determine format from filename
+        const lowerOutput = outputName.toLowerCase();
+        let format: 'tar.gz' | 'zip' = 'tar.gz';
+        if (lowerOutput.endsWith('.zip')) {
+            format = 'zip';
+        }
+
+        const dir = currentPath || path.posix.dirname(paths[0] as string);
+        const outputPath = path.posix.join(dir, outputName);
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Compressing ${paths.length} item(s) into ${outputName}...`,
+                cancellable: false
+            },
+            async () => {
+                try {
+                    await SshConnectionManager.compressRemoteFiles(
+                        this._currentHost!,
+                        this._currentAuthConfig!,
+                        paths as string[],
+                        outputPath,
+                        format
+                    );
+                    vscode.window.showInformationMessage(`Created archive: ${outputName}`);
+                    // Refresh remote panel
+                    await this.loadRemoteDirectory(dir);
+                } catch (error: any) {
+                    logger.error(`Compression failed: ${error}`);
+                    vscode.window.showErrorMessage(`Compression failed: ${error.message}`);
+                }
+            }
+        );
+    }
+
+    /**
+     * Handle decompress request from webview: extract a remote archive in its parent directory
+     */
+    protected async handleDecompress(data: any): Promise<void> {
+        const { filePath } = data;
+
+        if (!this._currentHost || !this._currentAuthConfig) {
+            vscode.window.showErrorMessage('No host selected');
+            return;
+        }
+
+        if (!filePath) {
+            vscode.window.showErrorMessage('No archive file selected');
+            return;
+        }
+
+        const fileName = path.posix.basename(filePath as string);
+        const dir = path.posix.dirname(filePath as string);
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Extracting ${fileName}...`,
+                cancellable: false
+            },
+            async () => {
+                try {
+                    await SshConnectionManager.decompressRemoteFile(
+                        this._currentHost!,
+                        this._currentAuthConfig!,
+                        filePath as string
+                    );
+                    vscode.window.showInformationMessage(`Extracted: ${fileName}`);
+                    // Refresh remote panel
+                    await this.loadRemoteDirectory(dir);
+                } catch (error: any) {
+                    logger.error(`Extraction failed: ${error}`);
+                    vscode.window.showErrorMessage(`Extraction failed: ${error.message}`);
+                }
+            }
+        );
+    }
+
+    /**
      * Check if a remote file exists
      */
     private async checkRemoteFileExists(remotePath: string): Promise<boolean> {
@@ -2077,6 +2201,24 @@ export abstract class DualPanelBase {
         // Request webview to trigger delete confirmation with current selection
         this.postMessage({
             command: 'triggerDelete'
+        });
+    }
+
+    public async executeCompress(args: any): Promise<void> {
+        this.postMessage({
+            command: 'triggerCompress'
+        });
+    }
+
+    public async executeDecompress(args: any): Promise<void> {
+        const filePath = args?.filePath;
+        if (!filePath) {
+            vscode.window.showErrorMessage('No archive file selected');
+            return;
+        }
+        this.postMessage({
+            command: 'triggerDecompress',
+            data: { filePath }
         });
     }
 

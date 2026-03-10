@@ -650,6 +650,18 @@
         "icon": "$(preview)"
       },
       {
+        "command": "simpleSftp.dualPanel.compress",
+        "title": "Compress...",
+        "category": "Simple SFTP",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.decompress",
+        "title": "Extract Here",
+        "category": "Simple SFTP",
+        "icon": "$(expand-all)"
+      },
+      {
         "command": "simpleSftp.dualPanel.switchToListView",
         "title": "Switch to List View",
         "category": "Simple SFTP",
@@ -733,6 +745,16 @@
           "command": "simpleSftp.dualPanel.changePermissions",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'remoteFile')",
           "group": "2_operations@5"
+        },
+        {
+          "command": "simpleSftp.dualPanel.compress",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile'",
+          "group": "2_operations@5.5"
+        },
+        {
+          "command": "simpleSftp.dualPanel.decompress",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteFile' && isArchive == true",
+          "group": "2_operations@5.6"
         },
         {
           "command": "simpleSftp.dualPanel.addBookmark",
