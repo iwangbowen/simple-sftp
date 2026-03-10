@@ -947,6 +947,10 @@
         const treeContainer = document.getElementById(`${panel}-tree`);
         if (!treeContainer) return;
 
+        // Tree re-renders replace DOM nodes, so clear selections that belonged
+        // to this panel before rebuilding the list.
+        clearSelectionForPanel(panel);
+
         // Apply view mode class
         const currentViewMode = viewMode[panel] || 'list';
         console.log(`[ViewMode] Rendering ${panel} tree with view mode:`, currentViewMode);
@@ -1742,6 +1746,11 @@
     function showLoading(panel) {
         const treeContainer = document.getElementById(`${panel}-tree`);
         if (!treeContainer) return;
+
+        const clearedSelection = clearSelectionForPanel(panel);
+        if (clearedSelection) {
+            updateFooterStats(panel);
+        }
 
         // 清空内容但保留表头
         Array.from(treeContainer.children).forEach(child => {
@@ -2935,6 +2944,145 @@
         // Update footer stats
         updateFooterStats('local');
         updateFooterStats('remote');
+    }
+
+    /**
+     * Compute the next selection state after pruning detached items and optionally
+     * clearing selections that belong to a specific panel.
+     * @param {{
+     *   selectedItems: Array<HTMLElement>,
+     *   selectedItem: HTMLElement | null,
+     *   lastSelectedItem: HTMLElement | null,
+     *   panelToClear?: string
+     * }} state
+     * @returns {{
+     *   selectedItems: Array<HTMLElement>,
+     *   selectedItem: HTMLElement | null,
+     *   lastSelectedItem: HTMLElement | null,
+     *   changed: boolean
+     * }}
+     */
+    function computeSelectionState(state) {
+        const {
+            selectedItems: currentSelectedItems,
+            selectedItem: currentSelectedItem,
+            lastSelectedItem: currentLastSelectedItem,
+            panelToClear
+        } = state;
+
+        let changed = false;
+
+        const nextSelectedItems = currentSelectedItems.filter(item => {
+            const isDisconnected = !item?.isConnected;
+            const shouldClearPanel = panelToClear ? item?.dataset?.panel === panelToClear : false;
+
+            if (isDisconnected || shouldClearPanel) {
+                changed = true;
+                return false;
+            }
+
+            return true;
+        });
+
+        let nextSelectedItem = currentSelectedItem;
+        if (
+            nextSelectedItem
+            && (!nextSelectedItem.isConnected
+                || !nextSelectedItems.includes(nextSelectedItem)
+                || (panelToClear && nextSelectedItem.dataset?.panel === panelToClear))
+        ) {
+            nextSelectedItem = nextSelectedItems[0] || null;
+            changed = true;
+        } else if (!nextSelectedItem && nextSelectedItems.length > 0) {
+            nextSelectedItem = nextSelectedItems[0];
+            changed = true;
+        }
+
+        let nextLastSelectedItem = currentLastSelectedItem;
+        if (
+            nextLastSelectedItem
+            && (!nextLastSelectedItem.isConnected
+                || !nextSelectedItems.includes(nextLastSelectedItem)
+                || (panelToClear && nextLastSelectedItem.dataset?.panel === panelToClear))
+        ) {
+            nextLastSelectedItem = nextSelectedItems.length > 0
+                ? nextSelectedItems[nextSelectedItems.length - 1]
+                : null;
+            changed = true;
+        } else if (!nextLastSelectedItem && nextSelectedItems.length > 0) {
+            nextLastSelectedItem = nextSelectedItems[nextSelectedItems.length - 1];
+            changed = true;
+        }
+
+        if (nextSelectedItems.length === 0) {
+            if (nextSelectedItem !== null || nextLastSelectedItem !== null) {
+                changed = true;
+            }
+
+            nextSelectedItem = null;
+            nextLastSelectedItem = null;
+        }
+
+        return {
+            selectedItems: nextSelectedItems,
+            selectedItem: nextSelectedItem,
+            lastSelectedItem: nextLastSelectedItem,
+            changed
+        };
+    }
+
+    /**
+     * Apply a computed selection state to the current webview state.
+     * @param {{
+     *   selectedItems: Array<HTMLElement>,
+     *   selectedItem: HTMLElement | null,
+     *   lastSelectedItem: HTMLElement | null,
+     *   changed: boolean
+     * }} nextState
+     * @returns {boolean}
+     */
+    function applySelectionState(nextState) {
+        selectedItems = nextState.selectedItems;
+        selectedItem = nextState.selectedItem;
+        lastSelectedItem = nextState.lastSelectedItem;
+
+        if (nextState.changed) {
+            updateContextVariables();
+        }
+
+        return nextState.changed;
+    }
+
+    /**
+     * Clear selections that belong to a specific panel.
+     * @param {string} panel - 'local' | 'remote'
+     * @returns {boolean}
+     */
+    function clearSelectionForPanel(panel) {
+        selectedItems.forEach(item => {
+            if (item?.dataset?.panel === panel) {
+                item.classList.remove('selected');
+            }
+        });
+
+        return applySelectionState(computeSelectionState({
+            selectedItems,
+            selectedItem,
+            lastSelectedItem,
+            panelToClear: panel
+        }));
+    }
+
+    /**
+     * Remove disconnected selections left behind by DOM re-renders.
+     * @returns {boolean}
+     */
+    function pruneDisconnectedSelections() {
+        return applySelectionState(computeSelectionState({
+            selectedItems,
+            selectedItem,
+            lastSelectedItem
+        }));
     }
 
     /**
@@ -4697,6 +4845,8 @@ case 'updateStatus':
 
         if (!localTree || !remoteTree) return;
 
+        clearSelection();
+
         // 隐藏文件树,显示主机选择
         const selectionHTML = `
             <div class="host-selection-container">
@@ -5784,6 +5934,8 @@ case 'updateStatus':
      * @param {string} panel - 'local' | 'remote'
      */
     function updateFooterStats(panel) {
+        pruneDisconnectedSelections();
+
         // Find footer elements
         const panelEl = document.querySelector(`.${panel}-panel`);
         if (!panelEl) return;
