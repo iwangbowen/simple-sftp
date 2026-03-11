@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import { exec as execCallback } from 'node:child_process';
+import { promisify } from 'node:util';
 import { HostConfig } from '../types';
 import { SshConnectionManager } from '../sshConnectionManager';
 import { TransferQueueService } from '../services/transferQueueService';
@@ -373,6 +375,14 @@ export abstract class DualPanelBase {
 
             case 'decompress':
                 await this.handleDecompress(message.data);
+                break;
+
+            case 'compressLocal':
+                await this.handleCompressLocal(message.data);
+                break;
+
+            case 'decompressLocal':
+                await this.handleDecompressLocal(message.data);
                 break;
         }
     }
@@ -1568,6 +1578,197 @@ export abstract class DualPanelBase {
     }
 
     /**
+     * Handle compress request from webview: compress selected local files/folders into an archive
+     */
+    protected async handleCompressLocal(data: any): Promise<void> {
+        const { paths, currentPath } = data;
+
+        if (!paths || paths.length === 0) {
+            vscode.window.showErrorMessage('No items selected for compression');
+            return;
+        }
+
+        const firstName = path.basename(paths[0] as string);
+        const defaultName = `${firstName}.tar.gz`;
+
+        const outputName = await vscode.window.showInputBox({
+            prompt: 'Enter archive name',
+            value: defaultName,
+            placeHolder: defaultName,
+            validateInput: (value) => {
+                if (!value || value.trim() === '') {
+                    return 'Archive name cannot be empty';
+                }
+                return undefined;
+            }
+        });
+
+        if (!outputName) {
+            return;
+        }
+
+        const lowerOutput = outputName.toLowerCase();
+        let format: 'tar.gz' | 'zip' = 'tar.gz';
+        if (lowerOutput.endsWith('.zip')) {
+            format = 'zip';
+        }
+
+        const dir = currentPath || path.dirname(paths[0] as string);
+        const outputPath = path.join(dir, outputName);
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Compressing ${paths.length} item(s) into ${outputName}...`,
+                cancellable: false
+            },
+            async () => {
+                try {
+                    await this.compressLocalFiles(paths as string[], outputPath, format);
+                    vscode.window.showInformationMessage(`Created archive: ${outputName}`);
+                    await this.loadLocalDirectory(dir);
+                } catch (error: any) {
+                    logger.error(`Local compression failed: ${error}`);
+                    vscode.window.showErrorMessage(`Compression failed: ${error.message}`);
+                }
+            }
+        );
+    }
+
+    /**
+     * Handle decompress request from webview: extract a local archive in its parent directory
+     */
+    protected async handleDecompressLocal(data: any): Promise<void> {
+        const { filePath } = data;
+
+        if (!filePath) {
+            vscode.window.showErrorMessage('No archive file selected');
+            return;
+        }
+
+        const fileName = path.basename(filePath as string);
+        const dir = path.dirname(filePath as string);
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Extracting ${fileName}...`,
+                cancellable: false
+            },
+            async () => {
+                try {
+                    await this.decompressLocalFile(filePath as string);
+                    vscode.window.showInformationMessage(`Extracted: ${fileName}`);
+                    await this.loadLocalDirectory(dir);
+                } catch (error: any) {
+                    logger.error(`Local extraction failed: ${error}`);
+                    vscode.window.showErrorMessage(`Extraction failed: ${error.message}`);
+                }
+            }
+        );
+    }
+
+    /**
+     * Compress local files into an archive using platform-native tools.
+     */
+    private async compressLocalFiles(sourcePaths: string[], outputPath: string, format: 'tar.gz' | 'zip'): Promise<void> {
+        const execAsync = promisify(execCallback);
+        const isWindows = process.platform === 'win32';
+        const parentDir = path.dirname(sourcePaths[0]);
+        const relativeNames = sourcePaths.map(p => path.basename(p));
+
+        let command: string;
+        if (isWindows) {
+            if (format === 'zip') {
+                // Use PowerShell Compress-Archive on Windows
+                const literalPaths = sourcePaths.map(p => `"${p.replace(/"/g, '`"')}"`).join(',');
+                command = `powershell -NoProfile -Command "Compress-Archive -LiteralPath ${literalPaths} -DestinationPath \\"${outputPath.replace(/"/g, '`"')}\\" -Force"`;
+            } else {
+                // Windows 10 1803+ has tar.exe; use same syntax as Unix
+                const escapedOutput = outputPath.replace(/\\/g, '/');
+                const escapedParent = parentDir.replace(/\\/g, '/');
+                const names = relativeNames.map(n => `"${n}"`).join(' ');
+                command = `tar czf "${escapedOutput}" -C "${escapedParent}" ${names}`;
+            }
+        } else {
+            // Unix/macOS
+            const escapedOutput = outputPath.replace(/'/g, "'\\''");
+            const escapedParent = parentDir.replace(/'/g, "'\\''");
+            const names = relativeNames.map(n => `'${n.replace(/'/g, "'\\''")}'`).join(' ');
+            if (format === 'zip') {
+                command = `cd '${escapedParent}' && zip -r '${escapedOutput}' ${names}`;
+            } else {
+                command = `tar czf '${escapedOutput}' -C '${escapedParent}' ${names}`;
+            }
+        }
+
+        await execAsync(command);
+    }
+
+    /**
+     * Decompress a local archive file in place (extracts into the same directory).
+     * Supports .tar.gz / .tgz, .tar.bz2 / .tbz2, .tar.xz, .tar, .zip, .gz, .bz2.
+     */
+    private async decompressLocalFile(filePath: string): Promise<void> {
+        const execAsync = promisify(execCallback);
+        const isWindows = process.platform === 'win32';
+        const destDir = path.dirname(filePath);
+        const lowerName = path.basename(filePath).toLowerCase();
+
+        let command: string;
+
+        if (isWindows) {
+            if (lowerName.endsWith('.zip')) {
+                const escapedFile = filePath.replace(/"/g, '`"');
+                const escapedDest = destDir.replace(/"/g, '`"');
+                command = `powershell -NoProfile -Command "Expand-Archive -LiteralPath \\"${escapedFile}\\" -DestinationPath \\"${escapedDest}\\" -Force"`;
+            } else {
+                // Windows tar.exe supports .tar.gz, .tar.bz2, .tar, .gz, etc.
+                const escapedFile = filePath.replace(/\\/g, '/');
+                const escapedDest = destDir.replace(/\\/g, '/');
+                if (lowerName.endsWith('.tar.gz') || lowerName.endsWith('.tgz')) {
+                    command = `tar xzf "${escapedFile}" -C "${escapedDest}"`;
+                } else if (lowerName.endsWith('.tar.bz2') || lowerName.endsWith('.tbz2')) {
+                    command = `tar xjf "${escapedFile}" -C "${escapedDest}"`;
+                } else if (lowerName.endsWith('.tar.xz') || lowerName.endsWith('.txz')) {
+                    command = `tar xJf "${escapedFile}" -C "${escapedDest}"`;
+                } else if (lowerName.endsWith('.tar')) {
+                    command = `tar xf "${escapedFile}" -C "${escapedDest}"`;
+                } else if (lowerName.endsWith('.gz')) {
+                    command = `tar xzf "${escapedFile}" -C "${escapedDest}"`;
+                } else if (lowerName.endsWith('.bz2')) {
+                    command = `tar xjf "${escapedFile}" -C "${escapedDest}"`;
+                } else {
+                    throw new Error(`Unsupported archive format: ${path.basename(filePath)}`);
+                }
+            }
+        } else {
+            // Unix/macOS
+            const escapedFile = filePath.replace(/'/g, "'\\''");
+            const escapedDest = destDir.replace(/'/g, "'\\''");
+            if (lowerName.endsWith('.tar.gz') || lowerName.endsWith('.tgz')) {
+                command = `tar xzf '${escapedFile}' -C '${escapedDest}'`;
+            } else if (lowerName.endsWith('.tar.bz2') || lowerName.endsWith('.tbz2')) {
+                command = `tar xjf '${escapedFile}' -C '${escapedDest}'`;
+            } else if (lowerName.endsWith('.tar.xz') || lowerName.endsWith('.txz')) {
+                command = `tar xJf '${escapedFile}' -C '${escapedDest}'`;
+            } else if (lowerName.endsWith('.tar')) {
+                command = `tar xf '${escapedFile}' -C '${escapedDest}'`;
+            } else if (lowerName.endsWith('.zip')) {
+                command = `unzip -o '${escapedFile}' -d '${escapedDest}'`;
+            } else if (lowerName.endsWith('.gz')) {
+                command = `gunzip -k -f '${escapedFile}'`;
+            } else if (lowerName.endsWith('.bz2')) {
+                command = `bunzip2 -k -f '${escapedFile}'`;
+            } else {
+                throw new Error(`Unsupported archive format: ${path.basename(filePath)}`);
+            }
+        }
+
+        await execAsync(command);
+    }
+
+    /**
      * Check if a remote file exists
      */
     private async checkRemoteFileExists(remotePath: string): Promise<boolean> {
@@ -2218,6 +2419,24 @@ export abstract class DualPanelBase {
         }
         this.postMessage({
             command: 'triggerDecompress',
+            data: { filePath }
+        });
+    }
+
+    public async executeCompressLocal(args: any): Promise<void> {
+        this.postMessage({
+            command: 'triggerCompressLocal'
+        });
+    }
+
+    public async executeDecompressLocal(args: any): Promise<void> {
+        const filePath = args?.filePath;
+        if (!filePath) {
+            vscode.window.showErrorMessage('No archive file selected');
+            return;
+        }
+        this.postMessage({
+            command: 'triggerDecompressLocal',
             data: { filePath }
         });
     }

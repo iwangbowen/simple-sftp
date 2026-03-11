@@ -4019,6 +4019,40 @@
     }
 
     /**
+     * Compress selected local items into an archive on the local machine.
+     */
+    function compressLocalSelected() {
+        const items = selectedItems.filter(item => item.dataset.panel === 'local');
+
+        if (items.length === 0) {
+            vscode.postMessage({
+                command: 'showError',
+                message: 'No local items selected for compression'
+            });
+            return;
+        }
+
+        const paths = items.map(item => item.dataset.path);
+        vscode.postMessage({
+            command: 'compressLocal',
+            data: {
+                paths: paths,
+                currentPath: currentLocalPath
+            }
+        });
+    }
+
+    /**
+     * Decompress the selected local archive in its parent directory.
+     */
+    function decompressLocalSelected(filePath) {
+        vscode.postMessage({
+            command: 'decompressLocal',
+            data: { filePath }
+        });
+    }
+
+    /**
      * Start inline rename for selected item (similar to VS Code Explorer)
      */
     function startInlineRename() {
@@ -4584,6 +4618,16 @@
             case 'triggerDecompress':
                 // Trigger decompress operation for the given archive file
                 decompressSelected(message.data?.filePath);
+                break;
+
+            case 'triggerCompressLocal':
+                // Trigger compress operation with current local selection
+                compressLocalSelected();
+                break;
+
+            case 'triggerDecompressLocal':
+                // Trigger decompress operation for the given local archive file
+                decompressLocalSelected(message.data?.filePath);
                 break;
 
             case 'triggerRename':
