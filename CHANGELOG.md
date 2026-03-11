@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.0.1 - 2026-03-11
+
+- **Feature**: Dual-panel SFTP webview now supports **Compress** and **Extract Here** for **local** files and folders — right-click any local file/folder to compress it to `.tar.gz` or `.zip`, or right-click a local archive to extract it in place. Uses platform-native tools: `tar`/`zip` on macOS/Linux, `tar.exe` and PowerShell `Compress-Archive`/`Expand-Archive` on Windows.
+
 ## 6.0.0 - 2026-03-10
 
 - **Feature**: Dual-panel SFTP webview now supports **Compress** and **Extract Here** for remote files and folders — right-click any remote file/folder to compress it to `.tar.gz` or `.zip`, or right-click an archive to extract it in place. Supports `.tar.gz`, `.tgz`, `.tar.bz2`, `.tbz2`, `.tar.xz`, `.txz`, `.tar`, `.zip`, `.gz`, and `.bz2` formats.
