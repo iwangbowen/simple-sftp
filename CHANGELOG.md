@@ -1,5 +1,10 @@
 # Change Log
 
+## 6.0.2 - 2026-03-17
+
+- **UX**: Dual-panel breadcrumb navigation now uses **left-click** to jump directly to the selected path and **right-click** to open the path context dropdown.
+- **Fix**: Preserve the Windows local **`drives://`** breadcrumb path so navigation and context dropdowns stay correct in the drive list view.
+
 ## 6.0.1 - 2026-03-11
 
 - **Feature**: Dual-panel SFTP webview now supports **Compress** and **Extract Here** for **local** files and folders — right-click any local file/folder to compress it to `.tar.gz` or `.zip`, or right-click a local archive to extract it in place. Uses platform-native tools: `tar`/`zip` on macOS/Linux, `tar.exe` and PowerShell `Compress-Archive`/`Expand-Archive` on Windows.

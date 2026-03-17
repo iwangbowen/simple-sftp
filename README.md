@@ -26,9 +26,10 @@ If you find this extension helpful, consider buying me a coffee!
 - **Direct Remote File Editing**: Edit remote files directly in VS Code
 - **Dual-Panel File Browser**: Visual interface with side-by-side local and remote file views
   - **Breadcrumb Navigation**: Clickable path segments for quick directory navigation
-    - Click any path segment to jump to that directory
+    - Left-click any path segment to jump to that directory
+    - Right-click any path segment to open the path context dropdown
     - Intelligent overflow handling - shows trailing paths first
-    - Supports Windows (C:\) and Unix (/) path formats
+    - Supports Windows (C:\) and Unix (/) path formats, including the Windows drives view
   - **File Permissions**: Display and edit Unix-style permissions for remote files
     - Permission column shows rwx format (e.g., `rwxr-xr-x`)
     - Right-click context menu to change permissions
@@ -438,9 +439,10 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 - **远程文件直接编辑**: 直接在 VS Code 中编辑远程文件
 - **双面板文件浏览器**: 本地和远程文件系统并列可视化界面
   - **面包屑导航**: 可点击的路径段，快速跳转目录
-    - 点击任意路径段跳转到对应目录
+    - 左键点击任意路径段跳转到对应目录
+    - 右键点击任意路径段展开路径上下文下拉选择
     - 智能溢出处理 - 优先显示最后的路径段
-    - 支持 Windows (C:\) 和 Unix (/) 路径格式
+    - 支持 Windows (C:\) 和 Unix (/) 路径格式，包括 Windows 盘符视图
   - **文件权限**: 显示和编辑远程文件的 Unix 风格权限
     - 权限列显示 rwx 格式（如 `rwxr-xr-x`）
     - 右键菜单修改文件权限
