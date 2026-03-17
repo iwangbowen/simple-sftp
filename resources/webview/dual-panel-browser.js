@@ -37,8 +37,6 @@
     /** @type {HTMLElement | null} */
     let breadcrumbDropdown = null;
     /** @type {Object.<string, number>} */
-    let breadcrumbClickTimers = {};
-    /** @type {Object.<string, number>} */
     let breadcrumbTreeLoadingTimers = {};
     /** @type {HTMLElement | null} */
     let fileTooltip = null;
@@ -2457,6 +2455,54 @@
     }
 
     /**
+     * Navigate to a breadcrumb path.
+     * In remote search view, keep the search path/breadcrumb in sync.
+     * @param {string} panel - 'local' | 'remote'
+     * @param {string} targetPath - Target path to navigate to
+     */
+    function navigateBreadcrumbPath(panel, targetPath) {
+        if (panel === 'remote' && isSearchViewVisible) {
+            const pathInput = document.getElementById('search-path-input');
+            if (pathInput) {
+                pathInput.value = targetPath;
+            }
+
+            currentSearchPath = targetPath;
+            currentRemotePath = targetPath;
+            renderBreadcrumb('remote', targetPath);
+            // Load directory in background for when user returns to file tree
+            loadDirectory('remote', targetPath);
+            closeBreadcrumbDropdown();
+            return;
+        }
+
+        loadDirectory(panel, targetPath);
+        closeBreadcrumbDropdown();
+    }
+
+    /**
+     * Toggle breadcrumb context dropdown for a segment.
+     * @param {HTMLElement} segment - The breadcrumb segment element
+     * @param {string} panel - 'local' | 'remote'
+     * @param {string} dropdownPath - Directory path used to populate the dropdown
+     * @param {boolean} isRoot - Whether the dropdown path should be treated as root input
+     * @param {string} [highlightPath] - Optional highlighted entry inside the dropdown
+     */
+    function toggleBreadcrumbContextMenu(segment, panel, dropdownPath, isRoot, highlightPath) {
+        const nextHighlightPath = highlightPath || dropdownPath;
+
+        if (breadcrumbDropdown &&
+            breadcrumbDropdown.dataset.panel === panel &&
+            breadcrumbDropdown.dataset.path === dropdownPath &&
+            breadcrumbDropdown.dataset.highlightPath === nextHighlightPath) {
+            closeBreadcrumbDropdown();
+            return;
+        }
+
+        showBreadcrumbDropdown(segment, panel, dropdownPath, isRoot, highlightPath);
+    }
+
+    /**
      * Show breadcrumb dropdown menu
      * @param {HTMLElement} segment - The breadcrumb segment element
      * @param {string} panel - 'local' | 'remote'
@@ -4239,6 +4285,41 @@
         // Clear existing breadcrumb
         breadcrumb.innerHTML = '';
 
+        const scrollToEnd = () => {
+            const maxScroll = Math.max(0, breadcrumb.scrollWidth - breadcrumb.clientWidth);
+            breadcrumb.scrollLeft = maxScroll;
+        };
+
+        const scheduleBreadcrumbScroll = () => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(scrollToEnd);
+            });
+        };
+
+        // Windows drive list pseudo-path (e.g. drives://)
+        if (panel === 'local' && fullPath === 'drives://') {
+            const drivesSpan = document.createElement('span');
+            drivesSpan.className = 'breadcrumb-segment breadcrumb-root breadcrumb-clickable';
+            drivesSpan.textContent = 'Drives';
+            drivesSpan.dataset.path = 'drives://';
+            drivesSpan.dataset.panel = panel;
+            drivesSpan.title = 'Left-click to navigate, right-click for context';
+
+            drivesSpan.addEventListener('click', function() {
+                navigateBreadcrumbPath(panel, this.dataset.path);
+            });
+
+            drivesSpan.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleBreadcrumbContextMenu(this, panel, this.dataset.path, true);
+            });
+
+            breadcrumb.appendChild(drivesSpan);
+            scheduleBreadcrumbScroll();
+            return;
+        }
+
         // Split path into segments
         const isWindows = panel === 'local' && /^[A-Za-z]:/.test(fullPath);
         const separator = panel === 'local' && isWindows ? '\\' : '/';
@@ -4274,7 +4355,7 @@
 
         // Create root segment
         const rootSpan = document.createElement('span');
-        rootSpan.className = 'breadcrumb-segment breadcrumb-root';
+        rootSpan.className = 'breadcrumb-segment breadcrumb-root breadcrumb-clickable';
         if (isWindows) {
             // Windows: display drive letter (e.g., "C:")
             rootSpan.textContent = segments[0];
@@ -4284,49 +4365,16 @@
         }
         rootSpan.dataset.path = isWindows ? segments[0] + separator : '/';
         rootSpan.dataset.panel = panel;
-        rootSpan.title = 'Click for dropdown, double-click to navigate';
+        rootSpan.title = 'Left-click to navigate, right-click for context';
 
-        // Single click: show dropdown, double click: navigate
-        rootSpan.addEventListener('click', function(e) {
-            const element = this; // Save element reference
-            const segmentKey = `${panel}_root`;
+        rootSpan.addEventListener('click', function() {
+            navigateBreadcrumbPath(panel, this.dataset.path);
+        });
 
-            if (breadcrumbClickTimers[segmentKey]) {
-                // Double click: navigate or update search path
-                clearTimeout(breadcrumbClickTimers[segmentKey]);
-                breadcrumbClickTimers[segmentKey] = null;
-
-                if (panel === 'remote' && isSearchViewVisible) {
-                    // In search view: update search path and breadcrumb
-                    const pathInput = document.getElementById('search-path-input');
-                    if (pathInput) {
-                        pathInput.value = element.dataset.path;
-                        currentSearchPath = element.dataset.path;
-                        currentRemotePath = element.dataset.path;
-                        renderBreadcrumb('remote', element.dataset.path);
-                        // Load directory in background for when user returns to file tree
-                        loadDirectory('remote', element.dataset.path);
-                    }
-                } else {
-                    // In file tree view: navigate
-                    loadDirectory(panel, element.dataset.path);
-                }
-                closeBreadcrumbDropdown();
-            } else {
-                // Check if dropdown is already showing for this path
-                if (breadcrumbDropdown &&
-                    breadcrumbDropdown.dataset.panel === panel &&
-                    breadcrumbDropdown.dataset.path === element.dataset.path) {
-                    // Same path - close dropdown immediately, no timer
-                    closeBreadcrumbDropdown();
-                } else {
-                    // Different path or no dropdown - show it after delay
-                    breadcrumbClickTimers[segmentKey] = setTimeout(() => {
-                        breadcrumbClickTimers[segmentKey] = null;
-                        showBreadcrumbDropdown(element, panel, element.dataset.path, true);
-                    }, 250);
-                }
-            }
+        rootSpan.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleBreadcrumbContextMenu(this, panel, this.dataset.path, true);
         });
         breadcrumb.appendChild(rootSpan);
 
@@ -4355,14 +4403,19 @@
             const isLastSegment = (i === segments.length - 1);
 
             if (isLastSegment) {
-                // Current segment: show parent directory dropdown (to see siblings)
+                // Current segment: right-click shows parent directory dropdown (to see siblings)
                 segment.classList.add('breadcrumb-current');
-                segment.title = 'Click to show sibling folders';
+                segment.title = 'Left-click to navigate, right-click to show sibling folders';
 
-                segment.addEventListener('click', function(e) {
-                    const element = this;
-                    // Get parent path of current segment
-                    const currentSegmentPath = element.dataset.path;
+                segment.addEventListener('click', function() {
+                    navigateBreadcrumbPath(panel, this.dataset.path);
+                });
+
+                segment.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const currentSegmentPath = this.dataset.path;
                     const parentPath = getParentPath(currentSegmentPath, panel);
 
                     // If no parent path (root), don't show dropdown
@@ -4370,80 +4423,31 @@
                         return;
                     }
 
-                    // Check if dropdown is already showing for this parent path
-                    if (breadcrumbDropdown &&
-                        breadcrumbDropdown.dataset.panel === panel &&
-                        breadcrumbDropdown.dataset.path === parentPath) {
-                        // Same parent path - close dropdown
-                        closeBreadcrumbDropdown();
-                    } else {
-                        // Different path or no dropdown - show parent directory content
-                        // Pass isRoot=true so backend uses parentPath directly (don't get parent again)
-                        // Pass current segment path as highlightPath to highlight current folder
-                        showBreadcrumbDropdown(element, panel, parentPath, true, currentSegmentPath);
-                    }
+                    // Pass isRoot=true so backend uses parentPath directly (don't get parent again)
+                    // Pass current segment path as highlightPath to highlight current folder
+                    toggleBreadcrumbContextMenu(this, panel, parentPath, true, currentSegmentPath);
                 });
             } else {
-                // Other segments: single click dropdown, double click navigate
+                // Other segments: left-click navigates, right-click opens context dropdown
                 segment.classList.add('breadcrumb-clickable');
-                segment.title = 'Click for dropdown, double-click to navigate';
+                segment.title = 'Left-click to navigate, right-click for context';
 
-                segment.addEventListener('click', function(e) {
-                    const element = this; // Save element reference
-                    const segmentKey = `${panel}_${element.dataset.path}`;
+                segment.addEventListener('click', function() {
+                    navigateBreadcrumbPath(panel, this.dataset.path);
+                });
 
-                    if (breadcrumbClickTimers[segmentKey]) {
-                        // Double click: navigate or update search path
-                        clearTimeout(breadcrumbClickTimers[segmentKey]);
-                        breadcrumbClickTimers[segmentKey] = null;
-
-                        if (panel === 'remote' && isSearchViewVisible) {
-                            // In search view: update search path and breadcrumb
-                            const pathInput = document.getElementById('search-path-input');
-                            if (pathInput) {
-                                pathInput.value = element.dataset.path;
-                                currentSearchPath = element.dataset.path;
-                                currentRemotePath = element.dataset.path;
-                                renderBreadcrumb('remote', element.dataset.path);
-                                // Load directory in background for when user returns to file tree
-                                loadDirectory('remote', element.dataset.path);
-                            }
-                        } else {
-                            // In file tree view: navigate
-                            loadDirectory(panel, element.dataset.path);
-                        }
-                        closeBreadcrumbDropdown();
-                    } else {
-                        // Check if dropdown is already showing for this path
-                        if (breadcrumbDropdown &&
-                            breadcrumbDropdown.dataset.panel === panel &&
-                            breadcrumbDropdown.dataset.path === element.dataset.path) {
-                            // Same path - close dropdown immediately, no timer
-                            closeBreadcrumbDropdown();
-                        } else {
-                            // Different path or no dropdown - show it after delay
-                            breadcrumbClickTimers[segmentKey] = setTimeout(() => {
-                                breadcrumbClickTimers[segmentKey] = null;
-                                showBreadcrumbDropdown(element, panel, element.dataset.path, false);
-                            }, 250);
-                        }
-                    }
+                segment.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleBreadcrumbContextMenu(this, panel, this.dataset.path, false);
                 });
             }
 
             breadcrumb.appendChild(segment);
         }
 
-        // 滚动到最右边,显示当前路径
-        const scrollToEnd = () => {
-            const maxScroll = Math.max(0, breadcrumb.scrollWidth - breadcrumb.clientWidth);
-            breadcrumb.scrollLeft = maxScroll;
-        };
-
         // 使用requestAnimationFrame确保DOM已经渲染
-        requestAnimationFrame(() => {
-            requestAnimationFrame(scrollToEnd);
-        });
+        scheduleBreadcrumbScroll();
     }
 
     // 监听breadcrumb容器大小变化，自动滚动到最右边
