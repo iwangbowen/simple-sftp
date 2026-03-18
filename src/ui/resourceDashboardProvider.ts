@@ -342,6 +342,26 @@ export class ResourceDashboardProvider {
         <div id="contentState" class="content-state" style="display: none;">
             <!-- Overview Tab -->
             <div id="overviewTab" class="tab-content active">
+              <!-- Health Summary -->
+              <div class="section health-section">
+                <div class="section-header">
+                  <i class="codicon codicon-shield"></i>
+                  <span>Health Summary</span>
+                </div>
+                <div class="section-content">
+                  <div class="health-summary-card">
+                    <div class="health-summary-header">
+                      <span id="healthBadge" class="health-badge health-healthy">Healthy</span>
+                      <span id="healthUpdatedAt" class="health-updated-at">Updated just now</span>
+                    </div>
+                    <p id="healthSummary" class="health-summary-text">Loading health information...</p>
+                    <div id="healthAlerts" class="health-alert-list">
+                      <div class="health-alert-empty">No alerts</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
                 <!-- System Info -->
                 <div class="section">
                     <div class="section-header">
@@ -418,6 +438,18 @@ export class ResourceDashboardProvider {
                                 <span class="info-label">Available</span>
                                 <span class="info-value" id="memoryAvailable">-</span>
                             </div>
+                            <div class="info-item">
+                              <span class="info-label">Buffers</span>
+                              <span class="info-value" id="memoryBuffers">-</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">Cache</span>
+                              <span class="info-value" id="memoryCached">-</span>
+                            </div>
+                            <div class="info-item">
+                              <span class="info-label">Swap</span>
+                              <span class="info-value" id="memorySwap">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -447,13 +479,17 @@ export class ResourceDashboardProvider {
                                 <tr>
                                     <th>PID</th>
                                     <th>User</th>
+                                  <th>State</th>
                                     <th>CPU %</th>
                                     <th>MEM %</th>
+                                  <th>RSS</th>
+                                  <th>VSZ</th>
+                                  <th>Time</th>
                                     <th>Command</th>
                                 </tr>
                             </thead>
                             <tbody id="processList">
-                                <tr><td colspan="5" class="empty-state">No data available</td></tr>
+                                <tr><td colspan="9" class="empty-state">No data available</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -472,14 +508,20 @@ export class ResourceDashboardProvider {
                             <thead>
                                 <tr>
                                     <th>Interface</th>
+                                  <th>State</th>
+                                  <th>IP</th>
                                     <th>RX Bytes</th>
                                     <th>TX Bytes</th>
                                     <th>RX Rate</th>
                                     <th>TX Rate</th>
+                                  <th>RX Packets</th>
+                                  <th>TX Packets</th>
+                                  <th>RX Err/Drop</th>
+                                  <th>TX Err/Drop</th>
                                 </tr>
                             </thead>
                             <tbody id="networkList">
-                                <tr><td colspan="5" class="empty-state">No data available</td></tr>
+                                <tr><td colspan="11" class="empty-state">No data available</td></tr>
                             </tbody>
                         </table>
                     </div>

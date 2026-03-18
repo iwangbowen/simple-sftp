@@ -186,10 +186,18 @@ describe('ResourceDashboardService - parsers and private helpers', () => {
     });
 
     it('getMemoryInfo prefers available column', async () => {
-      vi.spyOn(service, 'executeCommand').mockResolvedValue([
-        '              total        used        free      shared  buff/cache   available',
-        'Mem:           8000        2000        1000         100        5000        6000',
-      ].join('\n'));
+      vi.spyOn(service, 'executeCommand')
+        .mockResolvedValueOnce([
+          '              total        used        free      shared  buff/cache   available',
+          'Mem:           8000        2000        1000         100        5000        6000',
+          'Swap:          2048         256        1792',
+        ].join('\n'))
+        .mockResolvedValueOnce([
+          'Buffers:         131072 kB',
+          'Cached:         1048576 kB',
+          'SwapTotal:      2097152 kB',
+          'SwapFree:       1835008 kB',
+        ].join('\n'));
 
       const info = await service.getMemoryInfo({} as any);
       expect(info).toMatchObject({
@@ -197,18 +205,36 @@ describe('ResourceDashboardService - parsers and private helpers', () => {
         used: 2000,
         available: 6000,
         usage: 25,
+        buffers: 128,
+        cached: 1024,
+        swapTotal: 2048,
+        swapUsed: 256,
+        swapFree: 1792,
+        swapUsage: 12.5,
       });
     });
 
     it('getMemoryInfo falls back to free when available missing', async () => {
-      vi.spyOn(service, 'executeCommand').mockResolvedValue([
-        '              total        used        free',
-        'Mem:           4000        1000        500',
-      ].join('\n'));
+      vi.spyOn(service, 'executeCommand')
+        .mockResolvedValueOnce([
+          '              total        used        free',
+          'Mem:           4000        1000        500',
+        ].join('\n'))
+        .mockResolvedValueOnce([
+          'Buffers:          65536 kB',
+          'Cached:          524288 kB',
+          'SwapTotal:      1048576 kB',
+          'SwapFree:        786432 kB',
+        ].join('\n'));
 
       const info = await service.getMemoryInfo({} as any);
       expect(info.available).toBe(500);
       expect(info.usage).toBe(25);
+      expect(info.buffers).toBe(64);
+      expect(info.cached).toBe(512);
+      expect(info.swapTotal).toBe(1024);
+      expect(info.swapUsed).toBe(256);
+      expect(info.swapFree).toBe(768);
     });
 
     it('getDiskInfo parses df lines and ignores invalid line', async () => {
@@ -253,45 +279,66 @@ describe('ResourceDashboardService - parsers and private helpers', () => {
 
       const result = await ResourceDashboardService.getProcessList({} as any, {} as any, 5);
       expect(result).toHaveLength(2);
-      expect(result[0]).toMatchObject({ user: 'root', pid: 101, cpu: 9.5, mem: 1.2 });
+      expect(result[0]).toMatchObject({ user: 'root', pid: 101, cpu: 9.5, mem: 1.2, stat: 'Ssl', time: '00:01' });
       expect(result[1].command).toContain('worker.py');
     });
 
     it('getNetworkStats parses /proc/net/dev and ip output', async () => {
       vi.spyOn(service, 'executeWithConnection').mockImplementation(async (_cfg: any, _auth: any, op: any) => op({}));
+      vi.spyOn(service, 'delay').mockResolvedValue(undefined);
       const cmdSpy = vi.spyOn(service, 'executeCommand')
         .mockResolvedValueOnce([
           'Inter-|   Receive                                                |  Transmit',
           ' face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed',
           '  lo: 1000 10 0 0 0 0 0 0 1000 10 0 0 0 0 0 0',
-          'eth0: 2000 20 0 0 0 0 0 0 3000 30 0 0 0 0 0 0',
+          'eth0: 2000 20 1 2 0 0 0 0 3000 30 3 4 0 0 0 0',
         ].join('\n'))
-        .mockResolvedValueOnce('lo UNKNOWN 127.0.0.1/8\neth0 UP 192.168.1.2/24');
+        .mockResolvedValueOnce('lo UNKNOWN 127.0.0.1/8\neth0 UP 192.168.1.2/24')
+        .mockResolvedValueOnce([
+          'Inter-|   Receive                                                |  Transmit',
+          ' face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed',
+          '  lo: 1000 10 0 0 0 0 0 0 1000 10 0 0 0 0 0 0',
+          'eth0: 2600 25 1 2 0 0 0 0 3600 35 3 4 0 0 0 0',
+        ].join('\n'));
 
       const result = await ResourceDashboardService.getNetworkStats({} as any, {} as any);
       expect(result).toHaveLength(2);
       expect(result.find((i: any) => i.name === 'eth0')).toMatchObject({
-        rxBytes: 2000,
-        txBytes: 3000,
+        rxBytes: 2600,
+        txBytes: 3600,
+        rxPackets: 25,
+        txPackets: 35,
+        rxErrors: 1,
+        rxDropped: 2,
+        txErrors: 3,
+        txDropped: 4,
         ipAddress: '192.168.1.2',
         state: 'UP',
+        rxRate: 600,
+        txRate: 600,
       });
-      expect(cmdSpy).toHaveBeenCalledTimes(2);
+      expect(cmdSpy).toHaveBeenCalledTimes(3);
     });
 
     it('getNetworkStats handles missing ip command gracefully', async () => {
       vi.spyOn(service, 'executeWithConnection').mockImplementation(async (_cfg: any, _auth: any, op: any) => op({}));
+      vi.spyOn(service, 'delay').mockResolvedValue(undefined);
       vi.spyOn(service, 'executeCommand')
         .mockResolvedValueOnce([
           'Inter-|   Receive | Transmit',
           ' face |bytes packets|bytes packets',
           'eth0: 100 1 0 0 0 0 0 0 200 2 0 0 0 0 0 0',
         ].join('\n'))
-        .mockRejectedValueOnce(new Error('ip not found'));
+        .mockRejectedValueOnce(new Error('ip not found'))
+        .mockResolvedValueOnce([
+          'Inter-|   Receive | Transmit',
+          ' face |bytes packets|bytes packets',
+          'eth0: 140 2 0 0 0 0 0 0 260 3 0 0 0 0 0 0',
+        ].join('\n'));
 
       const result = await ResourceDashboardService.getNetworkStats({} as any, {} as any);
       expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({ name: 'eth0', state: 'DOWN' });
+      expect(result[0]).toMatchObject({ name: 'eth0', state: 'UNKNOWN', rxRate: 40, txRate: 60 });
     });
 
     it('getDiskIOStats uses iostat when available', async () => {
@@ -317,6 +364,52 @@ describe('ResourceDashboardService - parsers and private helpers', () => {
       const result = await ResourceDashboardService.getDiskIOStats({} as any, {} as any);
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({ device: 'sda', readKBps: 10, writeKBps: 20 });
+    });
+  });
+
+  describe('additional helpers', () => {
+    it('parseMeminfoOutput converts kB values into MB', () => {
+      const result = service.parseMeminfoOutput([
+        'Buffers:         262144 kB',
+        'Cached:         1048576 kB',
+        'SwapTotal:      2097152 kB',
+        'SwapFree:       1048576 kB',
+      ].join('\n'));
+
+      expect(result).toEqual({
+        buffers: 256,
+        cached: 1024,
+        swapTotal: 2048,
+        swapFree: 1024,
+      });
+    });
+
+    it('buildHealthSummary returns critical status when any metric crosses critical threshold', () => {
+      const health = service.buildHealthSummary({
+        cpu: { usage: 92, cores: 8, loadAvg1: 7.3, loadAvg5: 5, loadAvg15: 4 },
+        memory: { usage: 83, total: 16000, used: 12000, available: 4000 },
+        disk: [
+          { filesystem: '/dev/sda1', total: 100, used: 97, available: 3, usage: 97, mountpoint: '/' },
+        ],
+      });
+
+      expect(health.status).toBe('critical');
+      expect(health.alerts).toHaveLength(3);
+      expect(health.summary).toContain('3 health issues');
+    });
+
+    it('buildHealthSummary returns healthy status when all metrics are within thresholds', () => {
+      const health = service.buildHealthSummary({
+        cpu: { usage: 32, cores: 8, loadAvg1: 2.5, loadAvg5: 2, loadAvg15: 1.8 },
+        memory: { usage: 48, total: 16000, used: 8000, available: 8000 },
+        disk: [
+          { filesystem: '/dev/sda1', total: 100, used: 48, available: 52, usage: 48, mountpoint: '/' },
+        ],
+      });
+
+      expect(health.status).toBe('healthy');
+      expect(health.alerts).toEqual([]);
+      expect(health.summary).toBe('All monitored resources are within normal ranges.');
     });
   });
 

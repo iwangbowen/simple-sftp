@@ -41,14 +41,52 @@ export interface NetworkInterfaceInfo {
   rxPackets: number;
   /** 发送包数 */
   txPackets: number;
-  /** 接收速率 (KB/s) - 需要两次采样计算 */
+  /** 接收错误数 */
+  rxErrors?: number;
+  /** 发送错误数 */
+  txErrors?: number;
+  /** 接收丢包数 */
+  rxDropped?: number;
+  /** 发送丢包数 */
+  txDropped?: number;
+  /** 接收速率 (Bytes/s) - 需要两次采样计算 */
   rxRate?: number;
-  /** 发送速率 (KB/s) - 需要两次采样计算 */
+  /** 发送速率 (Bytes/s) - 需要两次采样计算 */
   txRate?: number;
   /** IP地址 */
   ipAddress?: string;
   /** 状态 */
   state: string;
+}
+
+/**
+ * 仪表盘健康告警
+ */
+export interface DashboardHealthAlert {
+  /** 资源类型 */
+  resource: 'cpu' | 'memory' | 'disk';
+  /** 严重级别 */
+  severity: 'warning' | 'critical';
+  /** 展示标签 */
+  label: string;
+  /** 当前值 */
+  value: number;
+  /** 告警消息 */
+  message: string;
+}
+
+/**
+ * 仪表盘健康摘要
+ */
+export interface DashboardHealthSummary {
+  /** 总体健康状态 */
+  status: 'healthy' | 'warning' | 'critical';
+  /** 摘要信息 */
+  summary: string;
+  /** 当前告警列表 */
+  alerts: DashboardHealthAlert[];
+  /** 生成时间 */
+  updatedAt: string;
 }
 
 /**
@@ -96,6 +134,18 @@ export interface SystemResourceInfo {
     available: number;
     /** 使用率百分比 */
     usage: number;
+    /** 缓冲区大小 (MB) */
+    buffers?: number;
+    /** 缓存大小 (MB) */
+    cached?: number;
+    /** Swap 总量 (MB) */
+    swapTotal?: number;
+    /** Swap 已使用 (MB) */
+    swapUsed?: number;
+    /** Swap 可用 (MB) */
+    swapFree?: number;
+    /** Swap 使用率百分比 */
+    swapUsage?: number;
   };
   /** 磁盘使用情况 */
   disk: {
@@ -123,12 +173,16 @@ export interface SystemResourceInfo {
     /** 主机名 */
     hostname: string;
   };
+  /** 健康状态摘要 */
+  health?: DashboardHealthSummary;
 }
 
 /**
  * 资源仪表盘服务
  */
 export class ResourceDashboardService {
+  private static readonly NETWORK_RATE_SAMPLE_INTERVAL_MS = 1000;
+
   /**
    * 获取远程服务器的系统资源信息
    */
@@ -180,11 +234,18 @@ export class ResourceDashboardService {
         this.getSystemInfo(conn),
       ]);
 
+      const health = this.buildHealthSummary({
+        cpu: cpuInfo,
+        memory: memoryInfo,
+        disk: diskInfo,
+      });
+
       return {
         cpu: cpuInfo,
         memory: memoryInfo,
         disk: diskInfo,
         system: systemInfo,
+        health,
       };
     } finally {
       conn.end();
@@ -246,58 +307,112 @@ export class ResourceDashboardService {
     authConfig: HostAuthConfig
   ): Promise<NetworkInterfaceInfo[]> {
     return this.executeWithConnection(config, authConfig, async (conn) => {
-      // 获取网络统计信息
-      const netDevOutput = await this.executeCommand(conn, 'cat /proc/net/dev');
+      // 获取网络统计信息并进行两次采样以计算吞吐速率
+      const firstNetDevOutput = await this.executeCommand(conn, 'cat /proc/net/dev');
       const ipAddrOutput = await this.executeCommand(conn, 'ip -br addr').catch(() => '');
+      const initialStats = this.parseNetworkStatsOutput(firstNetDevOutput, ipAddrOutput);
 
-      const interfaces: NetworkInterfaceInfo[] = [];
-      const lines = netDevOutput.trim().split('\n');
+      const sampleStartedAt = Date.now();
+      await this.delay(this.NETWORK_RATE_SAMPLE_INTERVAL_MS);
 
-      // 解析 IP 地址信息
-      const ipMap = new Map<string, string>();
-      if (ipAddrOutput) {
-        const ipLines = ipAddrOutput.trim().split('\n');
-        for (const line of ipLines) {
-          const parts = line.trim().split(/\s+/);
-          if (parts.length >= 3) {
-            const name = parts[0];
-            const state = parts[1];
-            const ip = parts[2]?.split('/')[0]; // 提取 IP 地址部分
-            if (ip && ip !== '-') {
-              ipMap.set(name, ip);
-            }
-          }
+      const secondNetDevOutput = await this.executeCommand(conn, 'cat /proc/net/dev').catch(() => firstNetDevOutput);
+      const latestStats = this.parseNetworkStatsOutput(secondNetDevOutput, ipAddrOutput);
+      const elapsedSeconds = Math.max((Date.now() - sampleStartedAt) / 1000, 1);
+
+      return this.mergeNetworkSamples(initialStats, latestStats, elapsedSeconds);
+    });
+  }
+
+  /**
+   * 合并两次网络采样结果，计算吞吐速率
+   */
+  private static mergeNetworkSamples(
+    firstSample: NetworkInterfaceInfo[],
+    secondSample: NetworkInterfaceInfo[],
+    elapsedSeconds: number
+  ): NetworkInterfaceInfo[] {
+    const firstSampleMap = new Map(firstSample.map((item) => [item.name, item]));
+
+    return secondSample.map((currentInterface) => {
+      const previousInterface = firstSampleMap.get(currentInterface.name);
+
+      if (!previousInterface || elapsedSeconds <= 0) {
+        return currentInterface;
+      }
+
+      const rxDelta = Math.max(currentInterface.rxBytes - previousInterface.rxBytes, 0);
+      const txDelta = Math.max(currentInterface.txBytes - previousInterface.txBytes, 0);
+
+      return {
+        ...currentInterface,
+        rxRate: Math.round((rxDelta / elapsedSeconds) * 100) / 100,
+        txRate: Math.round((txDelta / elapsedSeconds) * 100) / 100,
+      };
+    });
+  }
+
+  /**
+   * 解析网络统计输出
+   */
+  private static parseNetworkStatsOutput(
+    netDevOutput: string,
+    ipAddrOutput: string
+  ): NetworkInterfaceInfo[] {
+    const interfaces: NetworkInterfaceInfo[] = [];
+    const lines = netDevOutput.trim().split('\n');
+
+    // 解析 IP 地址及状态信息
+    const ipMap = new Map<string, { ipAddress?: string; state: string }>();
+    if (ipAddrOutput) {
+      const ipLines = ipAddrOutput.trim().split('\n');
+      for (const line of ipLines) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          const name = parts[0];
+          const state = parts[1] || 'UNKNOWN';
+          const ip = parts.slice(2).find((part) => part.includes('/'))?.split('/')[0];
+
+          ipMap.set(name, {
+            ipAddress: ip && ip !== '-' ? ip : undefined,
+            state,
+          });
         }
       }
+    }
 
-      // 跳过前两行标题
-      for (let i = 2; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) {continue;}
+    // 跳过前两行标题
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) {continue;}
 
-        // 解析 /proc/net/dev 输出
-        // eth0: 1234567 12345 0 0 0 0 0 0 9876543 98765 0 0 0 0 0 0
-        const [namePart, ...dataParts] = line.split(/:\s+/);
-        if (!namePart || dataParts.length === 0) {continue;}
+      // 解析 /proc/net/dev 输出
+      // eth0: bytes packets errs drop fifo frame compressed multicast bytes packets errs drop fifo colls carrier compressed
+      const [namePart, ...dataParts] = line.split(/:\s+/);
+      if (!namePart || dataParts.length === 0) {continue;}
 
-        const name = namePart.trim();
-        const stats = dataParts[0].split(/\s+/);
+      const name = namePart.trim();
+      const stats = dataParts[0].split(/\s+/);
 
-        if (stats.length < 16) {continue;}
+      if (stats.length < 16) {continue;}
 
-        interfaces.push({
-          name,
-          rxBytes: Number.parseInt(stats[0]) || 0,
-          rxPackets: Number.parseInt(stats[1]) || 0,
-          txBytes: Number.parseInt(stats[8]) || 0,
-          txPackets: Number.parseInt(stats[9]) || 0,
-          ipAddress: ipMap.get(name),
-          state: ipMap.has(name) ? 'UP' : 'DOWN',
-        });
-      }
+      const interfaceMeta = ipMap.get(name);
 
-      return interfaces;
-    });
+      interfaces.push({
+        name,
+        rxBytes: Number.parseInt(stats[0]) || 0,
+        rxPackets: Number.parseInt(stats[1]) || 0,
+        rxErrors: Number.parseInt(stats[2]) || 0,
+        rxDropped: Number.parseInt(stats[3]) || 0,
+        txBytes: Number.parseInt(stats[8]) || 0,
+        txPackets: Number.parseInt(stats[9]) || 0,
+        txErrors: Number.parseInt(stats[10]) || 0,
+        txDropped: Number.parseInt(stats[11]) || 0,
+        ipAddress: interfaceMeta?.ipAddress,
+        state: interfaceMeta?.state || 'UNKNOWN',
+      });
+    }
+
+    return interfaces;
   }
 
   /**
@@ -490,25 +605,99 @@ export class ResourceDashboardService {
    * 获取内存信息
    */
   private static async getMemoryInfo(conn: Client): Promise<SystemResourceInfo['memory']> {
-    const output = await this.executeCommand(conn, 'free -m');
+    const [output, meminfoOutput] = await Promise.all([
+      this.executeCommand(conn, 'free -m'),
+      this.executeCommand(conn, 'cat /proc/meminfo').catch(() => ''),
+    ]);
+
     const lines = output.trim().split('\n');
+    const memLine = lines.find((line) => line.trim().startsWith('Mem:'));
+    const swapLine = lines.find((line) => line.trim().startsWith('Swap:'));
+
+    if (!memLine) {
+      return {
+        total: 0,
+        used: 0,
+        available: 0,
+        usage: 0,
+        buffers: 0,
+        cached: 0,
+        swapTotal: 0,
+        swapUsed: 0,
+        swapFree: 0,
+        swapUsage: 0,
+      };
+    }
 
     // 解析内存行 (第二行)
     // Mem:       15869       8234       1285        524       6349       6831
-    const memLine = lines[1];
-    const memParts = memLine.split(/\s+/);
+    const memParts = memLine.trim().split(/\s+/);
+    const swapParts = swapLine?.trim().split(/\s+/) || [];
+    const meminfo = this.parseMeminfoOutput(meminfoOutput);
 
     const total = Number.parseInt(memParts[1]) || 0;
     const used = Number.parseInt(memParts[2]) || 0;
     const available = Number.parseInt(memParts[6]) || Number.parseInt(memParts[3]) || 0; // 优先使用 available,否则用 free
+    const buffers = meminfo.buffers;
+    const cached = meminfo.cached;
+    const swapTotal = Number.parseInt(swapParts[1]) || meminfo.swapTotal;
+    const swapUsed = Number.parseInt(swapParts[2]) || Math.max(swapTotal - meminfo.swapFree, 0);
+    const swapFree = Number.parseInt(swapParts[3]) || Math.max(swapTotal - swapUsed, meminfo.swapFree);
 
-    const usage = total > 0 ? (used / total) * 100 : 0;
+    const usageBase = memParts[6] ? total - available : used;
+    const usage = total > 0 ? (usageBase / total) * 100 : 0;
+    const swapUsage = swapTotal > 0 ? (swapUsed / swapTotal) * 100 : 0;
 
     return {
       total,
       used,
       available,
       usage: Math.round(usage * 10) / 10,
+      buffers,
+      cached,
+      swapTotal,
+      swapUsed,
+      swapFree,
+      swapUsage: Math.round(swapUsage * 10) / 10,
+    };
+  }
+
+  /**
+   * 解析 /proc/meminfo 输出
+   */
+  private static parseMeminfoOutput(output: string): {
+    buffers: number;
+    cached: number;
+    swapTotal: number;
+    swapFree: number;
+  } {
+    const values = {
+      buffers: 0,
+      cached: 0,
+      swapTotal: 0,
+      swapFree: 0,
+    };
+
+    if (!output.trim()) {
+      return values;
+    }
+
+    const lines = output.trim().split('\n');
+    const meminfoMap = new Map<string, number>();
+
+    for (const line of lines) {
+      const match = line.match(/^(\w+):\s+(\d+)/);
+      if (!match) {continue;}
+
+      const [, key, rawValue] = match;
+      meminfoMap.set(key, Math.round((Number.parseInt(rawValue, 10) || 0) / 1024));
+    }
+
+    return {
+      buffers: meminfoMap.get('Buffers') || 0,
+      cached: meminfoMap.get('Cached') || 0,
+      swapTotal: meminfoMap.get('SwapTotal') || 0,
+      swapFree: meminfoMap.get('SwapFree') || 0,
     };
   }
 
@@ -603,6 +792,95 @@ export class ResourceDashboardService {
   }
 
   /**
+   * 异步等待指定毫秒数
+   */
+  private static async delay(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 生成健康状态摘要
+   */
+  private static buildHealthSummary(resources: Pick<SystemResourceInfo, 'cpu' | 'memory' | 'disk'>): DashboardHealthSummary {
+    const alerts: DashboardHealthAlert[] = [];
+
+    if (resources.cpu.usage >= 90) {
+      alerts.push({
+        resource: 'cpu',
+        severity: 'critical',
+        label: 'CPU',
+        value: resources.cpu.usage,
+        message: `CPU load is above 90% of available cores (${resources.cpu.usage.toFixed(1)}%).`,
+      });
+    } else if (resources.cpu.usage >= 80) {
+      alerts.push({
+        resource: 'cpu',
+        severity: 'warning',
+        label: 'CPU',
+        value: resources.cpu.usage,
+        message: `CPU load is above 80% of available cores (${resources.cpu.usage.toFixed(1)}%).`,
+      });
+    }
+
+    if (resources.memory.usage >= 90) {
+      alerts.push({
+        resource: 'memory',
+        severity: 'critical',
+        label: 'Memory',
+        value: resources.memory.usage,
+        message: `Memory usage is above 90% (${resources.memory.usage.toFixed(1)}%).`,
+      });
+    } else if (resources.memory.usage >= 80) {
+      alerts.push({
+        resource: 'memory',
+        severity: 'warning',
+        label: 'Memory',
+        value: resources.memory.usage,
+        message: `Memory usage is above 80% (${resources.memory.usage.toFixed(1)}%).`,
+      });
+    }
+
+    for (const disk of resources.disk) {
+      if (disk.usage >= 95) {
+        alerts.push({
+          resource: 'disk',
+          severity: 'critical',
+          label: 'Disk',
+          value: disk.usage,
+          message: `Disk usage on ${disk.mountpoint} is above 95% (${disk.usage}%).`,
+        });
+      } else if (disk.usage >= 85) {
+        alerts.push({
+          resource: 'disk',
+          severity: 'warning',
+          label: 'Disk',
+          value: disk.usage,
+          message: `Disk usage on ${disk.mountpoint} is above 85% (${disk.usage}%).`,
+        });
+      }
+    }
+
+    const hasCriticalAlert = alerts.some((alert) => alert.severity === 'critical');
+    const hasWarningAlert = alerts.some((alert) => alert.severity === 'warning');
+    const status: DashboardHealthSummary['status'] = hasCriticalAlert
+      ? 'critical'
+      : hasWarningAlert
+        ? 'warning'
+        : 'healthy';
+
+    const summary = alerts.length === 0
+      ? 'All monitored resources are within normal ranges.'
+      : `${alerts.length} health ${alerts.length === 1 ? 'issue' : 'issues'} detected.`;
+
+    return {
+      status,
+      summary,
+      alerts,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
    * 格式化资源信息为可读的字符串
    */
   static formatResourceInfo(info: SystemResourceInfo): string {
@@ -635,6 +913,15 @@ export class ResourceDashboardService {
     lines.push(`已使用:   ${info.memory.used} MB`);
     lines.push(`可用:     ${info.memory.available} MB`);
     lines.push(`使用率:   ${info.memory.usage.toFixed(1)}%`);
+    if (info.memory.buffers !== undefined) {
+      lines.push(`Buffers:  ${info.memory.buffers} MB`);
+    }
+    if (info.memory.cached !== undefined) {
+      lines.push(`Cache:    ${info.memory.cached} MB`);
+    }
+    if (info.memory.swapTotal !== undefined) {
+      lines.push(`Swap:     ${info.memory.swapUsed || 0} / ${info.memory.swapTotal} MB (${(info.memory.swapUsage || 0).toFixed(1)}%)`);
+    }
     lines.push('');
 
     // 磁盘信息

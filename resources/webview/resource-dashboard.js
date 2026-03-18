@@ -183,6 +183,8 @@
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
 
+    updateHealthSummary(data.health);
+
     // Update system info
     document.getElementById('hostname').textContent = data.system.hostname;
     document.getElementById('os').textContent = data.system.os;
@@ -199,9 +201,49 @@
     document.getElementById('memoryTotal').textContent = `${formatBytes(data.memory.total)} MB`;
     document.getElementById('memoryUsed').textContent = `${formatBytes(data.memory.used)} MB`;
     document.getElementById('memoryAvailable').textContent = `${formatBytes(data.memory.available)} MB`;
+    document.getElementById('memoryBuffers').textContent = `${formatBytes(data.memory.buffers || 0)} MB`;
+    document.getElementById('memoryCached').textContent = `${formatBytes(data.memory.cached || 0)} MB`;
+    document.getElementById('memorySwap').textContent = formatSwap(data.memory);
 
     // Update disk summary for overview tab
     updateDiskSummary(data.disk);
+  }
+
+  function updateHealthSummary(health) {
+    const healthBadge = document.getElementById('healthBadge');
+    const healthSummary = document.getElementById('healthSummary');
+    const healthAlerts = document.getElementById('healthAlerts');
+    const healthUpdatedAt = document.getElementById('healthUpdatedAt');
+
+    const status = health?.status || 'healthy';
+    const summaryText = health?.summary || 'All monitored resources are within normal ranges.';
+
+    healthBadge.textContent = capitalize(status);
+    healthBadge.className = `health-badge health-${status}`;
+    healthSummary.textContent = summaryText;
+    healthUpdatedAt.textContent = health?.updatedAt
+      ? `Updated ${formatTimestamp(health.updatedAt)}`
+      : 'Updated just now';
+
+    healthAlerts.innerHTML = '';
+
+    if (!health?.alerts || health.alerts.length === 0) {
+      healthAlerts.innerHTML = '<div class="health-alert-empty">No alerts</div>';
+      return;
+    }
+
+    health.alerts.forEach((alert) => {
+      const alertItem = document.createElement('div');
+      alertItem.className = `health-alert health-${alert.severity}`;
+      alertItem.innerHTML = `
+        <span class="health-alert-severity">${capitalize(alert.severity)}</span>
+        <div class="health-alert-content">
+          <span class="health-alert-title">${escapeHtml(alert.label)}</span>
+          <span class="health-alert-message">${escapeHtml(alert.message)}</span>
+        </div>
+      `;
+      healthAlerts.appendChild(alertItem);
+    });
   }
 
   function handleProcessData(processes) {
@@ -213,7 +255,7 @@
     const processList = document.getElementById('processList');
 
     if (!processes || processes.length === 0) {
-      processList.innerHTML = '<tr><td colspan="5" class="empty-state">No process data available</td></tr>';
+      processList.innerHTML = '<tr><td colspan="9" class="empty-state">No process data available</td></tr>';
       return;
     }
 
@@ -228,8 +270,12 @@
         row.innerHTML = `
           <td>${proc.pid}</td>
           <td>${proc.user}</td>
+          <td>${escapeHtml(proc.stat)}</td>
           <td>${proc.cpu}%</td>
           <td>${proc.mem}%</td>
+          <td>${formatKilobytes(proc.rss)}</td>
+          <td>${formatKilobytes(proc.vsz)}</td>
+          <td>${escapeHtml(proc.time)}</td>
           <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(proc.command)}</td>
         `;
         processList.appendChild(row);
@@ -248,7 +294,7 @@
     const networkList = document.getElementById('networkList');
 
     if (!interfaces || interfaces.length === 0) {
-      networkList.innerHTML = '<tr><td colspan="5" class="empty-state">No network data available</td></tr>';
+      networkList.innerHTML = '<tr><td colspan="11" class="empty-state">No network data available</td></tr>';
       return;
     }
 
@@ -262,10 +308,16 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${iface.name}</td>
+          <td>${renderStateBadge(iface.state)}</td>
+          <td>${iface.ipAddress ? escapeHtml(iface.ipAddress) : '—'}</td>
           <td>${formatBytesSize(iface.rxBytes)}</td>
           <td>${formatBytesSize(iface.txBytes)}</td>
-          <td>${iface.rxRate ? formatRate(iface.rxRate) : 'N/A'}</td>
-          <td>${iface.txRate ? formatRate(iface.txRate) : 'N/A'}</td>
+          <td>${typeof iface.rxRate === 'number' ? formatRate(iface.rxRate) : 'N/A'}</td>
+          <td>${typeof iface.txRate === 'number' ? formatRate(iface.txRate) : 'N/A'}</td>
+          <td>${formatCount(iface.rxPackets)}</td>
+          <td>${formatCount(iface.txPackets)}</td>
+          <td>${formatCount(iface.rxErrors || 0)} / ${formatCount(iface.rxDropped || 0)}</td>
+          <td>${formatCount(iface.txErrors || 0)} / ${formatCount(iface.txDropped || 0)}</td>
         `;
         networkList.appendChild(row);
       });
@@ -413,6 +465,14 @@
     return mb.toLocaleString();
   }
 
+  function formatSwap(memory) {
+    if (!memory?.swapTotal) {
+      return 'Disabled';
+    }
+
+    return `${formatBytes(memory.swapUsed || 0)} / ${formatBytes(memory.swapTotal)} MB (${(memory.swapUsage || 0).toFixed(1)}%)`;
+  }
+
   function formatBytesSize(bytes) {
     if (bytes >= 1073741824) {
       return (bytes / 1073741824).toFixed(2) + ' GB';
@@ -438,6 +498,45 @@
       return (kbps / 1024).toFixed(2) + ' MB';
     }
     return kbps.toFixed(2);
+  }
+
+  function formatKilobytes(kb) {
+    if (kb >= 1048576) {
+      return (kb / 1048576).toFixed(2) + ' GB';
+    }
+
+    if (kb >= 1024) {
+      return (kb / 1024).toFixed(2) + ' MB';
+    }
+
+    return `${kb} KB`;
+  }
+
+  function formatCount(value) {
+    return Number(value || 0).toLocaleString();
+  }
+
+  function formatTimestamp(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return 'just now';
+    }
+
+    return date.toLocaleTimeString();
+  }
+
+  function capitalize(value) {
+    if (!value) {
+      return '';
+    }
+
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  function renderStateBadge(state) {
+    const safeState = escapeHtml(state || 'UNKNOWN');
+    const normalizedState = String(state || 'unknown').toLowerCase().replaceAll(/[^a-z0-9]+/g, '-');
+    return `<span class="status-pill state-${normalizedState}">${safeState}</span>`;
   }
 
   function escapeHtml(text) {
