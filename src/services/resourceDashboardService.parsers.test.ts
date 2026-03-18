@@ -116,16 +116,19 @@ describe('ResourceDashboardService - parsers and private helpers', () => {
     const acceptedCases = [
       'sda', 'sdb', 'sdc', 'sdd', 'sde', 'sdf', 'sdg', 'sdh',
       'vda', 'vdb', 'vdc', 'vdd',
+      'xvda', 'xvdb',
       'hda', 'hdb',
       'nvme0n1', 'nvme1n1', 'nvme2n3',
+      'dm-0', 'dm-1',
+      'mmcblk0', 'mmcblk1',
     ];
 
     const rejectedCases = [
       'loop0', 'ram0', 'sr0', 'md0',
       'sda1', 'sdb2', 'vda1', 'hda2',
       'nvme0n1p1', 'nvme1n1p2',
-      'dm-0', 'zram0', 'mmcblk0', 'mmcblk0p1',
-      'xvda', 'fd0', 'nbd0', 'sd', 'nvme0', 'nvme0n',
+      'zram0', 'mmcblk0p1',
+      'fd0', 'nbd0', 'sd', 'nvme0', 'nvme0n',
       'sdaa', 'sda10', 'abc', 'eth0',
     ];
 
@@ -235,6 +238,27 @@ describe('ResourceDashboardService - parsers and private helpers', () => {
       expect(info.swapTotal).toBe(1024);
       expect(info.swapUsed).toBe(256);
       expect(info.swapFree).toBe(768);
+    });
+
+    it('getMemoryInfo treats available=0 as a valid column instead of falling back', async () => {
+      vi.spyOn(service, 'executeCommand')
+        .mockResolvedValueOnce([
+          '              total        used        free      shared  buff/cache   available',
+          'Mem:           4000        1500         50         100        2450           0',
+          'Swap:          1024           0        1024',
+        ].join('\n'))
+        .mockResolvedValueOnce([
+          'Buffers:          65536 kB',
+          'Cached:          524288 kB',
+          'SwapTotal:      1048576 kB',
+          'SwapFree:       1048576 kB',
+        ].join('\n'));
+
+      const info = await service.getMemoryInfo({} as any);
+      expect(info.available).toBe(0);
+      expect(info.usage).toBe(100);
+      expect(info.swapUsed).toBe(0);
+      expect(info.swapFree).toBe(1024);
     });
 
     it('getDiskInfo parses df lines and ignores invalid line', async () => {

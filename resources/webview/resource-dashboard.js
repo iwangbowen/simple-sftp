@@ -269,7 +269,7 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${proc.pid}</td>
-          <td>${proc.user}</td>
+          <td>${escapeHtml(proc.user)}</td>
           <td>${escapeHtml(proc.stat)}</td>
           <td>${proc.cpu}%</td>
           <td>${proc.mem}%</td>
@@ -307,7 +307,7 @@
       interfaces.forEach(iface => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${iface.name}</td>
+          <td>${escapeHtml(iface.name)}</td>
           <td>${renderStateBadge(iface.state)}</td>
           <td>${iface.ipAddress ? escapeHtml(iface.ipAddress) : '—'}</td>
           <td>${formatBytesSize(iface.rxBytes)}</td>
@@ -389,7 +389,7 @@
         diskItem.innerHTML = `
           <div class="info-item">
             <span class="info-label">Mountpoint</span>
-            <span class="info-value">${disk.mountpoint}</span>
+            <span class="info-value">${escapeHtml(disk.mountpoint)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Usage</span>
@@ -431,11 +431,11 @@
         diskItem.innerHTML = `
           <div class="info-item">
             <span class="info-label">Mountpoint</span>
-            <span class="info-value">${disk.mountpoint}</span>
+            <span class="info-value">${escapeHtml(disk.mountpoint)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Filesystem</span>
-            <span class="info-value">${disk.filesystem}</span>
+            <span class="info-value">${escapeHtml(disk.filesystem)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Usage</span>

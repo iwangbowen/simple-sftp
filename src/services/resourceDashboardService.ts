@@ -546,7 +546,7 @@ export class ResourceDashboardService {
       const device = parts[2];
 
       // 只显示主要设备 (sda, nvme0n1 等)
-      if (!/^(sd[a-z]|nvme\d+n\d+|vd[a-z]|hd[a-z])$/.test(device)) {
+      if (!/^(sd[a-z]|xvd[a-z]|nvme\d+n\d+|vd[a-z]|hd[a-z]|dm-\d+|mmcblk\d+)$/.test(device)) {
         continue;
       }
 
@@ -635,16 +635,28 @@ export class ResourceDashboardService {
     const swapParts = swapLine?.trim().split(/\s+/) || [];
     const meminfo = this.parseMeminfoOutput(meminfoOutput);
 
-    const total = Number.parseInt(memParts[1]) || 0;
-    const used = Number.parseInt(memParts[2]) || 0;
-    const available = Number.parseInt(memParts[6]) || Number.parseInt(memParts[3]) || 0; // 优先使用 available,否则用 free
+    const total = Number.parseInt(memParts[1], 10) || 0;
+    const used = Number.parseInt(memParts[2], 10) || 0;
+    const parsedFree = Number.parseInt(memParts[3], 10);
+    const parsedAvailable = Number.parseInt(memParts[6], 10);
+    const hasAvailableColumn = memParts.length > 6 && !Number.isNaN(parsedAvailable);
+    const available = hasAvailableColumn
+      ? parsedAvailable
+      : (Number.isNaN(parsedFree) ? 0 : parsedFree); // 优先使用 available,否则用 free
     const buffers = meminfo.buffers;
     const cached = meminfo.cached;
-    const swapTotal = Number.parseInt(swapParts[1]) || meminfo.swapTotal;
-    const swapUsed = Number.parseInt(swapParts[2]) || Math.max(swapTotal - meminfo.swapFree, 0);
-    const swapFree = Number.parseInt(swapParts[3]) || Math.max(swapTotal - swapUsed, meminfo.swapFree);
+    const parsedSwapTotal = Number.parseInt(swapParts[1], 10);
+    const parsedSwapUsed = Number.parseInt(swapParts[2], 10);
+    const parsedSwapFree = Number.parseInt(swapParts[3], 10);
+    const swapTotal = Number.isNaN(parsedSwapTotal) ? meminfo.swapTotal : parsedSwapTotal;
+    const swapUsed = Number.isNaN(parsedSwapUsed)
+      ? Math.max(swapTotal - meminfo.swapFree, 0)
+      : parsedSwapUsed;
+    const swapFree = Number.isNaN(parsedSwapFree)
+      ? Math.max(swapTotal - swapUsed, meminfo.swapFree)
+      : parsedSwapFree;
 
-    const usageBase = memParts[6] ? total - available : used;
+    const usageBase = hasAvailableColumn ? total - available : used;
     const usage = total > 0 ? (usageBase / total) * 100 : 0;
     const swapUsage = swapTotal > 0 ? (swapUsed / swapTotal) * 100 : 0;
 

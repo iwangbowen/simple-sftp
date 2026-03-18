@@ -267,7 +267,7 @@ export class ResourceDashboardProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'unsafe-inline'; font-src ${cspSource};">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource}; font-src ${cspSource};">
     <link href="${codiconsUri}" rel="stylesheet" />
     <link href="${styleUri}" rel="stylesheet" />
     <title>Resource Dashboard</title>
@@ -399,7 +399,7 @@ export class ResourceDashboardProvider {
                     <div class="section-content">
                         <div class="info-grid">
                             <div class="info-item">
-                                <span class="info-label">Usage</span>
+                                <span class="info-label">Load-based Usage</span>
                                 <span class="info-value" id="cpuUsage">-</span>
                             </div>
                             <div class="info-item">
