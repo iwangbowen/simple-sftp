@@ -1,5 +1,12 @@
 # Change Log
 
+## 6.0.3 - 2026-03-18
+
+- **Feature**: Resource Dashboard now shows richer network insights, including interface IP/state, packet counters, error/drop counters, and live RX/TX rates.
+- **Feature**: Resource Dashboard now shows deeper process and memory details, including process state/runtime/RSS/VSZ plus memory buffers, cache, and swap usage.
+- **Enhancement**: Added a Health Summary to Resource Dashboard with `Healthy` / `Warning` / `Critical` status and clear CPU, memory, and disk alerts.
+- **Fix**: Hardened the dashboard Webview output and CSP handling, improved Linux block-device compatibility for disk metrics, and fixed edge-case parsing for memory availability and swap values.
+
 ## 6.0.2 - 2026-03-17
 
 - **UX**: Dual-panel breadcrumb navigation now uses **left-click** to jump directly to the selected path and **right-click** to open the path context dropdown.
