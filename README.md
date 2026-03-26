@@ -306,7 +306,7 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
   Preserve file modification and access times
 
 - **simpleSftp.transfer.followSymlinks** (boolean, default: `false`)
-  For single-file transfers, follow symbolic links instead of preserving them. When disabled, the extension preserves symbolic links where supported.
+  For single-file transfers, follow symbolic links instead of preserving them. When disabled, the extension attempts to preserve symbolic links where supported.
 
 #### Delta Sync (Directory Uploads)
 
@@ -317,10 +317,10 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
   During Delta Sync directory uploads, delete remote files that no longer exist locally.
 
 - **simpleSftp.transfer.deltaPreserveTimestamps** (boolean, default: `false`)
-  Attempt to preserve remote modification timestamps during Delta Sync directory uploads. Experimental.
+  Pass through timestamp-preservation requests during Delta Sync directory uploads. Experimental and may not be fully supported on all servers.
 
 - **simpleSftp.transfer.deltaExcludePatterns** (string[], default: `node_modules`, `\\.git`, `\\.vscode`, `.*\\.log`)
-  Exclude patterns applied during Delta Sync directory uploads.
+  Exclude patterns applied when scanning local files for Delta Sync directory uploads.
 
   **Current behavior**:
   - Delta Sync currently applies to recursive directory uploads
@@ -749,7 +749,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
   保留文件修改和访问时间
 
 - **simpleSftp.transfer.followSymlinks** (布尔值,默认: `false`)
-  对单文件传输，跟随符号链接而不是保留它们。关闭时，在支持的场景下会尽量保留符号链接。
+  对单文件传输，跟随符号链接而不是保留它们。关闭时，在支持的场景下会尽量尝试保留符号链接。
 
 #### Delta Sync（目录上传）
 
@@ -760,10 +760,10 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
   在 Delta Sync 目录上传期间，删除远端中本地已不存在的文件。
 
 - **simpleSftp.transfer.deltaPreserveTimestamps** (布尔值,默认: `false`)
-  在 Delta Sync 目录上传期间尝试保留远端修改时间。该功能为实验性能力。
+  在 Delta Sync 目录上传期间传递保留时间戳请求。该功能为实验性能力，并不保证所有服务器都完整支持。
 
 - **simpleSftp.transfer.deltaExcludePatterns** (字符串数组,默认: `node_modules`, `\\.git`, `\\.vscode`, `.*\\.log`)
-  Delta Sync 目录上传时使用的排除模式。
+  Delta Sync 目录上传扫描本地文件时使用的排除模式。
 
   **当前行为**：
   - Delta Sync 当前仅用于递归目录上传

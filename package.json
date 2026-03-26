@@ -1660,7 +1660,7 @@
         "simpleSftp.transfer.followSymlinks": {
           "type": "boolean",
           "default": false,
-          "description": "For single-file transfers, follow symbolic links and transfer the target file/folder instead of creating symlinks. Default: false (preserve symlinks where supported). Recursive directory uploads currently traverse symlink targets."
+          "description": "For single-file transfers, follow symbolic links and transfer the target file instead of creating a symlink. Default: false (attempt to preserve symlinks where supported). Recursive directory uploads currently traverse symlink targets, and directory targets are not yet preserved as symlinks."
         },
         "simpleSftp.transfer.deltaSyncEnabled": {
           "type": "boolean",
@@ -1675,7 +1675,7 @@
         "simpleSftp.transfer.deltaPreserveTimestamps": {
           "type": "boolean",
           "default": false,
-          "description": "Attempt to preserve remote modification timestamps during Delta Sync directory uploads. Experimental."
+          "description": "Pass through timestamp-preservation requests during Delta Sync directory uploads. Experimental and may not be fully supported on all servers."
         },
         "simpleSftp.transfer.deltaExcludePatterns": {
           "type": "array",
@@ -1685,7 +1685,7 @@
             "\\.vscode",
             ".*\\.log"
           ],
-          "description": "Patterns excluded from Delta Sync directory uploads. Patterns are matched using the extension's simple wildcard/regex-based filtering.",
+          "description": "Patterns excluded when scanning local files for Delta Sync directory uploads. Patterns are matched using the extension's simple wildcard/regex-based filtering.",
           "items": {
             "type": "string"
           }
