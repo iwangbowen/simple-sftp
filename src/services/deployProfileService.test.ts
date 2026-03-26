@@ -6,7 +6,7 @@ import { DeployProfile } from '../types';
 function createMockContext() {
   const store = new Map<string, unknown>();
   return {
-    workspaceState: {
+    globalState: {
       get: vi.fn((key: string, defaultValue?: unknown) => store.get(key) ?? defaultValue),
       update: vi.fn(async (key: string, value: unknown) => { store.set(key, value); }),
       keys: vi.fn(() => [...store.keys()]),
@@ -53,7 +53,7 @@ describe('DeployProfileService', () => {
       expect(profile.id).toBeDefined();
       expect(profile.name).toBe('prod');
       expect(service.getAll()).toHaveLength(1);
-      expect(ctx.workspaceState.update).toHaveBeenCalledWith(
+      expect(ctx.globalState.update).toHaveBeenCalledWith(
         DEPLOY_PROFILE.STORAGE_KEY,
         expect.arrayContaining([expect.objectContaining({ name: 'prod' })]),
       );

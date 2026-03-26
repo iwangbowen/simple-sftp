@@ -5,7 +5,7 @@ import { logger } from '../logger';
 
 /**
  * 管理项目级部署规则（DeployProfile）的 CRUD 操作。
- * 数据存储于 workspaceState（本地，不跨设备同步），因 localRoot 为本机路径。
+ * 数据存储于 globalState（不加入 sync，因 localRoot 为本机路径），所有工作区可见。
  */
 export class DeployProfileService {
   private context: vscode.ExtensionContext;
@@ -22,9 +22,9 @@ export class DeployProfileService {
   // 读取
   // --------------------------------------------------------------------------
 
-  /** 获取当前 workspace 下所有 Deploy Profile */
+  /** 获取所有 Deploy Profile（全局，不限工作区） */
   getAll(): DeployProfile[] {
-    return this.context.workspaceState.get<DeployProfile[]>(
+    return this.context.globalState.get<DeployProfile[]>(
       DEPLOY_PROFILE.STORAGE_KEY,
       []
     );
@@ -125,7 +125,7 @@ export class DeployProfileService {
   // --------------------------------------------------------------------------
 
   private async save(profiles: DeployProfile[]): Promise<void> {
-    await this.context.workspaceState.update(DEPLOY_PROFILE.STORAGE_KEY, profiles);
+    await this.context.globalState.update(DEPLOY_PROFILE.STORAGE_KEY, profiles);
     this._onDidChangeProfiles.fire();
   }
 
