@@ -1,6 +1,6 @@
 # Change Log
 
-## 6.1.0 - 2026-03-19
+## 6.1.0 - 2026-03-26
 
 - **Feature**: Deploy Profiles — map local directories to remote paths with automatic upload on save, glob exclude patterns, conflict strategies, and a dedicated sidebar panel.
 
