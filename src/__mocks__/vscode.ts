@@ -93,7 +93,7 @@ export const workspace = {
   onDidChangeTextDocument: vi.fn(),
   onDidCloseTextDocument: vi.fn(),
   onDidOpenTextDocument: vi.fn(),
-  onDidSaveTextDocument: vi.fn(),
+  onDidSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
   createFileSystemWatcher: vi.fn(() => ({
     onDidCreate: vi.fn(),
     onDidChange: vi.fn(),

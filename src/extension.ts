@@ -20,6 +20,10 @@ import { SshConnectionPool } from './sshConnectionPool';
 import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
 import { migrateHostConfigsToSettings } from './utils/migration';
+import { DeployProfileService } from './services/deployProfileService';
+import { UploadOnSaveService } from './services/uploadOnSaveService';
+import { DeployProfileProvider } from './ui/deployProfileProvider';
+import { DeployProfileCommands } from './integrations/deployProfileCommands';
 
 /**
  * Called when extension is activated
@@ -920,6 +924,35 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   });
   logger.info('Transfer queue event listeners registered');
+
+  // Initialize Deploy Profile service and Upload-on-Save listener
+  const deployProfileService = new DeployProfileService(context);
+  const uploadOnSaveService = new UploadOnSaveService(
+    deployProfileService,
+    transferQueueService,
+    hostManager,
+    authManager
+  );
+  context.subscriptions.push(uploadOnSaveService);
+  logger.info('Deploy profile service and upload-on-save listener initialized');
+
+  // Register Deploy Profiles TreeView
+  const deployProfileProvider = new DeployProfileProvider(deployProfileService, hostManager);
+  const deployProfileView = vscode.window.createTreeView('simpleSftp.deployProfiles', {
+    treeDataProvider: deployProfileProvider,
+    showCollapseAll: false,
+  });
+  context.subscriptions.push(deployProfileView);
+  logger.info('Deploy profiles tree view registered');
+
+  // Register Deploy Profile commands
+  const deployProfileCommands = new DeployProfileCommands(
+    deployProfileService,
+    uploadOnSaveService,
+    hostManager
+  );
+  deployProfileCommands.register(context);
+  logger.info('Deploy profile commands registered');
 
   logger.info('=== Extension Ready ===');
 }

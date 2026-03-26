@@ -2,7 +2,7 @@
   "name": "simple-sftp",
   "displayName": "Simple SFTP Plus",
   "description": "Lightweight SFTP client with port forwarding and cross-device host configuration sync",
-  "version": "6.0.3",
+  "version": "6.1.0",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
   "license": "MIT",
@@ -83,6 +83,11 @@
           "icon": "$(history)"
         },
         {
+          "id": "simpleSftp.deployProfiles",
+          "name": "Deploy Profiles",
+          "icon": "$(rocket)"
+        },
+        {
           "id": "simpleSftp.helpFeedback",
           "name": "Help and Feedback",
           "icon": "$(question)"
@@ -101,6 +106,10 @@
       {
         "view": "simpleSftp.hosts",
         "contents": "Welcome to Simple SFTP\n\nNo remote hosts configured yet. Get started by adding your first host to upload and download files via SFTP.\n\n[$(play-circle) Open Walkthrough](command:workbench.action.openWalkthrough?%7B%22category%22%3A%22WangBowen.simple-sftp%23simpleSftp.welcome%22%7D)\n\n[$(add) Add Host](command:simpleSftp.addHost)\n\n[$(cloud-download) Import from SSH Config](command:simpleSftp.importFromSshConfig)\n\nNeed help? Check out the [documentation](https://github.com/iwangbowen/simple-sftp#readme)."
+      },
+      {
+        "view": "simpleSftp.deployProfiles",
+        "contents": "No deploy profiles yet.\n\nDeploy profiles let you map local directories to remote paths and auto-upload files on save.\n\n[$(add) Add Deploy Profile](command:simpleSftp.addDeployProfile)"
       }
     ],
     "submenus": [
@@ -684,6 +693,48 @@
         "title": "Switch to Icon View",
         "category": "Simple SFTP",
         "icon": "$(symbol-namespace)"
+      },
+      {
+        "command": "simpleSftp.addDeployProfile",
+        "title": "Add Deploy Profile",
+        "category": "Simple SFTP",
+        "icon": "$(add)"
+      },
+      {
+        "command": "simpleSftp.editDeployProfile",
+        "title": "Edit Deploy Profile",
+        "category": "Simple SFTP",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "simpleSftp.deleteDeployProfile",
+        "title": "Delete Deploy Profile",
+        "category": "Simple SFTP",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "simpleSftp.toggleDeployProfile",
+        "title": "Toggle Deploy Profile",
+        "category": "Simple SFTP",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "simpleSftp.toggleUploadOnSave",
+        "title": "Toggle Upload on Save",
+        "category": "Simple SFTP",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "simpleSftp.uploadAllNow",
+        "title": "Upload All Now",
+        "category": "Simple SFTP",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "simpleSftp.manageDeployProfiles",
+        "title": "Manage Deploy Profiles",
+        "category": "Simple SFTP",
+        "icon": "$(list-unordered)"
       }
     ],
     "menus": {
@@ -1259,6 +1310,16 @@
           "group": "navigation@1"
         },
         {
+          "command": "simpleSftp.addDeployProfile",
+          "when": "view == simpleSftp.deployProfiles",
+          "group": "navigation@1"
+        },
+        {
+          "command": "simpleSftp.manageDeployProfiles",
+          "when": "view == simpleSftp.deployProfiles",
+          "group": "navigation@2"
+        },
+        {
           "command": "simpleSftp.viewTransferHistory",
           "when": "view == simpleSftp.transferQueue",
           "group": "2_stats@1"
@@ -1469,6 +1530,36 @@
           "command": "simpleSftp.removeHistoryTask",
           "when": "view == simpleSftp.transferHistory && viewItem =~ /historyTask/",
           "group": "inline@1"
+        },
+        {
+          "command": "simpleSftp.toggleDeployProfile",
+          "when": "view == simpleSftp.deployProfiles",
+          "group": "inline@1"
+        },
+        {
+          "command": "simpleSftp.uploadAllNow",
+          "when": "view == simpleSftp.deployProfiles && viewItem =~ /deployProfile\\.enabled/",
+          "group": "inline@2"
+        },
+        {
+          "command": "simpleSftp.editDeployProfile",
+          "when": "view == simpleSftp.deployProfiles",
+          "group": "1_manage@1"
+        },
+        {
+          "command": "simpleSftp.toggleUploadOnSave",
+          "when": "view == simpleSftp.deployProfiles",
+          "group": "1_manage@2"
+        },
+        {
+          "command": "simpleSftp.uploadAllNow",
+          "when": "view == simpleSftp.deployProfiles && viewItem =~ /deployProfile\\.enabled/",
+          "group": "1_manage@3"
+        },
+        {
+          "command": "simpleSftp.deleteDeployProfile",
+          "when": "view == simpleSftp.deployProfiles",
+          "group": "2_danger@1"
         }
       ],
       "explorer/context": [

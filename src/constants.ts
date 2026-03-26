@@ -283,3 +283,33 @@ export const LABELS = {
   yellow: 'Yellow',
   purple: 'Purple',
 } as const;
+
+// ---------------------------------------------------------------------------
+// Deploy Profile 默认值
+// ---------------------------------------------------------------------------
+
+export const DEPLOY_PROFILE = {
+  /** workspaceState 存储键名 */
+  STORAGE_KEY: 'simpleSftp.deployProfiles',
+
+  /** 默认排除规则 */
+  DEFAULT_EXCLUDE_PATTERNS: [
+    'node_modules/**',
+    '.git/**',
+    '.vscode/**',
+    '**/*.log',
+    '**/dist/**',
+    '**/build/**',
+    '**/__pycache__/**',
+    '**/.DS_Store',
+  ],
+
+  /** 默认确认策略 */
+  DEFAULT_CONFIRM: 'never' as const,
+
+  /** 默认冲突策略 */
+  DEFAULT_CONFLICT: 'overwrite' as const,
+
+  /** 状态栏优先级 */
+  STATUS_BAR_PRIORITY: 200,
+} as const;

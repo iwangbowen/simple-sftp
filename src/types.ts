@@ -127,3 +127,51 @@ export interface UploadProgress {
   currentFile: string;
   percentage: number;
 }
+
+// ---------------------------------------------------------------------------
+// Deploy Profile — 保存即上传 / 项目级部署规则
+// 存储于 workspaceState（本地，不跨设备同步），因本地根路径与机器绑定。
+// ---------------------------------------------------------------------------
+
+/** 上传前确认策略 */
+export type ConfirmBeforeUpload = 'never' | 'always' | 'onConflict';
+
+/** 文件冲突策略 */
+export type ConflictStrategy = 'overwrite' | 'skip' | 'promptIfNewer';
+
+/**
+ * 项目级部署规则：本地目录 ↔ 远程目录映射 + 自动上传策略
+ */
+export interface DeployProfile {
+  /** 唯一标识符 */
+  id: string;
+  /** 显示名称 */
+  name: string;
+  /** 关联的主机 ID */
+  hostId: string;
+  /**
+   * 本地根路径（绝对路径 或 ${workspaceFolder}）。
+   * 只有保存文件在此路径下时才会触发上传。
+   */
+  localRoot: string;
+  /** 远程根路径，e.g. /var/www/app */
+  remoteRoot: string;
+  /** 是否在保存时自动上传 */
+  uploadOnSave: boolean;
+  /**
+   * 排除规则（glob 模式）。
+   * 匹配的文件/目录不会被上传，e.g. ["node_modules/**", "*.log"]
+   */
+  excludePatterns: string[];
+  /** 上传前确认策略 */
+  confirmBeforeUpload: ConfirmBeforeUpload;
+  /** 文件冲突策略 */
+  conflictStrategy: ConflictStrategy;
+  /**
+   * 是否仅在当前 workspace 中生效。
+   * 当 localRoot 使用 ${workspaceFolder} 时建议开启。
+   */
+  scopeToWorkspace: boolean;
+  /** 是否启用此规则 */
+  enabled: boolean;
+}

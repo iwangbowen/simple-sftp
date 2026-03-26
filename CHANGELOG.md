@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.1.0 - 2026-03-19
+
+- **Feature**: Deploy Profiles — map local directories to remote paths with automatic upload on save, glob exclude patterns, conflict strategies, and a dedicated sidebar panel.
+
 ## 6.0.3 - 2026-03-18
 
 - **Feature**: Resource Dashboard now shows richer network insights, including interface IP/state, packet counters, error/drop counters, and live RX/TX rates.
