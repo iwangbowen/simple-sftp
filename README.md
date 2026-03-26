@@ -306,7 +306,26 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
   Preserve file modification and access times
 
 - **simpleSftp.transfer.followSymlinks** (boolean, default: `false`)
-  Follow symbolic links instead of preserving them
+  For single-file transfers, follow symbolic links instead of preserving them. When disabled, the extension preserves symbolic links where supported.
+
+#### Delta Sync (Directory Uploads)
+
+- **simpleSftp.transfer.deltaSyncEnabled** (boolean, default: `true`)
+  Enable Delta Sync for recursive directory uploads. When enabled, unchanged files are skipped using modification-time comparison.
+
+- **simpleSftp.transfer.deltaDeleteRemote** (boolean, default: `false`)
+  During Delta Sync directory uploads, delete remote files that no longer exist locally.
+
+- **simpleSftp.transfer.deltaPreserveTimestamps** (boolean, default: `false`)
+  Attempt to preserve remote modification timestamps during Delta Sync directory uploads. Experimental.
+
+- **simpleSftp.transfer.deltaExcludePatterns** (string[], default: `node_modules`, `\\.git`, `\\.vscode`, `.*\\.log`)
+  Exclude patterns applied during Delta Sync directory uploads.
+
+  **Current behavior**:
+  - Delta Sync currently applies to recursive directory uploads
+  - File change detection currently uses modification time (`mtime`)
+  - The checksum compare mode is not yet exposed in Settings
 
 #### Port Forwarding
 
@@ -361,21 +380,25 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
 ### Known Limitations
 
 - Folder upload uploads files individually (not as archive)
-- Symbolic links are followed during upload
+- Recursive directory uploads currently traverse symlink targets instead of recreating symlinks
+- Preserving symlinks whose targets are directories is not yet supported
 - File permissions are preserved when possible
 
 ### Troubleshooting
 
 #### Connection Issues
+
 1. Use "Test Connection" to verify credentials
 2. Check "Simple SFTP: Show Output Logs" for detailed error messages
 3. Verify SSH access works from terminal: `ssh user@host -p port`
 
 #### Windows SSH Agent
+
 - Ensure OpenSSH Authentication Agent service is running
 - Start service: `Start-Service ssh-agent` in PowerShell (Administrator)
 
 #### Import Issues
+
 - Verify ~/.ssh/config file exists and is readable
 - Check config file syntax is valid
 
@@ -420,9 +443,11 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ## Simple SFTP - 中文说明
 
+
 > [English](#simple-sftp) | [中文说明](#simple-sftp---中文说明)
 
 ✨ **现代化设计的 SFTP 扩展，优雅简洁的双面板界面风格**
+
 
 提供流畅的文件传输、SSH 端口转发和智能远程主机管理，配置跨设备自动同步，带来高效优雅的工作体验，让远程开发更简单更美观。
 
@@ -724,7 +749,26 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
   保留文件修改和访问时间
 
 - **simpleSftp.transfer.followSymlinks** (布尔值,默认: `false`)
-  跟随符号链接而不是保留它们
+  对单文件传输，跟随符号链接而不是保留它们。关闭时，在支持的场景下会尽量保留符号链接。
+
+#### Delta Sync（目录上传）
+
+- **simpleSftp.transfer.deltaSyncEnabled** (布尔值,默认: `true`)
+  为递归目录上传启用 Delta Sync。启用后，会基于修改时间跳过未变化的文件。
+
+- **simpleSftp.transfer.deltaDeleteRemote** (布尔值,默认: `false`)
+  在 Delta Sync 目录上传期间，删除远端中本地已不存在的文件。
+
+- **simpleSftp.transfer.deltaPreserveTimestamps** (布尔值,默认: `false`)
+  在 Delta Sync 目录上传期间尝试保留远端修改时间。该功能为实验性能力。
+
+- **simpleSftp.transfer.deltaExcludePatterns** (字符串数组,默认: `node_modules`, `\\.git`, `\\.vscode`, `.*\\.log`)
+  Delta Sync 目录上传时使用的排除模式。
+
+  **当前行为**：
+  - Delta Sync 当前仅用于递归目录上传
+  - 文件变化检测当前基于修改时间（`mtime`）
+  - 基于校验和的比较模式尚未在设置中开放
 
 #### 端口转发
 
@@ -779,7 +823,8 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 ### 已知限制
 
 - 文件夹上传是逐个上传文件（不是打包上传）
-- 上传时会跟随符号链接
+- 递归目录上传当前会跟随符号链接目标，而不是在远端重建符号链接
+- 对于目标是目录的符号链接，当前还不支持按符号链接原样保留
 - 尽可能保留文件权限
 
 ### 故障排查

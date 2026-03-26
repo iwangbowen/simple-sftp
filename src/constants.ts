@@ -54,6 +54,30 @@ export function getParallelTransferConfig() {
   };
 }
 
+/**
+ * Get Delta Sync configuration from VS Code settings.
+ *
+ * Delta Sync currently applies to recursive directory uploads and compares files
+ * by modification time. Additional settings control deletion, timestamp
+ * preservation, and exclude patterns.
+ */
+export function getDeltaSyncConfig() {
+  const vscode = require('vscode');
+  const config: any = vscode.workspace.getConfiguration('simpleSftp.transfer');
+
+  const excludePatterns = config.get('deltaExcludePatterns', DELTA_SYNC.EXCLUDE_PATTERNS) as unknown;
+
+  return {
+    enabled: config.get('deltaSyncEnabled', DELTA_SYNC.ENABLED) as boolean,
+    compareMethod: DELTA_SYNC.COMPARE_METHOD,
+    deleteRemote: config.get('deltaDeleteRemote', DELTA_SYNC.DELETE_REMOTE) as boolean,
+    preserveTimestamps: config.get('deltaPreserveTimestamps', DELTA_SYNC.PRESERVE_TIMESTAMPS) as boolean,
+    excludePatterns: Array.isArray(excludePatterns)
+      ? excludePatterns.filter((pattern): pattern is string => typeof pattern === 'string')
+      : [...DELTA_SYNC.EXCLUDE_PATTERNS],
+  };
+}
+
 export const DELTA_SYNC = {
   ENABLED: true,                        // Enable/disable delta sync (skip unchanged files)
   COMPARE_METHOD: 'mtime' as const,     // 'mtime' | 'checksum' - Method to detect file changes

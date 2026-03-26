@@ -7,7 +7,7 @@ import { HostConfig, HostAuthConfig } from './types';
 import {ChunkProgressCallback, ParallelChunkTransferManager} from './parallelChunkTransfer';
 import { SshConnectionPool } from './sshConnectionPool';
 import { logger } from './logger';
-import { PARALLEL_TRANSFER, DELTA_SYNC, getParallelTransferConfig } from './constants';
+import { PARALLEL_TRANSFER, getDeltaSyncConfig, getParallelTransferConfig } from './constants';
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
 import { DeltaSyncManager } from './services/deltaSyncManager';
 import { AttributePreservingTransfer } from './attributePreservingTransfer';
@@ -478,8 +478,10 @@ export class SshConnectionManager {
     signal?: AbortSignal
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
+      const deltaSyncConfig = getDeltaSyncConfig();
+
       // Check if delta sync is enabled
-      if (DELTA_SYNC.ENABLED) {
+      if (deltaSyncConfig.enabled) {
         logger.info(`Using delta sync for directory upload: ${localPath} → ${remotePath}`);
 
         const stats = await DeltaSyncManager.syncDirectory(
@@ -487,10 +489,10 @@ export class SshConnectionManager {
           localPath,
           remotePath,
           {
-            compareMethod: DELTA_SYNC.COMPARE_METHOD,
-            deleteRemote: DELTA_SYNC.DELETE_REMOTE,
-            preserveTimestamps: DELTA_SYNC.PRESERVE_TIMESTAMPS,
-            excludePatterns: [...DELTA_SYNC.EXCLUDE_PATTERNS],
+            compareMethod: deltaSyncConfig.compareMethod,
+            deleteRemote: deltaSyncConfig.deleteRemote,
+            preserveTimestamps: deltaSyncConfig.preserveTimestamps,
+            excludePatterns: [...deltaSyncConfig.excludePatterns],
             onProgress: (current, total, currentFile) => {
               if (signal?.aborted) {
                 throw new Error('Transfer aborted');
