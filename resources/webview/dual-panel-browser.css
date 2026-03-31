@@ -89,6 +89,15 @@ body {
     background-color: var(--vscode-button-secondaryBackground);
 }
 
+.icon-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.icon-button:disabled:hover {
+    background: transparent;
+}
+
 .panel-header .header-title {
     flex: 1;
     min-width: 0;

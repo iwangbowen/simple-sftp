@@ -50,6 +50,14 @@
     let currentTooltipEvent = null;
     /** @type {boolean} */
     let altKeyPressed = false;
+    /** @type {string[]} */
+    let localHistoryBack = [];
+    /** @type {string[]} */
+    let localHistoryForward = [];
+    /** @type {string[]} */
+    let remoteHistoryBack = [];
+    /** @type {string[]} */
+    let remoteHistoryForward = [];
     /** @type {Object.<string, 'list' | 'grid'>} */
     let viewMode = {
         local: 'list',
@@ -136,6 +144,12 @@
         document.getElementById('back-to-hosts')?.addEventListener('click', backToHostSelection);
         document.getElementById('refresh-local')?.addEventListener('click', () => refreshPanel('local'));
         document.getElementById('refresh-remote')?.addEventListener('click', () => refreshPanel('remote'));
+
+        // History navigation buttons
+        document.getElementById('local-nav-back')?.addEventListener('click', () => historyBack('local'));
+        document.getElementById('local-nav-forward')?.addEventListener('click', () => historyForward('local'));
+        document.getElementById('remote-nav-back')?.addEventListener('click', () => historyBack('remote'));
+        document.getElementById('remote-nav-forward')?.addEventListener('click', () => historyForward('remote'));
 
         // View mode toggle buttons
         document.getElementById('local-view-toggle')?.addEventListener('click', () => toggleViewModeButton('local'));
@@ -1136,7 +1150,7 @@
             const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
             const parentPath = getParentPath(currentPath, panel);
             if (parentPath) {
-                loadDirectory(panel, parentPath);
+                navigateTo(panel, parentPath);
             }
         };
 
@@ -1317,7 +1331,7 @@
 
             if (node.isDirectory) {
                 // 双击文件夹进入
-                loadDirectory(panel, node.path);
+                navigateTo(panel, node.path);
             } else {
                 // 双击文件打开
                 vscode.postMessage({
@@ -1609,7 +1623,7 @@
 
                 if (isDirectory) {
                     // 进入文件夹
-                    loadDirectory(panel, path);
+                    navigateTo(panel, path);
                 } else {
                     // 选中文件
                     selectItem(item);
@@ -1710,6 +1724,69 @@
     /**
      * 加载目录内容
      */
+    /**
+     * Update back/forward navigation button states for a panel.
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function updateNavButtons(panel) {
+        const backStack = panel === 'local' ? localHistoryBack : remoteHistoryBack;
+        const forwardStack = panel === 'local' ? localHistoryForward : remoteHistoryForward;
+        const backBtn = /** @type {HTMLButtonElement | null} */ (document.getElementById(`${panel}-nav-back`));
+        const forwardBtn = /** @type {HTMLButtonElement | null} */ (document.getElementById(`${panel}-nav-forward`));
+        if (backBtn) backBtn.disabled = backStack.length === 0;
+        if (forwardBtn) forwardBtn.disabled = forwardStack.length === 0;
+    }
+
+    /**
+     * Navigate to a path while recording browser-style history.
+     * @param {string} panel - 'local' | 'remote'
+     * @param {string} path
+     */
+    function navigateTo(panel, path) {
+        const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+        if (currentPath && currentPath !== path) {
+            if (panel === 'local') {
+                localHistoryBack.push(currentPath);
+                localHistoryForward = [];
+            } else {
+                remoteHistoryBack.push(currentPath);
+                remoteHistoryForward = [];
+            }
+            updateNavButtons(panel);
+        }
+        loadDirectory(panel, path);
+    }
+
+    /**
+     * Go back one step in panel history.
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function historyBack(panel) {
+        const backStack = panel === 'local' ? localHistoryBack : remoteHistoryBack;
+        const forwardStack = panel === 'local' ? localHistoryForward : remoteHistoryForward;
+        if (backStack.length === 0) return;
+        const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+        const prevPath = backStack.pop();
+        forwardStack.push(currentPath);
+        updateNavButtons(panel);
+        loadDirectory(panel, prevPath);
+    }
+
+    /**
+     * Go forward one step in panel history.
+     * @param {string} panel - 'local' | 'remote'
+     */
+    function historyForward(panel) {
+        const backStack = panel === 'local' ? localHistoryBack : remoteHistoryBack;
+        const forwardStack = panel === 'local' ? localHistoryForward : remoteHistoryForward;
+        if (forwardStack.length === 0) return;
+        const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
+        const nextPath = forwardStack.pop();
+        backStack.push(currentPath);
+        updateNavButtons(panel);
+        loadDirectory(panel, nextPath);
+    }
+
     function loadDirectory(panel, path) {
         // 延迟显示加载状态(500ms后才显示,避免快速加载时的闪烁)
         scheduleLoading(panel);
@@ -2476,7 +2553,7 @@
             return;
         }
 
-        loadDirectory(panel, targetPath);
+        navigateTo(panel, targetPath);
         closeBreadcrumbDropdown();
     }
 
@@ -2664,7 +2741,7 @@
                     }
                 } else {
                     // In file tree view: navigate
-                    loadDirectory(panel, node.path);
+                    navigateTo(panel, node.path);
                 }
                 closeBreadcrumbDropdown();
             });
@@ -2701,7 +2778,7 @@
                     }
                 } else {
                     // In file tree view: navigate to parent
-                    loadDirectory(panel, parentPath || '/');
+                    navigateTo(panel, parentPath || '/');
                 }
                 closeBreadcrumbDropdown();
             });
@@ -2863,7 +2940,7 @@
                 </div>
             `;
             item.addEventListener('click', () => {
-                loadDirectory('remote', bookmark.path);
+                navigateTo('remote', bookmark.path);
                 closeBookmarkDropdown();
             });
             listContainer.appendChild(item);
@@ -4545,7 +4622,7 @@
                 const currentPath = panel === 'local' ? currentLocalPath : currentRemotePath;
                 const parentPath = getParentPath(currentPath, panel);
                 if (parentPath) {
-                    loadDirectory(panel, parentPath);
+                    navigateTo(panel, parentPath);
                 }
             }
         }
