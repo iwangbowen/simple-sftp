@@ -3082,7 +3082,7 @@ export abstract class DualPanelBase {
                 vscode.Uri.joinPath(this._extensionUri, 'resources', 'webview', 'dual-panel-browser.css')
             );
             const codiconsUri = webview.asWebviewUri(
-                vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+                vscode.Uri.joinPath(this._extensionUri, 'resources', 'codicons', 'codicon.css')
             );
             // Shared port forwarding module
             const portForwardStyleUri = webview.asWebviewUri(

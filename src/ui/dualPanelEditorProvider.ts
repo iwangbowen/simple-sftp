@@ -186,7 +186,7 @@ export class DualPanelEditorManager {
                 retainContextWhenHidden: true,
                 localResourceRoots: [
                     vscode.Uri.joinPath(this.extensionUri, 'resources'),
-                    vscode.Uri.joinPath(this.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')
+                    vscode.Uri.joinPath(this.extensionUri, 'resources', 'codicons')
                 ]
             }
         );

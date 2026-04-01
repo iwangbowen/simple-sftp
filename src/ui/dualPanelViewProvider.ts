@@ -52,7 +52,7 @@ export class DualPanelViewProvider extends DualPanelBase implements vscode.Webvi
             enableScripts: true,
             localResourceRoots: [
                 vscode.Uri.joinPath(this._extensionUri, 'resources'),
-                vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')
+                vscode.Uri.joinPath(this._extensionUri, 'resources', 'codicons')
             ]
         };
 

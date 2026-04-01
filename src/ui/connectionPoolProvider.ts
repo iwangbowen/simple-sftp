@@ -78,7 +78,7 @@ export class ConnectionPoolProvider {
         retainContextWhenHidden: true,
         localResourceRoots: [
           vscode.Uri.joinPath(extensionUri, 'resources'),
-          vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')
+          vscode.Uri.joinPath(extensionUri, 'resources', 'codicons')
         ]
       }
     );
@@ -194,7 +194,7 @@ export class ConnectionPoolProvider {
       vscode.Uri.joinPath(this.extensionUri, 'resources', 'webview', 'connection-pool.js')
     );
     const codiconsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+      vscode.Uri.joinPath(this.extensionUri, 'resources', 'codicons', 'codicon.css')
     );
 
     const nonce = this.getNonce();

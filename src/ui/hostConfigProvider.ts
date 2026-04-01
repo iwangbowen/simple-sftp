@@ -92,7 +92,7 @@ export class HostConfigProvider {
                 retainContextWhenHidden: true,
                 localResourceRoots: [
                     vscode.Uri.joinPath(extensionUri, 'resources'),
-                    vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')
+                    vscode.Uri.joinPath(extensionUri, 'resources', 'codicons')
                 ]
             }
         );
@@ -514,10 +514,8 @@ export class HostConfigProvider {
         const jsPath = vscode.Uri.joinPath(this.extensionUri, 'resources', 'webview', 'host-config.js');
         const codiconsPath = vscode.Uri.joinPath(
             this.extensionUri,
-            'node_modules',
-            '@vscode',
+            'resources',
             'codicons',
-            'dist',
             'codicon.css'
         );
 

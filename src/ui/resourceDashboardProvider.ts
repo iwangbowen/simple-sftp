@@ -85,7 +85,7 @@ export class ResourceDashboardProvider {
         retainContextWhenHidden: true,
         localResourceRoots: [
           vscode.Uri.joinPath(extensionUri, 'resources'),
-          vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')
+          vscode.Uri.joinPath(extensionUri, 'resources', 'codicons')
         ]
       }
     );
@@ -257,7 +257,7 @@ export class ResourceDashboardProvider {
       vscode.Uri.joinPath(this.extensionUri, 'resources', 'webview', 'resource-dashboard.css')
     );
     const codiconsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+      vscode.Uri.joinPath(this.extensionUri, 'resources', 'codicons', 'codicon.css')
     );
 
     const cspSource = webview.cspSource;

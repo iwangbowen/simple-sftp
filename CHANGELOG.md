@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.1.6 - 2026-04-01
+
+- **Fix**: Webview codicons (icons) now load correctly when the extension is installed from the Marketplace. Previously, packaging with `--no-dependencies` excluded `node_modules/@vscode/codicons`, causing a 404 error. Codicon assets are now bundled into `resources/codicons/` at build time.
+
 ## 6.1.5 - 2026-03-31
 
 - **Feature**: Added **back / forward navigation buttons** (← →) to both panel headers for browser-style directory history.

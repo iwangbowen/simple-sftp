@@ -82,7 +82,7 @@ export class PortForwardEditorManager {
                     retainContextWhenHidden: true,
                     localResourceRoots: [
                         vscode.Uri.joinPath(this._extensionUri, 'resources'),
-                        vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')
+                        vscode.Uri.joinPath(this._extensionUri, 'resources', 'codicons')
                     ]
                 }
             );
@@ -475,7 +475,7 @@ export class PortForwardEditorManager {
                 vscode.Uri.joinPath(this._extensionUri, 'resources', 'webview', 'port-forward.css')
             );
             const codiconsUri = webview.asWebviewUri(
-                vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+                vscode.Uri.joinPath(this._extensionUri, 'resources', 'codicons', 'codicon.css')
             );
 
             const nonce = this.getNonce();
