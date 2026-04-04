@@ -341,6 +341,10 @@ export abstract class DualPanelBase {
                 await this.handleGetFolderDetails(message.data);
                 break;
 
+            case 'getImageInfo':
+                await this.handleGetImageInfo(message.data);
+                break;
+
             case 'openBrowser':
                 await this.handleOpenBrowser(message.address);
                 break;
@@ -3946,6 +3950,146 @@ export abstract class DualPanelBase {
             }
         } catch (error: any) {
             logger.error(`Failed to get folder details: ${error.message}`);
+        }
+    }
+
+    /**
+     * Parse image dimensions from a buffer by inspecting the file header bytes.
+     * Supports PNG, JPEG, GIF, BMP, WebP, SVG, ICO.
+     */
+    private parseImageDimensions(buffer: Buffer, filePath: string): {
+        format: string;
+        width?: number;
+        height?: number;
+    } {
+        const ext = path.extname(filePath).toLowerCase();
+
+        try {
+            // PNG: 8-byte signature, then IHDR chunk; width at bytes 16-19, height at 20-23 (big-endian)
+            if (ext === '.png' && buffer.length >= 24) {
+                if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+                    return { format: 'PNG', width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+                }
+            }
+
+            // GIF: 'GIF87a' or 'GIF89a'; width at 6-7, height at 8-9 (little-endian)
+            if (ext === '.gif' && buffer.length >= 10) {
+                const sig = buffer.subarray(0, 6).toString('ascii');
+                if (sig === 'GIF87a' || sig === 'GIF89a') {
+                    return { format: 'GIF', width: buffer.readUInt16LE(6), height: buffer.readUInt16LE(8) };
+                }
+            }
+
+            // BMP: 'BM' at 0-1; width at 18-21, height at 22-25 (little-endian, height may be negative)
+            if (ext === '.bmp' && buffer.length >= 26) {
+                if (buffer[0] === 0x42 && buffer[1] === 0x4D) {
+                    return { format: 'BMP', width: buffer.readInt32LE(18), height: Math.abs(buffer.readInt32LE(22)) };
+                }
+            }
+
+            // JPEG: 0xFF 0xD8 signature; scan for SOF marker to get dimensions
+            if ((ext === '.jpg' || ext === '.jpeg') && buffer.length >= 4) {
+                if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
+                    let i = 2;
+                    while (i < buffer.length - 8) {
+                        if (buffer[i] !== 0xFF) { i++; continue; }
+                        const marker = buffer[i + 1];
+                        // SOF markers (Start of Frame): 0xC0-0xC3, 0xC5-0xC7, 0xC9-0xCB, 0xCD-0xCF
+                        const isSOF = (marker >= 0xC0 && marker <= 0xC3) ||
+                            (marker >= 0xC5 && marker <= 0xC7) ||
+                            (marker >= 0xC9 && marker <= 0xCB) ||
+                            (marker >= 0xCD && marker <= 0xCF);
+                        if (isSOF && i + 8 < buffer.length) {
+                            return { format: 'JPEG', width: buffer.readUInt16BE(i + 7), height: buffer.readUInt16BE(i + 5) };
+                        }
+                        if (i + 3 < buffer.length) {
+                            i += 2 + buffer.readUInt16BE(i + 2);
+                        } else {
+                            break;
+                        }
+                    }
+                    return { format: 'JPEG' };
+                }
+            }
+
+            // WebP: 'RIFF' at 0-3, 'WEBP' at 8-11
+            if (ext === '.webp' && buffer.length >= 30) {
+                if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
+                    const chunkType = buffer.subarray(12, 16).toString('ascii');
+                    if (chunkType === 'VP8 ' && buffer.length >= 30) {
+                        // Lossy: width/height packed in bytes 26-29
+                        return { format: 'WebP', width: (buffer.readUInt16LE(26) & 0x3FFF) + 1, height: (buffer.readUInt16LE(28) & 0x3FFF) + 1 };
+                    } else if (chunkType === 'VP8L' && buffer.length >= 25) {
+                        // Lossless
+                        const bits = buffer.readUInt32LE(21);
+                        return { format: 'WebP', width: (bits & 0x3FFF) + 1, height: ((bits >> 14) & 0x3FFF) + 1 };
+                    } else if (chunkType === 'VP8X' && buffer.length >= 30) {
+                        // Extended
+                        return { format: 'WebP', width: buffer.readUIntLE(24, 3) + 1, height: buffer.readUIntLE(27, 3) + 1 };
+                    }
+                    return { format: 'WebP' };
+                }
+            }
+
+            // SVG: text/XML — look for width/height attributes or viewBox
+            if (ext === '.svg') {
+                const text = buffer.subarray(0, Math.min(buffer.length, 2048)).toString('utf-8');
+                const wMatch = /width=["']([0-9.]+)/i.exec(text);
+                const hMatch = /height=["']([0-9.]+)/i.exec(text);
+                if (wMatch && hMatch) {
+                    return { format: 'SVG', width: Math.round(parseFloat(wMatch[1])), height: Math.round(parseFloat(hMatch[1])) };
+                }
+                const vbMatch = /viewBox=["'][0-9.]+\s+[0-9.]+\s+([0-9.]+)\s+([0-9.]+)/i.exec(text);
+                if (vbMatch) {
+                    return { format: 'SVG', width: Math.round(parseFloat(vbMatch[1])), height: Math.round(parseFloat(vbMatch[2])) };
+                }
+                return { format: 'SVG' };
+            }
+
+            // ICO/other: just report format
+            return { format: ext.replace('.', '').toUpperCase() };
+        } catch {
+            return { format: ext.replace('.', '').toUpperCase() };
+        }
+    }
+
+    /**
+     * Handle getImageInfo message: read image header bytes and return format/dimensions
+     */
+    protected async handleGetImageInfo(data: { path: string; panel: string; fileSize?: number }): Promise<void> {
+        const { path: filePath, panel } = data;
+        const MAX_READ_BYTES = 65536; // 64 KB covers all common image header formats
+
+        try {
+            let buffer: Buffer;
+
+            if (panel === 'local') {
+                const fd = fs.openSync(filePath, 'r');
+                try {
+                    const buf = Buffer.alloc(MAX_READ_BYTES);
+                    const bytesRead = fs.readSync(fd, buf, 0, MAX_READ_BYTES, 0);
+                    buffer = buf.slice(0, bytesRead);
+                } finally {
+                    fs.closeSync(fd);
+                }
+            } else {
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    this.postMessage({ command: 'imageInfo', data: { error: 'No host connection' } });
+                    return;
+                }
+                buffer = await SshConnectionManager.readRemoteFilePartial(
+                    this._currentHost,
+                    this._currentAuthConfig,
+                    filePath,
+                    MAX_READ_BYTES
+                );
+            }
+
+            const info = this.parseImageDimensions(buffer, filePath);
+            this.postMessage({ command: 'imageInfo', data: info });
+        } catch (error: any) {
+            logger.error(`Failed to get image info for ${filePath}: ${error.message}`);
+            this.postMessage({ command: 'imageInfo', data: { error: error.message } });
         }
     }
 

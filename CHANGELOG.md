@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.1.7 - 2026-04-04
+
+- **Enhancement**: File tooltip for images now displays additional metadata — **format** (PNG, JPEG, GIF, WebP, BMP, SVG, etc.) and **dimensions** (width × height px). Works for both local and remote image files without downloading the entire file.
+
 ## 6.1.6 - 2026-04-01
 
 - **Fix**: Webview codicons (icons) now load correctly when the extension is installed from the Marketplace. Previously, packaging with `--no-dependencies` excluded `node_modules/@vscode/codicons`, causing a 404 error. Codicon assets are now bundled into `resources/codicons/` at build time.

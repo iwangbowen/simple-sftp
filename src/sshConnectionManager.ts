@@ -1037,6 +1037,27 @@ export class SshConnectionManager {
   }
 
   /**
+   * Read first N bytes of a remote file (for metadata extraction such as image dimensions)
+   */
+  static async readRemoteFilePartial(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string,
+    maxBytes: number = 65536
+  ): Promise<Buffer> {
+    return this.withConnection(config, authConfig, async (sftp) => {
+      logger.info(`Reading partial remote file: ${remotePath} (max ${maxBytes} bytes)`);
+      return new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        const stream = (sftp as any).createReadStream(remotePath, { start: 0, end: maxBytes - 1 });
+        stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+        stream.on('end', () => resolve(Buffer.concat(chunks)));
+        stream.on('error', reject);
+      });
+    });
+  }
+
+  /**
    * 配置免密登录（类似 ssh-copy-id）
    */
   static async setupPasswordlessLogin(

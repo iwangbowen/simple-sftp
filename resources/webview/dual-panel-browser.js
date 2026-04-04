@@ -755,6 +755,17 @@
 
             tooltipShowTimer = setTimeout(() => {
                 showFileBasicTooltip(item, event);
+                // For image files, also request dimension info from backend
+                if (isImageFile(item.dataset.name || '')) {
+                    vscode.postMessage({
+                        command: 'getImageInfo',
+                        data: {
+                            path: item.dataset.path,
+                            panel: item.dataset.panel,
+                            fileSize: parseInt(item.dataset.size || '0', 10)
+                        }
+                    });
+                }
             }, 750);
             return;
         }
@@ -887,6 +898,44 @@
             positionTooltip(currentTooltipEvent);
         }
         fileTooltip.classList.add('visible');
+    }
+
+    /**
+     * Update tooltip with image metadata (format and dimensions)
+     * @param {Object} data - Image info: { format, width, height, error }
+     */
+    function updateTooltipWithImageInfo(data) {
+        // Only update if tooltip is still visible for the same item
+        if (!currentTooltipItem || !fileTooltip.classList.contains('visible')) {
+            return;
+        }
+        if (data.error || !data.format) {
+            return;
+        }
+
+        const { format, width, height } = data;
+
+        // Remove any previously appended image info rows
+        fileTooltip.querySelectorAll('.tooltip-image-info').forEach(el => el.remove());
+
+        // Append format row
+        const fmtRow = document.createElement('div');
+        fmtRow.className = 'tooltip-section tooltip-image-info';
+        fmtRow.innerHTML = `<span class="tooltip-label">Format:</span><span class="tooltip-value">${format}</span>`;
+        fileTooltip.appendChild(fmtRow);
+
+        // Append dimensions row if available
+        if (width && height) {
+            const dimRow = document.createElement('div');
+            dimRow.className = 'tooltip-section tooltip-image-info';
+            dimRow.innerHTML = `<span class="tooltip-label">Dimensions:</span><span class="tooltip-value">${width} × ${height} px</span>`;
+            fileTooltip.appendChild(dimRow);
+        }
+
+        // Re-position so tooltip doesn't clip
+        if (currentTooltipEvent) {
+            positionTooltip(currentTooltipEvent);
+        }
     }
 
     /**
@@ -4870,6 +4919,11 @@ case 'updateStatus':
             case 'folderDetails':
                 // Update tooltip with folder details
                 updateTooltipWithFolderDetails(message.data);
+                break;
+
+            case 'imageInfo':
+                // Update tooltip with image format and dimensions
+                updateTooltipWithImageInfo(message.data);
                 break;
 
             case 'portForwardings':
