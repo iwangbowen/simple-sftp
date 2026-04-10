@@ -78,9 +78,13 @@
         currentPath: '',
         imagePaths: [],
         currentIndex: -1,
-        rotation: 0
+        rotation: 0,
+        zoom: 1
     };
     let imagePreviewResizeBound = false;
+    const ZOOM_MIN = 0.1;
+    const ZOOM_MAX = 8;
+    const ZOOM_STEP = 0.25;
 
     // Rubber band (drag) selection state
     /** @type {{clientX: number, clientY: number} | null} */
@@ -3330,10 +3334,17 @@
                     <div class="image-preview-toolbar-spacer" aria-hidden="true"></div>
                     <div class="image-preview-title" id="image-preview-title">Image Preview</div>
                     <div class="image-preview-actions">
-                        <button class="image-preview-btn" id="image-preview-rotate" title="Rotate 90°">
+                        <button class="image-preview-btn" id="image-preview-zoom-out" title="缩小 (-)">
+                            <span class="codicon codicon-zoom-out"></span>
+                        </button>
+                        <button class="image-preview-btn image-preview-zoom-level" id="image-preview-zoom-level" title="重置缩放 (0)">100%</button>
+                        <button class="image-preview-btn" id="image-preview-zoom-in" title="放大 (+)">
+                            <span class="codicon codicon-zoom-in"></span>
+                        </button>
+                        <button class="image-preview-btn" id="image-preview-rotate" title="旋转 90°">
                             <span class="codicon codicon-redo"></span>
                         </button>
-                        <button class="image-preview-btn" id="image-preview-close" title="Close (Esc)">
+                        <button class="image-preview-btn" id="image-preview-close" title="关闭 (Esc)">
                             <span class="codicon codicon-close"></span>
                         </button>
                     </div>
@@ -3359,6 +3370,20 @@
         overlay.querySelector('#image-preview-prev')?.addEventListener('click', showPreviousImage);
         overlay.querySelector('#image-preview-next')?.addEventListener('click', showNextImage);
         overlay.querySelector('#image-preview-rotate')?.addEventListener('click', rotateCurrentImage);
+        overlay.querySelector('#image-preview-zoom-in')?.addEventListener('click', zoomIn);
+        overlay.querySelector('#image-preview-zoom-out')?.addEventListener('click', zoomOut);
+        overlay.querySelector('#image-preview-zoom-level')?.addEventListener('click', resetZoom);
+
+        const previewStage = overlay.querySelector('.image-preview-stage');
+        previewStage?.addEventListener('wheel', (e) => {
+            if (!imagePreviewState.isOpen) return;
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomIn();
+            } else {
+                zoomOut();
+            }
+        }, { passive: false });
 
         const previewImage = overlay.querySelector('#image-preview-image');
         previewImage?.addEventListener('load', () => {
@@ -3398,7 +3423,13 @@
 
         img.style.width = `${Math.max(1, Math.floor(img.naturalWidth * fitScale))}px`;
         img.style.height = `${Math.max(1, Math.floor(img.naturalHeight * fitScale))}px`;
-        img.style.transform = `rotate(${imagePreviewState.rotation}deg)`;
+        img.style.transform = `rotate(${imagePreviewState.rotation}deg) scale(${imagePreviewState.zoom})`;
+
+        // Update zoom level indicator
+        const zoomLevelBtn = overlay.querySelector('#image-preview-zoom-level');
+        if (zoomLevelBtn) {
+            zoomLevelBtn.textContent = `${Math.round(imagePreviewState.zoom * 100)}%`;
+        }
     }
 
     function collectCurrentPanelImages(panel) {
@@ -3455,7 +3486,7 @@
         if (img) {
             img.style.width = '';
             img.style.height = '';
-            img.style.transform = `rotate(${imagePreviewState.rotation}deg)`;
+            img.style.transform = `rotate(${imagePreviewState.rotation}deg) scale(${imagePreviewState.zoom})`;
             img.src = '';
             const cachedData = getImageDataUrlForPath(imagePreviewState.panel, currentPath);
             if (cachedData) {
@@ -3482,7 +3513,8 @@
             currentPath: filePath,
             imagePaths: images,
             currentIndex: index,
-            rotation: 0
+            rotation: 0,
+            zoom: 1
         };
 
         const overlay = ensureImagePreviewOverlay();
@@ -3525,6 +3557,7 @@
         if (!imagePreviewState.isOpen || imagePreviewState.imagePaths.length <= 1) return;
         imagePreviewState.currentIndex = (imagePreviewState.currentIndex - 1 + imagePreviewState.imagePaths.length) % imagePreviewState.imagePaths.length;
         imagePreviewState.rotation = 0;
+        imagePreviewState.zoom = 1;
         renderCurrentPreviewImage();
     }
 
@@ -3532,12 +3565,31 @@
         if (!imagePreviewState.isOpen || imagePreviewState.imagePaths.length <= 1) return;
         imagePreviewState.currentIndex = (imagePreviewState.currentIndex + 1) % imagePreviewState.imagePaths.length;
         imagePreviewState.rotation = 0;
+        imagePreviewState.zoom = 1;
         renderCurrentPreviewImage();
     }
 
     function rotateCurrentImage() {
         if (!imagePreviewState.isOpen) return;
         imagePreviewState.rotation = (imagePreviewState.rotation + 90) % 360;
+        updatePreviewImageLayout();
+    }
+
+    function zoomIn() {
+        if (!imagePreviewState.isOpen) return;
+        imagePreviewState.zoom = Math.min(ZOOM_MAX, parseFloat((imagePreviewState.zoom + ZOOM_STEP).toFixed(2)));
+        updatePreviewImageLayout();
+    }
+
+    function zoomOut() {
+        if (!imagePreviewState.isOpen) return;
+        imagePreviewState.zoom = Math.max(ZOOM_MIN, parseFloat((imagePreviewState.zoom - ZOOM_STEP).toFixed(2)));
+        updatePreviewImageLayout();
+    }
+
+    function resetZoom() {
+        if (!imagePreviewState.isOpen) return;
+        imagePreviewState.zoom = 1;
         updatePreviewImageLayout();
     }
 
@@ -4614,6 +4666,24 @@
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
                 showNextImage();
+                return;
+            }
+
+            if (e.key === '+' || e.key === '=' || (e.ctrlKey && e.key === '=')) {
+                e.preventDefault();
+                zoomIn();
+                return;
+            }
+
+            if (e.key === '-' || (e.ctrlKey && e.key === '-')) {
+                e.preventDefault();
+                zoomOut();
+                return;
+            }
+
+            if (e.key === '0' || (e.ctrlKey && e.key === '0')) {
+                e.preventDefault();
+                resetZoom();
                 return;
             }
         }

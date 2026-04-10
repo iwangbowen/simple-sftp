@@ -3199,14 +3199,25 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 4px 10px;
 }
 
 .image-preview-actions {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 2px;
     justify-self: end;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 3px 4px;
 }
 
 .image-preview-btn {
@@ -3219,14 +3230,22 @@ body {
     border: 1px solid transparent;
     border-radius: 4px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.9);
     cursor: pointer;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 .image-preview-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.18);
     border-color: rgba(255, 255, 255, 0.25);
+}
+
+.image-preview-zoom-level {
+    width: auto;
+    min-width: 40px;
+    padding: 0 6px;
+    font-size: 11px;
+    font-family: var(--vscode-font-family, monospace);
+    letter-spacing: 0.02em;
 }
 
 .image-preview-body {
