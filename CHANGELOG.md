@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.2.0 - 2026-04-10
+
+- **Feature**: Image preview now supports **zoom in / zoom out** — use the `+` / `-` toolbar buttons, mouse scroll wheel, or keyboard shortcuts (`+`, `-`, `0` to reset). Zoom level displayed in real time. Toolbar and title bar now use a frosted-glass background for readability on light-colored images.
+
 ## 6.1.7 - 2026-04-04
 
 - **Enhancement**: File tooltip for images now displays additional metadata — **format** (PNG, JPEG, GIF, WebP, BMP, SVG, etc.) and **dimensions** (width × height px). Works for both local and remote image files without downloading the entire file.
