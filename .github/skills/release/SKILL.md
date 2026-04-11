@@ -30,12 +30,27 @@ argument-hint: "要发布的版本号，例如 6.2.0"
 
 ---
 
-## 第二步 — 修改 `package.json`
+## 第二步 — 修改 `package.json` 并同步 `package-lock.json`
 
 将 `"version"` 改为新版本号：
 
 ```json
 "version": "<新版本号>",
+```
+
+然后运行以下命令，让 `package-lock.json` 中的版本号与 `package.json` 保持一致（不会安装或升级任何依赖）：
+
+```bash
+npm install --package-lock-only
+```
+
+> **为什么需要这一步？**  
+> `package-lock.json` 顶部也记录了 `"version"` 字段。若两者不一致，CI 中的 `npm ci` 可能警告或行为异常，且 `vsce package` 打包后扩展信息也会不匹配。
+
+在提交时，将 `package-lock.json` 一并纳入：
+
+```bash
+git add package.json package-lock.json CHANGELOG.md
 ```
 
 ---
@@ -67,7 +82,7 @@ npm run test:unit
 ## 第五步 — 提交版本变更
 
 ```bash
-git add package.json CHANGELOG.md
+git add package.json package-lock.json CHANGELOG.md
 git commit -m "chore: release v<新版本号>"
 ```
 
