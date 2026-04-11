@@ -1,5 +1,10 @@
 # Change Log
 
+## 6.3.0 - 2026-04-11
+
+- **Feature**: Remote panel now tracks **recently visited paths** — click the history icon (⟳) to view a dropdown list of the last 20 paths per host. Clicking any entry navigates directly to that path. History persists across VS Code restarts and can be cleared with the "Clear" button.
+- **Enhancement**: Bookmark toggle button updated to use the bookmark icon for clearer visual identity.
+
 ## 6.2.0 - 2026-04-10
 
 - **Feature**: Image preview now supports **zoom in / zoom out** — use the `+` / `-` toolbar buttons, mouse scroll wheel, or keyboard shortcuts (`+`, `-`, `0` to reset). Zoom level displayed in real time. Toolbar and title bar now use a frosted-glass background for readability on light-colored images.
