@@ -48,7 +48,8 @@ export abstract class DualPanelBase {
         protected readonly _extensionUri: vscode.Uri,
         protected readonly transferQueueService: TransferQueueService,
         protected readonly authManager: AuthManager,
-        protected readonly hostManager: HostManager
+        protected readonly hostManager: HostManager,
+        protected readonly _context?: vscode.ExtensionContext
     ) {
         // Subscribe to task completion events
         this.transferQueueService.onTaskUpdated((task) => {
@@ -116,6 +117,9 @@ export abstract class DualPanelBase {
         });
 
         await this.loadRemoteDirectory(this._remoteRootPath);
+
+        // Send persisted recent paths for this host
+        this.sendRecentPathsToWebview(host.id);
     }
 
     /**
@@ -276,6 +280,10 @@ export abstract class DualPanelBase {
 
             case 'getBookmarks':
                 await this.handleGetBookmarks();
+                break;
+
+            case 'saveRecentPaths':
+                this.handleSaveRecentPaths(message.data);
                 break;
 
             case 'addBookmark':
@@ -2856,6 +2864,21 @@ export abstract class DualPanelBase {
 
             logger.info(`Opened SSH terminal at remote path: ${targetPath}`);
         }
+    }
+
+    private recentPathsKey(hostId: string): string {
+        return `simpleSftp.recentPaths.${hostId}`;
+    }
+
+    protected sendRecentPathsToWebview(hostId: string): void {
+        if (!this._context) { return; }
+        const paths = this._context.globalState.get<string[]>(this.recentPathsKey(hostId), []);
+        this.postMessage({ command: 'recentPaths', data: paths });
+    }
+
+    protected handleSaveRecentPaths(paths: string[] | undefined): void {
+        if (!this._context || !this._currentHost || !Array.isArray(paths)) { return; }
+        this._context.globalState.update(this.recentPathsKey(this._currentHost.id), paths);
     }
 
     protected async handleGetBookmarks(): Promise<void> {

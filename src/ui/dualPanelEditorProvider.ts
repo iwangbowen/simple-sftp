@@ -66,9 +66,10 @@ class DualPanelEditorSession extends DualPanelBase {
         transferQueueService: TransferQueueService,
         authManager: AuthManager,
         hostManager: HostManager,
-        private readonly panel: vscode.WebviewPanel
+        private readonly panel: vscode.WebviewPanel,
+        context?: vscode.ExtensionContext
     ) {
-        super(extensionUri, transferQueueService, authManager, hostManager);
+        super(extensionUri, transferQueueService, authManager, hostManager, context);
 
         this.panel.webview.html = this.getHtmlForWebview(this.panel.webview);
     }
@@ -144,7 +145,8 @@ export class DualPanelEditorManager {
         private readonly extensionUri: vscode.Uri,
         private readonly transferQueueService: TransferQueueService,
         private readonly authManager: AuthManager,
-        private readonly hostManager: HostManager
+        private readonly hostManager: HostManager,
+        private readonly context?: vscode.ExtensionContext
     ) {
         this.transferQueueService.onQueueChanged(() => {
             this.updateQueueStatusForAllPanels();
@@ -198,7 +200,8 @@ export class DualPanelEditorManager {
             this.transferQueueService,
             this.authManager,
             this.hostManager,
-            panel
+            panel,
+            this.context
         );
 
         this.sessions.set(target.panelKey, session);

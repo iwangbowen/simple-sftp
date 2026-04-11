@@ -99,8 +99,8 @@
             <div class="panel remote-panel">
                 <div class="panel-header remote-header">
                     <div class="bookmark-dropdown-container">
-                        <button class="icon-button bookmark-toggle-btn" id="bookmark-toggle" title="Show Bookmarks">
-                            <span class="codicon codicon-remote"></span>
+                        <button class="icon-button bookmark-toggle-btn" id="bookmark-toggle" title="Bookmarks">
+                            <span class="codicon codicon-bookmark"></span>
                             <span class="codicon codicon-chevron-down"></span>
                         </button>
                         <div class="bookmark-dropdown" id="bookmark-dropdown">
@@ -121,6 +121,20 @@
                         <button class="icon-button filter-regex-toggle" id="remote-regex-toggle" title="Use Regular Expression">
                             <span class="codicon codicon-regex"></span>
                         </button>
+                    </div>
+                    <div class="recent-paths-container">
+                        <button class="icon-button" id="recent-paths-toggle" title="Recent paths">
+                            <span class="codicon codicon-history"></span>
+                        </button>
+                        <div class="recent-paths-dropdown" id="recent-paths-dropdown">
+                            <div class="recent-paths-header">
+                                <span>Recent</span>
+                                <button class="recent-paths-clear-btn" id="recent-paths-clear" title="Clear history">Clear</button>
+                            </div>
+                            <div class="recent-paths-list" id="recent-paths-list">
+                                <div class="recent-paths-empty">No recent paths</div>
+                            </div>
+                        </div>
                     </div>
                     <button class="icon-button" id="refresh-remote" title="Refresh">
                         <span class="codicon codicon-refresh"></span>

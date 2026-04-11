@@ -21,6 +21,9 @@
     let currentHostId = '';
     /** @type {Array<{name: string, path: string}>} */
     let currentBookmarks = [];
+    /** @type {string[]} */
+    let recentRemotePaths = [];
+    const RECENT_PATHS_MAX = 20;
     /** @type {{path: string, panel: string, name: string} | null} */
     let fileSelectedForCompare = null;
     /** @type {Object.<string, number>} */
@@ -240,6 +243,29 @@
                 !toggleBtn.contains(e.target)) {
                 closeBookmarkDropdown();
             }
+
+            // Close recent paths dropdown
+            const recentDropdown = document.getElementById('recent-paths-dropdown');
+            const recentToggle = document.getElementById('recent-paths-toggle');
+            if (recentDropdown && recentToggle &&
+                !recentDropdown.contains(e.target) &&
+                !recentToggle.contains(e.target)) {
+                closeRecentPathsDropdown();
+            }
+        });
+
+        // Recent paths toggle
+        document.getElementById('recent-paths-toggle')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleRecentPathsDropdown();
+        });
+
+        // Clear recent paths
+        document.getElementById('recent-paths-clear')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            recentRemotePaths = [];
+            renderRecentPaths();
+            vscode.postMessage({ command: 'saveRecentPaths', data: [] });
         });
 
         // Context menu for empty area in file trees
@@ -2527,6 +2553,83 @@
 
 
 
+    // ===== Recent Paths =====
+
+    /**
+     * Add a path to the recent remote paths list (no duplicates, newest first)
+     * @param {string} path
+     */
+    function addToRecentPaths(path) {
+        if (!path || path === '/') return;
+        // Remove if already exists
+        const idx = recentRemotePaths.indexOf(path);
+        if (idx !== -1) {
+            recentRemotePaths.splice(idx, 1);
+        }
+        recentRemotePaths.unshift(path);
+        if (recentRemotePaths.length > RECENT_PATHS_MAX) {
+            recentRemotePaths.length = RECENT_PATHS_MAX;
+        }
+        // Persist to extension backend
+        vscode.postMessage({ command: 'saveRecentPaths', data: recentRemotePaths });
+    }
+
+    function toggleRecentPathsDropdown() {
+        const dropdown = document.getElementById('recent-paths-dropdown');
+        if (!dropdown) return;
+        const isVisible = dropdown.classList.contains('visible');
+        if (isVisible) {
+            closeRecentPathsDropdown();
+        } else {
+            openRecentPathsDropdown();
+        }
+    }
+
+    function openRecentPathsDropdown() {
+        const dropdown = document.getElementById('recent-paths-dropdown');
+        const toggleBtn = document.getElementById('recent-paths-toggle');
+        if (!dropdown || !toggleBtn) return;
+        renderRecentPaths();
+        dropdown.classList.add('visible');
+        toggleBtn.classList.add('active');
+    }
+
+    function closeRecentPathsDropdown() {
+        const dropdown = document.getElementById('recent-paths-dropdown');
+        const toggleBtn = document.getElementById('recent-paths-toggle');
+        if (!dropdown) return;
+        dropdown.classList.remove('visible');
+        toggleBtn?.classList.remove('active');
+    }
+
+    /**
+     * Render the recent paths list in the dropdown
+     */
+    function renderRecentPaths() {
+        const listContainer = document.getElementById('recent-paths-list');
+        if (!listContainer) return;
+
+        if (recentRemotePaths.length === 0) {
+            listContainer.innerHTML = '<div class="recent-paths-empty">No recent paths</div>';
+            return;
+        }
+
+        listContainer.innerHTML = '';
+        recentRemotePaths.forEach(path => {
+            const item = document.createElement('div');
+            item.className = 'recent-paths-item';
+            item.innerHTML = `
+                <span class="codicon codicon-folder recent-paths-item-icon"></span>
+                <span class="recent-paths-item-path" title="${escapeHtml(path)}">${escapeHtml(path)}</span>
+            `;
+            item.addEventListener('click', () => {
+                navigateTo('remote', path);
+                closeRecentPathsDropdown();
+            });
+            listContainer.appendChild(item);
+        });
+    }
+
     // ===== Bookmark Dropdown =====
     /**
      * Toggle bookmark dropdown visibility
@@ -4766,6 +4869,7 @@
 
             case 'updateRemoteTree':
                 currentRemotePath = message.data.path;
+                addToRecentPaths(message.data.path);
                 renderBreadcrumb('remote', message.data.path);
                 renderFileTree('remote', message.data.nodes);
                 break;
@@ -4956,6 +5060,11 @@ case 'updateStatus':
                 // Update bookmarks list
                 console.log('Received updateBookmarks message:', message);
                 renderBookmarks(message.data.bookmarks);
+                break;
+
+            case 'recentPaths':
+                // Restore persisted recent paths from extension backend
+                recentRemotePaths = Array.isArray(message.data) ? message.data : [];
                 break;
 
             case 'addBookmark':

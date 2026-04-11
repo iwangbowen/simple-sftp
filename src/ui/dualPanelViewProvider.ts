@@ -19,9 +19,10 @@ export class DualPanelViewProvider extends DualPanelBase implements vscode.Webvi
         extensionUri: vscode.Uri,
         transferQueueService: TransferQueueService,
         authManager: AuthManager,
-        hostManager: HostManager
+        hostManager: HostManager,
+        context?: vscode.ExtensionContext
     ) {
-        super(extensionUri, transferQueueService, authManager, hostManager);
+        super(extensionUri, transferQueueService, authManager, hostManager, context);
     }
 
     /**

@@ -235,6 +235,129 @@ body {
     font-style: italic;
 }
 
+/* ===== Recent Paths Dropdown ===== */
+.recent-paths-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.recent-paths-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    min-width: 320px;
+    max-width: 480px;
+    max-height: 380px;
+    background-color: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.recent-paths-dropdown.visible {
+    display: flex;
+}
+
+.recent-paths-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-menu-border);
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    flex-shrink: 0;
+}
+
+.recent-paths-clear-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 1px 6px;
+}
+
+.recent-paths-clear-btn:hover {
+    border-color: var(--vscode-focusBorder);
+    color: var(--vscode-foreground);
+}
+
+.recent-paths-list {
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 320px;
+}
+
+.recent-paths-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.recent-paths-list::-webkit-scrollbar-track {
+    background: var(--vscode-scrollbarSlider-background);
+}
+
+.recent-paths-list::-webkit-scrollbar-thumb {
+    background: var(--vscode-scrollbarSlider-hoverBackground);
+    border-radius: 4px;
+}
+
+.recent-paths-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    border-left: 2px solid transparent;
+}
+
+.recent-paths-item:hover {
+    background-color: var(--vscode-menu-selectionBackground);
+    color: var(--vscode-menu-selectionForeground);
+    border-left-color: var(--vscode-focusBorder);
+}
+
+.recent-paths-item-icon {
+    font-size: 14px;
+    color: var(--vscode-icon-foreground);
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.recent-paths-item:hover .recent-paths-item-icon {
+    color: var(--vscode-menu-selectionForeground);
+}
+
+.recent-paths-item-path {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.recent-paths-item:hover .recent-paths-item-path {
+    color: var(--vscode-menu-selectionForeground);
+}
+
+.recent-paths-empty {
+    padding: 14px;
+    text-align: center;
+    color: var(--vscode-descriptionForeground);
+    font-size: 12px;
+    font-style: italic;
+}
+
 /* ===== More Dropdown (similar to bookmark dropdown) ===== */
 .more-dropdown-container {
     position: relative;
