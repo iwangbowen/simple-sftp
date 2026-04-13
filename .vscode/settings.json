@@ -2,5 +2,8 @@
   "typescript.tsc.autoDetect": "on",
   "vitest.enable": true,
   "vitest.commandLine": "npx vitest",
-  "testing.automaticallyOpenPeekView": "failureInVisibleDocument"
+  "testing.automaticallyOpenPeekView": "failureInVisibleDocument",
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/release.yml"
+  ]
 }
