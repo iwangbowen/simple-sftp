@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.3.5 - 2026-04-13
+
+- **Feature**: Sidebar host context menu now includes a **Recent Paths** entry — click to open a QuickPick list of the last 20 visited remote paths for that host, and navigate directly to the selected path.
+
 ## 6.3.0 - 2026-04-11
 
 - **Feature**: Remote panel now tracks **recently visited paths** — click the history icon (⟳) to view a dropdown list of the last 20 paths per host. Clicking any entry navigates directly to that path. History persists across VS Code restarts and can be cleared with the "Clear" button.
