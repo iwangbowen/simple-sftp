@@ -222,6 +222,12 @@
         "icon": "$(list-selection)"
       },
       {
+        "command": "simpleSftp.showRecentPaths",
+        "title": "Recent Paths",
+        "category": "Simple SFTP",
+        "icon": "$(history)"
+      },
+      {
         "command": "simpleSftp.downloadToLocal",
         "title": "Download from Remote Host to Here",
         "category": "Simple SFTP"
@@ -1337,9 +1343,14 @@
           "group": "1_browse@1"
         },
         {
-          "command": "simpleSftp.openPortForwarding",
+          "command": "simpleSftp.showRecentPaths",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_browse@2"
+        },
+        {
+          "command": "simpleSftp.openPortForwarding",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "1_browse@3"
         },
         {
           "command": "simpleSftp.configureHostAdvanced",

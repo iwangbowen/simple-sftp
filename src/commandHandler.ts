@@ -165,6 +165,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleSftp.showConnectionPool', () => this.showConnectionPoolStatus()),
       vscode.commands.registerCommand('simpleSftp.showResourceDashboard', (item: HostTreeItem) =>
         this.showResourceDashboard(item)
+      ),
+      vscode.commands.registerCommand('simpleSftp.showRecentPaths', (item: HostTreeItem) =>
+        this.showRecentPaths(item)
       )
     );
   }
@@ -1813,6 +1816,39 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       'sync',
       `Browse Files: ${config.name}`
     );
+  }
+
+  private async showRecentPaths(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') { return; }
+    const config = item.data as HostConfig;
+
+    const recentPathsKey = `simpleSftp.recentPaths.${config.id}`;
+    const paths = this.extensionContext?.globalState.get<string[]>(recentPathsKey, []) ?? [];
+
+    if (paths.length === 0) {
+      vscode.window.showInformationMessage(`No recent paths for ${config.name}.`);
+      return;
+    }
+
+    const picked = await vscode.window.showQuickPick(
+      paths.map(p => ({
+        label: '$(folder) ' + p,
+        description: p,
+        path: p
+      })),
+      {
+        title: `Recent Paths — ${config.name}`,
+        placeHolder: 'Select a path to navigate to',
+        matchOnDescription: true
+      }
+    );
+
+    if (!picked) { return; }
+
+    await vscode.commands.executeCommand('simpleSftp.openDualPanelBrowser', {
+      data: config,
+      initialPath: picked.path
+    });
   }
 
   /**
