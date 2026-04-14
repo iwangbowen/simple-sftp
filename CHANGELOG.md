@@ -1,5 +1,10 @@
 # Change Log
 
+## 6.4.0 - 2026-04-14
+
+- **Enhancement**: Added 🩵 Cyan and 🩷 Pink to the bookmark color palette (now 8 colors total).
+- **Fix**: Host color picker was missing Orange; it now shows the same full 8-color palette as bookmarks.
+
 ## 6.3.5 - 2026-04-13
 
 - **Feature**: Sidebar host context menu now includes a **Recent Paths** entry — click to open a QuickPick list of the last 20 visited remote paths for that host, and navigate directly to the selected path.
