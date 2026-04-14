@@ -172,8 +172,8 @@ describe('BookmarkService - changeBookmarkColor', () => {
 
       expect(showQuickPickSpy).toHaveBeenCalled();
       const colors = showQuickPickSpy.mock.calls[0][0] as any[];
-      expect(colors).toHaveLength(7); // red, green, blue, yellow, orange, purple, default
-      expect(colors.map((c: any) => c.value)).toEqual(['red', 'green', 'blue', 'yellow', 'orange', 'purple', undefined]);
+      expect(colors).toHaveLength(9); // red, green, blue, yellow, orange, purple, cyan, pink, default
+      expect(colors.map((c: any) => c.value)).toEqual(['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'cyan', 'pink', undefined]);
     });
 
     it('should display current color in placeholder', async () => {

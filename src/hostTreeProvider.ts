@@ -3,6 +3,7 @@ import { HostConfig, GroupConfig, PathBookmark } from './types';
 import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
 import { logger } from './logger';
+import { COLOR_THEME_MAP } from './constants';
 
 /**
  * 拖放数据传输项
@@ -59,7 +60,7 @@ export class HostTreeItem extends vscode.TreeItem {
         // Non-starred hosts with auth: server icon with optional user color
         this.iconPath = new vscode.ThemeIcon(
           'server',
-          host.color ? new vscode.ThemeColor(`charts.${host.color}`) : undefined
+          host.color ? new vscode.ThemeColor(COLOR_THEME_MAP[host.color] ?? `charts.${host.color}`) : undefined
         );
       } else {
         // Non-starred hosts without auth: warning icon
@@ -82,7 +83,7 @@ export class HostTreeItem extends vscode.TreeItem {
       this.contextValue = 'bookmark';
       // Show bookmark icon with color if set
       this.iconPath = bookmark.color
-        ? new vscode.ThemeIcon('bookmark', new vscode.ThemeColor(`charts.${bookmark.color}`))
+        ? new vscode.ThemeIcon('bookmark', new vscode.ThemeColor(COLOR_THEME_MAP[bookmark.color] ?? `charts.${bookmark.color}`))
         : new vscode.ThemeIcon('bookmark');
       this.description = bookmark.path;
       // Build tooltip with description if available

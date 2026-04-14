@@ -5,6 +5,7 @@ import { AuthManager } from '../authManager';
 import { HostTreeProvider, HostTreeItem } from '../hostTreeProvider';
 import { HostConfig, HostAuthConfig, PathBookmark } from '../types';
 import { DualPanelViewProvider } from '../ui/dualPanelViewProvider';
+import { COLOR_OPTIONS } from '../constants';
 
 /**
  * Service for managing path bookmarks for hosts
@@ -215,14 +216,9 @@ export class BookmarkService {
       return;
     }
 
-    // Available colors (same as host colors)
-    const colors = [
-      { label: '🔴 Red', value: 'red' },
-      { label: '🟢 Green', value: 'green' },
-      { label: '🔵 Blue', value: 'blue' },
-      { label: '🟡 Yellow', value: 'yellow' },
-      { label: '🟠 Orange', value: 'orange' },
-      { label: '🟣 Purple', value: 'purple' },
+    // Build color list from shared palette, with a "no color" default at the end
+    const colors: Array<{ label: string; value: string | undefined }> = [
+      ...COLOR_OPTIONS,
       { label: '⚫ Default (No color)', value: undefined }
     ];
 

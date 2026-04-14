@@ -260,6 +260,23 @@ export const TOOLTIPS = {
   downloadingFolder: (name: string) => `Downloading folder: ${name}`,
 } as const;
 
+// Color palette shared by hosts and bookmarks
+export const COLOR_OPTIONS: Array<{ label: string; value: string; themeKey: string }> = [
+  { label: '🔴 Red',    value: 'red',    themeKey: 'charts.red' },
+  { label: '🟢 Green',  value: 'green',  themeKey: 'charts.green' },
+  { label: '🔵 Blue',   value: 'blue',   themeKey: 'charts.blue' },
+  { label: '🟡 Yellow', value: 'yellow', themeKey: 'charts.yellow' },
+  { label: '🟠 Orange', value: 'orange', themeKey: 'charts.orange' },
+  { label: '🟣 Purple', value: 'purple', themeKey: 'charts.purple' },
+  { label: '🩵 Cyan',   value: 'cyan',   themeKey: 'terminal.ansiCyan' },
+  { label: '🩷 Pink',   value: 'pink',   themeKey: 'terminal.ansiMagenta' },
+];
+
+// Map from color value to VS Code ThemeColor key for icon rendering
+export const COLOR_THEME_MAP: Record<string, string> = Object.fromEntries(
+  COLOR_OPTIONS.map(c => [c.value, c.themeKey])
+);
+
 export const LABELS = {
   // Edit Host options
   editName: 'Edit Name',
@@ -277,11 +294,6 @@ export const LABELS = {
   // Color options
   noColor: 'No Color',
   useDefaultColor: 'Use default color',
-  red: 'Red',
-  green: 'Green',
-  blue: 'Blue',
-  yellow: 'Yellow',
-  purple: 'Purple',
 } as const;
 
 // ---------------------------------------------------------------------------

@@ -17,7 +17,7 @@ import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { HostConfigProvider } from './ui/hostConfigProvider';
 import { ResourceDashboardProvider } from './ui/resourceDashboardProvider';
 import { ConnectionPoolProvider } from './ui/connectionPoolProvider';
-import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS } from './constants';
+import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS, COLOR_OPTIONS } from './constants';
 
 export class CommandHandler {
   private readonly downloadStatusBar: vscode.StatusBarItem;
@@ -494,11 +494,7 @@ export class CommandHandler {
         const colorChoice = await vscode.window.showQuickPick(
           [
             { label: LABELS.noColor, value: undefined, description: LABELS.useDefaultColor },
-            { label: LABELS.red, value: 'red', description: '🔴' },
-            { label: LABELS.green, value: 'green', description: '🟢' },
-            { label: LABELS.blue, value: 'blue', description: '🔵' },
-            { label: LABELS.yellow, value: 'yellow', description: '🟡' },
-            { label: LABELS.purple, value: 'purple', description: '🟣' },
+            ...COLOR_OPTIONS,
           ],
           { placeHolder: PROMPTS.selectColor }
         );
