@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.4.5 - 2026-04-15
+
+- **Enhancement**: Right-click context menu now includes **Sort By** (Name / Size / Modified Time) and **View Mode** (List View / Grid View) submenus, providing additional entry points for operations previously only available via toolbar buttons.
+
 ## 6.4.0 - 2026-04-14
 
 - **Enhancement**: Added 🩵 Cyan and 🩷 Pink to the bookmark color palette (now 8 colors total).
