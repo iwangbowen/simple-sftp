@@ -117,6 +117,14 @@
         "id": "simpleSftp.addMenu",
         "label": "Add",
         "icon": "$(add)"
+      },
+      {
+        "id": "simpleSftp.dualPanel.sortByMenu",
+        "label": "Sort By"
+      },
+      {
+        "id": "simpleSftp.dualPanel.viewModeMenu",
+        "label": "View Mode"
       }
     ],
     "commands": [
@@ -696,9 +704,24 @@
       },
       {
         "command": "simpleSftp.dualPanel.switchToGridView",
-        "title": "Switch to Icon View",
+        "title": "Switch to Grid View",
         "category": "Simple SFTP",
         "icon": "$(symbol-namespace)"
+      },
+      {
+        "command": "simpleSftp.dualPanel.sortByName",
+        "title": "Name",
+        "category": "Simple SFTP"
+      },
+      {
+        "command": "simpleSftp.dualPanel.sortBySize",
+        "title": "Size",
+        "category": "Simple SFTP"
+      },
+      {
+        "command": "simpleSftp.dualPanel.sortByModifiedTime",
+        "title": "Modified Time",
+        "category": "Simple SFTP"
       },
       {
         "command": "simpleSftp.addDeployProfile",
@@ -899,6 +922,40 @@
           "command": "simpleSftp.dualPanel.remoteMore.searchFiles",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteMore'",
           "group": "2_tools@2"
+        },
+        {
+          "submenu": "simpleSftp.dualPanel.sortByMenu",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'localEmpty' || webviewSection == 'remoteFile' || webviewSection == 'remoteEmpty' || webviewSection == 'localMore' || webviewSection == 'remoteMore')",
+          "group": "5_view@1"
+        },
+        {
+          "submenu": "simpleSftp.dualPanel.viewModeMenu",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && (webviewSection == 'localFile' || webviewSection == 'localEmpty' || webviewSection == 'remoteFile' || webviewSection == 'remoteEmpty' || webviewSection == 'localMore' || webviewSection == 'remoteMore')",
+          "group": "5_view@2"
+        }
+      ],
+      "simpleSftp.dualPanel.sortByMenu": [
+        {
+          "command": "simpleSftp.dualPanel.sortByName",
+          "group": "1@1"
+        },
+        {
+          "command": "simpleSftp.dualPanel.sortBySize",
+          "group": "1@2"
+        },
+        {
+          "command": "simpleSftp.dualPanel.sortByModifiedTime",
+          "group": "1@3"
+        }
+      ],
+      "simpleSftp.dualPanel.viewModeMenu": [
+        {
+          "command": "simpleSftp.dualPanel.switchToListView",
+          "group": "1@1"
+        },
+        {
+          "command": "simpleSftp.dualPanel.switchToGridView",
+          "group": "1@2"
         }
       ],
       "simpleSftp.addMenu": [
@@ -1246,6 +1303,18 @@
         },
         {
           "command": "simpleSftp.dualPanel.openInTerminal",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.sortByName",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.sortBySize",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.sortByModifiedTime",
           "when": "false"
         }
       ],

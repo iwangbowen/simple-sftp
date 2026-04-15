@@ -236,6 +236,14 @@ export class DualPanelEditorManager {
         await session.switchViewMode(panel, mode);
     }
 
+    public async sortBy(panel: string, column: string): Promise<void> {
+        const session = this.getActiveSessionOrWarn();
+        if (!session) {
+            return;
+        }
+        await session.sortBy(panel, column);
+    }
+
     public async executeRefresh(args: any): Promise<void> {
         const session = this.getActiveSessionOrWarn();
         if (!session) {

@@ -5175,6 +5175,13 @@ case 'updateStatus':
                 }
                 break;
 
+            case 'sortBy':
+                // Handle sort by column command (toggles direction if same column)
+                if (message.panel && message.column) {
+                    handleColumnHeaderClick(message.panel, message.column);
+                }
+                break;
+
             case 'thumbnailData':
                 // Handle thumbnail data from backend
                 if (message.data && message.data.dataUrl) {

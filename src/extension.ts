@@ -727,6 +727,49 @@ export async function activate(context: vscode.ExtensionContext) {
         dualPanelProvider.postMessageToWebview(messageData);
       }
     }),
+    // Sort commands for dual panel browser
+    vscode.commands.registerCommand('simpleSftp.dualPanel.sortByName', async (args) => {
+      let panel = 'remote';
+      if (args?.webviewSection) {
+        panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+      } else if (args?.panel) {
+        panel = args.panel;
+      }
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.sortBy(panel, 'name');
+      } else {
+        await dualPanelProvider.sortBy(panel, 'name');
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.sortBySize', async (args) => {
+      let panel = 'remote';
+      if (args?.webviewSection) {
+        panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+      } else if (args?.panel) {
+        panel = args.panel;
+      }
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.sortBy(panel, 'size');
+      } else {
+        await dualPanelProvider.sortBy(panel, 'size');
+      }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.sortByModifiedTime', async (args) => {
+      let panel = 'remote';
+      if (args?.webviewSection) {
+        panel = args.webviewSection.includes('local') ? 'local' : 'remote';
+      } else if (args?.panel) {
+        panel = args.panel;
+      }
+      const activeManager = getActiveManager();
+      if (activeManager === 'editor') {
+        await dualPanelEditorManager.sortBy(panel, 'time');
+      } else {
+        await dualPanelProvider.sortBy(panel, 'time');
+      }
+    }),
     vscode.commands.registerCommand('simpleSftp.dualPanel.openInTerminal', async (args) => {
       const activeManager = getActiveManager();
       if (activeManager === 'editor') {

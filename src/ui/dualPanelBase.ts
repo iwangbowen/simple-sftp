@@ -86,6 +86,17 @@ export abstract class DualPanelBase {
     }
 
     /**
+     * Public method to sort by column (toggles direction if same column)
+     */
+    public async sortBy(panel: string, column: string): Promise<void> {
+        this.postMessage({
+            command: 'sortBy',
+            panel: panel,
+            column: column
+        });
+    }
+
+    /**
      * Open dual panel for a specific host
      */
     public async openForHost(host: HostConfig, initialPath?: string): Promise<void> {
