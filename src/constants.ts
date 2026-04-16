@@ -37,6 +37,17 @@ export const PARALLEL_TRANSFER = {
 } as const;
 
 /**
+ * Get recent paths configuration from VS Code settings
+ */
+export function getRecentPathsConfig(): { timeFormat: 'absolute' | 'relative' } {
+  const vscode = require('vscode');
+  const config: any = vscode.workspace.getConfiguration('simpleSftp.recentPaths');
+  return {
+    timeFormat: config.get('timeFormat', 'absolute') as 'absolute' | 'relative',
+  };
+}
+
+/**
  * Get parallel transfer configuration from VS Code settings
  * Configuration values are in MB, converted to bytes internally
  */

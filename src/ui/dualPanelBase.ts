@@ -9,7 +9,7 @@ import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { logger } from '../logger';
-import { THUMBNAIL, getThumbnailConfig } from '../constants';
+import { THUMBNAIL, getThumbnailConfig, getRecentPathsConfig } from '../constants';
 import { PortForwardService } from '../services/portForwardService';
 import { RemoteBrowserService } from '../services/remoteBrowserService';
 import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
@@ -2883,11 +2883,16 @@ export abstract class DualPanelBase {
 
     protected sendRecentPathsToWebview(hostId: string): void {
         if (!this._context) { return; }
-        const paths = this._context.globalState.get<string[]>(this.recentPathsKey(hostId), []);
-        this.postMessage({ command: 'recentPaths', data: paths });
+        const raw = this._context.globalState.get<(string | { path: string; accessedAt: number })[]>(this.recentPathsKey(hostId), []);
+        // Migrate old string[] format to {path, accessedAt}[] on load
+        const paths = raw.map(item =>
+            typeof item === 'string' ? { path: item, accessedAt: 0 } : item
+        );
+        const { timeFormat } = getRecentPathsConfig();
+        this.postMessage({ command: 'recentPaths', data: paths, timeFormat });
     }
 
-    protected handleSaveRecentPaths(paths: string[] | undefined): void {
+    protected handleSaveRecentPaths(paths: { path: string; accessedAt: number }[] | undefined): void {
         if (!this._context || !this._currentHost || !Array.isArray(paths)) { return; }
         this._context.globalState.update(this.recentPathsKey(this._currentHost.id), paths);
     }

@@ -21,8 +21,10 @@
     let currentHostId = '';
     /** @type {Array<{name: string, path: string}>} */
     let currentBookmarks = [];
-    /** @type {string[]} */
+    /** @type {Array<{path: string, accessedAt: number}>} */
     let recentRemotePaths = [];
+    /** @type {'absolute' | 'relative'} */
+    let recentPathsTimeFormat = 'absolute';
     const RECENT_PATHS_MAX = 20;
     /** @type {{path: string, panel: string, name: string} | null} */
     let fileSelectedForCompare = null;
@@ -2556,17 +2558,51 @@
     // ===== Recent Paths =====
 
     /**
+     * Format a timestamp as a standard absolute time string.
+     * Always shows "YYYY-MM-DD HH:mm" format.
+     * @param {number} ts - Unix timestamp in milliseconds (0 means unknown)
+     * @returns {string}
+     */
+    function formatAbsoluteTime(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    /**
+     * Format a timestamp into a human-readable relative time string (used as tooltip).
+     * @param {number} ts - Unix timestamp in milliseconds (0 means unknown)
+     * @returns {string}
+     */
+    function formatRelativeTime(ts) {
+        if (!ts) return '';
+        const diffMs = Date.now() - ts;
+        const diffSec = Math.floor(diffMs / 1000);
+        if (diffSec < 60) return 'just now';
+        const diffMin = Math.floor(diffSec / 60);
+        if (diffMin < 60) return `${diffMin}m ago`;
+        const diffHr = Math.floor(diffMin / 60);
+        if (diffHr < 24) return `${diffHr}h ago`;
+        const diffDay = Math.floor(diffHr / 24);
+        if (diffDay < 30) return `${diffDay}d ago`;
+        const diffMon = Math.floor(diffDay / 30);
+        if (diffMon < 12) return `${diffMon}mo ago`;
+        return `${Math.floor(diffMon / 12)}y ago`;
+    }
+
+    /**
      * Add a path to the recent remote paths list (no duplicates, newest first)
      * @param {string} path
      */
     function addToRecentPaths(path) {
         if (!path || path === '/') return;
         // Remove if already exists
-        const idx = recentRemotePaths.indexOf(path);
+        const idx = recentRemotePaths.findIndex(item => item.path === path);
         if (idx !== -1) {
             recentRemotePaths.splice(idx, 1);
         }
-        recentRemotePaths.unshift(path);
+        recentRemotePaths.unshift({ path, accessedAt: Date.now() });
         if (recentRemotePaths.length > RECENT_PATHS_MAX) {
             recentRemotePaths.length = RECENT_PATHS_MAX;
         }
@@ -2615,12 +2651,17 @@
         }
 
         listContainer.innerHTML = '';
-        recentRemotePaths.forEach(path => {
+        recentRemotePaths.forEach(({ path, accessedAt }) => {
             const item = document.createElement('div');
             item.className = 'recent-paths-item';
+            const absTime = formatAbsoluteTime(accessedAt);
+            const relTime = formatRelativeTime(accessedAt);
+            const primaryTime = recentPathsTimeFormat === 'relative' ? relTime : absTime;
+            const tooltipTime = recentPathsTimeFormat === 'relative' ? absTime : relTime;
             item.innerHTML = `
                 <span class="codicon codicon-folder recent-paths-item-icon"></span>
                 <span class="recent-paths-item-path" title="${escapeHtml(path)}">${escapeHtml(path)}</span>
+                ${primaryTime ? `<span class="recent-paths-item-time" title="${escapeHtml(tooltipTime)}">${escapeHtml(primaryTime)}</span>` : ''}
             `;
             item.addEventListener('click', () => {
                 navigateTo('remote', path);
@@ -5064,7 +5105,11 @@ case 'updateStatus':
 
             case 'recentPaths':
                 // Restore persisted recent paths from extension backend
-                recentRemotePaths = Array.isArray(message.data) ? message.data : [];
+                // Support both old string[] format and new {path, accessedAt}[] format
+                recentRemotePaths = (Array.isArray(message.data) ? message.data : []).map(item =>
+                    typeof item === 'string' ? { path: item, accessedAt: 0 } : item
+                );
+                recentPathsTimeFormat = message.timeFormat === 'relative' ? 'relative' : 'absolute';
                 break;
 
             case 'addBookmark':

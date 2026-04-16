@@ -1798,6 +1798,19 @@
           "minimum": 0,
           "description": "Minimum file size (in MB) for checksum verification. Default: 10 MB. Set to 0 to verify all files."
         },
+        "simpleSftp.recentPaths.timeFormat": {
+          "type": "string",
+          "enum": [
+            "absolute",
+            "relative"
+          ],
+          "default": "absolute",
+          "enumDescriptions": [
+            "Show absolute time (e.g. 2026-04-16 14:30)",
+            "Show relative time (e.g. 2h ago)"
+          ],
+          "description": "Time format for recent paths. Default: absolute."
+        },
         "simpleSftp.ui.hideStatusBar": {
           "type": "boolean",
           "default": false,

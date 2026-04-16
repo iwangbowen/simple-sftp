@@ -17,7 +17,30 @@ import { DualPanelViewProvider } from './ui/dualPanelViewProvider';
 import { HostConfigProvider } from './ui/hostConfigProvider';
 import { ResourceDashboardProvider } from './ui/resourceDashboardProvider';
 import { ConnectionPoolProvider } from './ui/connectionPoolProvider';
-import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS, COLOR_OPTIONS } from './constants';
+import { DEFAULTS, LIMITS, PROMPTS, PLACEHOLDERS, MESSAGES, LABELS, COLOR_OPTIONS, getRecentPathsConfig } from './constants';
+
+function formatRelativeTime(ts: number): string {
+  if (!ts) { return ''; }
+  const diffMs = Date.now() - ts;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) { return 'just now'; }
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) { return `${diffMin}m ago`; }
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) { return `${diffHr}h ago`; }
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 30) { return `${diffDay}d ago`; }
+  const diffMon = Math.floor(diffDay / 30);
+  if (diffMon < 12) { return `${diffMon}mo ago`; }
+  return `${Math.floor(diffMon / 12)}y ago`;
+}
+
+function formatAbsoluteTime(ts: number): string {
+  if (!ts) { return ''; }
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export class CommandHandler {
   private readonly downloadStatusBar: vscode.StatusBarItem;
@@ -1819,18 +1842,25 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     const config = item.data as HostConfig;
 
     const recentPathsKey = `simpleSftp.recentPaths.${config.id}`;
-    const paths = this.extensionContext?.globalState.get<string[]>(recentPathsKey, []) ?? [];
+    const raw = this.extensionContext?.globalState.get<(string | { path: string; accessedAt: number })[]>(recentPathsKey, []) ?? [];
 
-    if (paths.length === 0) {
+    if (raw.length === 0) {
       vscode.window.showInformationMessage(`No recent paths for ${config.name}.`);
       return;
     }
 
+    const entries = raw.map(item =>
+      typeof item === 'string' ? { path: item, accessedAt: 0 } : item
+    );
+
+    const { timeFormat } = getRecentPathsConfig();
+    const formatTime = timeFormat === 'relative' ? formatRelativeTime : formatAbsoluteTime;
+
     const picked = await vscode.window.showQuickPick(
-      paths.map(p => ({
-        label: '$(folder) ' + p,
-        description: p,
-        path: p
+      entries.map(({ path, accessedAt }) => ({
+        label: '$(folder) ' + path,
+        description: formatTime(accessedAt) || undefined,
+        path
       })),
       {
         title: `Recent Paths — ${config.name}`,

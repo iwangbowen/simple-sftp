@@ -350,6 +350,19 @@ body {
     color: var(--vscode-menu-selectionForeground);
 }
 
+.recent-paths-item-time {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.recent-paths-item:hover .recent-paths-item-time {
+    color: var(--vscode-menu-selectionForeground);
+    opacity: 0.75;
+}
+
 .recent-paths-empty {
     padding: 14px;
     text-align: center;
