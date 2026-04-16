@@ -157,6 +157,7 @@ export const PROMPTS = {
   editHostAddress: 'Enter host address (IP or domain)',
   editPort: 'Enter SSH port',
   editRemotePath: 'Set default remote path (optional)',
+  editNotes: 'Enter notes for this host (optional)',
   selectGroup: 'Select a group',
   selectColor: 'Select color',
 
@@ -294,6 +295,7 @@ export const LABELS = {
   editHostAddress: 'Edit Host Address',
   editPort: 'Edit Port',
   editRemotePath: 'Edit Default Remote Path',
+  editNotes: 'Edit Notes',
   changeGroup: 'Change Group',
   editColor: 'Edit Color',
   configureAuth: 'Configure Authentication',

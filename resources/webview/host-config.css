@@ -171,7 +171,8 @@ body {
 .form-group input[type="text"],
 .form-group input[type="password"],
 .form-group input[type="number"],
-.form-group select {
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 6px 8px;
     border: 1px solid var(--vscode-input-border);
@@ -182,8 +183,15 @@ body {
     outline: none;
 }
 
+.form-group textarea {
+    height: 70px;
+    resize: vertical;
+    font-family: inherit;
+}
+
 .form-group input:focus,
-.form-group select:focus {
+.form-group select:focus,
+.form-group textarea:focus {
     border-color: var(--vscode-focusBorder);
 }
 

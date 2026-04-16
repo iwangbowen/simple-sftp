@@ -424,6 +424,7 @@ export class CommandHandler {
       { label: LABELS.editHostAddress, value: 'host' },
       { label: LABELS.editPort, value: 'port' },
       { label: LABELS.editRemotePath, value: 'remotePath' },
+      { label: LABELS.editNotes, value: 'notes' },
       { label: LABELS.changeGroup, value: 'group' },
       { label: LABELS.editColor, value: 'color' },
       { label: LABELS.configureAuth, value: 'auth' },
@@ -525,6 +526,16 @@ export class CommandHandler {
 
         await this.hostManager.updateHost(config.id, {
           color: colorChoice.value,
+        });
+      } else if (choice.value === 'notes') {
+        const notes = await vscode.window.showInputBox({
+          prompt: PROMPTS.editNotes,
+          value: config.notes || '',
+        });
+        if (notes === undefined) {return;}
+
+        await this.hostManager.updateHost(config.id, {
+          notes: notes.trim() || undefined,
         });
       } else if (choice.value === 'auth') {
         // Configure authentication

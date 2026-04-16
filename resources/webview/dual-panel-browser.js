@@ -3135,6 +3135,7 @@
                     <div class="bookmark-dropdown-item-name" title="${escapeHtml(bookmark.name)}"><i class="codicon codicon-bookmark"></i> ${escapeHtml(bookmark.name)}</div>
                     <div class="bookmark-dropdown-item-path" title="${escapeHtml(bookmark.path)}">${escapeHtml(bookmark.path)}</div>
                 </div>
+                ${bookmark.description ? `<div class="bookmark-dropdown-item-desc" title="${escapeHtml(bookmark.description)}">${escapeHtml(bookmark.description)}</div>` : ''}
             `;
             item.addEventListener('click', () => {
                 navigateTo('remote', bookmark.path);

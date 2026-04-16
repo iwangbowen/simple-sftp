@@ -1,5 +1,10 @@
 # Change Log
 
+## 6.6.0 - 2026-04-17
+
+- **Feature**: Add custom notes to hosts — edit via QuickPick "Edit Notes" or the advanced host form. Notes appear in the host tooltip.
+- **Enhancement**: Bookmark descriptions now display in the bookmark dropdown below the path.
+
 ## 6.5.0 - 2026-04-16
 
 - **Enhancement**: Recent paths now display access time. Default format is absolute (`2026-04-16 14:30`); switch to relative (`2h ago`) via `simpleSftp.recentPaths.timeFormat`. Hovering shows the alternate format as tooltip.

@@ -116,6 +116,7 @@ export class HostTreeItem extends vscode.TreeItem {
       `User: ${host.username}`,
       `Auth: ${authStatus}`,
       host.defaultRemotePath ? `Default Path: ${host.defaultRemotePath}` : '',
+      host.notes ? `Notes: ${host.notes}` : '',
     ]
       .filter(Boolean)
       .join('\n');

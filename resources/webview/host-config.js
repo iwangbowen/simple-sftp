@@ -414,6 +414,7 @@
         document.getElementById('port').value = config.port || 22;
         document.getElementById('username').value = config.username || '';
         document.getElementById('defaultRemotePath').value = config.defaultRemotePath || '';
+        document.getElementById('notes').value = config.notes || '';
         document.getElementById('color').value = config.color || '';
         document.getElementById('starred').checked = config.starred || false;
         document.getElementById('group').value = config.group || '';
@@ -452,6 +453,7 @@
             port: parseInt(document.getElementById('port').value, 10),
             username: document.getElementById('username').value.trim(),
             defaultRemotePath: document.getElementById('defaultRemotePath').value.trim(),
+            notes: document.getElementById('notes').value.trim() || undefined,
             color: document.getElementById('color').value,
             starred: document.getElementById('starred').checked,
             group: document.getElementById('group').value,
