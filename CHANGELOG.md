@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.5.0 - 2026-04-16
+
+- **Enhancement**: Recent paths now display access time. Default format is absolute (`2026-04-16 14:30`); switch to relative (`2h ago`) via `simpleSftp.recentPaths.timeFormat`. Hovering shows the alternate format as tooltip.
+
 ## 6.4.5 - 2026-04-15
 
 - **Enhancement**: Right-click context menu now includes **Sort By** (Name / Size / Modified Time) and **View Mode** (List View / Grid View) submenus, providing additional entry points for operations previously only available via toolbar buttons.
