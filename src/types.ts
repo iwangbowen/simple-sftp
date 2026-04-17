@@ -13,6 +13,24 @@ export interface PathBookmark {
 }
 
 /**
+ * 可复用远程任务
+ */
+export interface SavedRemoteTask {
+  /** 唯一标识 */
+  id: string;
+  /** 显示名称 */
+  label: string;
+  /** 要执行的远程命令 */
+  command: string;
+  /** 远程工作目录 */
+  workingDirectory: string;
+  /** 是否通过 SSH Terminal 执行 */
+  runInTerminal: boolean;
+  /** 执行后要打开的浏览器地址，可选 */
+  openInBrowserAfter?: string;
+}
+
+/**
  * 认证方式类型
  */
 export type AuthType = 'password' | 'privateKey' | 'agent';
@@ -62,6 +80,8 @@ export interface HostConfig {
   jumpHosts?: JumpHostConfig[];
   /** 自定义备注 */
   notes?: string;
+  /** 主机级复用远程任务 */
+  remoteTasks?: SavedRemoteTask[];
 }
 
 /**
@@ -141,6 +161,12 @@ export type ConfirmBeforeUpload = 'never' | 'always' | 'onConflict';
 /** 文件冲突策略 */
 export type ConflictStrategy = 'overwrite' | 'skip' | 'promptIfNewer';
 
+/** Deploy Profile 同步模式 */
+export type DeploySyncMode = 'uploadChanged' | 'mirrorLocal';
+
+/** Deploy Profile 同步比对方式 */
+export type DeploySyncCompareMethod = 'mtime' | 'checksum';
+
 /**
  * 项目级部署规则：本地目录 ↔ 远程目录映射 + 自动上传策略
  */
@@ -176,4 +202,14 @@ export interface DeployProfile {
   scopeToWorkspace: boolean;
   /** 是否启用此规则 */
   enabled: boolean;
+  /** 手动同步模式 */
+  syncMode: DeploySyncMode;
+  /** 同步时的文件变更比对方式 */
+  compareMethod: DeploySyncCompareMethod;
+  /** 同步时是否删除远端多余文件 */
+  deleteRemote: boolean;
+  /** 同步时是否保留时间戳 */
+  preserveTimestamps: boolean;
+  /** Deploy Profile 级复用远程任务 */
+  remoteTasks?: SavedRemoteTask[];
 }

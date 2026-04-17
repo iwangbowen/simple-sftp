@@ -1,4 +1,12 @@
-import { TransferTask, TaskStatus, CreateTransferTaskOptions, TransferPriority, ChunkProgress } from '../types/transfer.types';
+import {
+  TransferTask,
+  TaskStatus,
+  CreateTransferTaskOptions,
+  TransferPriority,
+  ChunkProgress,
+  TransferOperationKind,
+  SyncHistorySummary
+} from '../types/transfer.types';
 import { logger } from '../logger';
 
 /**
@@ -9,6 +17,7 @@ export class TransferTaskModel implements TransferTask {
   // Implementation of TransferTask interface
   id: string;
   type: 'upload' | 'download';
+  operationKind?: TransferOperationKind;
   status: TaskStatus;
   priority: TransferPriority;
 
@@ -40,6 +49,7 @@ createdAt!: Date;
   retryCount!: number;
   maxRetries!: number;
   lastError?: string;
+  syncSummary?: SyncHistorySummary;
 
   abortController?: AbortController;
 
@@ -53,6 +63,7 @@ createdAt!: Date;
   constructor(options: CreateTransferTaskOptions) {
     this.id = TransferTaskModel.generateId();
     this.type = options.type;
+    this.operationKind = options.operationKind || 'transfer';
     this.status = 'pending';
 
     this.hostId = options.hostId;
@@ -75,6 +86,7 @@ createdAt!: Date;
     this.createdAt = new Date();
     this.retryCount = 0;
     this.maxRetries = options.maxRetries || 3;
+    this.syncSummary = options.syncSummary;
   }
 
   /**
@@ -374,6 +386,7 @@ createdAt!: Date;
     return {
       id: this.id,
       type: this.type,
+      operationKind: this.operationKind,
       status: this.status,
       priority: this.priority,
       hostId: this.hostId,
@@ -394,7 +407,8 @@ createdAt!: Date;
       estimatedTime: this.estimatedTime,
       retryCount: this.retryCount,
       maxRetries: this.maxRetries,
-      lastError: this.lastError
+      lastError: this.lastError,
+      syncSummary: this.syncSummary
     };
   }
 
@@ -404,6 +418,7 @@ createdAt!: Date;
   static fromJSON(data: any): TransferTaskModel {
     const task = new TransferTaskModel({
       type: data.type,
+      operationKind: data.operationKind,
       hostId: data.hostId,
       hostName: data.hostName,
       localPath: data.localPath,
@@ -411,7 +426,8 @@ createdAt!: Date;
       fileName: data.fileName,
       fileSize: data.fileSize,
       isDirectory: data.isDirectory,
-      maxRetries: data.maxRetries
+      maxRetries: data.maxRetries,
+      syncSummary: data.syncSummary
     });
 
     task.id = data.id;
@@ -428,6 +444,8 @@ createdAt!: Date;
     task.estimatedTime = data.estimatedTime;
     task.retryCount = data.retryCount;
     task.lastError = data.lastError;
+    task.operationKind = data.operationKind || 'transfer';
+    task.syncSummary = data.syncSummary;
 
     return task;
   }

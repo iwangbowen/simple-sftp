@@ -49,12 +49,29 @@ export interface ChunkProgress {
 export type TransferDirection = 'to' | 'from';
 
 /**
+ * Operation kind for history/task presentation.
+ * Regular queue entries use "transfer"; deploy sync runs use "sync".
+ */
+export type TransferOperationKind = 'transfer' | 'sync';
+
+export interface SyncHistorySummary {
+  resultId: string;
+  profileId: string;
+  profileName: string;
+  uploaded: number;
+  deleted: number;
+  skipped: number;
+  failed: number;
+}
+
+/**
  * Transfer task interface
  */
 export interface TransferTask {
   // Identification
   id: string;                        // Unique task identifier
   type: TransferType;                // Upload or download
+  operationKind?: TransferOperationKind; // Presentation-only distinction for history/details
   status: TaskStatus;                // Current status
   priority: TransferPriority;        // Transfer priority (auto-calculated based on file size)
 
@@ -87,6 +104,7 @@ export interface TransferTask {
   retryCount: number;                // Current retry attempt
   maxRetries: number;                // Maximum retry attempts
   lastError?: string;                // Last error message
+  syncSummary?: SyncHistorySummary;  // Summary for deploy sync history items
 
   // Cancellation support
   abortController?: AbortController; // For cancelling transfers
@@ -99,12 +117,14 @@ export interface CreateTransferTaskOptions {
   type: TransferType;
   hostId: string;
   hostName: string;
+  operationKind?: TransferOperationKind;
   localPath: string;
   remotePath: string;
   fileName?: string;                 // Will be inferred from localPath if not provided
   fileSize?: number;                 // Will be determined during transfer if not provided
   isDirectory?: boolean;             // Will be determined from file stats if not provided
   maxRetries?: number;               // Defaults to 3
+  syncSummary?: SyncHistorySummary;
 }
 
 /**
@@ -172,6 +192,7 @@ export interface TransferQueueEvent {
 export interface TransferHistoryItem {
   id: string;
   type: TransferType;
+  operationKind?: TransferOperationKind;
   status: TaskStatus;
   priority: TransferPriority;
   hostName: string;
@@ -185,6 +206,7 @@ export interface TransferHistoryItem {
   duration?: number;                 // Duration in ms
   averageSpeed?: number;             // Average speed
   error?: string;                    // Error message if failed
+  syncSummary?: SyncHistorySummary;
 }
 
 /**

@@ -39,6 +39,10 @@ export class DualPanelViewProvider extends DualPanelBase implements vscode.Webvi
         return this._view?.webview;
     }
 
+    protected isRemoteWatchActive(): boolean {
+        return Boolean(this._view?.visible);
+    }
+
     /**
      * Resolve webview view when it becomes visible
      */

@@ -9,7 +9,7 @@ import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
 import { HostManager } from '../hostManager';
 import { logger } from '../logger';
-import { THUMBNAIL, getThumbnailConfig, getRecentPathsConfig } from '../constants';
+import { REMOTE_WATCH, THUMBNAIL, getThumbnailConfig, getRecentPathsConfig } from '../constants';
 import { PortForwardService } from '../services/portForwardService';
 import { RemoteBrowserService } from '../services/remoteBrowserService';
 import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
@@ -43,6 +43,9 @@ export abstract class DualPanelBase {
 
     // Thumbnail caching
     private thumbnailCache: Map<string, string> = new Map();
+    private remoteDirectoryFingerprint?: string;
+    private remoteWatchPollHandle?: NodeJS.Timeout;
+    private remoteWatchPollInFlight = false;
 
     constructor(
         protected readonly _extensionUri: vscode.Uri,
@@ -66,6 +69,8 @@ export abstract class DualPanelBase {
             // Notify webview to refresh port forwardings
             this.handlePortForwardingChanged(event);
         });
+
+        this.startRemoteDirectoryPolling();
     }
 
     /**
@@ -77,6 +82,10 @@ export abstract class DualPanelBase {
      * Abstract method to get webview (implemented differently for panel and editor)
      */
     protected abstract getWebview(): vscode.Webview | undefined;
+
+    protected isRemoteWatchActive(): boolean {
+        return true;
+    }
 
     /**
      * Public method to switch view mode
@@ -544,6 +553,7 @@ export abstract class DualPanelBase {
                     nodes: nodes
                 }
             });
+            this.remoteDirectoryFingerprint = this.createRemoteDirectoryFingerprint(nodes);
         } catch (error) {
             logger.error(`Failed to load remote directory: ${error}`);
             vscode.window.showErrorMessage(`Failed to load remote directory: ${error}`);
@@ -587,6 +597,69 @@ export abstract class DualPanelBase {
             }
             return a.name.localeCompare(b.name);
         });
+    }
+
+    protected disposeBase(): void {
+        if (this.remoteWatchPollHandle) {
+            clearInterval(this.remoteWatchPollHandle);
+            this.remoteWatchPollHandle = undefined;
+        }
+    }
+
+    private startRemoteDirectoryPolling(): void {
+        this.remoteWatchPollHandle = setInterval(() => {
+            void this.pollRemoteDirectoryChanges();
+        }, this.getRemoteWatchInterval());
+    }
+
+    private async pollRemoteDirectoryChanges(): Promise<void> {
+        if (this.remoteWatchPollInFlight || !this.shouldPollRemoteDirectory()) {
+            return;
+        }
+
+        this.remoteWatchPollInFlight = true;
+        try {
+            const nodes = await this.readRemoteDirectory(this._currentHost!, this._currentAuthConfig!, this._remoteRootPath!);
+            const nextFingerprint = this.createRemoteDirectoryFingerprint(nodes);
+            if (this.remoteDirectoryFingerprint && this.remoteDirectoryFingerprint !== nextFingerprint) {
+                this.remoteDirectoryFingerprint = nextFingerprint;
+                await this.loadRemoteDirectory(this._remoteRootPath!);
+                return;
+            }
+
+            this.remoteDirectoryFingerprint = nextFingerprint;
+        } catch (error) {
+            logger.debug(`Remote directory watch skipped: ${error}`);
+        } finally {
+            this.remoteWatchPollInFlight = false;
+        }
+    }
+
+    private shouldPollRemoteDirectory(): boolean {
+        const enabled = vscode.workspace
+            .getConfiguration('simpleSftp.remoteWatch')
+            .get<boolean>('enabled', REMOTE_WATCH.ENABLED);
+
+        return Boolean(
+            enabled &&
+            this.isRemoteWatchActive() &&
+            this._currentHost &&
+            this._currentAuthConfig &&
+            this._remoteRootPath
+        );
+    }
+
+    private getRemoteWatchInterval(): number {
+        const configured = vscode.workspace
+            .getConfiguration('simpleSftp.remoteWatch')
+            .get<number>('pollInterval', REMOTE_WATCH.POLL_INTERVAL);
+        return Math.max(2000, configured || REMOTE_WATCH.POLL_INTERVAL);
+    }
+
+    private createRemoteDirectoryFingerprint(nodes: FileNode[]): string {
+        return nodes
+            .map(node => `${node.path}|${node.isDirectory ? 'd' : 'f'}|${node.size ?? 0}|${node.modifiedTime?.getTime() ?? 0}`)
+            .join('||');
     }
 
     // ===== Transfer Operations =====

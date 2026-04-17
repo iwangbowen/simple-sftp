@@ -7,9 +7,10 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { DeployProfileService } from '../services/deployProfileService';
+import { DeploySyncService } from '../services/deploySyncService';
 import { UploadOnSaveService } from '../services/uploadOnSaveService';
 import { HostManager } from '../hostManager';
-import { DeployProfile, ConfirmBeforeUpload, ConflictStrategy } from '../types';
+import { DeployProfile, ConfirmBeforeUpload, ConflictStrategy, DeploySyncCompareMethod, DeploySyncMode } from '../types';
 import { DEPLOY_PROFILE } from '../constants';
 import { logger } from '../logger';
 import { DeployProfileTreeItem } from '../ui/deployProfileProvider';
@@ -17,6 +18,7 @@ import { DeployProfileTreeItem } from '../ui/deployProfileProvider';
 export class DeployProfileCommands {
   constructor(
     private readonly deployProfileService: DeployProfileService,
+    private readonly deploySyncService: DeploySyncService,
     private readonly uploadOnSaveService: UploadOnSaveService,
     private readonly hostManager: HostManager
   ) {}
@@ -54,6 +56,9 @@ export class DeployProfileCommands {
       vscode.commands.registerCommand('simpleSftp.toggleDeployProfile', (arg?: string | DeployProfileTreeItem) => this.toggleDeployProfile(this.resolveId(arg))),
       vscode.commands.registerCommand('simpleSftp.toggleUploadOnSave', (arg?: string | DeployProfileTreeItem) => this.toggleUploadOnSave(this.resolveId(arg))),
       vscode.commands.registerCommand('simpleSftp.uploadAllNow', (arg?: string | DeployProfileTreeItem) => this.uploadAllNow(this.resolveId(arg))),
+      vscode.commands.registerCommand('simpleSftp.previewSyncProfile', (arg?: string | DeployProfileTreeItem) => this.previewSyncProfile(this.resolveId(arg))),
+      vscode.commands.registerCommand('simpleSftp.syncProfileNow', (arg?: string | DeployProfileTreeItem) => this.syncProfileNow(this.resolveId(arg))),
+      vscode.commands.registerCommand('simpleSftp.openSyncDiff', (arg?: string | DeployProfileTreeItem) => this.openSyncDiff(this.resolveId(arg))),
       vscode.commands.registerCommand('simpleSftp.manageDeployProfiles', () => this.manageDeployProfiles())
     );
   }
@@ -152,6 +157,10 @@ export class DeployProfileCommands {
       { label: '$(remote-explorer) Remote Root', description: profile.remoteRoot, field: 'remoteRoot' },
       { label: '$(folder-opened) Local Root', description: profile.localRoot, field: 'localRoot' },
       { label: '$(cloud-upload) Upload on Save', description: profile.uploadOnSave ? 'ON' : 'OFF', field: 'uploadOnSave' },
+      { label: '$(sync) Sync Mode', description: profile.syncMode, field: 'syncMode' },
+      { label: '$(search) Compare Method', description: profile.compareMethod, field: 'compareMethod' },
+      { label: '$(trash) Delete Remote Extras', description: profile.deleteRemote ? 'ON' : 'OFF', field: 'deleteRemote' },
+      { label: '$(history) Preserve Timestamps', description: profile.preserveTimestamps ? 'ON' : 'OFF', field: 'preserveTimestamps' },
       { label: '$(list-filter) Exclude Patterns', description: profile.excludePatterns.join(', ') || '(none)', field: 'excludePatterns' },
       { label: '$(question) Confirm Before Upload', description: profile.confirmBeforeUpload, field: 'confirmBeforeUpload' },
       { label: '$(warning) Conflict Strategy', description: profile.conflictStrategy, field: 'conflictStrategy' },
@@ -193,6 +202,38 @@ export class DeployProfileCommands {
         const v = await vscode.window.showQuickPick([{ label: 'ON', value: true }, { label: 'OFF', value: false }], { title: 'Upload on Save' });
         if (!v) { return; }
         updates = { uploadOnSave: v.value };
+        break;
+      }
+      case 'syncMode': {
+        const options: Array<{ label: string; value: DeploySyncMode; description: string }> = [
+          { label: 'uploadChanged', value: 'uploadChanged', description: 'Upload changed files only' },
+          { label: 'mirrorLocal', value: 'mirrorLocal', description: 'Upload changes and optionally delete remote extras' },
+        ];
+        const v = await vscode.window.showQuickPick(options, { title: 'Sync Mode' });
+        if (!v) { return; }
+        updates = { syncMode: v.value };
+        break;
+      }
+      case 'compareMethod': {
+        const options: Array<{ label: string; value: DeploySyncCompareMethod; description: string }> = [
+          { label: 'mtime', value: 'mtime', description: 'Fast timestamp comparison' },
+          { label: 'checksum', value: 'checksum', description: 'Slower but verifies file content' },
+        ];
+        const v = await vscode.window.showQuickPick(options, { title: 'Compare Method' });
+        if (!v) { return; }
+        updates = { compareMethod: v.value };
+        break;
+      }
+      case 'deleteRemote': {
+        const v = await vscode.window.showQuickPick([{ label: 'ON', value: true }, { label: 'OFF', value: false }], { title: 'Delete Remote Extras' });
+        if (!v) { return; }
+        updates = { deleteRemote: v.value };
+        break;
+      }
+      case 'preserveTimestamps': {
+        const v = await vscode.window.showQuickPick([{ label: 'ON', value: true }, { label: 'OFF', value: false }], { title: 'Preserve Timestamps' });
+        if (!v) { return; }
+        updates = { preserveTimestamps: v.value };
         break;
       }
       case 'excludePatterns': {
@@ -260,6 +301,24 @@ export class DeployProfileCommands {
 
     await this.deployProfileService.delete(profileId);
     vscode.window.showInformationMessage(`Deleted "${profile.name}"`);
+  }
+
+  async previewSyncProfile(id?: string): Promise<void> {
+    const profileId = id ?? await this.pickProfile('Select profile to preview sync');
+    if (!profileId) { return; }
+    await this.deploySyncService.previewProfile(profileId, true);
+  }
+
+  async syncProfileNow(id?: string): Promise<void> {
+    const profileId = id ?? await this.pickProfile('Select profile to sync');
+    if (!profileId) { return; }
+    await this.deploySyncService.syncProfileNow(profileId);
+  }
+
+  async openSyncDiff(id?: string): Promise<void> {
+    const profileId = id ?? await this.pickProfile('Select profile to open sync diff');
+    if (!profileId) { return; }
+    await this.deploySyncService.openLastPreview(profileId);
   }
 
   // --------------------------------------------------------------------------

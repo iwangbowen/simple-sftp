@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { TransferQueueService } from '../services/transferQueueService';
 import { TransferHistoryService } from '../services/transferHistoryService';
+import { DeploySyncService } from '../services/deploySyncService';
 import { TransferTaskModel } from '../models/transferTask';
 import { TimeUtils } from '../timeUtils';
 import { logger } from '../logger';
@@ -21,10 +22,12 @@ export class TransferQueueCommands {
   private readonly queueService: TransferQueueService;
   private readonly historyService?: TransferHistoryService;
   private readonly extensionContext?: vscode.ExtensionContext;
+  private readonly deploySyncService?: DeploySyncService;
 
-  constructor(extensionContext?: vscode.ExtensionContext) {
+  constructor(extensionContext?: vscode.ExtensionContext, deploySyncService?: DeploySyncService) {
     this.queueService = TransferQueueService.getInstance();
     this.extensionContext = extensionContext;
+    this.deploySyncService = deploySyncService;
 
     try {
       this.historyService = TransferHistoryService.getInstance();
@@ -202,6 +205,11 @@ export class TransferQueueCommands {
     if (!task || !task.id || !task.fileName) {
       logger.error('Invalid task object provided to showTaskDetails');
       vscode.window.showErrorMessage('Invalid task: missing required properties');
+      return;
+    }
+
+    if (task.operationKind === 'sync' && task.syncSummary?.resultId && this.deploySyncService) {
+      await this.deploySyncService.openStoredResult(task.syncSummary.resultId);
       return;
     }
 
@@ -596,7 +604,7 @@ export class TransferQueueCommands {
 
     const items = history.map(task => ({
       label: task.fileName,
-      description: `${task.type} · ${task.status} · ${this.formatBytes(task.fileSize)}`,
+      description: `${task.operationKind === 'sync' ? 'sync' : task.type} · ${task.status} · ${this.formatBytes(task.fileSize)}`,
       detail: `${task.hostName} · ${new Date(task.createdAt).toLocaleString()}`,
       task
     }));

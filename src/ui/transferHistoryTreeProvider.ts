@@ -16,7 +16,8 @@ class TransferHistoryTreeItem extends vscode.TreeItem {
     this.tooltip = this.buildTooltip();
     this.description = this.buildDescription();
     this.iconPath = this.getIcon();
-    this.contextValue = `historyTask.status-${task.status}`;
+    const operationContext = task.operationKind === 'sync' ? 'sync' : 'transfer';
+    this.contextValue = `historyTask.${operationContext}.status-${task.status}`;
 
     this.command = {
       command: 'simpleSftp.showTaskDetails',
@@ -29,7 +30,7 @@ class TransferHistoryTreeItem extends vscode.TreeItem {
     const task = this.task;
     const lines = [
       `File: ${task.fileName}`,
-      `Type: ${task.type.toUpperCase()}`,
+      `Type: ${(task.operationKind === 'sync' ? 'SYNC' : task.type.toUpperCase())}`,
       `Status: ${task.status.toUpperCase()}`,
       `Host: ${task.hostName}`,
       `Local: ${task.localPath}`,
@@ -53,11 +54,21 @@ class TransferHistoryTreeItem extends vscode.TreeItem {
     const task = this.task;
     const parts: string[] = [];
 
-    // Add upload/download indicator
-    const arrow = task.type === 'upload' ? '↑' : '↓';
-    parts.push(arrow);
+    const indicator = task.operationKind === 'sync'
+      ? 'sync'
+      : (task.type === 'upload' ? '↑' : '↓');
+    parts.push(indicator);
 
-    parts.push(formatBytes(task.fileSize));
+    if (task.operationKind === 'sync' && task.syncSummary) {
+      parts.push(`up ${task.syncSummary.uploaded}`);
+      parts.push(`del ${task.syncSummary.deleted}`);
+      parts.push(`skip ${task.syncSummary.skipped}`);
+      if (task.syncSummary.failed > 0) {
+        parts.push(`fail ${task.syncSummary.failed}`);
+      }
+    } else {
+      parts.push(formatBytes(task.fileSize));
+    }
 
     if (task.completedAt) {
       // Show completion time without milliseconds
@@ -73,6 +84,13 @@ class TransferHistoryTreeItem extends vscode.TreeItem {
   }
 
   private getIcon(): vscode.ThemeIcon {
+    if (this.task.operationKind === 'sync') {
+      const syncIcon = this.task.status === 'failed'
+        ? { id: 'warning', color: new vscode.ThemeColor('testing.iconFailed') }
+        : { id: 'sync', color: this.task.status === 'completed' ? new vscode.ThemeColor('testing.iconPassed') : undefined };
+      return new vscode.ThemeIcon(syncIcon.id, syncIcon.color);
+    }
+
     const iconMap: Record<TaskStatus, { id: string; color?: vscode.ThemeColor }> = {
       pending: { id: 'circle-outline' },
       running: { id: 'sync~spin' },

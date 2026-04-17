@@ -765,6 +765,42 @@
         "icon": "$(sync)"
       },
       {
+        "command": "simpleSftp.previewSyncProfile",
+        "title": "Preview Changes",
+        "category": "Simple SFTP",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "simpleSftp.syncProfileNow",
+        "title": "Sync Now",
+        "category": "Simple SFTP",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "simpleSftp.openSyncDiff",
+        "title": "Open Sync Diff",
+        "category": "Simple SFTP",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "simpleSftp.manageRemoteTasks",
+        "title": "Manage Remote Tasks",
+        "category": "Simple SFTP",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "simpleSftp.runRemoteTask",
+        "title": "Run Remote Task",
+        "category": "Simple SFTP",
+        "icon": "$(play)"
+      },
+      {
+        "command": "simpleSftp.retryFailedSync",
+        "title": "Retry Failed Only",
+        "category": "Simple SFTP",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "simpleSftp.manageDeployProfiles",
         "title": "Manage Deploy Profiles",
         "category": "Simple SFTP",
@@ -1330,6 +1366,30 @@
         {
           "command": "simpleSftp.dualPanel.sortByModifiedTime",
           "when": "false"
+        },
+        {
+          "command": "simpleSftp.previewSyncProfile",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.syncProfileNow",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.openSyncDiff",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.manageRemoteTasks",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.runRemoteTask",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.retryFailedSync",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -1431,9 +1491,19 @@
           "group": "1_browse@2"
         },
         {
-          "command": "simpleSftp.openPortForwarding",
+          "command": "simpleSftp.runRemoteTask",
           "when": "view == simpleSftp.hosts && viewItem == host",
           "group": "1_browse@3"
+        },
+        {
+          "command": "simpleSftp.manageRemoteTasks",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "1_browse@4"
+        },
+        {
+          "command": "simpleSftp.openPortForwarding",
+          "when": "view == simpleSftp.hosts && viewItem == host",
+          "group": "1_browse@5"
         },
         {
           "command": "simpleSftp.configureHostAdvanced",
@@ -1519,6 +1589,16 @@
           "command": "simpleSftp.openSshTerminalAtBookmark",
           "when": "view == simpleSftp.hosts && viewItem == bookmark",
           "group": "1_browse@2"
+        },
+        {
+          "command": "simpleSftp.runRemoteTask",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
+          "group": "1_browse@3"
+        },
+        {
+          "command": "simpleSftp.manageRemoteTasks",
+          "when": "view == simpleSftp.hosts && viewItem == bookmark",
+          "group": "1_browse@4"
         },
         {
           "command": "simpleSftp.renameBookmark",
@@ -1626,6 +1706,11 @@
           "group": "inline@1"
         },
         {
+          "command": "simpleSftp.retryFailedSync",
+          "when": "view == simpleSftp.transferHistory && viewItem =~ /historyTask\\.sync\\.status-failed/",
+          "group": "1_control@1"
+        },
+        {
           "command": "simpleSftp.toggleDeployProfile",
           "when": "view == simpleSftp.deployProfiles",
           "group": "inline@1"
@@ -1634,6 +1719,11 @@
           "command": "simpleSftp.uploadAllNow",
           "when": "view == simpleSftp.deployProfiles && viewItem =~ /deployProfile\\.enabled/",
           "group": "inline@2"
+        },
+        {
+          "command": "simpleSftp.syncProfileNow",
+          "when": "view == simpleSftp.deployProfiles && viewItem =~ /deployProfile\\.enabled/",
+          "group": "inline@3"
         },
         {
           "command": "simpleSftp.editDeployProfile",
@@ -1649,6 +1739,31 @@
           "command": "simpleSftp.uploadAllNow",
           "when": "view == simpleSftp.deployProfiles && viewItem =~ /deployProfile\\.enabled/",
           "group": "1_manage@3"
+        },
+        {
+          "command": "simpleSftp.previewSyncProfile",
+          "when": "view == simpleSftp.deployProfiles && viewItem =~ /deployProfile\\.enabled/",
+          "group": "1_manage@4"
+        },
+        {
+          "command": "simpleSftp.openSyncDiff",
+          "when": "view == simpleSftp.deployProfiles && viewItem =~ /deployProfile\\.enabled/",
+          "group": "1_manage@5"
+        },
+        {
+          "command": "simpleSftp.syncProfileNow",
+          "when": "view == simpleSftp.deployProfiles && viewItem =~ /deployProfile\\.enabled/",
+          "group": "1_manage@6"
+        },
+        {
+          "command": "simpleSftp.runRemoteTask",
+          "when": "view == simpleSftp.deployProfiles",
+          "group": "1_manage@7"
+        },
+        {
+          "command": "simpleSftp.manageRemoteTasks",
+          "when": "view == simpleSftp.deployProfiles",
+          "group": "1_manage@8"
         },
         {
           "command": "simpleSftp.deleteDeployProfile",
@@ -1887,6 +2002,17 @@
           "items": {
             "type": "string"
           }
+        },
+        "simpleSftp.remoteWatch.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Poll remote files and the active dual-panel directory for changes. When enabled, changed remote files prompt for reload or compare."
+        },
+        "simpleSftp.remoteWatch.pollInterval": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 2000,
+          "description": "Polling interval in milliseconds for remote change detection. Lower values refresh faster but increase remote requests."
         },
         "simpleSftp.parallelTransfer.enabled": {
           "type": "boolean",

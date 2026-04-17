@@ -72,6 +72,7 @@ class DualPanelEditorSession extends DualPanelBase {
         super(extensionUri, transferQueueService, authManager, hostManager, context);
 
         this.panel.webview.html = this.getHtmlForWebview(this.panel.webview);
+        this.panel.onDidDispose(() => this.disposeBase());
     }
 
     protected postMessage(message: any): void {
@@ -80,6 +81,10 @@ class DualPanelEditorSession extends DualPanelBase {
 
     protected getWebview(): vscode.Webview | undefined {
         return this.panel.webview;
+    }
+
+    protected isRemoteWatchActive(): boolean {
+        return this.panel.visible && this.panel.active;
     }
 
     public async handleWebviewMessage(message: any): Promise<void> {
@@ -129,6 +134,7 @@ class DualPanelEditorSession extends DualPanelBase {
     }
 
     public dispose(): void {
+        this.disposeBase();
         this.panel.dispose();
     }
 }

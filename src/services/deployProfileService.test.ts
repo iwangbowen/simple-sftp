@@ -38,6 +38,11 @@ describe('DeployProfileService', () => {
       expect(d.uploadOnSave).toBe(true);
       expect(d.enabled).toBe(true);
       expect(d.scopeToWorkspace).toBe(true);
+      expect(d.syncMode).toBe('uploadChanged');
+      expect(d.compareMethod).toBe('mtime');
+      expect(d.deleteRemote).toBe(false);
+      expect(d.preserveTimestamps).toBe(false);
+      expect(d.remoteTasks).toEqual([]);
       expect(d.excludePatterns).toEqual(expect.arrayContaining(['node_modules/**']));
     });
   });
@@ -70,6 +75,31 @@ describe('DeployProfileService', () => {
         DeployProfileService.buildDefaults('a', 'h1', '/l', '/r'),
       );
       expect(service.getById(p.id)).toEqual(p);
+    });
+  });
+
+  describe('legacy normalization', () => {
+    it('hydrates new sync fields for old stored profiles', async () => {
+      await ctx.globalState.update(DEPLOY_PROFILE.STORAGE_KEY, [{
+        id: 'legacy',
+        name: 'legacy',
+        hostId: 'h1',
+        localRoot: '/local',
+        remoteRoot: '/remote',
+        uploadOnSave: true,
+        excludePatterns: ['dist/**'],
+        confirmBeforeUpload: 'never',
+        conflictStrategy: 'overwrite',
+        scopeToWorkspace: true,
+        enabled: true,
+      } as Partial<DeployProfile>]);
+
+      const profile = service.getById('legacy');
+      expect(profile?.syncMode).toBe('uploadChanged');
+      expect(profile?.compareMethod).toBe('mtime');
+      expect(profile?.deleteRemote).toBe(false);
+      expect(profile?.preserveTimestamps).toBe(false);
+      expect(profile?.remoteTasks).toEqual([]);
     });
   });
 

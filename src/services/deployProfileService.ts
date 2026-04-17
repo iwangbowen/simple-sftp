@@ -1,5 +1,12 @@
 import * as vscode from 'vscode';
-import { DeployProfile, ConfirmBeforeUpload, ConflictStrategy } from '../types';
+import {
+  DeployProfile,
+  ConfirmBeforeUpload,
+  ConflictStrategy,
+  DeploySyncMode,
+  DeploySyncCompareMethod,
+  SavedRemoteTask
+} from '../types';
 import { DEPLOY_PROFILE } from '../constants';
 import { logger } from '../logger';
 
@@ -24,10 +31,11 @@ export class DeployProfileService {
 
   /** 获取所有 Deploy Profile（全局，不限工作区） */
   getAll(): DeployProfile[] {
-    return this.context.globalState.get<DeployProfile[]>(
+    const profiles = this.context.globalState.get<DeployProfile[]>(
       DEPLOY_PROFILE.STORAGE_KEY,
       []
     );
+    return profiles.map(profile => this.normalizeProfile(profile));
   }
 
   /** 根据 ID 获取单个 Profile，不存在则返回 undefined */
@@ -117,6 +125,11 @@ export class DeployProfileService {
       conflictStrategy: DEPLOY_PROFILE.DEFAULT_CONFLICT as ConflictStrategy,
       scopeToWorkspace: true,
       enabled: true,
+      syncMode: DEPLOY_PROFILE.DEFAULT_SYNC_MODE as DeploySyncMode,
+      compareMethod: DEPLOY_PROFILE.DEFAULT_COMPARE_METHOD as DeploySyncCompareMethod,
+      deleteRemote: DEPLOY_PROFILE.DEFAULT_DELETE_REMOTE,
+      preserveTimestamps: DEPLOY_PROFILE.DEFAULT_PRESERVE_TIMESTAMPS,
+      remoteTasks: [],
     };
   }
 
@@ -125,8 +138,33 @@ export class DeployProfileService {
   // --------------------------------------------------------------------------
 
   private async save(profiles: DeployProfile[]): Promise<void> {
-    await this.context.globalState.update(DEPLOY_PROFILE.STORAGE_KEY, profiles);
+    await this.context.globalState.update(
+      DEPLOY_PROFILE.STORAGE_KEY,
+      profiles.map(profile => this.normalizeProfile(profile))
+    );
     this._onDidChangeProfiles.fire();
+  }
+
+  private normalizeProfile(profile: DeployProfile): DeployProfile {
+    return {
+      ...profile,
+      uploadOnSave: profile.uploadOnSave ?? true,
+      excludePatterns: Array.isArray(profile.excludePatterns)
+        ? profile.excludePatterns.filter((pattern): pattern is string => typeof pattern === 'string')
+        : [...DEPLOY_PROFILE.DEFAULT_EXCLUDE_PATTERNS],
+      confirmBeforeUpload: profile.confirmBeforeUpload ?? DEPLOY_PROFILE.DEFAULT_CONFIRM,
+      conflictStrategy: profile.conflictStrategy ?? DEPLOY_PROFILE.DEFAULT_CONFLICT,
+      scopeToWorkspace: profile.scopeToWorkspace ?? true,
+      enabled: profile.enabled ?? true,
+      syncMode: profile.syncMode ?? DEPLOY_PROFILE.DEFAULT_SYNC_MODE,
+      compareMethod: profile.compareMethod ?? DEPLOY_PROFILE.DEFAULT_COMPARE_METHOD,
+      deleteRemote: profile.deleteRemote ?? DEPLOY_PROFILE.DEFAULT_DELETE_REMOTE,
+      preserveTimestamps: profile.preserveTimestamps ?? DEPLOY_PROFILE.DEFAULT_PRESERVE_TIMESTAMPS,
+      remoteTasks: Array.isArray(profile.remoteTasks)
+        ? profile.remoteTasks.filter((task): task is SavedRemoteTask =>
+          Boolean(task?.id && task?.label && task?.command && task?.workingDirectory))
+        : [],
+    };
   }
 
   private generateId(): string {

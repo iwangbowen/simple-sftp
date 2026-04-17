@@ -22,6 +22,9 @@ import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
 import { migrateHostConfigsToSettings } from './utils/migration';
 import { DeployProfileService } from './services/deployProfileService';
+import { DeploySyncService } from './services/deploySyncService';
+import { RemoteTaskService } from './services/remoteTaskService';
+import { RemoteWatchService } from './services/remoteWatchService';
 import { UploadOnSaveService } from './services/uploadOnSaveService';
 import { DeployProfileProvider } from './ui/deployProfileProvider';
 import { DeployProfileCommands } from './integrations/deployProfileCommands';
@@ -196,7 +199,20 @@ export async function activate(context: vscode.ExtensionContext) {
   commandHandler.registerCommands(context);
 
   // Register transfer queue commands
-  const transferQueueCommands = new TransferQueueCommands(context);
+  // Initialize Deploy Profile service and upload-on-save listener early so other services can reuse them.
+  const deployProfileService = new DeployProfileService(context);
+  const deploySyncService = new DeploySyncService(
+    context,
+    deployProfileService,
+    hostManager,
+    authManager,
+    transferHistoryService
+  );
+  const remoteTaskService = new RemoteTaskService(hostManager, authManager, deployProfileService);
+  const remoteWatchService = new RemoteWatchService(hostManager, authManager);
+  context.subscriptions.push(remoteWatchService);
+
+  const transferQueueCommands = new TransferQueueCommands(context, deploySyncService);
 
   context.subscriptions.push(
     // Queue control commands
@@ -238,6 +254,24 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand('simpleSftp.showTaskDetails', (task) =>
       transferQueueCommands.showTaskDetails(task)
+    ),
+    vscode.commands.registerCommand('simpleSftp.openStoredSyncResult', (resultId: string) =>
+      deploySyncService.openStoredResult(resultId)
+    ),
+    vscode.commands.registerCommand('simpleSftp.retryFailedSync', (taskOrResult: any) => {
+      const resultId = typeof taskOrResult === 'string'
+        ? taskOrResult
+        : taskOrResult?.task?.syncSummary?.resultId ?? taskOrResult?.syncSummary?.resultId;
+      if (!resultId) {
+        return vscode.window.showWarningMessage('No sync result available for retry.');
+      }
+      return deploySyncService.retryFailedSync(resultId);
+    }),
+    vscode.commands.registerCommand('simpleSftp.manageRemoteTasks', (arg: any) =>
+      remoteTaskService.manageTasks(arg)
+    ),
+    vscode.commands.registerCommand('simpleSftp.runRemoteTask', (arg: any) =>
+      remoteTaskService.runTask(arg)
     ),
 
     // History commands
@@ -993,8 +1027,6 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   logger.info('Transfer queue event listeners registered');
 
-  // Initialize Deploy Profile service and Upload-on-Save listener
-  const deployProfileService = new DeployProfileService(context);
   const uploadOnSaveService = new UploadOnSaveService(
     deployProfileService,
     transferQueueService,
@@ -1016,6 +1048,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register Deploy Profile commands
   const deployProfileCommands = new DeployProfileCommands(
     deployProfileService,
+    deploySyncService,
     uploadOnSaveService,
     hostManager
   );

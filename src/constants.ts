@@ -335,6 +335,23 @@ export const DEPLOY_PROFILE = {
   /** 默认冲突策略 */
   DEFAULT_CONFLICT: 'overwrite' as const,
 
+  /** 默认同步模式 */
+  DEFAULT_SYNC_MODE: 'uploadChanged' as const,
+
+  /** 默认同步比对方式 */
+  DEFAULT_COMPARE_METHOD: 'mtime' as const,
+
+  /** 默认是否删除远端 */
+  DEFAULT_DELETE_REMOTE: false,
+
+  /** 默认是否保留时间戳 */
+  DEFAULT_PRESERVE_TIMESTAMPS: false,
+
   /** 状态栏优先级 */
   STATUS_BAR_PRIORITY: 200,
+} as const;
+
+export const REMOTE_WATCH = {
+  ENABLED: true,
+  POLL_INTERVAL: 15000,
 } as const;

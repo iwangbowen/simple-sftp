@@ -3,6 +3,7 @@ export const window = {
   showInformationMessage: vi.fn(),
   showErrorMessage: vi.fn(),
   showWarningMessage: vi.fn(),
+  withProgress: vi.fn(async (_options, task) => task({ report: vi.fn() })),
   showQuickPick: vi.fn(),
   showInputBox: vi.fn(),
   createQuickPick: vi.fn(() => ({
@@ -69,7 +70,7 @@ export const window = {
     onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
     onDidChangeViewState: vi.fn(() => ({ dispose: vi.fn() }))
   })),
-  showTextDocument: vi.fn(),
+  showTextDocument: vi.fn(async (document: any) => ({ document, viewColumn: 1 })),
   activeTextEditor: undefined,
   visibleTextEditors: [],
   onDidChangeActiveTextEditor: vi.fn(),
@@ -94,6 +95,27 @@ export const workspace = {
   onDidCloseTextDocument: vi.fn(),
   onDidOpenTextDocument: vi.fn(),
   onDidSaveTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
+  textDocuments: [],
+  openTextDocument: vi.fn(async (value?: any) => {
+    if (typeof value === 'string') {
+      return {
+        uri: { scheme: 'file', fsPath: value, path: value, toString: () => value },
+        languageId: 'plaintext',
+        isDirty: false,
+        save: vi.fn(async () => true),
+        getText: () => ''
+      };
+    }
+
+    return {
+      uri: value?.uri || { scheme: 'untitled', fsPath: '', path: '', toString: () => 'untitled:' },
+      languageId: value?.language || 'plaintext',
+      isDirty: false,
+      save: vi.fn(async () => true),
+      getText: () => value?.content || ''
+    };
+  }),
+  applyEdit: vi.fn(async () => true),
   createFileSystemWatcher: vi.fn(() => ({
     onDidCreate: vi.fn(),
     onDidChange: vi.fn(),
@@ -119,9 +141,24 @@ export const commands = {
   registerTextEditorCommand: vi.fn()
 };
 
+export const env = {
+  openExternal: vi.fn(async () => true),
+  clipboard: {
+    writeText: vi.fn(async () => undefined)
+  }
+};
+
+export const languages = {
+  setTextDocumentLanguage: vi.fn(async () => undefined)
+};
+
 export const Uri = {
   file: (path: string) => ({ fsPath: path, scheme: 'file', path }),
-  parse: (value: string) => ({ fsPath: value, scheme: 'file', path: value }),
+  parse: (value: string) => {
+    const schemeMatch = /^([a-z0-9+.-]+):/i.exec(value);
+    const scheme = schemeMatch ? schemeMatch[1] : 'file';
+    return { fsPath: value, scheme, path: value, toString: () => value };
+  },
   joinPath: (base: { fsPath?: string; path?: string }, ...paths: string[]) => {
     const segments = [base.fsPath || base.path || '', ...paths].filter(Boolean);
     const joined = segments.join('/').replace(/\/{2,}/g, '/');
@@ -148,6 +185,10 @@ export class TreeItem {
 }
 
 export class ThemeIcon {
+  constructor(public id: string) {}
+}
+
+export class ThemeColor {
   constructor(public id: string) {}
 }
 
@@ -225,6 +266,36 @@ export enum ViewColumn {
   One = 1,
   Two = 2,
   Three = 3
+}
+
+export enum ProgressLocation {
+  Notification = 15
+}
+
+export enum QuickPickItemKind {
+  Separator = -1,
+  Default = 0
+}
+
+export class Position {
+  constructor(public line: number, public character: number) {}
+}
+
+export class WorkspaceEdit {
+  insert = vi.fn();
+  replace = vi.fn();
+}
+
+export class FileSystemError extends Error {
+  static FileNotFound(uri?: any) {
+    return new FileSystemError(`File not found: ${uri?.path ?? ''}`);
+  }
+  static FileExists(uri?: any) {
+    return new FileSystemError(`File exists: ${uri?.path ?? ''}`);
+  }
+  static Unavailable(uri?: any) {
+    return new FileSystemError(`Unavailable: ${uri?.path ?? ''}`);
+  }
 }
 
 export enum FileType {
@@ -321,6 +392,7 @@ export default {
   TreeItemCollapsibleState,
   TreeItem,
   ThemeIcon,
+  ThemeColor,
   EventEmitter,
   Disposable,
   ExtensionContext,
@@ -332,7 +404,14 @@ export default {
   TestMessage,
   ExtensionMode,
   ViewColumn,
+  ProgressLocation,
+  QuickPickItemKind,
+  Position,
+  WorkspaceEdit,
+  FileSystemError,
   DataTransferItem,
   DataTransfer,
-  debug
+  debug,
+  env,
+  languages
 };

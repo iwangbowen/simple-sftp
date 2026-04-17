@@ -9,7 +9,7 @@ import { SshConnectionPool } from './sshConnectionPool';
 import { logger } from './logger';
 import { PARALLEL_TRANSFER, getDeltaSyncConfig, getParallelTransferConfig } from './constants';
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
-import { DeltaSyncManager } from './services/deltaSyncManager';
+import { DeltaSyncManager, SyncOptions, SyncPreview, SyncStats } from './services/deltaSyncManager';
 import { AttributePreservingTransfer } from './attributePreservingTransfer';
 import { establishMultiHopConnection, addAuthToConnectConfig } from './utils/jumpHostHelper';
 
@@ -218,6 +218,36 @@ export class SshConnectionManager {
         mtime: stats.mtime || stats.modifyTime || Date.now()
       };
     });
+  }
+
+  /**
+   * Preview a directory sync without changing remote state.
+   */
+  static async previewDirectorySync(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    localPath: string,
+    remotePath: string,
+    options: SyncOptions = {}
+  ): Promise<SyncPreview> {
+    return this.withConnection(config, authConfig, async (sftp) =>
+      DeltaSyncManager.previewDirectorySync(sftp, localPath, remotePath, options)
+    );
+  }
+
+  /**
+   * Execute a directory sync using explicit options.
+   */
+  static async runDirectorySync(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    localPath: string,
+    remotePath: string,
+    options: SyncOptions = {}
+  ): Promise<SyncStats> {
+    return this.withConnection(config, authConfig, async (sftp) =>
+      DeltaSyncManager.syncDirectory(sftp, localPath, remotePath, options)
+    );
   }
 
   /**
