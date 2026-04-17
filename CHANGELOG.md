@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.7.5 - 2026-04-17
+
+- **Enhancement**: "Export All to SSH Config" command now shows an "Open ~/.ssh/config" button in the notification; clicking it opens (or auto-creates) `~/.ssh/config` in a side-by-side editor for easy copy-paste.
+
 ## 6.7.0 - 2026-04-17
 
 - **Feature**: 新增远程任务管理功能，支持任务的添加、编辑、删除和执行（通过 VS Code 界面管理远程 SSH 命令）。
