@@ -1,5 +1,12 @@
 # Change Log
 
+## 6.7.0 - 2026-04-17
+
+- **Feature**: 新增远程任务管理功能，支持任务的添加、编辑、删除和执行（通过 VS Code 界面管理远程 SSH 命令）。
+- **Feature**: 实现远程文件变化监视，文件发生变更时自动提示用户处理。
+- **Enhancement**: 增强 SSH 连接管理，支持目录同步预览与执行（基于 DeltaSyncManager）。
+- **Enhancement**: 更新部署配置及传输历史视图，展示任务状态与同步结果。
+
 ## 6.6.5 - 2026-04-17
 
 - **Feature**: Dual-panel browser now supports opening a path in a new editor tab via a dedicated command.
