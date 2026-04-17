@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.6.5 - 2026-04-17
+
+- **Feature**: Dual-panel browser now supports opening a path in a new editor tab via a dedicated command.
+
 ## 6.6.0 - 2026-04-17
 
 - **Feature**: Add custom notes to hosts — edit via QuickPick "Edit Notes" or the advanced host form. Notes appear in the host tooltip.
