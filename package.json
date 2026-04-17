@@ -661,6 +661,11 @@
         "icon": "$(search)"
       },
       {
+        "command": "simpleSftp.dualPanel.openInNewTab",
+        "title": "Open in New Tab",
+        "category": "Simple SFTP"
+      },
+      {
         "command": "simpleSftp.dualPanel.openInTerminal",
         "title": "Open in Terminal",
         "category": "Simple SFTP",
@@ -912,6 +917,11 @@
           "command": "simpleSftp.dualPanel.remoteMore.downloadSelected",
           "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteMore'",
           "group": "1_actions@2"
+        },
+        {
+          "command": "simpleSftp.dualPanel.openInNewTab",
+          "when": "webviewId == 'simpleSftp.dualPanelBrowser' && webviewSection == 'remoteMore'",
+          "group": "1_actions@2.5"
         },
         {
           "command": "simpleSftp.dualPanel.remoteMore.portForwarding",
@@ -1299,6 +1309,10 @@
         },
         {
           "command": "simpleSftp.dualPanel.remoteMore.searchFiles",
+          "when": "false"
+        },
+        {
+          "command": "simpleSftp.dualPanel.openInNewTab",
           "when": "false"
         },
         {

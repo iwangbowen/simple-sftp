@@ -119,6 +119,8 @@
             currentRemotePath = remotePathElement.textContent || '';
         }
 
+        syncMoreButtonContext();
+
         initializeEventListeners();
         initializeResizer();
         initializeRubberBandSelection();
@@ -171,6 +173,7 @@
         // More buttons - trigger context menu on click
         document.getElementById('local-more-toggle')?.addEventListener('click', (e) => {
             e.preventDefault();
+            syncMoreButtonContext();
             e.target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
             e.stopPropagation();
         });
@@ -192,6 +195,7 @@
             } else {
                 // Open context menu
                 e.preventDefault();
+                syncMoreButtonContext();
                 e.target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
                 e.stopPropagation();
             }
@@ -321,6 +325,29 @@
                 selectAllInPanel(lastActivePanel);
             }
         });
+    }
+
+    function syncMoreButtonContext() {
+        const localMoreToggle = document.getElementById('local-more-toggle');
+        if (localMoreToggle) {
+            localMoreToggle.dataset.vscodeContext = JSON.stringify({
+                webviewSection: 'localMore',
+                panel: 'local',
+                currentPath: currentLocalPath,
+                preventDefaultContextMenuItems: true
+            });
+        }
+
+        const remoteMoreToggle = document.getElementById('more-toggle');
+        if (remoteMoreToggle) {
+            remoteMoreToggle.dataset.vscodeContext = JSON.stringify({
+                webviewSection: 'remoteMore',
+                panel: 'remote',
+                currentPath: currentRemotePath,
+                hostId: currentHostId,
+                preventDefaultContextMenuItems: true
+            });
+        }
     }
 
     // ===== Panel Resizer =====
@@ -4900,17 +4927,22 @@
 
         switch (message.command) {
             case 'showHostSelection':
+                currentHostId = '';
+                syncMoreButtonContext();
                 renderHostSelection(message.hosts);
                 break;
 
             case 'updateLocalTree':
                 currentLocalPath = message.data.path;
+                syncMoreButtonContext();
                 renderBreadcrumb('local', message.data.path);
                 renderFileTree('local', message.data.nodes);
                 break;
 
             case 'updateRemoteTree':
+                currentHostId = message.data.hostId || currentHostId;
                 currentRemotePath = message.data.path;
+                syncMoreButtonContext();
                 addToRecentPaths(message.data.path);
                 renderBreadcrumb('remote', message.data.path);
                 renderFileTree('remote', message.data.nodes);

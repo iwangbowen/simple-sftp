@@ -140,6 +140,7 @@ class DualPanelEditorSession extends DualPanelBase {
 export class DualPanelEditorManager {
     private readonly sessions: Map<string, DualPanelEditorSession> = new Map();
     private activeSession?: DualPanelEditorSession;
+    private newTabSequence = 0;
 
     constructor(
         private readonly extensionUri: vscode.Uri,
@@ -226,6 +227,13 @@ export class DualPanelEditorManager {
         });
 
         await session.openForHost(host, initialPath);
+    }
+
+    public async openInNewTab(host: HostConfig, initialPath?: string): Promise<void> {
+        const normalizedPath = normalizeContextPath(initialPath);
+        const contextBase = normalizedPath ? `path:${normalizedPath}` : 'root';
+        const contextKey = `new-tab:${contextBase}:${this.newTabSequence++}`;
+        await this.openForHost(host, normalizedPath, { contextKey });
     }
 
     public async switchViewMode(panel: string, mode: 'list' | 'grid'): Promise<void> {

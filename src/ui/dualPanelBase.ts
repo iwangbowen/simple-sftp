@@ -539,6 +539,7 @@ export abstract class DualPanelBase {
             this.postMessage({
                 command: 'updateRemoteTree',
                 data: {
+                    hostId: this._currentHost.id,
                     path: dirPath,
                     nodes: nodes
                 }

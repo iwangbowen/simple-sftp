@@ -95,4 +95,19 @@ describe('DualPanelEditorManager', () => {
     expect(panel.reveal).toHaveBeenCalledTimes(1);
     expect(DualPanelBase.prototype.openForHost).toHaveBeenCalledTimes(2);
   });
+
+  it('opens a fresh tab for the same path when explicitly requested', async () => {
+    const manager = new DualPanelEditorManager(
+      vscode.Uri.file('/extension'),
+      transferQueueService,
+      authManager,
+      hostManager
+    );
+
+    await manager.openInNewTab(host, '/srv/app');
+    await manager.openInNewTab(host, '/srv/app');
+
+    expect(vscode.window.createWebviewPanel).toHaveBeenCalledTimes(2);
+    expect(manager.getPanelCount()).toBe(2);
+  });
 });

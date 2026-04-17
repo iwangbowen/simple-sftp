@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
@@ -726,6 +727,28 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         dualPanelProvider.postMessageToWebview(messageData);
       }
+    }),
+    vscode.commands.registerCommand('simpleSftp.dualPanel.openInNewTab', async (args) => {
+      const hostId = args?.hostId;
+      if (!hostId) {
+        vscode.window.showErrorMessage('No remote host available for opening a new tab');
+        return;
+      }
+
+      const host = hostManager.getHostsSync().find(h => h.id === hostId);
+      if (!host) {
+        vscode.window.showErrorMessage('Remote host not found');
+        return;
+      }
+
+      const targetPath = args?.currentPath
+        || (args?.filePath
+          ? (args?.isDirectory ? args.filePath : path.posix.dirname(args.filePath))
+          : undefined)
+        || host.defaultRemotePath
+        || '/';
+
+      await dualPanelEditorManager.openInNewTab(host, targetPath);
     }),
     // Sort commands for dual panel browser
     vscode.commands.registerCommand('simpleSftp.dualPanel.sortByName', async (args) => {
