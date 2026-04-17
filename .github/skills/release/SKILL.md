@@ -1,12 +1,12 @@
 ---
 name: release
 description: "Guide a full version release of the simple-sftp VS Code extension. Use when: releasing a new version, bumping version number, tagging a release, publishing to marketplace, creating a GitHub release, writing changelog, or running the release workflow."
-argument-hint: "要发布的版本号，例如 6.2.0"
+argument-hint: "（可选）要发布的版本号，例如 6.2.0。若不提供，则自动根据 CHANGELOG.md 和新增功能推断"
 ---
 
 # 发布 — simple-sftp VS Code 扩展
 
-完整发布流程：更新版本号 → 更新日志 → 提交 → 打 Tag → CI/CD 自动发布。
+完整发布流程：自动推断版本号 → 更新日志 → 提交 → 打 Tag → CI/CD 自动发布。
 
 ## 前置条件
 
@@ -18,6 +18,37 @@ argument-hint: "要发布的版本号，例如 6.2.0"
 
 ## 第一步 — 确定版本号
 
+### 若调用时已提供版本号参数
+
+直接使用该参数作为新版本号，跳过自动推断。
+
+### 若调用时未提供版本号参数（自动推断）
+
+**1. 读取当前版本**：从 `package.json` → `"version"` 字段获取当前版本号（格式 `x.y.z`）。
+
+**2. 分析 `git diff`**：执行以下命令，获取自上次 tag 以来的所有提交变更内容：
+
+```bash
+git log $(git describe --tags --abbrev=0)..HEAD --oneline
+```
+
+同时读取 `CHANGELOG.md` 顶部未发布的条目（若存在），以及当前工作区中已修改但尚未提交的文件列表（`git status`）。
+
+**3. 按以下规则推断递增位**：
+
+| 信号 | 递增位 | 说明 |
+|---|---|---|
+| 提交信息含 `BREAKING CHANGE` 或 `!:` | **major** `X.0.0` | 破坏性变更 |
+| 提交信息含 `feat:` / `feature:` 或改动属于新功能（新命令、新配置项、新 UI） | **minor** `x.Y.0` | 新功能（向后兼容） |
+| 提交信息含 `fix:` / `chore:` / `refactor:` / `docs:` / `style:` / `perf:` 或仅为 bug 修复、微调、优化 | **patch** `x.y.Z` | 修复 / 微调 |
+
+当同一次发布同时包含多种类型时，取优先级最高的（major > minor > patch）。
+
+**4. 推断后向用户展示**：告知推断出的版本号及理由，例如：
+> 当前版本 `6.7.5`，检测到新功能（Export SSH Config 命令增强），推断为 **minor** 升级 → 新版本 `6.8.0`。
+
+若推断结果不符合预期，用户可在此时提供覆盖值。
+
 遵循[语义化版本](https://semver.org/lang/zh-CN/)规则：
 
 | 变更类型 | 递增位 | 示例 |
@@ -25,8 +56,6 @@ argument-hint: "要发布的版本号，例如 6.2.0"
 | Bug 修复 / 微调 | **patch** `x.y.Z` | 6.1.5 → 6.1.6 |
 | 新功能（向后兼容） | **minor** `x.Y.0` | 6.1.5 → 6.2.0 |
 | 破坏性变更 | **major** `X.0.0` | 6.1.5 → 7.0.0 |
-
-当前版本号在 `package.json` → `"version"` 字段。
 
 ---
 
@@ -44,7 +73,7 @@ argument-hint: "要发布的版本号，例如 6.2.0"
 npm install --package-lock-only
 ```
 
-> **为什么需要这一步？**  
+> **为什么需要这一步？**
 > `package-lock.json` 顶部也记录了 `"version"` 字段。若两者不一致，CI 中的 `npm ci` 可能警告或行为异常，且 `vsce package` 打包后扩展信息也会不匹配。
 
 在提交时，将 `package-lock.json` 一并纳入：
