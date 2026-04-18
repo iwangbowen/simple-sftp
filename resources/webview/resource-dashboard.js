@@ -33,6 +33,11 @@
   let ioSortColumn = 'utilization';
   let ioSortDir = 'desc';
 
+  // Sparkline history
+  let cpuHistory = [];
+  let memHistory = [];
+  const MAX_SPARKLINE_POINTS = 20;
+
   // Auto-refresh state
   let autoRefreshInterval = null;
   let refreshIntervalSeconds = 20;
@@ -247,6 +252,85 @@
 
     // Update disk summary for overview tab
     updateDiskSummary(data.disk);
+
+    // Update metric cards and sparklines
+    updateMetricCards(data);
+
+    // Refresh top processes in overview (in case processes were already loaded)
+    updateOverviewTopProcesses();
+  }
+
+  function updateMetricCards(data) {
+    const cpuUsage = data.cpu.usage;
+    const metricCpuValue = document.getElementById('metricCpuValue');
+    metricCpuValue.textContent = `${cpuUsage.toFixed(1)}%`;
+    metricCpuValue.className = `metric-card-value ${getUsageClass(cpuUsage)}`;
+    cpuHistory.push(cpuUsage);
+    if (cpuHistory.length > MAX_SPARKLINE_POINTS) { cpuHistory.shift(); }
+    renderSparkline('cpuSparkline', cpuHistory, 'cpu-sparkline-line');
+
+    const memUsage = data.memory.usage;
+    const metricMemValue = document.getElementById('metricMemValue');
+    metricMemValue.textContent = `${memUsage.toFixed(1)}%`;
+    metricMemValue.className = `metric-card-value ${getUsageClass(memUsage)}`;
+    memHistory.push(memUsage);
+    if (memHistory.length > MAX_SPARKLINE_POINTS) { memHistory.shift(); }
+    renderSparkline('memSparkline', memHistory, 'mem-sparkline-line');
+
+    if (data.disk && data.disk.length > 0) {
+      const primaryDisk = data.disk.reduce((a, b) => (a.usage > b.usage ? a : b));
+      const diskUsage = primaryDisk.usage;
+      const metricDiskValue = document.getElementById('metricDiskValue');
+      metricDiskValue.textContent = `${diskUsage.toFixed(1)}%`;
+      metricDiskValue.className = `metric-card-value ${getUsageClass(diskUsage)}`;
+      const diskBar = document.getElementById('metricDiskBar');
+      diskBar.style.width = `${Math.min(diskUsage, 100)}%`;
+      diskBar.className = `metric-disk-bar-fill ${getUsageClass(diskUsage)}`;
+    }
+  }
+
+  function getUsageClass(pct) {
+    if (pct >= 80) { return 'usage-danger'; }
+    if (pct >= 60) { return 'usage-warn'; }
+    return 'usage-normal';
+  }
+
+  function renderSparkline(svgId, history, lineClass) {
+    const svg = document.getElementById(svgId);
+    if (!svg || history.length < 2) { return; }
+    const W = 100;
+    const H = 30;
+    const maxVal = Math.max(...history, 1);
+    const points = history.map((val, i) => {
+      const x = ((i / (history.length - 1)) * W).toFixed(1);
+      const y = (H - (val / maxVal) * H * 0.9).toFixed(1);
+      return `${x},${y}`;
+    }).join(' ');
+    svg.innerHTML = `<polyline class="${lineClass}" points="${points}"/>`;
+  }
+
+  function updateOverviewTopProcesses() {
+    const tbody = document.getElementById('overviewTopProcesses');
+    if (!tbody) { return; }
+    if (currentProcesses.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No data — visit Processes tab to load</td></tr>';
+      return;
+    }
+    const top5 = [...currentProcesses]
+      .sort((a, b) => (Number.parseFloat(b.cpu) || 0) - (Number.parseFloat(a.cpu) || 0))
+      .slice(0, 5);
+    tbody.innerHTML = '';
+    top5.forEach(proc => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${proc.pid}</td>
+        <td>${escapeHtml(proc.user)}</td>
+        <td>${proc.cpu}%</td>
+        <td>${proc.mem}%</td>
+        <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(proc.command)}</td>
+      `;
+      tbody.appendChild(row);
+    });
   }
 
   function updateHealthSummary(health) {
@@ -294,6 +378,7 @@
 
     currentProcesses = processes || [];
     renderProcessTable();
+    updateOverviewTopProcesses();
   }
 
   function renderProcessTable() {

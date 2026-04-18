@@ -362,6 +362,34 @@ export class ResourceDashboardProvider {
                 </div>
               </div>
 
+                <!-- Metric Cards -->
+                <div class="metric-cards">
+                  <div class="metric-card" id="metricCpuCard">
+                    <div class="metric-card-header">
+                      <i class="codicon codicon-dashboard"></i>
+                      <span class="metric-card-title">CPU</span>
+                    </div>
+                    <div class="metric-card-value usage-normal" id="metricCpuValue">—</div>
+                    <svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" id="cpuSparkline"></svg>
+                  </div>
+                  <div class="metric-card" id="metricMemCard">
+                    <div class="metric-card-header">
+                      <i class="codicon codicon-server-process"></i>
+                      <span class="metric-card-title">Memory</span>
+                    </div>
+                    <div class="metric-card-value usage-normal" id="metricMemValue">—</div>
+                    <svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" id="memSparkline"></svg>
+                  </div>
+                  <div class="metric-card" id="metricDiskCard">
+                    <div class="metric-card-header">
+                      <i class="codicon codicon-database"></i>
+                      <span class="metric-card-title">Disk (max)</span>
+                    </div>
+                    <div class="metric-card-value usage-normal" id="metricDiskValue">—</div>
+                    <div class="metric-disk-bar-bg"><div class="metric-disk-bar-fill usage-normal" id="metricDiskBar" style="width:0%"></div></div>
+                  </div>
+                </div>
+
                 <!-- System Info -->
                 <div class="section">
                     <div class="section-header">
@@ -462,6 +490,30 @@ export class ResourceDashboardProvider {
                     </div>
                     <div class="section-content">
                         <div id="diskSummary"></div>
+                    </div>
+                </div>
+
+                <!-- Top 5 Processes (Overview) -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-server-process"></i>
+                        <span>Top 5 Processes by CPU</span>
+                    </div>
+                    <div class="section-content">
+                        <table class="process-mini-table">
+                            <thead>
+                                <tr>
+                                    <th>PID</th>
+                                    <th>User</th>
+                                    <th>CPU %</th>
+                                    <th>MEM %</th>
+                                    <th>Command</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overviewTopProcesses">
+                                <tr><td colspan="5" class="empty-state">No data — visit Processes tab to load</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
