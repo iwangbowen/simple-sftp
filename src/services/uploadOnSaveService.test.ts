@@ -32,6 +32,10 @@ function buildProfile(overrides: Partial<DeployProfile> = {}): DeployProfile {
     conflictStrategy: 'overwrite',
     scopeToWorkspace: true,
     enabled: true,
+    syncMode: 'uploadChanged',
+    compareMethod: 'mtime',
+    deleteRemote: false,
+    preserveTimestamps: false,
     ...overrides,
   };
 }

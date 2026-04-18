@@ -99,7 +99,7 @@ export class DeltaSyncManager {
       const remoteInfo: FileInfo = {
         path: remotePath,
         size: remoteStat.size,
-        mtime: (remoteStat.modifyTime || remoteStat.mtime || 0) * 1000,
+        mtime: (remoteStat.modifyTime || (remoteStat as { mtime?: number }).mtime || 0) * 1000,
         isDirectory: false
       };
 
@@ -216,7 +216,7 @@ export class DeltaSyncManager {
             files.set(relativePath, {
               path: fullPath,
               size: item.size || 0,
-              mtime: (item.modifyTime || item.mtime || 0) * 1000,
+              mtime: (item.modifyTime || (item as { mtime?: number }).mtime || 0) * 1000,
               isDirectory: false
             });
           }
