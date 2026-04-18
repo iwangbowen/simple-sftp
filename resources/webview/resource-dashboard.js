@@ -57,8 +57,33 @@
       }
     });
 
+    // Show loading state while fetching tab data
+    showTabLoading(tabName);
+
     // Request data for the active tab
     requestTabData(tabName);
+  }
+
+  function showTabLoading(tabName) {
+    const loadingRow = `<tr class="tab-loading-row"><td colspan="99"><span class="tab-loading-spinner"></span>Loading...</td></tr>`;
+    const loadingDiv = `<div class="tab-loading-div"><span class="tab-loading-spinner"></span>Loading...</div>`;
+
+    switch (tabName) {
+      case 'processes':
+        document.getElementById('processList').innerHTML = loadingRow;
+        break;
+      case 'network':
+        document.getElementById('networkList').innerHTML = loadingRow;
+        break;
+      case 'io':
+        document.getElementById('ioList').innerHTML = loadingRow;
+        break;
+      case 'disk': {
+        const diskList = document.getElementById('diskList');
+        if (diskList) { diskList.innerHTML = loadingDiv; }
+        break;
+      }
+    }
   }
 
   function requestTabData(tabName) {
@@ -522,7 +547,14 @@
       return 'just now';
     }
 
-    return date.toLocaleTimeString();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 
   function capitalize(value) {
