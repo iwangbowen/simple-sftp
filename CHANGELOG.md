@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.8.0 - 2026-04-18
+
+- **Feature**: 最近路径记录支持单条删除 — 鼠标悬停时显示删除按钮，点击可移除单条访问记录，无需清空全部。
+
 ## 6.7.5 - 2026-04-17
 
 - **Enhancement**: "Export All to SSH Config" command now shows an "Open ~/.ssh/config" button in the notification; clicking it opens (or auto-creates) `~/.ssh/config` in a side-by-side editor for easy copy-paste.
