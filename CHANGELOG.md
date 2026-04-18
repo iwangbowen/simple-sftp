@@ -2,10 +2,10 @@
 
 ## 6.9.0 - 2026-04-18
 
-- **Feature**: Resource Dashboard — 新增 CPU / 内存 / 磁盘指标卡片（含历史折线图）及 Overview Top 5 进程快照。
-- **Feature**: Resource Dashboard — Processes / Network / I/O 表格支持点击列标题排序。
-- **Enhancement**: 切换标签页时显示加载动画，替代空数据闪烁。
-- **Enhancement**: 健康状态更新时间改为 `YYYY-MM-DD HH:mm:ss` 格式。
+- **Feature**: Resource Dashboard — added CPU / Memory / Disk metric cards with sparkline history charts and Top 5 CPU processes snapshot in Overview tab.
+- **Feature**: Resource Dashboard — Processes, Network, and I/O tables support clickable column sorting.
+- **Enhancement**: Tab switches now show a loading spinner instead of a "No data" flash.
+- **Enhancement**: Health summary timestamp now uses `YYYY-MM-DD HH:mm:ss` format.
 
 ## 6.8.0 - 2026-04-18
 
