@@ -18,6 +18,11 @@
   // Current active tab
   let activeTab = 'overview';
 
+  // Process sort state
+  let currentProcesses = [];
+  let processSortColumn = 'cpu';
+  let processSortDir = 'desc';
+
   // Auto-refresh state
   let autoRefreshInterval = null;
   let refreshIntervalSeconds = 20;
@@ -277,12 +282,42 @@
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
 
+    currentProcesses = processes || [];
+    renderProcessTable();
+  }
+
+  function renderProcessTable() {
     const processList = document.getElementById('processList');
 
-    if (!processes || processes.length === 0) {
+    if (currentProcesses.length === 0) {
       processList.innerHTML = '<tr><td colspan="9" class="empty-state">No process data available</td></tr>';
       return;
     }
+
+    // Sort
+    const numericCols = new Set(['pid', 'cpu', 'mem', 'rss', 'vsz']);
+    const sorted = [...currentProcesses].sort((a, b) => {
+      let aVal = a[processSortColumn];
+      let bVal = b[processSortColumn];
+      if (numericCols.has(processSortColumn)) {
+        aVal = Number.parseFloat(aVal) || 0;
+        bVal = Number.parseFloat(bVal) || 0;
+      } else {
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+      }
+      if (aVal < bVal) { return processSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return processSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+
+    // Update header sort indicators
+    document.querySelectorAll('.process-table th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === processSortColumn) {
+        th.classList.add(processSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
 
     // Smooth update: fade out, update, fade in
     processList.style.opacity = '0.4';
@@ -290,7 +325,7 @@
     setTimeout(() => {
       processList.innerHTML = '';
 
-      processes.forEach(proc => {
+      sorted.forEach(proc => {
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${proc.pid}</td>
@@ -576,4 +611,18 @@
     div.textContent = text;
     return div.innerHTML;
   }
+
+  // Process table header sort click handlers
+  document.querySelectorAll('.process-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (processSortColumn === col) {
+        processSortDir = processSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        processSortColumn = col;
+        processSortDir = col === 'cpu' || col === 'mem' ? 'desc' : 'asc';
+      }
+      renderProcessTable();
+    });
+  });
 })();

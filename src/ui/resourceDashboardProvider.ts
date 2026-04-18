@@ -477,15 +477,15 @@ export class ResourceDashboardProvider {
                         <table class="process-table">
                             <thead>
                                 <tr>
-                                    <th>PID</th>
-                                    <th>User</th>
-                                  <th>State</th>
-                                    <th>CPU %</th>
-                                    <th>MEM %</th>
-                                  <th>RSS</th>
-                                  <th>VSZ</th>
-                                  <th>Time</th>
-                                    <th>Command</th>
+                                    <th data-sort="pid">PID</th>
+                                    <th data-sort="user">User</th>
+                                  <th data-sort="stat">State</th>
+                                    <th data-sort="cpu">CPU %</th>
+                                    <th data-sort="mem">MEM %</th>
+                                  <th data-sort="rss">RSS</th>
+                                  <th data-sort="vsz">VSZ</th>
+                                  <th data-sort="time">Time</th>
+                                    <th data-sort="command">Command</th>
                                 </tr>
                             </thead>
                             <tbody id="processList">
