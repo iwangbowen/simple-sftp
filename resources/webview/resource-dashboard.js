@@ -258,6 +258,11 @@
 
     // Refresh top processes in overview (in case processes were already loaded)
     updateOverviewTopProcesses();
+
+    // Pre-fetch process data for overview top 5 if not yet loaded
+    if (currentProcesses.length === 0) {
+      vscode.postMessage({ type: 'refresh', tab: 'processes' });
+    }
   }
 
   function updateMetricCards(data) {
