@@ -36,6 +36,8 @@
   // Sparkline history
   let cpuHistory = [];
   let memHistory = [];
+  let diskReadHistory = [];
+  let diskWriteHistory = [];
   const MAX_SPARKLINE_POINTS = 20;
 
   // Auto-refresh state
@@ -273,6 +275,9 @@
     cpuHistory.push(cpuUsage);
     if (cpuHistory.length > MAX_SPARKLINE_POINTS) { cpuHistory.shift(); }
     renderSparkline('cpuSparkline', cpuHistory, 'cpu-sparkline-line');
+    if (document.getElementById('metricCpuCard')?.classList.contains('expanded')) {
+      renderDetailChart('cpuDetailChart', cpuHistory, 'cpu-sparkline-line', 'cpuDetailMin', 'cpuDetailAvg', 'cpuDetailMax', '%');
+    }
 
     const memUsage = data.memory.usage;
     const metricMemValue = document.getElementById('metricMemValue');
@@ -281,6 +286,9 @@
     memHistory.push(memUsage);
     if (memHistory.length > MAX_SPARKLINE_POINTS) { memHistory.shift(); }
     renderSparkline('memSparkline', memHistory, 'mem-sparkline-line');
+    if (document.getElementById('metricMemCard')?.classList.contains('expanded')) {
+      renderDetailChart('memDetailChart', memHistory, 'mem-sparkline-line', 'memDetailMin', 'memDetailAvg', 'memDetailMax', '%');
+    }
 
     if (data.disk && data.disk.length > 0) {
       const primaryDisk = data.disk.reduce((a, b) => (a.usage > b.usage ? a : b));
@@ -312,6 +320,59 @@
       return `${x},${y}`;
     }).join(' ');
     svg.innerHTML = `<polyline class="${lineClass}" points="${points}"/>`;
+  }
+
+  function renderDetailChart(svgId, history, lineClass, minId, avgId, maxId, unit) {
+    const svg = document.getElementById(svgId);
+    if (!svg || history.length < 2) { return; }
+    const W = 100;
+    const H = 50;
+    const maxVal = Math.max(...history, 1);
+    const points = history.map((val, i) => {
+      const x = ((i / (history.length - 1)) * W).toFixed(1);
+      const y = (H - (val / maxVal) * H * 0.9).toFixed(1);
+      return `${x},${y}`;
+    }).join(' ');
+    const gridLines = [0.25, 0.5, 0.75].map(pct => {
+      const y = (H - pct * H * 0.9).toFixed(1);
+      return `<line x1="0" y1="${y}" x2="100" y2="${y}" class="detail-grid-line"/>`;
+    }).join('');
+    svg.innerHTML = `${gridLines}<polyline class="${lineClass}" points="${points}"/>`;
+    const min = Math.min(...history);
+    const max = Math.max(...history);
+    const avg = history.reduce((s, v) => s + v, 0) / history.length;
+    const minEl = document.getElementById(minId);
+    const avgEl = document.getElementById(avgId);
+    const maxEl = document.getElementById(maxId);
+    if (minEl) { minEl.textContent = `Min ${min.toFixed(1)}${unit}`; }
+    if (avgEl) { avgEl.textContent = `Avg ${avg.toFixed(1)}${unit}`; }
+    if (maxEl) { maxEl.textContent = `Max ${max.toFixed(1)}${unit}`; }
+  }
+
+  function renderDualChart(svgId, history1, history2, lineClass1, lineClass2, H, showGrid) {
+    const svg = document.getElementById(svgId);
+    if (!svg) { return; }
+    const len = Math.max(history1.length, history2.length);
+    if (len < 2) { return; }
+    const W = 100;
+    const maxVal = Math.max(...history1, ...history2, 1);
+    function padAndMap(hist) {
+      const padded = hist.length < len ? [...new Array(len - hist.length).fill(0), ...hist] : hist;
+      return padded.map((val, i) => {
+        const x = ((i / (len - 1)) * W).toFixed(1);
+        const y = (H - (val / maxVal) * H * 0.9).toFixed(1);
+        return `${x},${y}`;
+      }).join(' ');
+    }
+    let content = '';
+    if (showGrid) {
+      content = [0.25, 0.5, 0.75].map(pct => {
+        const y = (H - pct * H * 0.9).toFixed(1);
+        return `<line x1="0" y1="${y}" x2="100" y2="${y}" class="detail-grid-line"/>`;
+      }).join('');
+    }
+    content += `<polyline class="${lineClass1}" points="${padAndMap(history1)}"/><polyline class="${lineClass2}" points="${padAndMap(history2)}"/>`;
+    svg.innerHTML = content;
   }
 
   function updateOverviewTopProcesses() {
@@ -521,6 +582,28 @@
 
     currentIODevices = devices || [];
     renderIOTable();
+
+    // Update Disk I/O metric card
+    const totalRead = currentIODevices.reduce((sum, d) => sum + (d.readKBps || 0), 0);
+    const totalWrite = currentIODevices.reduce((sum, d) => sum + (d.writeKBps || 0), 0);
+    diskReadHistory.push(totalRead);
+    diskWriteHistory.push(totalWrite);
+    if (diskReadHistory.length > MAX_SPARKLINE_POINTS) { diskReadHistory.shift(); }
+    if (diskWriteHistory.length > MAX_SPARKLINE_POINTS) { diskWriteHistory.shift(); }
+    updateDiskIOCard(totalRead, totalWrite);
+  }
+
+  function updateDiskIOCard(readKBps, writeKBps) {
+    const readEl = document.getElementById('metricDiskIORead');
+    const writeEl = document.getElementById('metricDiskIOWrite');
+    if (readEl) { readEl.textContent = `${formatKBps(readKBps)} KB/s`; }
+    if (writeEl) { writeEl.textContent = `${formatKBps(writeKBps)} KB/s`; }
+    if (diskReadHistory.length >= 2 || diskWriteHistory.length >= 2) {
+      renderDualChart('diskIOSparkline', diskReadHistory, diskWriteHistory, 'disk-read-line', 'disk-write-line', 30, false);
+    }
+    if (document.getElementById('metricDiskIOCard')?.classList.contains('expanded')) {
+      renderDualChart('diskIODetailChart', diskReadHistory, diskWriteHistory, 'disk-read-line', 'disk-write-line', 50, true);
+    }
   }
 
   function renderIOTable() {
@@ -806,6 +889,27 @@
         ioSortDir = col === 'device' ? 'asc' : 'desc';
       }
       renderIOTable();
+    });
+  });
+
+  // Metric card expand/collapse click handlers
+  ['metricCpuCard', 'metricMemCard', 'metricDiskIOCard'].forEach(cardId => {
+    const card = document.getElementById(cardId);
+    if (!card) { return; }
+    card.addEventListener('click', () => {
+      card.classList.toggle('expanded');
+      if (!card.classList.contains('expanded')) { return; }
+      if (cardId === 'metricCpuCard') {
+        renderDetailChart('cpuDetailChart', cpuHistory, 'cpu-sparkline-line', 'cpuDetailMin', 'cpuDetailAvg', 'cpuDetailMax', '%');
+      } else if (cardId === 'metricMemCard') {
+        renderDetailChart('memDetailChart', memHistory, 'mem-sparkline-line', 'memDetailMin', 'memDetailAvg', 'memDetailMax', '%');
+      } else if (cardId === 'metricDiskIOCard') {
+        if (diskReadHistory.length === 0) {
+          vscode.postMessage({ type: 'refresh', tab: 'io' });
+        } else {
+          renderDualChart('diskIODetailChart', diskReadHistory, diskWriteHistory, 'disk-read-line', 'disk-write-line', 50, true);
+        }
+      }
     });
   });
 })();

@@ -364,21 +364,39 @@ export class ResourceDashboardProvider {
 
                 <!-- Metric Cards -->
                 <div class="metric-cards">
-                  <div class="metric-card" id="metricCpuCard">
+                  <div class="metric-card expandable" id="metricCpuCard">
                     <div class="metric-card-header">
                       <i class="codicon codicon-dashboard"></i>
                       <span class="metric-card-title">CPU</span>
+                      <span class="metric-card-expand-icon">›</span>
                     </div>
                     <div class="metric-card-value usage-normal" id="metricCpuValue">—</div>
                     <svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" id="cpuSparkline"></svg>
+                    <div class="metric-card-detail" id="metricCpuDetail">
+                      <svg class="metric-detail-chart" viewBox="0 0 100 50" preserveAspectRatio="none" id="cpuDetailChart"></svg>
+                      <div class="metric-detail-labels">
+                        <span id="cpuDetailMin"></span>
+                        <span id="cpuDetailAvg"></span>
+                        <span id="cpuDetailMax"></span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="metric-card" id="metricMemCard">
+                  <div class="metric-card expandable" id="metricMemCard">
                     <div class="metric-card-header">
                       <i class="codicon codicon-server-process"></i>
                       <span class="metric-card-title">Memory</span>
+                      <span class="metric-card-expand-icon">›</span>
                     </div>
                     <div class="metric-card-value usage-normal" id="metricMemValue">—</div>
                     <svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" id="memSparkline"></svg>
+                    <div class="metric-card-detail" id="metricMemDetail">
+                      <svg class="metric-detail-chart" viewBox="0 0 100 50" preserveAspectRatio="none" id="memDetailChart"></svg>
+                      <div class="metric-detail-labels">
+                        <span id="memDetailMin"></span>
+                        <span id="memDetailAvg"></span>
+                        <span id="memDetailMax"></span>
+                      </div>
+                    </div>
                   </div>
                   <div class="metric-card" id="metricDiskCard">
                     <div class="metric-card-header">
@@ -387,6 +405,31 @@ export class ResourceDashboardProvider {
                     </div>
                     <div class="metric-card-value usage-normal" id="metricDiskValue">—</div>
                     <div class="metric-disk-bar-bg"><div class="metric-disk-bar-fill usage-normal" id="metricDiskBar" style="width:0%"></div></div>
+                  </div>
+                  <div class="metric-card expandable" id="metricDiskIOCard">
+                    <div class="metric-card-header">
+                      <i class="codicon codicon-pulse"></i>
+                      <span class="metric-card-title">Disk I/O</span>
+                      <span class="metric-card-expand-icon">›</span>
+                    </div>
+                    <div class="metric-disk-io-speeds">
+                      <span class="metric-disk-io-item read">
+                        <span class="metric-disk-io-label">↓</span>
+                        <span class="metric-disk-io-value" id="metricDiskIORead">—</span>
+                      </span>
+                      <span class="metric-disk-io-item write">
+                        <span class="metric-disk-io-label">↑</span>
+                        <span class="metric-disk-io-value" id="metricDiskIOWrite">—</span>
+                      </span>
+                    </div>
+                    <svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" id="diskIOSparkline"></svg>
+                    <div class="metric-card-detail" id="metricDiskIODetail">
+                      <svg class="metric-detail-chart" viewBox="0 0 100 50" preserveAspectRatio="none" id="diskIODetailChart"></svg>
+                      <div class="metric-detail-labels">
+                        <span class="disk-read-label">↓ Read</span>
+                        <span class="disk-write-label">↑ Write</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
