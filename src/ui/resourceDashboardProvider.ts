@@ -507,15 +507,15 @@ export class ResourceDashboardProvider {
                         <table class="network-table">
                             <thead>
                                 <tr>
-                                    <th>Interface</th>
-                                  <th>State</th>
-                                  <th>IP</th>
-                                    <th>RX Bytes</th>
-                                    <th>TX Bytes</th>
-                                    <th>RX Rate</th>
-                                    <th>TX Rate</th>
-                                  <th>RX Packets</th>
-                                  <th>TX Packets</th>
+                                    <th data-sort="name">Interface</th>
+                                  <th data-sort="state">State</th>
+                                  <th data-sort="ipAddress">IP</th>
+                                    <th data-sort="rxBytes">RX Bytes</th>
+                                    <th data-sort="txBytes">TX Bytes</th>
+                                    <th data-sort="rxRate">RX Rate</th>
+                                    <th data-sort="txRate">TX Rate</th>
+                                  <th data-sort="rxPackets">RX Packets</th>
+                                  <th data-sort="txPackets">TX Packets</th>
                                   <th>RX Err/Drop</th>
                                   <th>TX Err/Drop</th>
                                 </tr>
@@ -539,10 +539,10 @@ export class ResourceDashboardProvider {
                         <table class="io-table">
                             <thead>
                                 <tr>
-                                    <th>Device</th>
-                                    <th>Read Rate</th>
-                                    <th>Write Rate</th>
-                                    <th>Utilization</th>
+                                    <th data-sort="device">Device</th>
+                                    <th data-sort="readKBps">Read Rate</th>
+                                    <th data-sort="writeKBps">Write Rate</th>
+                                    <th data-sort="utilization">Utilization</th>
                                 </tr>
                             </thead>
                             <tbody id="ioList">

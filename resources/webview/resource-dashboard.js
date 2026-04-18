@@ -23,6 +23,16 @@
   let processSortColumn = 'cpu';
   let processSortDir = 'desc';
 
+  // Network sort state
+  let currentNetworkInterfaces = [];
+  let networkSortColumn = 'name';
+  let networkSortDir = 'asc';
+
+  // I/O sort state
+  let currentIODevices = [];
+  let ioSortColumn = 'utilization';
+  let ioSortDir = 'desc';
+
   // Auto-refresh state
   let autoRefreshInterval = null;
   let refreshIntervalSeconds = 20;
@@ -351,20 +361,47 @@
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
 
+    currentNetworkInterfaces = interfaces || [];
+    renderNetworkTable();
+  }
+
+  function renderNetworkTable() {
     const networkList = document.getElementById('networkList');
 
-    if (!interfaces || interfaces.length === 0) {
+    if (currentNetworkInterfaces.length === 0) {
       networkList.innerHTML = '<tr><td colspan="11" class="empty-state">No network data available</td></tr>';
       return;
     }
 
-    // Smooth update: fade out, update, fade in
+    const numericCols = new Set(['rxBytes', 'txBytes', 'rxRate', 'txRate', 'rxPackets', 'txPackets']);
+    const sorted = [...currentNetworkInterfaces].sort((a, b) => {
+      let aVal = a[networkSortColumn];
+      let bVal = b[networkSortColumn];
+      if (numericCols.has(networkSortColumn)) {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
+      } else {
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+      }
+      if (aVal < bVal) { return networkSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return networkSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+
+    document.querySelectorAll('.network-table th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === networkSortColumn) {
+        th.classList.add(networkSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+
     networkList.style.opacity = '0.4';
 
     setTimeout(() => {
       networkList.innerHTML = '';
 
-      interfaces.forEach(iface => {
+      sorted.forEach(iface => {
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${escapeHtml(iface.name)}</td>
@@ -392,23 +429,50 @@
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
 
+    currentIODevices = devices || [];
+    renderIOTable();
+  }
+
+  function renderIOTable() {
     const ioList = document.getElementById('ioList');
 
-    if (!devices || devices.length === 0) {
+    if (currentIODevices.length === 0) {
       ioList.innerHTML = '<tr><td colspan="4" class="empty-state">No I/O data available</td></tr>';
       return;
     }
 
-    // Smooth update: fade out, update, fade in
+    const numericCols = new Set(['readKBps', 'writeKBps', 'utilization']);
+    const sorted = [...currentIODevices].sort((a, b) => {
+      let aVal = a[ioSortColumn];
+      let bVal = b[ioSortColumn];
+      if (numericCols.has(ioSortColumn)) {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
+      } else {
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+      }
+      if (aVal < bVal) { return ioSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return ioSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+
+    document.querySelectorAll('.io-table th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === ioSortColumn) {
+        th.classList.add(ioSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+
     ioList.style.opacity = '0.4';
 
     setTimeout(() => {
       ioList.innerHTML = '';
 
-      devices.forEach(device => {
+      sorted.forEach(device => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${device.device}</td>
+          <td>${escapeHtml(device.device)}</td>
           <td>${formatKBps(device.readKBps)} KB/s</td>
           <td>${formatKBps(device.writeKBps)} KB/s</td>
           <td>${device.utilization.toFixed(1)}%</td>
@@ -623,6 +687,35 @@
         processSortDir = col === 'cpu' || col === 'mem' ? 'desc' : 'asc';
       }
       renderProcessTable();
+    });
+  });
+
+  // Network table header sort click handlers
+  document.querySelectorAll('.network-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      const numericCols = new Set(['rxBytes', 'txBytes', 'rxRate', 'txRate', 'rxPackets', 'txPackets']);
+      if (networkSortColumn === col) {
+        networkSortDir = networkSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        networkSortColumn = col;
+        networkSortDir = numericCols.has(col) ? 'desc' : 'asc';
+      }
+      renderNetworkTable();
+    });
+  });
+
+  // I/O table header sort click handlers
+  document.querySelectorAll('.io-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (ioSortColumn === col) {
+        ioSortDir = ioSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        ioSortColumn = col;
+        ioSortDir = col === 'device' ? 'asc' : 'desc';
+      }
+      renderIOTable();
     });
   });
 })();

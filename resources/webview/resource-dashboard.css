@@ -495,19 +495,25 @@ body {
     white-space: nowrap;
 }
 
-.process-table th[data-sort] {
+.process-table th[data-sort],
+.network-table th[data-sort],
+.io-table th[data-sort] {
     cursor: pointer;
     user-select: none;
     position: relative;
     padding-right: 22px;
 }
 
-.process-table th[data-sort]:hover {
+.process-table th[data-sort]:hover,
+.network-table th[data-sort]:hover,
+.io-table th[data-sort]:hover {
     color: var(--vscode-foreground);
     background-color: var(--vscode-list-hoverBackground);
 }
 
-.process-table th[data-sort]::after {
+.process-table th[data-sort]::after,
+.network-table th[data-sort]::after,
+.io-table th[data-sort]::after {
     content: '⇅';
     position: absolute;
     right: 6px;
@@ -515,13 +521,17 @@ body {
     font-size: 10px;
 }
 
-.process-table th[data-sort].sort-asc::after {
+.process-table th[data-sort].sort-asc::after,
+.network-table th[data-sort].sort-asc::after,
+.io-table th[data-sort].sort-asc::after {
     content: '↑';
     opacity: 1;
     color: var(--vscode-charts-blue);
 }
 
-.process-table th[data-sort].sort-desc::after {
+.process-table th[data-sort].sort-desc::after,
+.network-table th[data-sort].sort-desc::after,
+.io-table th[data-sort].sort-desc::after {
     content: '↓';
     opacity: 1;
     color: var(--vscode-charts-blue);
