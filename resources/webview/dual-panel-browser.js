@@ -2689,7 +2689,17 @@
                 <span class="codicon codicon-folder recent-paths-item-icon"></span>
                 <span class="recent-paths-item-path" title="${escapeHtml(path)}">${escapeHtml(path)}</span>
                 ${primaryTime ? `<span class="recent-paths-item-time" title="${escapeHtml(tooltipTime)}">${escapeHtml(primaryTime)}</span>` : ''}
+                <button class="recent-paths-item-delete" title="Delete this record" tabindex="-1"><span class="codicon codicon-close"></span></button>
             `;
+            item.querySelector('.recent-paths-item-delete').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = recentRemotePaths.findIndex(r => r.path === path);
+                if (idx !== -1) {
+                    recentRemotePaths.splice(idx, 1);
+                }
+                vscode.postMessage({ command: 'saveRecentPaths', data: recentRemotePaths });
+                renderRecentPaths();
+            });
             item.addEventListener('click', () => {
                 navigateTo('remote', path);
                 closeRecentPathsDropdown();

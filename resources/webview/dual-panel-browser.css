@@ -374,6 +374,32 @@ body {
     opacity: 0.75;
 }
 
+.recent-paths-item-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--vscode-icon-foreground);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    opacity: 0;
+    line-height: 1;
+    transition: opacity 0.1s;
+}
+
+.recent-paths-item-delete:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+    color: var(--vscode-errorForeground);
+    opacity: 1;
+}
+
+.recent-paths-item:hover .recent-paths-item-delete {
+    opacity: 0.7;
+}
+
 .recent-paths-empty {
     padding: 14px;
     text-align: center;
