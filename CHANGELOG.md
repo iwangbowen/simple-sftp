@@ -1,5 +1,10 @@
 # Change Log
 
+## 6.10.0 - 2026-04-18
+
+- **Feature**: Resource Dashboard — added Disk I/O metric card with read/write speed dual sparkline.
+- **Feature**: Resource Dashboard — CPU, Memory, and Disk I/O metric cards are now clickable to expand a detailed history chart with min/avg/max stats.
+
 ## 6.9.0 - 2026-04-18
 
 - **Feature**: Resource Dashboard — added CPU / Memory / Disk metric cards with sparkline history charts and Top 5 CPU processes snapshot in Overview tab.
