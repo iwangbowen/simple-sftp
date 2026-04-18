@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.10.1 - 2026-04-18
+
+- **Fix**: Resolved TypeScript type errors in `deltaSyncManager.ts` (mtime compatibility cast) and `uploadOnSaveService.test.ts` (missing required `DeployProfile` fields).
+
 ## 6.10.0 - 2026-04-18
 
 - **Feature**: Resource Dashboard — added Disk I/O metric card with read/write speed dual sparkline.
