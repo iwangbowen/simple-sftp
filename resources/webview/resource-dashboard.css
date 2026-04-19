@@ -972,6 +972,30 @@ tr:hover .process-kill-btn:hover {
     border-radius: 3px;
 }
 
+.logs-auto-refresh-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--vscode-foreground);
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.logs-auto-refresh-btn:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.logs-auto-refresh-btn.active {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-button-background);
+}
+
 .logs-refresh-btn {
     display: flex;
     align-items: center;
@@ -987,6 +1011,92 @@ tr:hover .process-kill-btn:hover {
 
 .logs-refresh-btn:hover {
     background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+/* ── Logs Search Bar ─────────────────────────────── */
+.logs-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0 4px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    margin-bottom: 4px;
+}
+
+.logs-search-icon {
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.logs-search-input {
+    flex: 1;
+    font-size: 12px;
+    padding: 3px 6px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px;
+    min-width: 0;
+}
+
+.logs-search-input:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+}
+
+.logs-filter-mode-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: none;
+    border: 1px solid var(--vscode-button-secondaryBorder, var(--vscode-panel-border));
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+}
+
+.logs-filter-mode-btn.active {
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+}
+
+.logs-match-count {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    min-width: 60px;
+}
+
+.logs-clear-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: none;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--vscode-descriptionForeground);
+    padding: 0;
+}
+
+.logs-clear-search-btn:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+    color: var(--vscode-foreground);
+}
+
+.logs-output-container {
+    flex: 1;
+    min-height: 0;
+}
+
+mark.log-match {
+    background-color: var(--vscode-editor-findMatchHighlightBackground, rgba(255, 200, 0, 0.3));
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
 }
 
 .log-output {

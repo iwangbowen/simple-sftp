@@ -733,12 +733,22 @@ export class ResourceDashboardProvider {
                                 <option value="500">Last 500 lines</option>
                                 <option value="1000">Last 1000 lines</option>
                             </select>
+                            <button id="logAutoRefreshBtn" class="logs-auto-refresh-btn" title="Toggle auto-refresh every 5s">
+                                <i class="codicon codicon-eye"></i>
+                            </button>
                             <button id="logRefreshBtn" class="logs-refresh-btn" title="Reload log">
                                 <i class="codicon codicon-refresh"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="section-content">
+                    <div class="logs-search-bar">
+                        <i class="codicon codicon-search logs-search-icon"></i>
+                        <input id="logSearchInput" class="logs-search-input" type="text" placeholder="Filter / highlight…" autocomplete="off" spellcheck="false" />
+                        <button id="logFilterModeBtn" class="logs-filter-mode-btn" title="Switch between highlight and filter mode">Highlight</button>
+                        <span id="logMatchCount" class="logs-match-count"></span>
+                        <button id="logClearSearchBtn" class="logs-clear-search-btn" title="Clear search" style="display:none"><i class="codicon codicon-close"></i></button>
+                    </div>
+                    <div class="section-content logs-output-container">
                         <pre id="logOutput" class="log-output"><span class="log-placeholder">Select a log file above to view its contents.</span></pre>
                     </div>
                 </div>

@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.13.0 - 2026-04-18
+
+- **Feature**: Resource Dashboard Logs tab — added auto-refresh toggle (every 5s, stops when switched away), keyword search bar with regex support, Highlight/Filter toggle, match count indicator, and clear search button.
+
 ## 6.12.0 - 2026-04-18
 
 - **Feature**: Resource Dashboard — added **Logs** tab for viewing remote system logs under `/var/log`; supports file selector, configurable tail-line count (100/200/500/1000), and syntax-highlighted output with error/warn/info color coding.

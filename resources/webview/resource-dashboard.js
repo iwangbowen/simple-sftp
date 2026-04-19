@@ -944,6 +944,13 @@
     });
   });
 
+  // ── Logs state ──────────────────────────────────────────────
+  let currentLogLines = [];        // raw string lines from last fetch
+  let logSearchQuery = '';         // current search/filter term
+  let logFilterMode = 'highlight'; // 'highlight' | 'filter'
+  let logAutoRefreshTimer = null;  // setInterval handle
+  const LOG_AUTO_REFRESH_MS = 5000;
+
   function handleLogsFiles(files) {
     loadingState.style.display = 'none';
     errorState.style.display = 'none';
@@ -987,22 +994,76 @@
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
 
+    currentLogLines = (data.content || '').split('\n');
+    renderLogOutput(true);
+  }
+
+  function renderLogOutput(scrollToBottom) {
     const logOutput = document.getElementById('logOutput');
     if (!logOutput) { return; }
 
-    const lines = (data.content || '').split('\n');
+    const query = logSearchQuery.trim();
+    let regex = null;
+    if (query) {
+      try { regex = new RegExp(query, 'gi'); } catch { /* invalid regex: treat as plain text */ }
+      if (!regex) {
+        const escaped = query.replaceAll(String.raw`[$*+?.|()\[\]{}\\^]`, String.raw`\$&`);
+        regex = new RegExp(escaped, 'gi');
+      }
+    }
+
     logOutput.style.opacity = '0.4';
     setTimeout(() => {
       logOutput.innerHTML = '';
-      lines.forEach((line, idx) => {
+      let matchCount = 0;
+
+      currentLogLines.forEach((line, idx) => {
+        // Filter mode: skip non-matching lines
+        if (regex && logFilterMode === 'filter' && !regex.test(line)) {
+          regex.lastIndex = 0;
+          return;
+        }
+        regex && (regex.lastIndex = 0);
+
         const span = document.createElement('span');
-        span.className = `log-line ${getLogLineSeverity(line)}`;
-        span.textContent = `${String(idx + 1).padStart(5, ' ')}  ${line}`;
+        const severity = getLogLineSeverity(line);
+        const severityClass = severity ? ` ${severity}` : '';
+        span.className = `log-line${severityClass}`;
+
+        const lineNum = String(idx + 1).padStart(5, ' ');
+
+        if (regex && query) {
+          // Build highlighted content
+          let highlighted = `${lineNum}  `;
+          let lastIdx = 0;
+          let m;
+          regex.lastIndex = 0;
+          while ((m = regex.exec(line)) !== null) {
+            highlighted += escapeHtml(line.slice(lastIdx, m.index));
+            highlighted += `<mark class="log-match">${escapeHtml(m[0])}</mark>`;
+            lastIdx = m.index + m[0].length;
+            matchCount++;
+            if (m[0].length === 0) { regex.lastIndex++; }
+          }
+          highlighted += escapeHtml(line.slice(lastIdx));
+          span.innerHTML = highlighted;
+          if (matchCount > 0 || logFilterMode === 'filter') { span.classList.add('log-line-has-match'); }
+        } else {
+          span.textContent = `${lineNum}  ${line}`;
+        }
+
         logOutput.appendChild(span);
         logOutput.appendChild(document.createTextNode('\n'));
       });
-      // Scroll to bottom
-      logOutput.scrollTop = logOutput.scrollHeight;
+
+      // Update match count badge
+      const matchCountEl = document.getElementById('logMatchCount');
+      if (matchCountEl) {
+        const matchSuffix = matchCount === 1 ? '' : 'es';
+        matchCountEl.textContent = query ? `${matchCount} match${matchSuffix}` : '';
+      }
+
+      if (scrollToBottom) { logOutput.scrollTop = logOutput.scrollHeight; }
       logOutput.style.opacity = '1';
     }, 80);
   }
@@ -1039,16 +1100,71 @@
     });
   }
 
-  // Logs tab: refresh button
+  // Logs tab: manual refresh button
   const logRefreshBtn = document.getElementById('logRefreshBtn');
   if (logRefreshBtn) {
     logRefreshBtn.addEventListener('click', () => {
       if (logFileSelect?.value) {
         fetchLogContent(logFileSelect.value);
       } else {
-        // Re-list files
         vscode.postMessage({ type: 'refresh', tab: 'logs' });
       }
+    });
+  }
+
+  // Logs tab: auto-refresh toggle
+  const logAutoRefreshBtn = document.getElementById('logAutoRefreshBtn');
+  if (logAutoRefreshBtn) {
+    logAutoRefreshBtn.addEventListener('click', () => {
+      if (logAutoRefreshTimer) {
+        clearInterval(logAutoRefreshTimer);
+        logAutoRefreshTimer = null;
+        logAutoRefreshBtn.classList.remove('active');
+        logAutoRefreshBtn.title = 'Toggle auto-refresh every 5s';
+      } else {
+        logAutoRefreshBtn.classList.add('active');
+        logAutoRefreshBtn.title = 'Auto-refresh ON (every 5s) — click to stop';
+        logAutoRefreshTimer = setInterval(() => {
+          if (logFileSelect?.value && activeTab === 'logs') {
+            fetchLogContent(logFileSelect.value);
+          }
+        }, LOG_AUTO_REFRESH_MS);
+      }
+    });
+  }
+
+  // Logs tab: search input (debounced)
+  const logSearchInput = document.getElementById('logSearchInput');
+  const logClearSearchBtn = document.getElementById('logClearSearchBtn');
+  const logFilterModeBtn = document.getElementById('logFilterModeBtn');
+  let logSearchDebounce = null;
+
+  if (logSearchInput) {
+    logSearchInput.addEventListener('input', () => {
+      logSearchQuery = logSearchInput.value;
+      if (logClearSearchBtn) { logClearSearchBtn.style.display = logSearchQuery ? 'flex' : 'none'; }
+      clearTimeout(logSearchDebounce);
+      logSearchDebounce = setTimeout(() => renderLogOutput(false), 180);
+    });
+  }
+
+  if (logClearSearchBtn) {
+    logClearSearchBtn.addEventListener('click', () => {
+      logSearchQuery = '';
+      if (logSearchInput) { logSearchInput.value = ''; }
+      logClearSearchBtn.style.display = 'none';
+      const matchCountEl = document.getElementById('logMatchCount');
+      if (matchCountEl) { matchCountEl.textContent = ''; }
+      renderLogOutput(false);
+    });
+  }
+
+  if (logFilterModeBtn) {
+    logFilterModeBtn.addEventListener('click', () => {
+      logFilterMode = logFilterMode === 'highlight' ? 'filter' : 'highlight';
+      logFilterModeBtn.textContent = logFilterMode === 'highlight' ? 'Highlight' : 'Filter';
+      logFilterModeBtn.classList.toggle('active', logFilterMode === 'filter');
+      renderLogOutput(false);
     });
   }
 
