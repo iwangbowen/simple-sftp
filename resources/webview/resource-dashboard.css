@@ -833,3 +833,100 @@ body {
 
 .disk-read-label { color: var(--vscode-charts-blue); }
 .disk-write-label { color: var(--vscode-charts-orange); }
+
+/* ── Process Actions / Kill Dropdown ──────────────── */
+.process-actions-col {
+    width: 52px;
+    text-align: center;
+    padding-right: 8px !important;
+}
+
+.process-actions-cell {
+    text-align: center;
+    padding: 0 !important;
+    position: relative;
+}
+
+.process-kill-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.process-kill-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0;
+    transition: opacity 0.15s, background-color 0.15s;
+    padding: 0;
+}
+
+.process-kill-btn:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+    border-color: var(--vscode-panel-border);
+    color: var(--vscode-errorForeground);
+    opacity: 1;
+}
+
+tr:hover .process-kill-btn {
+    opacity: 0.6;
+}
+
+tr:hover .process-kill-btn:hover {
+    opacity: 1;
+}
+
+.process-kill-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 100;
+    background-color: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 170px;
+    padding: 4px 0;
+}
+
+.process-kill-menu.open {
+    display: block;
+}
+
+.process-kill-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--vscode-editor-font-family);
+    color: var(--vscode-menu-foreground);
+}
+
+.process-kill-menu-item:hover {
+    background-color: var(--vscode-menu-selectionBackground);
+    color: var(--vscode-menu-selectionForeground);
+}
+
+.process-kill-menu-item.kill-menu-danger {
+    color: var(--vscode-errorForeground);
+}
+
+.process-kill-menu-item.kill-menu-danger:hover {
+    background-color: var(--vscode-inputValidation-errorBackground);
+}
+
+.kill-menu-hint {
+    font-size: 10px;
+    opacity: 0.65;
+    margin-left: 8px;
+}

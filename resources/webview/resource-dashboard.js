@@ -451,7 +451,7 @@
     const processList = document.getElementById('processList');
 
     if (currentProcesses.length === 0) {
-      processList.innerHTML = '<tr><td colspan="9" class="empty-state">No process data available</td></tr>';
+      processList.innerHTML = '<tr><td colspan="10" class="empty-state">No process data available</td></tr>';
       return;
     }
 
@@ -498,6 +498,19 @@
           <td>${formatKilobytes(proc.vsz)}</td>
           <td>${escapeHtml(proc.time)}</td>
           <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(proc.command)}</td>
+          <td class="process-actions-cell">
+            <div class="process-kill-dropdown">
+              <button class="process-kill-btn" data-pid="${proc.pid}" title="Send signal to process">
+                <i class="codicon codicon-debug-stop"></i>
+              </button>
+              <div class="process-kill-menu" id="killMenu-${proc.pid}">
+                <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGTERM">SIGTERM <span class="kill-menu-hint">(graceful)</span></div>
+                <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGINT">SIGINT <span class="kill-menu-hint">(interrupt)</span></div>
+                <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGHUP">SIGHUP <span class="kill-menu-hint">(hangup)</span></div>
+                <div class="process-kill-menu-item kill-menu-danger" data-pid="${proc.pid}" data-signal="SIGKILL">SIGKILL <span class="kill-menu-hint">(force)</span></div>
+              </div>
+            </div>
+          </td>
         `;
         processList.appendChild(row);
       });
@@ -505,6 +518,32 @@
       processList.style.opacity = '1';
     }, 100);
   }
+
+  function closeAllKillMenus() {
+    document.querySelectorAll('.process-kill-menu.open').forEach(m => m.classList.remove('open'));
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.process-kill-btn');
+    if (btn) {
+      e.stopPropagation();
+      const pid = btn.dataset.pid;
+      const menu = document.getElementById(`killMenu-${pid}`);
+      const isOpen = menu?.classList.contains('open');
+      closeAllKillMenus();
+      if (!isOpen && menu) { menu.classList.add('open'); }
+      return;
+    }
+    const item = e.target.closest('.process-kill-menu-item');
+    if (item) {
+      const pid = Number.parseInt(item.dataset.pid);
+      const signal = item.dataset.signal;
+      closeAllKillMenus();
+      vscode.postMessage({ type: 'killProcess', pid, signal });
+      return;
+    }
+    closeAllKillMenus();
+  });
 
   function handleNetworkData(interfaces) {
     loadingState.style.display = 'none';

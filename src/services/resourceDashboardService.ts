@@ -772,6 +772,33 @@ export class ResourceDashboardService {
   }
 
   /**
+   * 向远程进程发送信号 (kill)
+   */
+  static async killProcess(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    pid: number,
+    signal: 'SIGTERM' | 'SIGKILL' | 'SIGHUP' | 'SIGINT'
+  ): Promise<void> {
+    if (!Number.isInteger(pid) || pid <= 0) {
+      throw new Error(`Invalid PID: ${pid}`);
+    }
+    // Only allow valid signals
+    const allowedSignals = ['SIGTERM', 'SIGKILL', 'SIGHUP', 'SIGINT'] as const;
+    if (!allowedSignals.includes(signal)) {
+      throw new Error(`Invalid signal: ${signal}`);
+    }
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      // Use numeric signal to avoid shell injection via signal name
+      const signalMap: Record<string, number> = {
+        SIGHUP: 1, SIGINT: 2, SIGTERM: 15, SIGKILL: 9,
+      };
+      const sigNum = signalMap[signal];
+      await this.executeCommand(conn, `kill -${sigNum} ${pid}`);
+    });
+  }
+
+  /**
    * 执行远程命令
    */
   private static async executeCommand(conn: Client, command: string): Promise<string> {

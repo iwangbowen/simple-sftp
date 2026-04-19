@@ -240,6 +240,28 @@ export class ResourceDashboardProvider {
         break;
       }
 
+      case 'killProcess': {
+        const pid = Number(message.pid);
+        const signal = message.signal as 'SIGTERM' | 'SIGKILL' | 'SIGHUP' | 'SIGINT';
+        const confirmed = await vscode.window.showWarningMessage(
+          `Send ${signal} to process ${pid} on ${this.hostConfig.name}?`,
+          { modal: true },
+          'Confirm'
+        );
+        if (confirmed !== 'Confirm') {
+          break;
+        }
+        try {
+          await ResourceDashboardService.killProcess(this.hostConfig, this.authConfig, pid, signal);
+          vscode.window.showInformationMessage(`Signal ${signal} sent to PID ${pid}.`);
+          // Refresh process list after kill
+          await this.loadProcessData();
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to kill PID ${pid}: ${(err as Error).message}`);
+        }
+        break;
+      }
+
       case 'showLogs':
         logger.show();
         break;
@@ -581,10 +603,11 @@ export class ResourceDashboardProvider {
                                   <th data-sort="vsz">VSZ</th>
                                   <th data-sort="time">Time</th>
                                     <th data-sort="command">Command</th>
+                                    <th class="process-actions-col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="processList">
-                                <tr><td colspan="9" class="empty-state">No data available</td></tr>
+                                <tr><td colspan="10" class="empty-state">No data available</td></tr>
                             </tbody>
                         </table>
                     </div>

@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.11.0 - 2026-04-18
+
+- **Feature**: Resource Dashboard — added Kill Process action column to the process table; hover any row to reveal a signal selector dropdown (SIGTERM / SIGINT / SIGHUP / SIGKILL) with a VS Code modal confirmation before the signal is sent to the remote host.
+
 ## 6.10.1 - 2026-04-18
 
 - **Fix**: Resolved TypeScript type errors in `deltaSyncManager.ts` (mtime compatibility cast) and `uploadOnSaveService.test.ts` (missing required `DeployProfile` fields).
