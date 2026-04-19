@@ -105,6 +105,11 @@
         if (diskList) { diskList.innerHTML = loadingDiv; }
         break;
       }
+      case 'logs': {
+        const logOutput = document.getElementById('logOutput');
+        if (logOutput) { logOutput.innerHTML = '<span class="log-loading">Loading log files…</span>'; }
+        break;
+      }
     }
   }
 
@@ -191,6 +196,14 @@
 
       case 'diskData':
         handleDiskData(message.data);
+        break;
+
+      case 'logsFiles':
+        handleLogsFiles(message.data);
+        break;
+
+      case 'logsContent':
+        handleLogsContent(message.data);
         break;
 
       case 'error':
@@ -930,6 +943,114 @@
       renderIOTable();
     });
   });
+
+  function handleLogsFiles(files) {
+    loadingState.style.display = 'none';
+    errorState.style.display = 'none';
+    contentState.style.display = 'flex';
+    refreshBtn.disabled = false;
+
+    const select = document.getElementById('logFileSelect');
+    if (!select) { return; }
+
+    // Preserve current selection if still valid
+    const prevValue = select.value;
+    select.innerHTML = '<option value="">-- Select a log file --</option>';
+    if (files && files.length > 0) {
+      files.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        select.appendChild(opt);
+      });
+    } else {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No readable log files found in /var/log';
+      opt.disabled = true;
+      select.appendChild(opt);
+    }
+
+    // Restore previous selection or pick first log
+    if (prevValue && files?.includes(prevValue)) {
+      select.value = prevValue;
+    } else if (files && files.length > 0) {
+      // Auto-select the first file and load it
+      select.value = files[0];
+      fetchLogContent(files[0]);
+    }
+  }
+
+  function handleLogsContent(data) {
+    loadingState.style.display = 'none';
+    errorState.style.display = 'none';
+    contentState.style.display = 'flex';
+    refreshBtn.disabled = false;
+
+    const logOutput = document.getElementById('logOutput');
+    if (!logOutput) { return; }
+
+    const lines = (data.content || '').split('\n');
+    logOutput.style.opacity = '0.4';
+    setTimeout(() => {
+      logOutput.innerHTML = '';
+      lines.forEach((line, idx) => {
+        const span = document.createElement('span');
+        span.className = `log-line ${getLogLineSeverity(line)}`;
+        span.textContent = `${String(idx + 1).padStart(5, ' ')}  ${line}`;
+        logOutput.appendChild(span);
+        logOutput.appendChild(document.createTextNode('\n'));
+      });
+      // Scroll to bottom
+      logOutput.scrollTop = logOutput.scrollHeight;
+      logOutput.style.opacity = '1';
+    }, 80);
+  }
+
+  function getLogLineSeverity(line) {
+    const lower = line.toLowerCase();
+    if (/error|fail|critical|crit|emerg|alert/.test(lower)) { return 'log-line-error'; }
+    if (/warn/.test(lower)) { return 'log-line-warn'; }
+    if (/info|notice/.test(lower)) { return 'log-line-info'; }
+    return '';
+  }
+
+  function fetchLogContent(filePath) {
+    const linesSelect = document.getElementById('logLinesSelect');
+    const lines = linesSelect ? Number.parseInt(linesSelect.value, 10) : 200;
+    const logOutput = document.getElementById('logOutput');
+    if (logOutput) { logOutput.innerHTML = '<span class="log-loading">Loading…</span>'; }
+    vscode.postMessage({ type: 'fetchLogs', filePath, lines });
+  }
+
+  // Logs tab: file selector change
+  const logFileSelect = document.getElementById('logFileSelect');
+  if (logFileSelect) {
+    logFileSelect.addEventListener('change', () => {
+      if (logFileSelect.value) { fetchLogContent(logFileSelect.value); }
+    });
+  }
+
+  // Logs tab: lines selector change
+  const logLinesSelect = document.getElementById('logLinesSelect');
+  if (logLinesSelect) {
+    logLinesSelect.addEventListener('change', () => {
+      if (logFileSelect?.value) { fetchLogContent(logFileSelect.value); }
+    });
+  }
+
+  // Logs tab: refresh button
+  const logRefreshBtn = document.getElementById('logRefreshBtn');
+  if (logRefreshBtn) {
+    logRefreshBtn.addEventListener('click', () => {
+      if (logFileSelect?.value) {
+        fetchLogContent(logFileSelect.value);
+      } else {
+        // Re-list files
+        vscode.postMessage({ type: 'refresh', tab: 'logs' });
+      }
+    });
+  }
 
   // Metric card expand/collapse click handlers
   ['metricCpuCard', 'metricMemCard', 'metricDiskIOCard'].forEach(cardId => {

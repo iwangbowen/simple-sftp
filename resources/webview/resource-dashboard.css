@@ -930,3 +930,100 @@ tr:hover .process-kill-btn:hover {
     opacity: 0.65;
     margin-left: 8px;
 }
+
+/* ── System Logs Viewer ────────────────────────────── */
+.logs-section {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.logs-section .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.logs-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.logs-file-select {
+    flex: 1 1 260px;
+    max-width: 380px;
+    font-size: 12px;
+    padding: 2px 4px;
+    background-color: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 3px;
+}
+
+.logs-lines-select {
+    font-size: 12px;
+    padding: 2px 4px;
+    background-color: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 3px;
+}
+
+.logs-refresh-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--vscode-foreground);
+}
+
+.logs-refresh-btn:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.log-output {
+    flex: 1;
+    overflow: auto;
+    font-family: var(--vscode-editor-font-family), 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    background-color: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-top: 8px;
+    white-space: pre;
+    min-height: 300px;
+    max-height: calc(100vh - 220px);
+    transition: opacity 0.1s;
+}
+
+.log-placeholder,
+.log-loading {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+
+.log-line {
+    display: inline;
+}
+
+.log-line-error {
+    color: var(--vscode-errorForeground);
+}
+
+.log-line-warn {
+    color: var(--vscode-editorWarning-foreground, #e9c46a);
+}
+
+.log-line-info {
+    color: var(--vscode-textLink-foreground);
+}

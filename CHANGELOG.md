@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.12.0 - 2026-04-18
+
+- **Feature**: Resource Dashboard — added **Logs** tab for viewing remote system logs under `/var/log`; supports file selector, configurable tail-line count (100/200/500/1000), and syntax-highlighted output with error/warn/info color coding.
+
 ## 6.11.0 - 2026-04-18
 
 - **Feature**: Resource Dashboard — added Kill Process action column to the process table; hover any row to reveal a signal selector dropdown (SIGTERM / SIGINT / SIGHUP / SIGKILL) with a VS Code modal confirmation before the signal is sent to the remote host.

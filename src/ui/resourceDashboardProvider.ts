@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { HostConfig, HostAuthConfig } from '../types';
-import { ResourceDashboardService, SystemResourceInfo } from '../services/resourceDashboardService';
+import { ResourceDashboardService } from '../services/resourceDashboardService';
 import { logger } from '../logger';
 
 /**
@@ -135,6 +135,9 @@ export class ResourceDashboardProvider {
         case 'disk':
           await this.loadDiskData();
           break;
+        case 'logs':
+          await this.loadLogsData();
+          break;
         default:
           await this.loadOverviewData();
       }
@@ -228,6 +231,25 @@ export class ResourceDashboardProvider {
     });
   }
 
+  private async loadLogsData(filePath?: string, lines: number = 200): Promise<void> {
+    if (filePath) {
+      const content = await ResourceDashboardService.readLogFile(
+        this.hostConfig,
+        this.authConfig,
+        filePath,
+        lines
+      );
+      this.panel.webview.postMessage({ type: 'logsContent', data: { filePath, content } });
+    } else {
+      // First visit: list available log files
+      const files = await ResourceDashboardService.getAvailableLogs(
+        this.hostConfig,
+        this.authConfig
+      );
+      this.panel.webview.postMessage({ type: 'logsFiles', data: files });
+    }
+  }
+
   /**
    * Handle messages from webview
    */
@@ -259,6 +281,13 @@ export class ResourceDashboardProvider {
         } catch (err) {
           vscode.window.showErrorMessage(`Failed to kill PID ${pid}: ${(err as Error).message}`);
         }
+        break;
+      }
+
+      case 'fetchLogs': {
+        const filePath = typeof message.filePath === 'string' ? message.filePath : undefined;
+        const lines = typeof message.lines === 'number' ? message.lines : 200;
+        await this.loadLogsData(filePath, lines);
         break;
       }
 
@@ -342,6 +371,10 @@ export class ResourceDashboardProvider {
             <button class="tab-button" data-tab="disk">
                 <i class="codicon codicon-disc"></i>
                 Disk
+            </button>
+            <button class="tab-button" data-tab="logs">
+                <i class="codicon codicon-output"></i>
+                Logs
             </button>
         </div>
 
@@ -680,6 +713,33 @@ export class ResourceDashboardProvider {
                     </div>
                     <div class="section-content">
                         <div id="diskList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="logsTab" class="tab-content">
+                <div class="section logs-section">
+                    <div class="section-header">
+                        <i class="codicon codicon-output"></i>
+                        <span>System Logs</span>
+                        <div class="logs-controls">
+                            <select id="logFileSelect" class="logs-file-select">
+                                <option value="">-- Select a log file --</option>
+                            </select>
+                            <select id="logLinesSelect" class="logs-lines-select">
+                                <option value="100">Last 100 lines</option>
+                                <option value="200" selected>Last 200 lines</option>
+                                <option value="500">Last 500 lines</option>
+                                <option value="1000">Last 1000 lines</option>
+                            </select>
+                            <button id="logRefreshBtn" class="logs-refresh-btn" title="Reload log">
+                                <i class="codicon codicon-refresh"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="section-content">
+                        <pre id="logOutput" class="log-output"><span class="log-placeholder">Select a log file above to view its contents.</span></pre>
                     </div>
                 </div>
             </div>

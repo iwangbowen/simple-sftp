@@ -772,6 +772,47 @@ export class ResourceDashboardService {
   }
 
   /**
+   * 获取远端 /var/log 下可读的日志文件列表
+   */
+  static async getAvailableLogs(
+    config: HostConfig,
+    authConfig: HostAuthConfig
+  ): Promise<string[]> {
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      // List non-empty, readable plain text log files under /var/log (depth 2)
+      const raw = await this.executeCommand(
+        conn,
+        'find /var/log -maxdepth 2 -type f -readable -size +0c 2>/dev/null | sort'
+      ).catch(() => '');
+      return raw
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0 && !l.endsWith('.gz') && !l.endsWith('.xz') && !l.endsWith('.bz2'));
+    });
+  }
+
+  /**
+   * 读取远端日志文件的最后 N 行
+   */
+  static async readLogFile(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    filePath: string,
+    lines: number = 200
+  ): Promise<string> {
+    // Validate filePath: must start with /var/log/ and contain no shell metacharacters
+    if (!/^\/var\/log\/[a-zA-Z0-9_./@-]+$/.test(filePath)) {
+      throw new Error(`Invalid log file path: ${filePath}`);
+    }
+    const safeLines = Math.max(1, Math.min(lines, 10000));
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      return this.executeCommand(conn, `tail -n ${safeLines} -- '${filePath}'`).catch(err => {
+        throw new Error(`Cannot read ${filePath}: ${(err as Error).message}`);
+      });
+    });
+  }
+
+  /**
    * 向远程进程发送信号 (kill)
    */
   static async killProcess(
