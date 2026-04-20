@@ -9,6 +9,8 @@ import { establishMultiHopConnection, addAuthToConnectConfig } from '../utils/ju
 export interface ProcessInfo {
   /** 进程ID */
   pid: number;
+  /** 进程名称（可执行文件的 basename） */
+  name: string;
   /** 用户 */
   user: string;
   /** CPU使用率百分比 */
@@ -282,16 +284,22 @@ export class ResourceDashboardService {
         const parts = line.split(/\s+/);
         if (parts.length < 11) {continue;}
 
+        const cmd = parts.slice(10).join(' ');
+        const firstArg = cmd.split(' ')[0];
+        const procName = firstArg.startsWith('[')
+          ? firstArg
+          : (firstArg.split('/').pop() || firstArg);
         processes.push({
           user: parts[0],
           pid: Number.parseInt(parts[1]) || 0,
+          name: procName,
           cpu: Number.parseFloat(parts[2]) || 0,
           mem: Number.parseFloat(parts[3]) || 0,
           vsz: Number.parseInt(parts[4]) || 0,
           rss: Number.parseInt(parts[5]) || 0,
           stat: parts[7],
           time: parts[9],
-          command: parts.slice(10).join(' '),
+          command: cmd,
         });
       }
 

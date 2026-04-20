@@ -392,7 +392,7 @@
     const tbody = document.getElementById('overviewTopProcesses');
     if (!tbody) { return; }
     if (currentProcesses.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No data — visit Processes tab to load</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No data — visit Processes tab to load</td></tr>';
       return;
     }
     const top5 = [...currentProcesses]
@@ -403,6 +403,7 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${proc.pid}</td>
+        <td style="font-family: var(--vscode-editor-font-family); font-weight: 500;">${escapeHtml(proc.name)}</td>
         <td>${escapeHtml(proc.user)}</td>
         <td>${proc.cpu}%</td>
         <td>${proc.mem}%</td>
@@ -464,7 +465,7 @@
     const processList = document.getElementById('processList');
 
     if (currentProcesses.length === 0) {
-      processList.innerHTML = '<tr><td colspan="10" class="empty-state">No process data available</td></tr>';
+      processList.innerHTML = '<tr><td colspan="11" class="empty-state">No process data available</td></tr>';
       return;
     }
 
@@ -503,6 +504,7 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${proc.pid}</td>
+          <td style="font-family: var(--vscode-editor-font-family); font-weight: 500;">${escapeHtml(proc.name)}</td>
           <td>${escapeHtml(proc.user)}</td>
           <td>${escapeHtml(proc.stat)}</td>
           <td>${proc.cpu}%</td>

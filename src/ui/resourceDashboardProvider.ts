@@ -602,6 +602,7 @@ export class ResourceDashboardProvider {
                             <thead>
                                 <tr>
                                     <th>PID</th>
+                                    <th>Name</th>
                                     <th>User</th>
                                     <th>CPU %</th>
                                     <th>MEM %</th>
@@ -609,7 +610,7 @@ export class ResourceDashboardProvider {
                                 </tr>
                             </thead>
                             <tbody id="overviewTopProcesses">
-                                <tr><td colspan="5" class="empty-state">No data — visit Processes tab to load</td></tr>
+                                <tr><td colspan="6" class="empty-state">No data — visit Processes tab to load</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -628,6 +629,7 @@ export class ResourceDashboardProvider {
                             <thead>
                                 <tr>
                                     <th data-sort="pid">PID</th>
+                                    <th data-sort="name">Name</th>
                                     <th data-sort="user">User</th>
                                   <th data-sort="stat">State</th>
                                     <th data-sort="cpu">CPU %</th>
@@ -640,7 +642,7 @@ export class ResourceDashboardProvider {
                                 </tr>
                             </thead>
                             <tbody id="processList">
-                                <tr><td colspan="10" class="empty-state">No data available</td></tr>
+                                <tr><td colspan="11" class="empty-state">No data available</td></tr>
                             </tbody>
                         </table>
                     </div>
