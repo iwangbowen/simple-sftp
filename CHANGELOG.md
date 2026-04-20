@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.14.0 - 2026-04-20
+
+- **Enhancement**: Export single host to SSH Config now shows an "Open ~/.ssh/config" button in the notification, matching the behavior of "Export All Hosts to SSH Config".
+
 ## 6.13.0 - 2026-04-18
 
 - **Feature**: Resource Dashboard Logs tab — added auto-refresh toggle (every 5s, stops when switched away), keyword search bar with regex support, Highlight/Filter toggle, match count indicator, and clear search button.
