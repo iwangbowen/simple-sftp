@@ -1205,10 +1205,24 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       const editor = await vscode.window.showTextDocument(document);
       await vscode.languages.setTextDocumentLanguage(document, 'ssh_config');
 
-      // Show information message with tips
-      vscode.window.showInformationMessage(
-        `SSH Config for "${hostName}" opened in editor. You can copy and paste it to your ~/.ssh/config file.`
+      // Show information message with an action to open ~/.ssh/config
+      const action = await vscode.window.showInformationMessage(
+        `SSH Config for "${hostName}" opened in editor. Copy and paste it to your ~/.ssh/config file.`,
+        'Open ~/.ssh/config'
       );
+
+      if (action === 'Open ~/.ssh/config') {
+        const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
+        const sshDir = path.join(os.homedir(), '.ssh');
+        if (!fs.existsSync(sshDir)) {
+          fs.mkdirSync(sshDir, { mode: 0o700, recursive: true });
+        }
+        if (!fs.existsSync(sshConfigPath)) {
+          fs.writeFileSync(sshConfigPath, '', { mode: 0o600 });
+        }
+        const sshConfigDoc = await vscode.workspace.openTextDocument(vscode.Uri.file(sshConfigPath));
+        await vscode.window.showTextDocument(sshConfigDoc, { viewColumn: vscode.ViewColumn.Beside });
+      }
 
       logger.info(`Exported host ${hostName} to SSH Config format`);
     } catch (error) {
