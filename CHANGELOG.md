@@ -1,9 +1,12 @@
 # Change Log
 
+## 6.16.0 - 2026-04-20
+
+- **Feature**: Process list in Resource Dashboard now supports real-time search / filter — type in the search bar to filter by PID, name, user, state, or command; match count is displayed and the filter can be cleared with the × button or Escape key.
+
 ## 6.15.0 - 2026-04-20
 
 - **Feature**: Resource Dashboard Processes tab now displays a dedicated **Name** column showing the process executable basename (e.g. `python3`, `nginx`). Kernel threads (e.g. `[kworker/0:1]`) are shown as-is. The Name column is sortable and also appears in the Overview Top 5 Processes table.
-- **Enhancement**: CHANGELOG entries for 6.8.0 and 6.7.0 translated from Chinese to English.
 
 ## 6.14.0 - 2026-04-20
 
