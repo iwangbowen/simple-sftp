@@ -34,7 +34,7 @@
 
 ## 6.8.0 - 2026-04-18
 
-- **Feature**: 最近路径记录支持单条删除 — 鼠标悬停时显示删除按钮，点击可移除单条访问记录，无需清空全部。
+- **Feature**: Recent paths now support single-entry deletion — hover over an entry to reveal a delete button; click it to remove that individual record without clearing the entire history.
 
 ## 6.7.5 - 2026-04-17
 
@@ -42,10 +42,10 @@
 
 ## 6.7.0 - 2026-04-17
 
-- **Feature**: 新增远程任务管理功能，支持任务的添加、编辑、删除和执行（通过 VS Code 界面管理远程 SSH 命令）。
-- **Feature**: 实现远程文件变化监视，文件发生变更时自动提示用户处理。
-- **Enhancement**: 增强 SSH 连接管理，支持目录同步预览与执行（基于 DeltaSyncManager）。
-- **Enhancement**: 更新部署配置及传输历史视图，展示任务状态与同步结果。
+- **Feature**: Added remote task management — create, edit, delete, and run tasks (remote SSH commands) directly from the VS Code interface.
+- **Feature**: Implemented remote file change watching — automatically prompts the user when a monitored remote file is modified.
+- **Enhancement**: Enhanced SSH connection management with directory sync preview and execution (powered by DeltaSyncManager).
+- **Enhancement**: Updated deploy profile and transfer history views to show task status and sync results.
 
 ## 6.6.5 - 2026-04-17
 
