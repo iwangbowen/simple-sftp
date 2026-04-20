@@ -1,5 +1,10 @@
 # Change Log
 
+## 6.15.0 - 2026-04-20
+
+- **Feature**: Resource Dashboard Processes tab now displays a dedicated **Name** column showing the process executable basename (e.g. `python3`, `nginx`). Kernel threads (e.g. `[kworker/0:1]`) are shown as-is. The Name column is sortable and also appears in the Overview Top 5 Processes table.
+- **Enhancement**: CHANGELOG entries for 6.8.0 and 6.7.0 translated from Chinese to English.
+
 ## 6.14.0 - 2026-04-20
 
 - **Enhancement**: Export single host to SSH Config now shows an "Open ~/.ssh/config" button in the notification, matching the behavior of "Export All Hosts to SSH Config".
