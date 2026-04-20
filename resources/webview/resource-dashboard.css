@@ -1013,6 +1013,65 @@ tr:hover .process-kill-btn:hover {
     background-color: var(--vscode-toolbar-hoverBackground);
 }
 
+/* ── Process Search Bar ──────────────────────────── */
+.process-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0 6px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    margin-bottom: 6px;
+}
+
+.process-search-icon {
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.process-search-input {
+    flex: 1;
+    font-size: 12px;
+    padding: 3px 6px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px;
+    min-width: 0;
+}
+
+.process-search-input:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+}
+
+.process-match-count {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: right;
+}
+
+.process-clear-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: none;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--vscode-descriptionForeground);
+    padding: 0;
+}
+
+.process-clear-search-btn:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+    color: var(--vscode-foreground);
+}
+
 /* ── Logs Search Bar ─────────────────────────────── */
 .logs-search-bar {
     display: flex;

@@ -22,6 +22,7 @@
   let currentProcesses = [];
   let processSortColumn = 'cpu';
   let processSortDir = 'desc';
+  let processFilterQuery = '';
 
   // Network sort state
   let currentNetworkInterfaces = [];
@@ -463,15 +464,37 @@
 
   function renderProcessTable() {
     const processList = document.getElementById('processList');
+    const matchCountEl = document.getElementById('processMatchCount');
+    const clearBtn = document.getElementById('processClearSearch');
 
     if (currentProcesses.length === 0) {
       processList.innerHTML = '<tr><td colspan="11" class="empty-state">No process data available</td></tr>';
+      if (matchCountEl) { matchCountEl.textContent = ''; }
       return;
+    }
+
+    // Filter
+    const query = processFilterQuery.trim().toLowerCase();
+    const filtered = query
+      ? currentProcesses.filter(p =>
+          String(p.pid).includes(query) ||
+          (p.name || '').toLowerCase().includes(query) ||
+          (p.user || '').toLowerCase().includes(query) ||
+          (p.command || '').toLowerCase().includes(query) ||
+          (p.stat || '').toLowerCase().includes(query)
+        )
+      : currentProcesses;
+
+    if (matchCountEl) {
+      matchCountEl.textContent = query ? `${filtered.length} / ${currentProcesses.length}` : '';
+    }
+    if (clearBtn) {
+      clearBtn.style.display = query ? '' : 'none';
     }
 
     // Sort
     const numericCols = new Set(['pid', 'cpu', 'mem', 'rss', 'vsz']);
-    const sorted = [...currentProcesses].sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       let aVal = a[processSortColumn];
       let bVal = b[processSortColumn];
       if (numericCols.has(processSortColumn)) {
@@ -498,6 +521,12 @@
     processList.style.opacity = '0.4';
 
     setTimeout(() => {
+      if (filtered.length === 0) {
+        processList.innerHTML = '<tr><td colspan="11" class="empty-state">No matching processes</td></tr>';
+        processList.style.opacity = '1';
+        return;
+      }
+
       processList.innerHTML = '';
 
       sorted.forEach(proc => {
@@ -901,6 +930,31 @@
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  // Process search input
+  const processSearchInput = document.getElementById('processSearchInput');
+  const processClearSearchBtn = document.getElementById('processClearSearch');
+  if (processSearchInput) {
+    processSearchInput.addEventListener('input', () => {
+      processFilterQuery = processSearchInput.value;
+      renderProcessTable();
+    });
+    processSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        processFilterQuery = '';
+        processSearchInput.value = '';
+        renderProcessTable();
+      }
+    });
+  }
+  if (processClearSearchBtn) {
+    processClearSearchBtn.addEventListener('click', () => {
+      processFilterQuery = '';
+      if (processSearchInput) { processSearchInput.value = ''; }
+      renderProcessTable();
+      processSearchInput?.focus();
+    });
   }
 
   // Process table header sort click handlers
