@@ -1,5 +1,11 @@
 # Change Log
 
+## 6.17.0 - 2026-04-21
+
+- **Feature**: Resource Dashboard Processes tab — Actions column is now sticky to the right edge of the table when scrolling horizontally.
+- **Feature**: Added "View process details" button (ℹ) in the Actions column; clicking it opens a detail modal showing PID, Name, User, State, TTY, Start Time, CPU Time, CPU %, Memory %, RSS, VSZ and the full Command. Supports closing via the close button, overlay click, or Escape key.
+- **Enhancement**: `ProcessInfo` data model now includes `tty` (controlling terminal) and `start` (process start time) fields extracted from `ps aux` output.
+
 ## 6.16.0 - 2026-04-20
 
 - **Feature**: Process list in Resource Dashboard now supports real-time search / filter — type in the search bar to filter by PID, name, user, state, or command; match count is displayed and the filter can be cleared with the × button or Escape key.
