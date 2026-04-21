@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
+import * as os from 'node:os';
 import { HostConfig, HostAuthConfig } from '../types';
 import { ResourceDashboardService } from '../services/resourceDashboardService';
+import { SshConnectionManager } from '../sshConnectionManager';
 import { logger } from '../logger';
 
 /**
@@ -288,6 +290,47 @@ export class ResourceDashboardProvider {
         const filePath = typeof message.filePath === 'string' ? message.filePath : undefined;
         const lines = typeof message.lines === 'number' ? message.lines : 200;
         await this.loadLogsData(filePath, lines);
+        break;
+      }
+
+      case 'downloadLog': {
+        const remotePath = typeof message.filePath === 'string' ? message.filePath : undefined;
+        if (!remotePath || !/^\/var\/log\/[a-zA-Z0-9_./@-]+$/.test(remotePath)) {
+          vscode.window.showErrorMessage('Invalid log file path.');
+          break;
+        }
+        const defaultName = path.basename(remotePath);
+        const saveUri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file(path.join(os.homedir(), defaultName)),
+          filters: { 'Log files': ['log', 'txt', '*'], 'All files': ['*'] },
+          title: `Save ${defaultName}`,
+        });
+        if (!saveUri) { break; }
+        const localPath = saveUri.fsPath;
+        this.panel.webview.postMessage({ type: 'logDownloadStart' });
+        try {
+          await SshConnectionManager.downloadFile(
+            this.hostConfig,
+            this.authConfig,
+            remotePath,
+            localPath
+          );
+          this.panel.webview.postMessage({ type: 'logDownloadEnd', success: true });
+          const open = await vscode.window.showInformationMessage(
+            `Downloaded: ${defaultName}`,
+            'Open File',
+            'Show in Explorer'
+          );
+          if (open === 'Open File') {
+            const doc = await vscode.workspace.openTextDocument(saveUri);
+            await vscode.window.showTextDocument(doc);
+          } else if (open === 'Show in Explorer') {
+            await vscode.commands.executeCommand('revealFileInOS', saveUri);
+          }
+        } catch (err) {
+          this.panel.webview.postMessage({ type: 'logDownloadEnd', success: false });
+          vscode.window.showErrorMessage(`Download failed: ${(err as Error).message}`);
+        }
         break;
       }
 
@@ -748,6 +791,9 @@ export class ResourceDashboardProvider {
                             </button>
                             <button id="logRefreshBtn" class="logs-refresh-btn" title="Reload log">
                                 <i class="codicon codicon-refresh"></i>
+                            </button>
+                            <button id="logDownloadBtn" class="logs-download-btn" title="Download full log file to local" disabled>
+                                <i class="codicon codicon-cloud-download"></i>
                             </button>
                         </div>
                     </div>

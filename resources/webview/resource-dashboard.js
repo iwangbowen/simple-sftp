@@ -207,6 +207,26 @@
         handleLogsContent(message.data);
         break;
 
+      case 'logDownloadStart': {
+        const dlBtn = document.getElementById('logDownloadBtn');
+        if (dlBtn) {
+          dlBtn.disabled = true;
+          dlBtn.title = 'Downloading…';
+          dlBtn.querySelector('i').className = 'codicon codicon-loading codicon-modifier-spin';
+        }
+        break;
+      }
+
+      case 'logDownloadEnd': {
+        const dlBtn = document.getElementById('logDownloadBtn');
+        if (dlBtn) {
+          dlBtn.disabled = false;
+          dlBtn.title = 'Download full log file to local';
+          dlBtn.querySelector('i').className = 'codicon codicon-cloud-download';
+        }
+        break;
+      }
+
       case 'error':
         handleError(message.data);
         break;
@@ -1107,10 +1127,14 @@
     // Restore previous selection or pick first log
     if (prevValue && files?.includes(prevValue)) {
       select.value = prevValue;
+      const dlBtn = document.getElementById('logDownloadBtn');
+      if (dlBtn) { dlBtn.disabled = false; }
     } else if (files && files.length > 0) {
       // Auto-select the first file and load it
       select.value = files[0];
       fetchLogContent(files[0]);
+      const dlBtn = document.getElementById('logDownloadBtn');
+      if (dlBtn) { dlBtn.disabled = false; }
     }
   }
 
@@ -1212,9 +1236,22 @@
 
   // Logs tab: file selector change
   const logFileSelect = document.getElementById('logFileSelect');
+  const logDownloadBtn = document.getElementById('logDownloadBtn');
   if (logFileSelect) {
     logFileSelect.addEventListener('change', () => {
-      if (logFileSelect.value) { fetchLogContent(logFileSelect.value); }
+      if (logFileSelect.value) {
+        fetchLogContent(logFileSelect.value);
+        if (logDownloadBtn) { logDownloadBtn.disabled = false; }
+      } else if (logDownloadBtn) {
+        logDownloadBtn.disabled = true;
+      }
+    });
+  }
+
+  if (logDownloadBtn) {
+    logDownloadBtn.addEventListener('click', () => {
+      const filePath = logFileSelect?.value;
+      if (filePath) { vscode.postMessage({ type: 'downloadLog', filePath }); }
     });
   }
 
