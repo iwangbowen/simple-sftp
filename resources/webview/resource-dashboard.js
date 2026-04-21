@@ -543,15 +543,20 @@
           <td>${escapeHtml(proc.time)}</td>
           <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(proc.command)}</td>
           <td class="process-actions-cell">
-            <div class="process-kill-dropdown">
-              <button class="process-kill-btn" data-pid="${proc.pid}" title="Send signal to process">
-                <i class="codicon codicon-debug-stop"></i>
+            <div class="process-actions-wrapper">
+              <button class="process-detail-btn" data-pid="${proc.pid}" title="View process details">
+                <i class="codicon codicon-info"></i>
               </button>
-              <div class="process-kill-menu" id="killMenu-${proc.pid}">
-                <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGTERM">SIGTERM <span class="kill-menu-hint">(graceful)</span></div>
-                <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGINT">SIGINT <span class="kill-menu-hint">(interrupt)</span></div>
-                <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGHUP">SIGHUP <span class="kill-menu-hint">(hangup)</span></div>
-                <div class="process-kill-menu-item kill-menu-danger" data-pid="${proc.pid}" data-signal="SIGKILL">SIGKILL <span class="kill-menu-hint">(force)</span></div>
+              <div class="process-kill-dropdown">
+                <button class="process-kill-btn" data-pid="${proc.pid}" title="Send signal to process">
+                  <i class="codicon codicon-debug-stop"></i>
+                </button>
+                <div class="process-kill-menu" id="killMenu-${proc.pid}">
+                  <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGTERM">SIGTERM <span class="kill-menu-hint">(graceful)</span></div>
+                  <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGINT">SIGINT <span class="kill-menu-hint">(interrupt)</span></div>
+                  <div class="process-kill-menu-item" data-pid="${proc.pid}" data-signal="SIGHUP">SIGHUP <span class="kill-menu-hint">(hangup)</span></div>
+                  <div class="process-kill-menu-item kill-menu-danger" data-pid="${proc.pid}" data-signal="SIGKILL">SIGKILL <span class="kill-menu-hint">(force)</span></div>
+                </div>
               </div>
             </div>
           </td>
@@ -568,6 +573,13 @@
   }
 
   document.addEventListener('click', (e) => {
+    const detailBtn = e.target.closest('.process-detail-btn');
+    if (detailBtn) {
+      e.stopPropagation();
+      closeAllKillMenus();
+      showProcessDetail(Number.parseInt(detailBtn.dataset.pid));
+      return;
+    }
     const btn = e.target.closest('.process-kill-btn');
     if (btn) {
       e.stopPropagation();
@@ -587,6 +599,64 @@
       return;
     }
     closeAllKillMenus();
+  });
+
+  function showProcessDetail(pid) {
+    const proc = currentProcesses.find(p => Number(p.pid) === pid);
+    if (!proc) { return; }
+
+    const modal = document.getElementById('processDetailModal');
+    const titleEl = document.getElementById('processDetailTitle');
+    const body = document.getElementById('processDetailBody');
+
+    titleEl.textContent = `${proc.name}  —  PID ${proc.pid}`;
+
+    const fields = [
+      { label: 'PID',        value: proc.pid,              mono: true },
+      { label: 'Name',       value: proc.name,             mono: true },
+      { label: 'User',       value: proc.user },
+      { label: 'State',      value: proc.stat,             mono: true },
+      { label: 'TTY',        value: proc.tty || '—',       mono: true },
+      { label: 'Start Time', value: proc.start || '—',     mono: true },
+      { label: 'CPU Time',   value: proc.time,             mono: true },
+      { label: 'CPU %',      value: `${proc.cpu}%` },
+      { label: 'Memory %',   value: `${proc.mem}%` },
+      { label: 'RSS',        value: formatKilobytes(proc.rss) },
+      { label: 'VSZ',        value: formatKilobytes(proc.vsz) },
+    ];
+
+    let html = '<div class="process-detail-grid">';
+    for (const f of fields) {
+      html += `
+        <span class="process-detail-label">${escapeHtml(f.label)}</span>
+        <span class="process-detail-value${f.mono ? ' mono' : ''}">${escapeHtml(String(f.value ?? '—'))}</span>`;
+    }
+    if (proc.command) {
+      html += `
+        <hr class="process-detail-divider">
+        <div class="process-detail-command-block">
+          <div class="process-detail-command-label">Command</div>
+          <div class="process-detail-command-value">${escapeHtml(proc.command)}</div>
+        </div>`;
+    }
+    html += '</div>';
+
+    body.innerHTML = html;
+    modal.style.display = 'flex';
+  }
+
+  function closeProcessDetail() {
+    const modal = document.getElementById('processDetailModal');
+    if (modal) { modal.style.display = 'none'; }
+  }
+
+  const processDetailClose = document.getElementById('processDetailClose');
+  const processDetailOverlay = document.getElementById('processDetailOverlay');
+  if (processDetailClose) { processDetailClose.addEventListener('click', closeProcessDetail); }
+  if (processDetailOverlay) { processDetailOverlay.addEventListener('click', closeProcessDetail); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeProcessDetail(); }
   });
 
   function handleNetworkData(interfaces) {

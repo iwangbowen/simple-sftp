@@ -766,6 +766,23 @@ export class ResourceDashboardProvider {
         </div>
     </div>
 
+    <!-- Process Detail Modal -->
+    <div id="processDetailModal" class="process-detail-modal" style="display:none;">
+        <div class="process-detail-overlay" id="processDetailOverlay"></div>
+        <div class="process-detail-dialog">
+            <div class="process-detail-header">
+                <span class="process-detail-title">
+                    <i class="codicon codicon-server-process"></i>
+                    <span id="processDetailTitle">Process Details</span>
+                </span>
+                <button class="process-detail-close" id="processDetailClose" title="关闭">
+                    <i class="codicon codicon-close"></i>
+                </button>
+            </div>
+            <div class="process-detail-body" id="processDetailBody"></div>
+        </div>
+    </div>
+
     <script src="${scriptUri}"></script>
 </body>
 </html>`;

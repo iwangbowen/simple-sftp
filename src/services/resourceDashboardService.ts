@@ -23,6 +23,10 @@ export interface ProcessInfo {
   rss: number;
   /** 进程状态 */
   stat: string;
+  /** 控制终端 */
+  tty: string;
+  /** 进程启动时间 */
+  start: string;
   /** 运行时间 */
   time: string;
   /** 命令 */
@@ -297,7 +301,9 @@ export class ResourceDashboardService {
           mem: Number.parseFloat(parts[3]) || 0,
           vsz: Number.parseInt(parts[4]) || 0,
           rss: Number.parseInt(parts[5]) || 0,
+          tty: parts[6],
           stat: parts[7],
+          start: parts[8],
           time: parts[9],
           command: cmd,
         });

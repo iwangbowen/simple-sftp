@@ -836,20 +836,72 @@ body {
 
 /* ── Process Actions / Kill Dropdown ──────────────── */
 .process-actions-col {
-    width: 52px;
+    width: 76px;
+    min-width: 76px;
     text-align: center;
-    padding-right: 8px !important;
+    padding: 0 !important;
+    /* Sticky right */
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
 }
 
 .process-actions-cell {
     text-align: center;
     padding: 0 !important;
-    position: relative;
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background-color: var(--vscode-editor-background);
+}
+
+tr:hover .process-actions-cell {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.process-actions-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 4px;
 }
 
 .process-kill-dropdown {
     position: relative;
     display: inline-block;
+}
+
+.process-detail-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0;
+    transition: opacity 0.15s, background-color 0.15s;
+    padding: 0;
+}
+
+.process-detail-btn:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+    border-color: var(--vscode-panel-border);
+    color: var(--vscode-charts-blue);
+    opacity: 1;
+}
+
+tr:hover .process-detail-btn {
+    opacity: 0.6;
+}
+
+tr:hover .process-detail-btn:hover {
+    opacity: 1;
 }
 
 .process-kill-btn {
@@ -929,6 +981,143 @@ tr:hover .process-kill-btn:hover {
     font-size: 10px;
     opacity: 0.65;
     margin-left: 8px;
+}
+
+/* ── Process Detail Modal ──────────────────────────── */
+.process-detail-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.process-detail-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.process-detail-dialog {
+    position: relative;
+    z-index: 1;
+    background-color: var(--vscode-editorWidget-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    width: 540px;
+    max-width: 92vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.process-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    flex-shrink: 0;
+}
+
+.process-detail-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.process-detail-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--vscode-foreground);
+    border-radius: 3px;
+    padding: 0;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.process-detail-close:hover {
+    opacity: 1;
+    background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+.process-detail-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.process-detail-grid {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 6px 12px;
+    align-items: baseline;
+}
+
+.process-detail-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+}
+
+.process-detail-value {
+    font-size: 12px;
+    color: var(--vscode-foreground);
+    word-break: break-all;
+}
+
+.process-detail-value.mono {
+    font-family: var(--vscode-editor-font-family);
+}
+
+.process-detail-divider {
+    grid-column: 1 / -1;
+    border: none;
+    border-top: 1px solid var(--vscode-panel-border);
+    margin: 8px 0;
+}
+
+.process-detail-command-block {
+    grid-column: 1 / -1;
+}
+
+.process-detail-command-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--vscode-descriptionForeground);
+    margin-bottom: 6px;
+}
+
+.process-detail-command-value {
+    font-family: var(--vscode-editor-font-family);
+    font-size: 11px;
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-textBlockQuote-background);
+    border-left: 3px solid var(--vscode-panel-border);
+    padding: 8px 10px;
+    border-radius: 0 4px 4px 0;
+    word-break: break-all;
+    white-space: pre-wrap;
+    line-height: 1.6;
 }
 
 /* ── System Logs Viewer ────────────────────────────── */
