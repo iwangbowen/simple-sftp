@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.18.0 - 2026-04-22
+
+- **Feature**: Logs tab in Resource Dashboard now has a download button — click to save the currently selected log file to a local path via save dialog.
+
 ## 6.17.0 - 2026-04-21
 
 - **Feature**: Resource Dashboard Processes tab — Actions column is now sticky to the right when scrolling horizontally.
