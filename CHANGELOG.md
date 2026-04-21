@@ -2,122 +2,120 @@
 
 ## 6.17.0 - 2026-04-21
 
-- **Feature**: Resource Dashboard Processes tab — Actions column is now sticky to the right edge of the table when scrolling horizontally.
-- **Feature**: Added "View process details" button (ℹ) in the Actions column; clicking it opens a detail modal showing PID, Name, User, State, TTY, Start Time, CPU Time, CPU %, Memory %, RSS, VSZ and the full Command. Supports closing via the close button, overlay click, or Escape key.
-- **Enhancement**: `ProcessInfo` data model now includes `tty` (controlling terminal) and `start` (process start time) fields extracted from `ps aux` output.
+- **Feature**: Resource Dashboard Processes tab — Actions column is now sticky to the right when scrolling horizontally.
+- **Feature**: Added "View process details" button in the Actions column; opens a modal showing PID, Name, User, State, TTY, Start Time, CPU Time, CPU %, Memory %, RSS, VSZ and full Command.
+- **Enhancement**: `ProcessInfo` model now includes `tty` and `start` fields parsed from `ps aux` output.
 
 ## 6.16.0 - 2026-04-20
 
-- **Feature**: Process list in Resource Dashboard now supports real-time search / filter — type in the search bar to filter by PID, name, user, state, or command; match count is displayed and the filter can be cleared with the × button or Escape key.
+- **Feature**: Process list supports real-time search — filter by PID, name, user, state, or command; match count shown and filter clearable with the clear button or Escape.
 
 ## 6.15.0 - 2026-04-20
 
-- **Feature**: Resource Dashboard Processes tab now displays a dedicated **Name** column showing the process executable basename (e.g. `python3`, `nginx`). Kernel threads (e.g. `[kworker/0:1]`) are shown as-is. The Name column is sortable and also appears in the Overview Top 5 Processes table.
+- **Feature**: Resource Dashboard Processes tab now shows a **Name** column with the executable basename. Sortable; also appears in the Overview Top 5 table.
 
 ## 6.14.0 - 2026-04-20
 
-- **Enhancement**: Export single host to SSH Config now shows an "Open ~/.ssh/config" button in the notification, matching the behavior of "Export All Hosts to SSH Config".
+- **Enhancement**: Export single host to SSH Config now shows an "Open ~/.ssh/config" button in the notification.
 
 ## 6.13.0 - 2026-04-18
 
-- **Feature**: Resource Dashboard Logs tab — added auto-refresh toggle (every 5s, stops when switched away), keyword search bar with regex support, Highlight/Filter toggle, match count indicator, and clear search button.
+- **Feature**: Resource Dashboard Logs tab — added auto-refresh (every 5s), keyword search with regex support, Highlight/Filter toggle, and match count indicator.
 
 ## 6.12.0 - 2026-04-18
 
-- **Feature**: Resource Dashboard — added **Logs** tab for viewing remote system logs under `/var/log`; supports file selector, configurable tail-line count (100/200/500/1000), and syntax-highlighted output with error/warn/info color coding.
+- **Feature**: Resource Dashboard — added **Logs** tab for viewing remote system logs; supports file selector, tail-line count (100/200/500/1000), and syntax-highlighted output.
 
 ## 6.11.0 - 2026-04-18
 
-- **Feature**: Resource Dashboard — added Kill Process action column to the process table; hover any row to reveal a signal selector dropdown (SIGTERM / SIGINT / SIGHUP / SIGKILL) with a VS Code modal confirmation before the signal is sent to the remote host.
+- **Feature**: Resource Dashboard — added Kill Process action in the process table; hover a row to reveal a signal dropdown (SIGTERM / SIGINT / SIGHUP / SIGKILL) with a confirmation dialog before sending.
 
 ## 6.10.1 - 2026-04-18
 
-- **Fix**: Resolved TypeScript type errors in `deltaSyncManager.ts` (mtime compatibility cast) and `uploadOnSaveService.test.ts` (missing required `DeployProfile` fields).
+- **Fix**: Resolved TypeScript type errors in `deltaSyncManager.ts` and `uploadOnSaveService.test.ts`.
 
 ## 6.10.0 - 2026-04-18
 
-- **Feature**: Resource Dashboard — added Disk I/O metric card with read/write speed dual sparkline.
-- **Feature**: Resource Dashboard — CPU, Memory, and Disk I/O metric cards are now clickable to expand a detailed history chart with min/avg/max stats.
+- **Feature**: Resource Dashboard — added Disk I/O metric card with read/write dual sparkline.
+- **Feature**: CPU, Memory, and Disk I/O cards are now expandable with a history chart and min/avg/max stats.
 
 ## 6.9.0 - 2026-04-18
 
-- **Feature**: Resource Dashboard — added CPU / Memory / Disk metric cards with sparkline history charts and Top 5 CPU processes snapshot in Overview tab.
-- **Feature**: Resource Dashboard — Processes, Network, and I/O tables support clickable column sorting.
-- **Enhancement**: Tab switches now show a loading spinner instead of a "No data" flash.
-- **Enhancement**: Health summary timestamp now uses `YYYY-MM-DD HH:mm:ss` format.
+- **Feature**: Resource Dashboard — added metric cards (CPU, Memory, Disk) with sparkline history and Top 5 CPU processes in the Overview tab.
+- **Feature**: Process, Network, and I/O tables support clickable column sorting.
+- **Enhancement**: Tab switches show a loading spinner; health timestamp uses `YYYY-MM-DD HH:mm:ss` format.
 
 ## 6.8.0 - 2026-04-18
 
-- **Feature**: Recent paths now support single-entry deletion — hover over an entry to reveal a delete button; click it to remove that individual record without clearing the entire history.
+- **Feature**: Recent paths support single-entry deletion — hover an entry to reveal and click the delete button.
 
 ## 6.7.5 - 2026-04-17
 
-- **Enhancement**: "Export All to SSH Config" command now shows an "Open ~/.ssh/config" button in the notification; clicking it opens (or auto-creates) `~/.ssh/config` in a side-by-side editor for easy copy-paste.
+- **Enhancement**: "Export All to SSH Config" notification now includes an "Open ~/.ssh/config" button.
 
 ## 6.7.0 - 2026-04-17
 
-- **Feature**: Added remote task management — create, edit, delete, and run tasks (remote SSH commands) directly from the VS Code interface.
-- **Feature**: Implemented remote file change watching — automatically prompts the user when a monitored remote file is modified.
-- **Enhancement**: Enhanced SSH connection management with directory sync preview and execution (powered by DeltaSyncManager).
-- **Enhancement**: Updated deploy profile and transfer history views to show task status and sync results.
+- **Feature**: Remote task management — create, edit, delete, and run tasks (SSH commands) from the VS Code interface.
+- **Feature**: Remote file watching — prompts when a monitored remote file changes.
+- **Enhancement**: SSH connection management enhanced with directory sync preview via DeltaSyncManager.
 
 ## 6.6.5 - 2026-04-17
 
-- **Feature**: Dual-panel browser now supports opening a path in a new editor tab via a dedicated command.
+- **Feature**: Dual-panel browser supports opening a path in a new editor tab.
 
 ## 6.6.0 - 2026-04-17
 
-- **Feature**: Add custom notes to hosts — edit via QuickPick "Edit Notes" or the advanced host form. Notes appear in the host tooltip.
+- **Feature**: Add custom notes to hosts — edit via QuickPick or the host form. Notes appear in the host tooltip.
 - **Enhancement**: Bookmark descriptions now display in the bookmark dropdown below the path.
 
 ## 6.5.0 - 2026-04-16
 
-- **Enhancement**: Recent paths now display access time. Default format is absolute (`2026-04-16 14:30`); switch to relative (`2h ago`) via `simpleSftp.recentPaths.timeFormat`. Hovering shows the alternate format as tooltip.
+- **Enhancement**: Recent paths now show access time. Default format is absolute; switch to relative via `simpleSftp.recentPaths.timeFormat`.
 
 ## 6.4.5 - 2026-04-15
 
-- **Enhancement**: Right-click context menu now includes **Sort By** (Name / Size / Modified Time) and **View Mode** (List View / Grid View) submenus, providing additional entry points for operations previously only available via toolbar buttons.
+- **Enhancement**: Right-click context menu now includes **Sort By** and **View Mode** submenus for operations previously only available via toolbar buttons.
 
 ## 6.4.0 - 2026-04-14
 
-- **Enhancement**: Added 🩵 Cyan and 🩷 Pink to the bookmark color palette (now 8 colors total).
-- **Fix**: Host color picker was missing Orange; it now shows the same full 8-color palette as bookmarks.
+- **Enhancement**: Added Cyan and Pink to the bookmark color palette (8 colors total). Host color picker updated to match.
 
 ## 6.3.5 - 2026-04-13
 
-- **Feature**: Sidebar host context menu now includes a **Recent Paths** entry — click to open a QuickPick list of the last 20 visited remote paths for that host, and navigate directly to the selected path.
+- **Feature**: Host context menu includes **Recent Paths** — opens a QuickPick list of the last 20 visited paths for direct navigation.
 
 ## 6.3.0 - 2026-04-11
 
-- **Feature**: Remote panel now tracks **recently visited paths** — click the history icon (⟳) to view a dropdown list of the last 20 paths per host. Clicking any entry navigates directly to that path. History persists across VS Code restarts and can be cleared with the "Clear" button.
-- **Enhancement**: Bookmark toggle button updated to use the bookmark icon for clearer visual identity.
+- **Feature**: Remote panel tracks **recently visited paths** — click the history icon to browse the last 20 paths per host. History persists across restarts.
+- **Enhancement**: Bookmark toggle updated to use the bookmark icon.
 
 ## 6.2.0 - 2026-04-10
 
-- **Feature**: Image preview now supports **zoom in / zoom out** — use the `+` / `-` toolbar buttons, mouse scroll wheel, or keyboard shortcuts (`+`, `-`, `0` to reset). Zoom level displayed in real time. Toolbar and title bar now use a frosted-glass background for readability on light-colored images.
+- **Feature**: Image preview supports **zoom in / zoom out** via toolbar buttons, scroll wheel, or keyboard shortcuts. Zoom level shown in real time.
 
 ## 6.1.7 - 2026-04-04
 
-- **Enhancement**: File tooltip for images now displays additional metadata — **format** (PNG, JPEG, GIF, WebP, BMP, SVG, etc.) and **dimensions** (width × height px). Works for both local and remote image files without downloading the entire file.
+- **Enhancement**: Image file tooltip now shows **format** and **dimensions** without downloading the full file.
 
 ## 6.1.6 - 2026-04-01
 
-- **Fix**: Webview codicons (icons) now load correctly when the extension is installed from the Marketplace. Previously, packaging with `--no-dependencies` excluded `node_modules/@vscode/codicons`, causing a 404 error. Codicon assets are now bundled into `resources/codicons/` at build time.
+- **Fix**: Codicons now load correctly when installed from the Marketplace. Assets bundled into `resources/codicons/` at build time.
 
 ## 6.1.5 - 2026-03-31
 
-- **Feature**: Added **back / forward navigation buttons** (← →) to both panel headers for browser-style directory history.
+- **Feature**: Added **back / forward navigation buttons** to both panel headers for browser-style directory history.
 
 ## 6.1.0 - 2026-03-26
 
-- **Feature**: Deploy Profiles — map local directories to remote paths with automatic upload on save, glob exclude patterns, conflict strategies, and a dedicated sidebar panel.
+- **Feature**: Deploy Profiles — map local directories to remote paths with upload on save, glob exclude patterns, and conflict strategies.
 
 ## 6.0.3 - 2026-03-18
 
-- **Feature**: Resource Dashboard now shows richer network insights, including interface IP/state, packet counters, error/drop counters, and live RX/TX rates.
-- **Feature**: Resource Dashboard now shows deeper process and memory details, including process state/runtime/RSS/VSZ plus memory buffers, cache, and swap usage.
-- **Enhancement**: Added a Health Summary to Resource Dashboard with `Healthy` / `Warning` / `Critical` status and clear CPU, memory, and disk alerts.
-- **Fix**: Hardened the dashboard Webview output and CSP handling, improved Linux block-device compatibility for disk metrics, and fixed edge-case parsing for memory availability and swap values.
+- **Feature**: Resource Dashboard shows richer network insights: IP/state, packet counters, error/drop counters, and live RX/TX rates.
+- **Feature**: Deeper process and memory details: state, runtime, RSS/VSZ, buffers, cache, and swap usage.
+- **Enhancement**: Health Summary with Healthy/Warning/Critical status and CPU/memory/disk alerts.
+- **Fix**: Hardened Webview CSP handling and improved Linux disk metrics compatibility.
+
 
 ## 6.0.2 - 2026-03-17
 
