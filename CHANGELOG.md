@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.19.0 - 2026-04-26
+
+- **Feature**: Resource Dashboard added a dedicated **Memory** tab with VS Code-native styling, including memory overview, health indicator, and usage breakdown bars for Used/Available/Swap.
+
 ## 6.18.0 - 2026-04-22
 
 - **Feature**: Logs tab in Resource Dashboard now has a download button — click to save the currently selected log file to a local path via save dialog.
@@ -119,7 +123,6 @@
 - **Feature**: Deeper process and memory details: state, runtime, RSS/VSZ, buffers, cache, and swap usage.
 - **Enhancement**: Health Summary with Healthy/Warning/Critical status and CPU/memory/disk alerts.
 - **Fix**: Hardened Webview CSP handling and improved Linux disk metrics compatibility.
-
 
 ## 6.0.2 - 2026-03-17
 
