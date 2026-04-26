@@ -125,6 +125,9 @@ export class ResourceDashboardProvider {
         case 'overview':
           await this.loadOverviewData();
           break;
+        case 'memory':
+          await this.loadOverviewData();
+          break;
         case 'processes':
           await this.loadProcessData();
           break;
@@ -399,6 +402,10 @@ export class ResourceDashboardProvider {
                 <i class="codicon codicon-dashboard"></i>
                 Overview
             </button>
+            <button class="tab-button" data-tab="memory">
+              <i class="codicon codicon-server-process"></i>
+              Memory
+            </button>
             <button class="tab-button" data-tab="processes">
                 <i class="codicon codicon-server-process"></i>
                 Processes
@@ -658,6 +665,86 @@ export class ResourceDashboardProvider {
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- Memory Tab -->
+            <div id="memoryTab" class="tab-content">
+              <div class="section">
+                <div class="section-header">
+                  <i class="codicon codicon-server-process"></i>
+                  <span>Memory Overview</span>
+                </div>
+                <div class="section-content">
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="info-label">Usage</span>
+                      <span class="info-value" id="memoryTabUsage">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Total</span>
+                      <span class="info-value" id="memoryTabTotal">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Used</span>
+                      <span class="info-value" id="memoryTabUsed">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Available</span>
+                      <span class="info-value" id="memoryTabAvailable">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Buffers</span>
+                      <span class="info-value" id="memoryTabBuffers">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Cache</span>
+                      <span class="info-value" id="memoryTabCached">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Swap</span>
+                      <span class="info-value" id="memoryTabSwap">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Memory Health</span>
+                      <span class="info-value">
+                        <span class="status-pill" id="memoryTabHealth">Unknown</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="section-header">
+                  <i class="codicon codicon-graph"></i>
+                  <span>Memory Breakdown</span>
+                </div>
+                <div class="section-content">
+                  <div class="memory-breakdown-list">
+                    <div class="memory-breakdown-row">
+                      <div class="memory-breakdown-label">Used</div>
+                      <div class="memory-breakdown-bar-bg">
+                        <div id="memoryUsedBar" class="memory-breakdown-bar-fill usage-danger" style="width: 0%;"></div>
+                      </div>
+                      <div id="memoryUsedBarText" class="memory-breakdown-value">-</div>
+                    </div>
+                    <div class="memory-breakdown-row">
+                      <div class="memory-breakdown-label">Available</div>
+                      <div class="memory-breakdown-bar-bg">
+                        <div id="memoryAvailableBar" class="memory-breakdown-bar-fill usage-normal" style="width: 0%;"></div>
+                      </div>
+                      <div id="memoryAvailableBarText" class="memory-breakdown-value">-</div>
+                    </div>
+                    <div class="memory-breakdown-row">
+                      <div class="memory-breakdown-label">Swap</div>
+                      <div class="memory-breakdown-bar-bg">
+                        <div id="memorySwapBar" class="memory-breakdown-bar-fill usage-warn" style="width: 0%;"></div>
+                      </div>
+                      <div id="memorySwapBarText" class="memory-breakdown-value">-</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Processes Tab -->

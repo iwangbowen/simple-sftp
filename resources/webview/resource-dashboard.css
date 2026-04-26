@@ -410,6 +410,46 @@ body {
     font-family: var(--vscode-editor-font-family);
 }
 
+/* Memory Tab */
+.memory-breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.memory-breakdown-row {
+    display: grid;
+    grid-template-columns: 88px 1fr minmax(140px, auto);
+    gap: 10px;
+    align-items: center;
+}
+
+.memory-breakdown-label {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.memory-breakdown-bar-bg {
+    height: 8px;
+    background-color: var(--vscode-panel-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.memory-breakdown-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    background-color: var(--vscode-charts-blue);
+}
+
+.memory-breakdown-value {
+    font-size: 12px;
+    color: var(--vscode-foreground);
+    font-family: var(--vscode-editor-font-family);
+    text-align: right;
+}
+
 /* Disk List */
 #diskList {
     display: flex;
@@ -444,6 +484,15 @@ body {
     .disk-item {
         grid-template-columns: 1fr;
         gap: 8px;
+    }
+
+    .memory-breakdown-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .memory-breakdown-value {
+        text-align: left;
     }
 }
 

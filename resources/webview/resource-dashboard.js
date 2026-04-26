@@ -92,6 +92,21 @@
     const loadingDiv = `<div class="tab-loading-div"><span class="tab-loading-spinner"></span>Loading...</div>`;
 
     switch (tabName) {
+      case 'memory': {
+        const usedBar = document.getElementById('memoryUsedBar');
+        const availableBar = document.getElementById('memoryAvailableBar');
+        const swapBar = document.getElementById('memorySwapBar');
+        const usedText = document.getElementById('memoryUsedBarText');
+        const availableText = document.getElementById('memoryAvailableBarText');
+        const swapText = document.getElementById('memorySwapBarText');
+        if (usedBar) { usedBar.style.width = '0%'; }
+        if (availableBar) { availableBar.style.width = '0%'; }
+        if (swapBar) { swapBar.style.width = '0%'; }
+        if (usedText) { usedText.textContent = 'Loading...'; }
+        if (availableText) { availableText.textContent = 'Loading...'; }
+        if (swapText) { swapText.textContent = 'Loading...'; }
+        break;
+      }
       case 'processes':
         document.getElementById('processList').innerHTML = loadingRow;
         break;
@@ -286,6 +301,8 @@
     document.getElementById('memoryCached').textContent = `${formatBytes(data.memory.cached || 0)} MB`;
     document.getElementById('memorySwap').textContent = formatSwap(data.memory);
 
+    updateMemoryTab(data.memory);
+
     // Update disk summary for overview tab
     updateDiskSummary(data.disk);
 
@@ -333,6 +350,83 @@
       const diskBar = document.getElementById('metricDiskBar');
       diskBar.style.width = `${Math.min(diskUsage, 100)}%`;
       diskBar.className = `metric-disk-bar-fill ${getUsageClass(diskUsage)}`;
+    }
+  }
+
+  function updateMemoryTab(memory) {
+    const total = Number(memory?.total) || 0;
+    const used = Number(memory?.used) || 0;
+    const available = Number(memory?.available) || 0;
+    const usage = Number(memory?.usage) || 0;
+    const buffers = Number(memory?.buffers) || 0;
+    const cached = Number(memory?.cached) || 0;
+    const swapTotal = Number(memory?.swapTotal) || 0;
+    const swapUsed = Number(memory?.swapUsed) || 0;
+    const swapUsage = Number(memory?.swapUsage) || 0;
+
+    const usageEl = document.getElementById('memoryTabUsage');
+    const totalEl = document.getElementById('memoryTabTotal');
+    const usedEl = document.getElementById('memoryTabUsed');
+    const availableEl = document.getElementById('memoryTabAvailable');
+    const buffersEl = document.getElementById('memoryTabBuffers');
+    const cachedEl = document.getElementById('memoryTabCached');
+    const swapEl = document.getElementById('memoryTabSwap');
+    const healthEl = document.getElementById('memoryTabHealth');
+
+    if (usageEl) { usageEl.textContent = `${usage.toFixed(1)}%`; }
+    if (totalEl) { totalEl.textContent = `${formatBytes(total)} MB`; }
+    if (usedEl) { usedEl.textContent = `${formatBytes(used)} MB`; }
+    if (availableEl) { availableEl.textContent = `${formatBytes(available)} MB`; }
+    if (buffersEl) { buffersEl.textContent = `${formatBytes(buffers)} MB`; }
+    if (cachedEl) { cachedEl.textContent = `${formatBytes(cached)} MB`; }
+    if (swapEl) { swapEl.textContent = formatSwap(memory); }
+
+    if (healthEl) {
+      let stateClass = 'state-up';
+      let stateText = 'Healthy';
+
+      if (usage >= 90) {
+        stateClass = 'state-error';
+        stateText = 'Critical';
+      } else if (usage >= 80) {
+        stateClass = 'state-unknown';
+        stateText = 'Warning';
+      }
+
+      healthEl.className = `status-pill ${stateClass}`;
+      healthEl.textContent = stateText;
+    }
+
+    const usedPct = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+    const availablePct = total > 0 ? Math.min((available / total) * 100, 100) : 0;
+    const swapPct = swapTotal > 0 ? Math.min(swapUsage, 100) : 0;
+
+    const usedBar = document.getElementById('memoryUsedBar');
+    const availableBar = document.getElementById('memoryAvailableBar');
+    const swapBar = document.getElementById('memorySwapBar');
+    const usedBarText = document.getElementById('memoryUsedBarText');
+    const availableBarText = document.getElementById('memoryAvailableBarText');
+    const swapBarText = document.getElementById('memorySwapBarText');
+
+    if (usedBar) {
+      usedBar.style.width = `${usedPct.toFixed(1)}%`;
+      usedBar.className = `memory-breakdown-bar-fill ${getUsageClass(usedPct)}`;
+    }
+    if (availableBar) {
+      availableBar.style.width = `${availablePct.toFixed(1)}%`;
+      availableBar.className = 'memory-breakdown-bar-fill usage-normal';
+    }
+    if (swapBar) {
+      swapBar.style.width = `${swapPct.toFixed(1)}%`;
+      swapBar.className = `memory-breakdown-bar-fill ${getUsageClass(swapPct)}`;
+    }
+
+    if (usedBarText) { usedBarText.textContent = `${usedPct.toFixed(1)}% (${formatBytes(used)} MB)`; }
+    if (availableBarText) { availableBarText.textContent = `${availablePct.toFixed(1)}% (${formatBytes(available)} MB)`; }
+    if (swapBarText) {
+      swapBarText.textContent = swapTotal > 0
+        ? `${swapPct.toFixed(1)}% (${formatBytes(swapUsed)} / ${formatBytes(swapTotal)} MB)`
+        : 'Disabled';
     }
   }
 
