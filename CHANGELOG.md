@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.20.0 - 2026-04-27
+
+- **Feature**: Resource Dashboard — added **Ports**, **Users**, **Services**, and **Docker** tabs.
+
 ## 6.19.0 - 2026-04-26
 
 - **Feature**: Resource Dashboard added a dedicated **Memory** tab with VS Code-native styling, including memory overview, health indicator, and usage breakdown bars for Used/Available/Swap.
