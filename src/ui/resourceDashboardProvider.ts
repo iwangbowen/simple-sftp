@@ -143,6 +143,18 @@ export class ResourceDashboardProvider {
         case 'logs':
           await this.loadLogsData();
           break;
+        case 'ports':
+          await this.loadPortsData();
+          break;
+        case 'users':
+          await this.loadUsersData();
+          break;
+        case 'services':
+          await this.loadServicesData();
+          break;
+        case 'docker':
+          await this.loadDockerData();
+          break;
         default:
           await this.loadOverviewData();
       }
@@ -255,6 +267,26 @@ export class ResourceDashboardProvider {
     }
   }
 
+  private async loadPortsData(): Promise<void> {
+    const ports = await ResourceDashboardService.getPortList(this.hostConfig, this.authConfig);
+    this.panel.webview.postMessage({ type: 'portsData', data: ports });
+  }
+
+  private async loadUsersData(): Promise<void> {
+    const usersInfo = await ResourceDashboardService.getUsersInfo(this.hostConfig, this.authConfig);
+    this.panel.webview.postMessage({ type: 'usersData', data: usersInfo });
+  }
+
+  private async loadServicesData(): Promise<void> {
+    const services = await ResourceDashboardService.getServiceList(this.hostConfig, this.authConfig);
+    this.panel.webview.postMessage({ type: 'servicesData', data: services });
+  }
+
+  private async loadDockerData(): Promise<void> {
+    const containers = await ResourceDashboardService.getContainerList(this.hostConfig, this.authConfig);
+    this.panel.webview.postMessage({ type: 'dockerData', data: containers });
+  }
+
   /**
    * Handle messages from webview
    */
@@ -333,6 +365,27 @@ export class ResourceDashboardProvider {
         } catch (err) {
           this.panel.webview.postMessage({ type: 'logDownloadEnd', success: false });
           vscode.window.showErrorMessage(`Download failed: ${(err as Error).message}`);
+        }
+        break;
+      }
+
+      case 'serviceControl': {
+        const unit = typeof message.unit === 'string' ? message.unit : '';
+        const action = message.action as 'start' | 'stop' | 'restart';
+        const allowedActions: string[] = ['start', 'stop', 'restart'];
+        if (!unit || !allowedActions.includes(action)) { break; }
+        const confirmed = await vscode.window.showWarningMessage(
+          `${action.charAt(0).toUpperCase() + action.slice(1)} service "${unit}" on ${this.hostConfig.name}?`,
+          { modal: true },
+          'Confirm'
+        );
+        if (confirmed !== 'Confirm') { break; }
+        try {
+          await ResourceDashboardService.controlService(this.hostConfig, this.authConfig, unit, action);
+          vscode.window.showInformationMessage(`Service "${unit}" ${action}ed successfully.`);
+          await this.loadServicesData();
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to ${action} "${unit}": ${(err as Error).message}`);
         }
         break;
       }
@@ -425,6 +478,22 @@ export class ResourceDashboardProvider {
             <button class="tab-button" data-tab="logs">
                 <i class="codicon codicon-output"></i>
                 Logs
+            </button>
+            <button class="tab-button" data-tab="ports">
+                <i class="codicon codicon-plug"></i>
+                Ports
+            </button>
+            <button class="tab-button" data-tab="users">
+                <i class="codicon codicon-account"></i>
+                Users
+            </button>
+            <button class="tab-button" data-tab="services">
+                <i class="codicon codicon-list-ordered"></i>
+                Services
+            </button>
+            <button class="tab-button" data-tab="docker">
+                <i class="codicon codicon-layers"></i>
+                Docker
             </button>
         </div>
 
@@ -893,6 +962,146 @@ export class ResourceDashboardProvider {
                     </div>
                     <div class="section-content logs-output-container">
                         <pre id="logOutput" class="log-output"><span class="log-placeholder">Select a log file above to view its contents.</span></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ports Tab -->
+            <div id="portsTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-plug"></i>
+                        <span>Listening Ports</span>
+                    </div>
+                    <div class="section-content">
+                        <table class="ports-table">
+                            <thead>
+                                <tr>
+                                    <th data-sort="localPort">Port</th>
+                                    <th data-sort="proto">Proto</th>
+                                    <th data-sort="localAddress">Address</th>
+                                    <th data-sort="processName">Process</th>
+                                    <th data-sort="pid">PID</th>
+                                </tr>
+                            </thead>
+                            <tbody id="portsList">
+                                <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="usersTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-account"></i>
+                        <span>Current Sessions</span>
+                    </div>
+                    <div class="section-content">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>TTY</th>
+                                    <th>From</th>
+                                    <th>Login Time</th>
+                                    <th>Idle</th>
+                                    <th>What</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userSessionsList">
+                                <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-history"></i>
+                        <span>Login History (last 30)</span>
+                    </div>
+                    <div class="section-content">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>TTY</th>
+                                    <th>From</th>
+                                    <th>Login Time</th>
+                                    <th>Logout / Status</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody id="loginHistoryList">
+                                <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Tab -->
+            <div id="servicesTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-list-ordered"></i>
+                        <span>Systemd Services</span>
+                        <div class="services-filter-bar">
+                            <input id="servicesFilter" class="services-filter-input" type="text" placeholder="Filter services…" autocomplete="off" spellcheck="false" />
+                        </div>
+                    </div>
+                    <div class="section-content">
+                        <table class="services-table">
+                            <thead>
+                                <tr>
+                                    <th data-sort="unit">Unit</th>
+                                    <th data-sort="active">Active</th>
+                                    <th data-sort="sub">Sub</th>
+                                    <th data-sort="load">Load</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicesList">
+                                <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Docker Tab -->
+            <div id="dockerTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-layers"></i>
+                        <span>Docker Containers</span>
+                    </div>
+                    <div class="section-content">
+                        <div id="dockerUnavailable" style="display:none;" class="docker-unavailable">
+                            <i class="codicon codicon-info"></i>
+                            Docker is not installed or not running on this host.
+                        </div>
+                        <table class="docker-table" id="dockerTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th data-sort="name">Name</th>
+                                    <th data-sort="image">Image</th>
+                                    <th data-sort="state">State</th>
+                                    <th>Status</th>
+                                    <th data-sort="cpuPercent">CPU%</th>
+                                    <th data-sort="memPercent">Mem%</th>
+                                    <th>Net I/O</th>
+                                    <th>Ports</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dockerList">
+                                <tr><td colspan="9" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

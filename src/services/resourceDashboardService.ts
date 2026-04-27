@@ -3,6 +3,120 @@ import { HostConfig, HostAuthConfig } from '../types';
 import { logger } from '../logger';
 import { establishMultiHopConnection, addAuthToConnectConfig } from '../utils/jumpHostHelper';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Ports Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 单个监听端口信息 */
+export interface PortInfo {
+  /** 协议 */
+  proto: 'tcp' | 'tcp6' | 'udp' | 'udp6';
+  /** 本地地址 */
+  localAddress: string;
+  /** 本地端口 */
+  localPort: number;
+  /** 进程 PID（可能为空） */
+  pid?: number;
+  /** 进程名称（可能为空） */
+  processName?: string;
+  /** 完整命令（可能为空） */
+  command?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Users Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 当前登录用户会话 */
+export interface UserSession {
+  /** 用户名 */
+  user: string;
+  /** 终端 */
+  tty: string;
+  /** 来源 IP 或主机名 */
+  from: string;
+  /** 登录时间 */
+  loginTime: string;
+  /** 空闲时间 */
+  idle: string;
+  /** CPU 用量（JCPU）*/
+  what: string;
+}
+
+/** 登录历史记录 */
+export interface LoginHistoryEntry {
+  /** 用户名 */
+  user: string;
+  /** 终端 */
+  tty: string;
+  /** 来源 IP 或主机名 */
+  from: string;
+  /** 登录时间 */
+  loginTime: string;
+  /** 退出时间 / 状态 */
+  logoutTime: string;
+  /** 持续时间 */
+  duration: string;
+}
+
+/** Users Tab 完整数据 */
+export interface UsersInfo {
+  sessions: UserSession[];
+  history: LoginHistoryEntry[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Services Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 单个 systemd 服务信息 */
+export interface ServiceInfo {
+  /** 单元名称 */
+  unit: string;
+  /** 加载状态 */
+  load: string;
+  /** 激活状态 */
+  active: string;
+  /** 子状态 */
+  sub: string;
+  /** 描述 */
+  description: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Docker Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 单个 Docker 容器信息 */
+export interface ContainerInfo {
+  /** 容器 ID（短） */
+  id: string;
+  /** 容器名称 */
+  name: string;
+  /** 镜像名称 */
+  image: string;
+  /** 运行状态 */
+  status: string;
+  /** 状态详情 */
+  state: string;
+  /** CPU 使用率 (%) */
+  cpuPercent?: number;
+  /** 内存使用量（字节） */
+  memUsage?: number;
+  /** 内存限制（字节） */
+  memLimit?: number;
+  /** 内存使用率 (%) */
+  memPercent?: number;
+  /** 网络 I/O 接收（字节） */
+  netIn?: number;
+  /** 网络 I/O 发送（字节） */
+  netOut?: number;
+  /** 创建时间 */
+  createdAt?: string;
+  /** 端口映射 */
+  ports?: string;
+}
+
 /**
  * 进程信息接口
  */
@@ -972,6 +1086,333 @@ export class ResourceDashboardService {
       alerts,
       updatedAt: new Date().toISOString(),
     };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Ports
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 获取远端监听端口列表（TCP/UDP）
+   */
+  static async getPortList(
+    config: HostConfig,
+    authConfig: HostAuthConfig
+  ): Promise<PortInfo[]> {
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      // ss -tlnup 列出 TCP+UDP 监听端口，带进程信息
+      // 部分系统需要 root 才能看到进程，非 root 时 process 列为空
+      const raw = await this.executeCommand(
+        conn,
+        'ss -tlnup 2>/dev/null || netstat -tlnup 2>/dev/null || echo ""'
+      ).catch(() => '');
+      return this.parsePortListOutput(raw);
+    });
+  }
+
+  private static parsePortListOutput(raw: string): PortInfo[] {
+    const portMap = new Map<string, PortInfo>();
+
+    for (const line of raw.split('\n')) {
+      if (!line.trim() || line.startsWith('State') || line.startsWith('Active')
+          || line.startsWith('Proto') || line.startsWith('Netid')) {
+        continue;
+      }
+
+      // ss output: tcp LISTEN 0 128 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=1234,fd=3))
+      // Regex: match "LISTEN" state, capture localAddr:port and optional process info
+      const ssRegex = /^(tcp6?|udp6?)\s+LISTEN\s+\S+\s+\S+\s+([\da-f:.*]+):(\d+)(?:.*?users:\(\("([^"]+)",pid=(\d+))?/i;
+      const ssMatch = ssRegex.exec(line);
+      if (ssMatch) {
+        const [, protoRaw, addr, portStr, procName, pidStr] = ssMatch;
+        const proto = protoRaw.toLowerCase() as PortInfo['proto'];
+        const localPort = Number.parseInt(portStr, 10);
+        const key = `${proto}:${addr}:${localPort}`;
+        if (!portMap.has(key)) {
+          portMap.set(key, {
+            proto,
+            localAddress: addr,
+            localPort,
+            pid: pidStr ? Number.parseInt(pidStr, 10) : undefined,
+            processName: procName,
+            command: procName,
+          });
+        }
+        continue;
+      }
+
+      // netstat output: tcp 0 0 0.0.0.0:22 0.0.0.0:* LISTEN 1234/sshd
+      const netstatRegex = /^(tcp6?|udp6?)\s+\S+\s+\S+\s+([\da-f:.*]+):(\d+)\s+\S+\s+LISTEN\s+(\d+)\/(\S*)/i;
+      const netstatMatch = netstatRegex.exec(line);
+      if (netstatMatch) {
+        const [, protoRaw, addr, portStr, pidStr, procName] = netstatMatch;
+        const proto = protoRaw.toLowerCase() as PortInfo['proto'];
+        const localPort = Number.parseInt(portStr, 10);
+        const key = `${proto}:${addr}:${localPort}`;
+        if (!portMap.has(key)) {
+          portMap.set(key, {
+            proto,
+            localAddress: addr,
+            localPort,
+            pid: Number.parseInt(pidStr, 10),
+            processName: procName.replace(/^-$/, '') || undefined,
+            command: procName.replace(/^-$/, '') || undefined,
+          });
+        }
+      }
+    }
+
+    return Array.from(portMap.values()).sort((a, b) => a.localPort - b.localPort);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Users
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 获取当前登录用户会话和最近登录历史
+   */
+  static async getUsersInfo(
+    config: HostConfig,
+    authConfig: HostAuthConfig
+  ): Promise<UsersInfo> {
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      const [whoRaw, lastRaw] = await Promise.all([
+        this.executeCommand(conn, 'w -h 2>/dev/null || who 2>/dev/null || echo ""').catch(() => ''),
+        this.executeCommand(conn, 'last -n 30 2>/dev/null || echo ""').catch(() => ''),
+      ]);
+      return {
+        sessions: this.parseWOutput(whoRaw),
+        history: this.parseLastOutput(lastRaw),
+      };
+    });
+  }
+
+  private static parseWOutput(raw: string): UserSession[] {
+    const sessions: UserSession[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) { continue; }
+      // w -h: USER TTY FROM LOGIN@ IDLE JCPU PCPU WHAT
+      // who:  USER LINE TIME [FROM]
+      const parts = trimmed.split(/\s+/);
+      if (parts.length < 2) { continue; }
+      sessions.push({
+        user: parts[0] || '',
+        tty: parts[1] || '',
+        from: parts[2] || '',
+        loginTime: parts[3] || '',
+        idle: parts[4] || '',
+        what: parts.slice(7).join(' ') || '',
+      });
+    }
+    return sessions;
+  }
+
+  private static parseLastOutput(raw: string): LoginHistoryEntry[] {
+    const history: LoginHistoryEntry[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('wtmp') || trimmed.startsWith('btmp')) { continue; }
+      const parts = trimmed.split(/\s+/);
+      if (parts.length < 5) { continue; }
+      const user = parts[0];
+      const tty = parts[1];
+      const from = parts[2] && parts[2].startsWith(':') ? '' : parts[2];
+      // The rest is date/time and duration
+      const rest = parts.slice(3).join(' ');
+      // Typical: Mon Jan  1 00:00   still logged in
+      //          Mon Jan  1 00:00 - 01:00  (01:00)
+      const durationMatch = rest.match(/\(([^)]+)\)/);
+      const duration = durationMatch ? durationMatch[1] : '';
+      // Extract logout time or status
+      const dashIdx = rest.indexOf(' - ');
+      const logoutTime = dashIdx >= 0 ? rest.slice(dashIdx + 3).replace(durationMatch?.[0] || '', '').trim() : 'still logged in';
+      const loginTime = dashIdx >= 0 ? rest.slice(0, dashIdx).trim() : rest.replace(durationMatch?.[0] || '', '').trim();
+      history.push({ user, tty, from, loginTime, logoutTime, duration });
+    }
+    return history.slice(0, 30);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Services
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 获取 systemd 服务列表
+   */
+  static async getServiceList(
+    config: HostConfig,
+    authConfig: HostAuthConfig
+  ): Promise<ServiceInfo[]> {
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      const raw = await this.executeCommand(
+        conn,
+        'systemctl list-units --type=service --no-pager --no-legend 2>/dev/null || echo ""'
+      ).catch(() => '');
+      return this.parseServiceListOutput(raw);
+    });
+  }
+
+  private static parseServiceListOutput(raw: string): ServiceInfo[] {
+    const services: ServiceInfo[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) { continue; }
+      // Format: UNIT  LOAD  ACTIVE  SUB  DESCRIPTION
+      // Leading '●' (UTF-8 bullet) may indicate failed
+      const cleaned = trimmed.replace(/^[●✓✗\s]+/, '');
+      const parts = cleaned.split(/\s+/);
+      if (parts.length < 4) { continue; }
+      const unit = parts[0];
+      if (!unit.endsWith('.service')) { continue; }
+      services.push({
+        unit,
+        load: parts[1],
+        active: parts[2],
+        sub: parts[3],
+        description: parts.slice(4).join(' '),
+      });
+    }
+    // Sort: failed first, then running, then others
+    services.sort((a, b) => {
+      const order = (s: ServiceInfo) => {
+        if (s.sub === 'failed') { return 0; }
+        if (s.sub === 'running') { return 1; }
+        return 2;
+      };
+      return order(a) - order(b);
+    });
+    return services;
+  }
+
+  /**
+   * 控制 systemd 服务 (start/stop/restart)
+   */
+  static async controlService(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    unit: string,
+    action: 'start' | 'stop' | 'restart'
+  ): Promise<void> {
+    // Validate unit name: only allow alphanumeric, dash, underscore, dot, @
+    if (!/^[a-zA-Z0-9\-_.@]+\.service$/.test(unit)) {
+      throw new Error(`Invalid service unit name: ${unit}`);
+    }
+    const allowedActions = ['start', 'stop', 'restart'] as const;
+    if (!allowedActions.includes(action)) {
+      throw new Error(`Invalid action: ${action}`);
+    }
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      await this.executeCommand(conn, `systemctl ${action} '${unit}'`).catch(err => {
+        throw new Error(`systemctl ${action} ${unit} failed: ${(err as Error).message}`);
+      });
+    });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Docker
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 获取 Docker 容器列表（含资源统计）
+   * 如果 Docker 未安装/未运行，返回空数组
+   */
+  static async getContainerList(
+    config: HostConfig,
+    authConfig: HostAuthConfig
+  ): Promise<ContainerInfo[]> {
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      // Check if docker is available
+      const dockerCheck = await this.executeCommand(conn, 'command -v docker 2>/dev/null || echo ""').catch(() => '');
+      if (!dockerCheck.trim()) {
+        return [];
+      }
+
+      // Get container list
+      const psRaw = await this.executeCommand(
+        conn,
+        // format: ID|Name|Image|Status|State|CreatedAt|Ports
+        'docker ps -a --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.CreatedAt}}|{{.Ports}}" 2>/dev/null || echo ""'
+      ).catch(() => '');
+
+      const containers = this.parseDockerPsOutput(psRaw);
+      if (containers.length === 0) { return []; }
+
+      // Get stats for running containers only
+      const runningIds = containers.filter(c => c.state === 'running').map(c => c.id);
+      let statsMap = new Map<string, { cpuPercent: number; memUsage: number; memLimit: number; memPercent: number; netIn: number; netOut: number }>();
+
+      if (runningIds.length > 0) {
+        const statsRaw = await this.executeCommand(
+          conn,
+          // format: ID|CPUPerc|MemUsage/MemLimit|MemPerc|NetIO
+          'docker stats --no-stream --format "{{.ID}}|{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.NetIO}}" 2>/dev/null || echo ""'
+        ).catch(() => '');
+        statsMap = this.parseDockerStatsOutput(statsRaw);
+      }
+
+      return containers.map(c => {
+        const stats = statsMap.get(c.id);
+        return stats ? { ...c, ...stats } : c;
+      });
+    });
+  }
+
+  private static parseDockerPsOutput(raw: string): ContainerInfo[] {
+    const containers: ContainerInfo[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) { continue; }
+      const parts = trimmed.split('|');
+      if (parts.length < 5) { continue; }
+      containers.push({
+        id: parts[0] || '',
+        name: parts[1] || '',
+        image: parts[2] || '',
+        status: parts[3] || '',
+        state: parts[4] || '',
+        createdAt: parts[5] || '',
+        ports: parts[6] || '',
+      });
+    }
+    return containers;
+  }
+
+  private static parseDockerStatsOutput(raw: string): Map<string, { cpuPercent: number; memUsage: number; memLimit: number; memPercent: number; netIn: number; netOut: number }> {
+    const map = new Map<string, { cpuPercent: number; memUsage: number; memLimit: number; memPercent: number; netIn: number; netOut: number }>();
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) { continue; }
+      const parts = trimmed.split('|');
+      if (parts.length < 5) { continue; }
+      const id = parts[0];
+      const cpuPercent = Number.parseFloat(parts[1]) || 0;
+      // MemUsage: "123MiB / 2GiB"
+      const memParts = (parts[2] || '').split('/').map(s => s.trim());
+      const memUsage = this.parseDockerBytes(memParts[0] || '');
+      const memLimit = this.parseDockerBytes(memParts[1] || '');
+      const memPercent = Number.parseFloat(parts[3]) || 0;
+      // NetIO: "1.2kB / 3.4MB"
+      const netParts = (parts[4] || '').split('/').map(s => s.trim());
+      const netIn = this.parseDockerBytes(netParts[0] || '');
+      const netOut = this.parseDockerBytes(netParts[1] || '');
+      map.set(id, { cpuPercent, memUsage, memLimit, memPercent, netIn, netOut });
+    }
+    return map;
+  }
+
+  /** 解析 Docker 显示的字节量（如 "1.2MiB", "512kB"）→ 字节数 */
+  private static parseDockerBytes(str: string): number {
+    const m = str.match(/^([\d.]+)\s*([KMGT]?i?B?)$/i);
+    if (!m) { return 0; }
+    const val = Number.parseFloat(m[1]) || 0;
+    const unit = m[2].toLowerCase();
+    if (unit.startsWith('t')) { return val * 1024 ** 4; }
+    if (unit.startsWith('g')) { return val * 1024 ** 3; }
+    if (unit.startsWith('m')) { return val * 1024 ** 2; }
+    if (unit.startsWith('k')) { return val * 1024; }
+    return val;
   }
 
   /**

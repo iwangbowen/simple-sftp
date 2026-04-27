@@ -1458,3 +1458,289 @@ mark.log-match {
 .log-line-info {
     color: var(--vscode-textLink-foreground);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Ports Tab
+   ═══════════════════════════════════════════════════════════════ */
+.ports-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: var(--vscode-editor-font-family);
+    min-width: 480px;
+}
+
+.ports-table thead {
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.ports-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ports-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 22px;
+}
+
+.ports-table th[data-sort]:hover {
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.ports-table th[data-sort]::after { content: '⇅'; position: absolute; right: 6px; opacity: 0.35; font-size: 10px; }
+.ports-table th[data-sort].sort-asc::after { content: '↑'; opacity: 1; color: var(--vscode-charts-blue); }
+.ports-table th[data-sort].sort-desc::after { content: '↓'; opacity: 1; color: var(--vscode-charts-blue); }
+
+.ports-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-editorIndentGuide-background);
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+}
+
+.ports-table tbody tr:last-child td { border-bottom: none; }
+.ports-table tbody tr:hover { background-color: var(--vscode-list-hoverBackground); }
+
+.port-number {
+    font-weight: 700;
+    color: var(--vscode-charts-blue);
+    font-family: var(--vscode-editor-font-family);
+    font-size: 13px;
+}
+
+.proto-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background-color: color-mix(in srgb, var(--vscode-charts-blue) 18%, transparent);
+    color: var(--vscode-charts-blue);
+}
+
+.proto-badge.proto-udp, .proto-badge.proto-udp6 {
+    background-color: color-mix(in srgb, var(--vscode-charts-orange) 18%, transparent);
+    color: var(--vscode-charts-orange);
+}
+
+.empty-state-inline {
+    color: var(--vscode-descriptionForeground);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Users Tab
+   ═══════════════════════════════════════════════════════════════ */
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 580px;
+}
+
+.users-table thead {
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.users-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.users-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-editorIndentGuide-background);
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+}
+
+.users-table tbody tr:last-child td { border-bottom: none; }
+.users-table tbody tr:hover { background-color: var(--vscode-list-hoverBackground); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Services Tab
+   ═══════════════════════════════════════════════════════════════ */
+.services-filter-bar {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+.services-filter-input {
+    font-size: 12px;
+    padding: 3px 8px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px;
+    min-width: 200px;
+}
+
+.services-filter-input:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+}
+
+.services-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 700px;
+}
+
+.services-table thead {
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.services-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.services-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 22px;
+}
+
+.services-table th[data-sort]:hover {
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.services-table th[data-sort]::after { content: '⇅'; position: absolute; right: 6px; opacity: 0.35; font-size: 10px; }
+.services-table th[data-sort].sort-asc::after { content: '↑'; opacity: 1; color: var(--vscode-charts-blue); }
+.services-table th[data-sort].sort-desc::after { content: '↓'; opacity: 1; color: var(--vscode-charts-blue); }
+
+.services-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-editorIndentGuide-background);
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+}
+
+.services-table tbody tr:last-child td { border-bottom: none; }
+.services-table tbody tr:hover { background-color: var(--vscode-list-hoverBackground); }
+
+.service-actions-cell {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 2px 6px;
+}
+
+.service-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--vscode-descriptionForeground);
+    transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+    padding: 0;
+    opacity: 0.5;
+}
+
+.service-action-btn:hover:not(:disabled) {
+    background-color: var(--vscode-toolbar-hoverBackground);
+    border-color: var(--vscode-panel-border);
+    color: var(--vscode-foreground);
+    opacity: 1;
+}
+
+.service-action-btn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+}
+
+tr:hover .service-action-btn:not(:disabled) { opacity: 0.8; }
+tr:hover .service-action-btn:hover:not(:disabled) { opacity: 1; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Docker Tab
+   ═══════════════════════════════════════════════════════════════ */
+.docker-unavailable {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+    font-style: italic;
+}
+
+.docker-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 860px;
+}
+
+.docker-table thead {
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.docker-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.docker-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 22px;
+}
+
+.docker-table th[data-sort]:hover {
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.docker-table th[data-sort]::after { content: '⇅'; position: absolute; right: 6px; opacity: 0.35; font-size: 10px; }
+.docker-table th[data-sort].sort-asc::after { content: '↑'; opacity: 1; color: var(--vscode-charts-blue); }
+.docker-table th[data-sort].sort-desc::after { content: '↓'; opacity: 1; color: var(--vscode-charts-blue); }
+
+.docker-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-editorIndentGuide-background);
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+}
+
+.docker-table tbody tr:last-child td { border-bottom: none; }
+.docker-table tbody tr:hover { background-color: var(--vscode-list-hoverBackground); }

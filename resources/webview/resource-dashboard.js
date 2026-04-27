@@ -126,6 +126,28 @@
         if (logOutput) { logOutput.innerHTML = '<span class="log-loading">Loading log files…</span>'; }
         break;
       }
+      case 'ports': {
+        const portsList = document.getElementById('portsList');
+        if (portsList) { portsList.innerHTML = loadingRow; }
+        break;
+      }
+      case 'users': {
+        const sessionsList = document.getElementById('userSessionsList');
+        const historyList = document.getElementById('loginHistoryList');
+        if (sessionsList) { sessionsList.innerHTML = loadingRow; }
+        if (historyList) { historyList.innerHTML = loadingRow; }
+        break;
+      }
+      case 'services': {
+        const servicesList = document.getElementById('servicesList');
+        if (servicesList) { servicesList.innerHTML = loadingRow; }
+        break;
+      }
+      case 'docker': {
+        const dockerList = document.getElementById('dockerList');
+        if (dockerList) { dockerList.innerHTML = loadingRow; }
+        break;
+      }
     }
   }
 
@@ -241,6 +263,22 @@
         }
         break;
       }
+
+      case 'portsData':
+        handlePortsData(message.data);
+        break;
+
+      case 'usersData':
+        handleUsersData(message.data);
+        break;
+
+      case 'servicesData':
+        handleServicesData(message.data);
+        break;
+
+      case 'dockerData':
+        handleDockerData(message.data);
+        break;
 
       case 'error':
         handleError(message.data);
@@ -1443,6 +1481,336 @@
           renderDualChart('diskIODetailChart', diskReadHistory, diskWriteHistory, 'disk-read-line', 'disk-write-line', 50, true);
         }
       }
+    });
+  });
+
+  // ── Ports Tab ────────────────────────────────────────────────
+  let currentPorts = [];
+  let portsSortColumn = 'localPort';
+  let portsSortDir = 'asc';
+
+  function handlePortsData(ports) {
+    loadingState.style.display = 'none';
+    errorState.style.display = 'none';
+    contentState.style.display = 'flex';
+    refreshBtn.disabled = false;
+    currentPorts = ports || [];
+    renderPortsTable();
+  }
+
+  function renderPortsTable() {
+    const tbody = document.getElementById('portsList');
+    if (!tbody) { return; }
+
+    if (currentPorts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No listening ports found</td></tr>';
+      return;
+    }
+
+    const numericCols = new Set(['localPort', 'pid']);
+    const sorted = [...currentPorts].sort((a, b) => {
+      let aVal = a[portsSortColumn];
+      let bVal = b[portsSortColumn];
+      if (numericCols.has(portsSortColumn)) {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
+      } else {
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+      }
+      if (aVal < bVal) { return portsSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return portsSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+
+    document.querySelectorAll('.ports-table th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === portsSortColumn) {
+        th.classList.add(portsSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+
+    tbody.innerHTML = '';
+    sorted.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="port-number">${p.localPort}</span></td>
+        <td><span class="proto-badge proto-${escapeHtml(p.proto)}">${escapeHtml(p.proto)}</span></td>
+        <td><code>${escapeHtml(p.localAddress || '*')}</code></td>
+        <td>${p.processName ? escapeHtml(p.processName) : '<span class="empty-state-inline">—</span>'}</td>
+        <td>${p.pid != null ? p.pid : '<span class="empty-state-inline">—</span>'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.querySelectorAll('.ports-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (portsSortColumn === col) {
+        portsSortDir = portsSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        portsSortColumn = col;
+        portsSortDir = col === 'localPort' || col === 'pid' ? 'asc' : 'asc';
+      }
+      renderPortsTable();
+    });
+  });
+
+  // ── Users Tab ────────────────────────────────────────────────
+  function handleUsersData(data) {
+    loadingState.style.display = 'none';
+    errorState.style.display = 'none';
+    contentState.style.display = 'flex';
+    refreshBtn.disabled = false;
+    renderUserSessions(data.sessions || []);
+    renderLoginHistory(data.history || []);
+  }
+
+  function renderUserSessions(sessions) {
+    const tbody = document.getElementById('userSessionsList');
+    if (!tbody) { return; }
+    if (sessions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No active sessions</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    sessions.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(s.user)}</strong></td>
+        <td><code>${escapeHtml(s.tty)}</code></td>
+        <td>${escapeHtml(s.from || '—')}</td>
+        <td>${escapeHtml(s.loginTime || '—')}</td>
+        <td>${escapeHtml(s.idle || '—')}</td>
+        <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(s.what || '—')}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderLoginHistory(history) {
+    const tbody = document.getElementById('loginHistoryList');
+    if (!tbody) { return; }
+    if (history.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No login history available</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    history.forEach(h => {
+      const tr = document.createElement('tr');
+      const isActive = (h.logoutTime || '').toLowerCase().includes('still logged in');
+      const statusClass = isActive ? 'state-up' : '';
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(h.user)}</strong></td>
+        <td><code>${escapeHtml(h.tty)}</code></td>
+        <td>${escapeHtml(h.from || '—')}</td>
+        <td>${escapeHtml(h.loginTime || '—')}</td>
+        <td><span class="${statusClass}">${escapeHtml(h.logoutTime || '—')}</span></td>
+        <td>${escapeHtml(h.duration || '—')}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Services Tab ─────────────────────────────────────────────
+  let currentServices = [];
+  let servicesSortColumn = 'unit';
+  let servicesSortDir = 'asc';
+  let servicesFilterQuery = '';
+
+  function handleServicesData(services) {
+    loadingState.style.display = 'none';
+    errorState.style.display = 'none';
+    contentState.style.display = 'flex';
+    refreshBtn.disabled = false;
+    currentServices = services || [];
+    renderServicesTable();
+  }
+
+  function renderServicesTable() {
+    const tbody = document.getElementById('servicesList');
+    if (!tbody) { return; }
+
+    if (currentServices.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No systemd services found (systemd may not be available)</td></tr>';
+      return;
+    }
+
+    const query = servicesFilterQuery.trim().toLowerCase();
+    const filtered = query
+      ? currentServices.filter(s =>
+          s.unit.toLowerCase().includes(query) ||
+          (s.description || '').toLowerCase().includes(query) ||
+          s.sub.toLowerCase().includes(query)
+        )
+      : currentServices;
+
+    const sorted = [...filtered].sort((a, b) => {
+      let aVal = String(a[servicesSortColumn] || '').toLowerCase();
+      let bVal = String(b[servicesSortColumn] || '').toLowerCase();
+      if (aVal < bVal) { return servicesSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return servicesSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+
+    document.querySelectorAll('.services-table th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === servicesSortColumn) {
+        th.classList.add(servicesSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+
+    tbody.innerHTML = '';
+    sorted.forEach(svc => {
+      const isRunning = svc.sub === 'running';
+      const isFailed = svc.sub === 'failed' || svc.active === 'failed';
+      const stateClass = isFailed ? 'state-error' : isRunning ? 'state-up' : 'state-unknown';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(svc.unit.replace('.service', ''))}<span style="opacity:0.5">.service</span></td>
+        <td><span class="status-pill ${stateClass}">${escapeHtml(svc.active)}</span></td>
+        <td>${escapeHtml(svc.sub)}</td>
+        <td>${escapeHtml(svc.load)}</td>
+        <td style="color: var(--vscode-descriptionForeground);">${escapeHtml(svc.description || '')}</td>
+        <td class="service-actions-cell">
+          <button class="service-action-btn" data-unit="${escapeHtml(svc.unit)}" data-action="start" title="Start" ${isRunning ? 'disabled' : ''}>
+            <i class="codicon codicon-play"></i>
+          </button>
+          <button class="service-action-btn" data-unit="${escapeHtml(svc.unit)}" data-action="stop" title="Stop" ${!isRunning ? 'disabled' : ''}>
+            <i class="codicon codicon-debug-stop"></i>
+          </button>
+          <button class="service-action-btn" data-unit="${escapeHtml(svc.unit)}" data-action="restart" title="Restart">
+            <i class="codicon codicon-debug-restart"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.querySelectorAll('.services-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (servicesSortColumn === col) {
+        servicesSortDir = servicesSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        servicesSortColumn = col;
+        servicesSortDir = 'asc';
+      }
+      renderServicesTable();
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.service-action-btn');
+    if (!btn || btn.disabled) { return; }
+    const unit = btn.dataset.unit;
+    const action = btn.dataset.action;
+    if (unit && action) {
+      vscode.postMessage({ type: 'serviceControl', unit, action });
+    }
+  });
+
+  const servicesFilterInput = document.getElementById('servicesFilter');
+  if (servicesFilterInput) {
+    servicesFilterInput.addEventListener('input', () => {
+      servicesFilterQuery = servicesFilterInput.value;
+      renderServicesTable();
+    });
+  }
+
+  // ── Docker Tab ───────────────────────────────────────────────
+  let currentContainers = [];
+  let dockerSortColumn = 'state';
+  let dockerSortDir = 'asc';
+
+  function handleDockerData(containers) {
+    loadingState.style.display = 'none';
+    errorState.style.display = 'none';
+    contentState.style.display = 'flex';
+    refreshBtn.disabled = false;
+    currentContainers = containers || [];
+
+    const unavailableEl = document.getElementById('dockerUnavailable');
+    const tableEl = document.getElementById('dockerTable');
+    if (unavailableEl && tableEl) {
+      const isUnavailable = currentContainers.length === 0;
+      // Cannot distinguish "unavailable" from "no containers" without a flag from backend
+      // The backend returns [] for both cases; show a helpful empty state
+      unavailableEl.style.display = 'none';
+      tableEl.style.display = '';
+    }
+    renderDockerTable();
+  }
+
+  function renderDockerTable() {
+    const tbody = document.getElementById('dockerList');
+    if (!tbody) { return; }
+
+    if (currentContainers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No containers found or Docker is not available</td></tr>';
+      return;
+    }
+
+    const numericCols = new Set(['cpuPercent', 'memPercent', 'memUsage', 'netIn', 'netOut']);
+    const sorted = [...currentContainers].sort((a, b) => {
+      let aVal = a[dockerSortColumn];
+      let bVal = b[dockerSortColumn];
+      if (numericCols.has(dockerSortColumn)) {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
+      } else {
+        aVal = String(aVal || '').toLowerCase();
+        bVal = String(bVal || '').toLowerCase();
+      }
+      if (aVal < bVal) { return dockerSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return dockerSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+
+    document.querySelectorAll('.docker-table th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === dockerSortColumn) {
+        th.classList.add(dockerSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+
+    tbody.innerHTML = '';
+    sorted.forEach(c => {
+      const isRunning = c.state === 'running';
+      const stateClass = isRunning ? 'state-up' : c.state === 'exited' ? 'state-error' : 'state-unknown';
+      const cpuStr = c.cpuPercent != null ? `${c.cpuPercent.toFixed(1)}%` : '—';
+      const memStr = c.memPercent != null ? `${c.memPercent.toFixed(1)}%` : '—';
+      const netStr = (c.netIn != null && c.netOut != null)
+        ? `↓${formatBytesSize(c.netIn)} / ↑${formatBytesSize(c.netOut)}`
+        : '—';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><code style="font-size:11px">${escapeHtml(c.id.slice(0, 12))}</code></td>
+        <td><strong>${escapeHtml(c.name)}</strong></td>
+        <td style="font-family: var(--vscode-editor-font-family); font-size:11px;">${escapeHtml(c.image)}</td>
+        <td><span class="status-pill ${stateClass}">${escapeHtml(c.state)}</span></td>
+        <td style="color: var(--vscode-descriptionForeground); font-size:11px;">${escapeHtml(c.status)}</td>
+        <td>${cpuStr}</td>
+        <td>${memStr}</td>
+        <td style="font-size:11px;">${netStr}</td>
+        <td style="font-size:11px; color: var(--vscode-descriptionForeground);">${escapeHtml(c.ports || '—')}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.querySelectorAll('.docker-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (dockerSortColumn === col) {
+        dockerSortDir = dockerSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        dockerSortColumn = col;
+        dockerSortDir = col === 'cpuPercent' || col === 'memPercent' ? 'desc' : 'asc';
+      }
+      renderDockerTable();
     });
   });
 })();
