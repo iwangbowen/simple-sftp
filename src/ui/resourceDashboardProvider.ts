@@ -17,6 +17,8 @@ export class ResourceDashboardProvider {
   private disposables: vscode.Disposable[] = [];
   private readonly hostConfig: HostConfig;
   private readonly authConfig: HostAuthConfig;
+  /** 当前活跃的 Docker 日志流（containerId → stop 句柄） */
+  private readonly activeLogStreams = new Map<string, { stop: () => void }>();
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -44,6 +46,9 @@ export class ResourceDashboardProvider {
     // Clean up when panel is closed
     this.panel.onDidDispose(
       () => {
+        // Stop all active Docker log streams
+        this.activeLogStreams.forEach(handle => { try { handle.stop(); } catch { /* ignore */ } });
+        this.activeLogStreams.clear();
         ResourceDashboardProvider.panels.delete(hostConfig.id);
         this.dispose();
       },
@@ -393,6 +398,55 @@ export class ResourceDashboardProvider {
       case 'showLogs':
         logger.show();
         break;
+
+      case 'dockerLogs': {
+        const containerId = typeof message.containerId === 'string' ? message.containerId : '';
+        // Validate containerId before use
+        if (!/^[a-f0-9]{12,64}$/.test(containerId)) {
+          this.panel.webview.postMessage({ type: 'dockerLogEnd', containerId, error: 'Invalid container ID' });
+          break;
+        }
+        // Stop any existing stream for this container
+        const existing = this.activeLogStreams.get(containerId);
+        if (existing) { try { existing.stop(); } catch { /* ignore */ } this.activeLogStreams.delete(containerId); }
+
+        try {
+          const handle = await ResourceDashboardService.streamContainerLogs(
+            this.hostConfig,
+            this.authConfig,
+            containerId,
+            (chunk: string) => {
+              this.panel.webview.postMessage({ type: 'dockerLogChunk', containerId, chunk });
+            },
+            (error?: Error) => {
+              this.activeLogStreams.delete(containerId);
+              this.panel.webview.postMessage({
+                type: 'dockerLogEnd',
+                containerId,
+                error: error?.message
+              });
+            }
+          );
+          this.activeLogStreams.set(containerId, handle);
+        } catch (err) {
+          this.panel.webview.postMessage({
+            type: 'dockerLogEnd',
+            containerId,
+            error: (err as Error).message
+          });
+        }
+        break;
+      }
+
+      case 'stopDockerLogs': {
+        const containerId = typeof message.containerId === 'string' ? message.containerId : '';
+        const handle = this.activeLogStreams.get(containerId);
+        if (handle) {
+          try { handle.stop(); } catch { /* ignore */ }
+          this.activeLogStreams.delete(containerId);
+        }
+        break;
+      }
     }
   }
 
@@ -1128,6 +1182,33 @@ export class ResourceDashboardProvider {
                 </button>
             </div>
             <div class="process-detail-body" id="processDetailBody"></div>
+        </div>
+    </div>
+
+    <!-- Docker Container Log Modal -->
+    <div id="dockerLogModal" class="process-detail-modal" style="display:none;">
+        <div class="process-detail-overlay" id="dockerLogOverlay"></div>
+        <div class="process-detail-dialog docker-log-dialog">
+            <div class="process-detail-header">
+                <span class="process-detail-title">
+                    <i class="codicon codicon-output"></i>
+                    <span id="dockerLogTitle">Container Logs</span>
+                </span>
+                <div class="process-detail-header-actions">
+                    <label class="docker-log-autoscroll-label" title="Auto-scroll to latest">
+                        <input type="checkbox" id="dockerLogAutoScroll" checked />
+                        <span>Auto-scroll</span>
+                    </label>
+                    <button class="icon-button" id="dockerLogClear" title="Clear log display">
+                        <i class="codicon codicon-clear-all"></i>
+                    </button>
+                    <button class="process-detail-close" id="dockerLogClose" title="Close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </div>
+            </div>
+            <pre id="dockerLogContent" class="docker-log-content"></pre>
+            <div id="dockerLogStatus" class="docker-log-status">Connecting…</div>
         </div>
     </div>
 

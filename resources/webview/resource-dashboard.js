@@ -387,6 +387,14 @@
         handleDockerData(message.data);
         break;
 
+      case 'dockerLogChunk':
+        handleDockerLogChunk(message.containerId, message.chunk);
+        break;
+
+      case 'dockerLogEnd':
+        handleDockerLogEnd(message.containerId, message.error);
+        break;
+
       case 'error':
         handleError(message.data);
         break;
@@ -1893,6 +1901,9 @@
         ? `↓${formatBytesSize(c.netIn)} / ↑${formatBytesSize(c.netOut)}`
         : '—';
       const tr = document.createElement('tr');
+      tr.dataset.containerId = c.id;
+      tr.style.cursor = 'pointer';
+      tr.title = 'Click to view live logs';
       tr.innerHTML = `
         <td><code style="font-size:11px">${escapeHtml(c.id.slice(0, 12))}</code></td>
         <td><strong>${escapeHtml(c.name)}</strong></td>
@@ -1904,8 +1915,69 @@
         <td style="font-size:11px;">${netStr}</td>
         <td style="font-size:11px; color: var(--vscode-descriptionForeground);">${escapeHtml(c.ports || '—')}</td>
       `;
+      tr.addEventListener('click', () => openDockerLogModal(c));
       tbody.appendChild(tr);
     });
+  }
+
+  // ── Docker Log Modal ─────────────────────────────────────────────────────
+
+  let activeLogContainerId = null;
+
+  const dockerLogModal = document.getElementById('dockerLogModal');
+  const dockerLogOverlay = document.getElementById('dockerLogOverlay');
+  const dockerLogContent = document.getElementById('dockerLogContent');
+  const dockerLogTitle = document.getElementById('dockerLogTitle');
+  const dockerLogStatus = document.getElementById('dockerLogStatus');
+  const dockerLogClose = document.getElementById('dockerLogClose');
+  const dockerLogClear = document.getElementById('dockerLogClear');
+  const dockerLogAutoScroll = document.getElementById('dockerLogAutoScroll');
+
+  function openDockerLogModal(container) {
+    // Stop any existing stream first
+    if (activeLogContainerId) {
+      vscode.postMessage({ type: 'stopDockerLogs', containerId: activeLogContainerId });
+    }
+    activeLogContainerId = container.id;
+    if (dockerLogTitle) { dockerLogTitle.textContent = `Logs — ${container.name} (${container.id.slice(0, 12)})`; }
+    if (dockerLogContent) { dockerLogContent.textContent = ''; }
+    if (dockerLogStatus) { dockerLogStatus.textContent = 'Connecting…'; }
+    if (dockerLogModal) { dockerLogModal.style.display = ''; }
+    vscode.postMessage({ type: 'dockerLogs', containerId: container.id });
+  }
+
+  function closeDockerLogModal() {
+    if (activeLogContainerId) {
+      vscode.postMessage({ type: 'stopDockerLogs', containerId: activeLogContainerId });
+      activeLogContainerId = null;
+    }
+    if (dockerLogModal) { dockerLogModal.style.display = 'none'; }
+    if (dockerLogContent) { dockerLogContent.textContent = ''; }
+    if (dockerLogStatus) { dockerLogStatus.textContent = ''; }
+  }
+
+  if (dockerLogClose) { dockerLogClose.addEventListener('click', closeDockerLogModal); }
+  if (dockerLogOverlay) { dockerLogOverlay.addEventListener('click', closeDockerLogModal); }
+  if (dockerLogClear) { dockerLogClear.addEventListener('click', () => { if (dockerLogContent) { dockerLogContent.textContent = ''; } }); }
+
+  // Handle incoming Docker log messages (registered below in message listener)
+  function handleDockerLogChunk(containerId, chunk) {
+    if (containerId !== activeLogContainerId) { return; }
+    if (!dockerLogContent) { return; }
+    if (dockerLogStatus) { dockerLogStatus.textContent = 'Streaming…'; }
+    // Append chunk text (already includes timestamps from `docker logs --timestamps`)
+    dockerLogContent.appendChild(document.createTextNode(chunk));
+    // Auto-scroll to bottom
+    if (dockerLogAutoScroll && dockerLogAutoScroll.checked) {
+      dockerLogContent.scrollTop = dockerLogContent.scrollHeight;
+    }
+  }
+
+  function handleDockerLogEnd(containerId, error) {
+    if (containerId !== activeLogContainerId) { return; }
+    if (dockerLogStatus) {
+      dockerLogStatus.textContent = error ? `Error: ${error}` : 'Stream ended.';
+    }
   }
 
   document.querySelectorAll('.docker-table th[data-sort]').forEach(th => {

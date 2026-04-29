@@ -1416,6 +1416,115 @@ export class ResourceDashboardService {
   }
 
   /**
+   * 流式读取 Docker 容器日志（等价于 `docker logs --tail N -f`）。
+   *
+   * @param config      目标主机配置
+   * @param authConfig  认证配置
+   * @param containerId 容器 ID（12–64 位十六进制）
+   * @param tailLines   初始显示的历史行数，默认 200
+   * @param onChunk     每次收到新日志块时的回调
+   * @param onEnd       流结束或发生错误时的回调
+   * @returns           `{ stop }` 控制句柄，调用 stop() 可主动终止流
+   */
+  static async streamContainerLogs(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    containerId: string,
+    onChunk: (chunk: string) => void,
+    onEnd: (error?: Error) => void,
+    tailLines = 200
+  ): Promise<{ stop: () => void }> {
+    // 严格校验 containerId，防止命令注入
+    if (!/^[a-f0-9]{12,64}$/.test(containerId)) {
+      throw new Error(`Invalid container ID: ${containerId}`);
+    }
+
+    let jumpConns: Client[] | null = null;
+    const conn = new Client();
+    let stopped = false;
+    let activeStream: any = null;
+
+    const stop = () => {
+      if (stopped) { return; }
+      stopped = true;
+      try { activeStream?.close(); } catch { /* ignore */ }
+      try { conn.end(); } catch { /* ignore */ }
+      if (jumpConns) {
+        jumpConns.forEach(jc => { try { jc.end(); } catch { /* ignore */ } });
+      }
+    };
+
+    try {
+      const connectConfig: any = {
+        host: config.host,
+        port: config.port,
+        username: config.username,
+        readyTimeout: 30000,
+        keepaliveInterval: 10000,
+        keepaliveCountMax: 3,
+      };
+      addAuthToConnectConfig(connectConfig, authConfig);
+
+      if (config.jumpHosts && config.jumpHosts.length > 0) {
+        const jumpResult = await establishMultiHopConnection(
+          config.jumpHosts,
+          config.host,
+          config.port
+        );
+        jumpConns = jumpResult.jumpConns;
+        connectConfig.sock = jumpResult.stream;
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        conn
+          .on('ready', () => resolve())
+          .on('error', (err) => reject(err))
+          .connect(connectConfig);
+      });
+
+      const command = `docker logs --tail ${tailLines} -f --timestamps ${containerId} 2>&1`;
+
+      await new Promise<void>((resolve, reject) => {
+        conn.exec(command, (err, stream) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          activeStream = stream;
+
+          stream.on('data', (data: Buffer) => {
+            if (!stopped) { onChunk(data.toString()); }
+          });
+          stream.stderr.on('data', (data: Buffer) => {
+            if (!stopped) { onChunk(data.toString()); }
+          });
+          stream.on('close', () => {
+            if (!stopped) {
+              stopped = true;
+              try { conn.end(); } catch { /* ignore */ }
+              onEnd();
+            }
+            resolve();
+          });
+          stream.on('error', (err: Error) => {
+            if (!stopped) {
+              stopped = true;
+              try { conn.end(); } catch { /* ignore */ }
+              onEnd(err);
+            }
+            reject(err);
+          });
+        });
+      });
+    } catch (err) {
+      stop();
+      throw err;
+    }
+
+    return { stop };
+  }
+
+  /**
    * 格式化资源信息为可读的字符串
    */
   static formatResourceInfo(info: SystemResourceInfo): string {

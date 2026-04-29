@@ -1838,3 +1838,58 @@ tr:hover .service-action-btn:hover:not(:disabled) { opacity: 1; }
 
 .docker-table tbody tr:last-child td { border-bottom: none; }
 .docker-table tbody tr:hover { background-color: var(--vscode-list-hoverBackground); }
+.docker-table tbody tr[data-container-id] { cursor: pointer; }
+
+/* ── Docker Log Modal ──────────────────────────────────────────────────────── */
+.docker-log-dialog {
+  width: min(90vw, 1000px);
+  height: min(80vh, 700px);
+  display: flex;
+  flex-direction: column;
+}
+
+.process-detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.docker-log-autoscroll-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.docker-log-autoscroll-label:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.docker-log-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  margin: 0;
+  padding: 8px 12px;
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Courier New', monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  background-color: var(--vscode-terminal-background, var(--vscode-editor-background));
+  color: var(--vscode-terminal-foreground, var(--vscode-editor-foreground));
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.docker-log-status {
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  background-color: var(--vscode-statusBar-background, var(--vscode-editor-background));
+  border-top: 1px solid var(--vscode-widget-border, transparent);
+  flex-shrink: 0;
+}
