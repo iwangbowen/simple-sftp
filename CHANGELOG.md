@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.23.0 - 2026-04-29
+
+- **Fix**: Crontab tab — adding or deleting a cron job now immediately updates the list (optimistic local update), without waiting for the SSH read round-trip. The list is then reconciled with authoritative server data in the background.
+
 ## 6.22.0 - 2026-04-29
 
 - **Feature**: Resource Dashboard — Docker tab containers are now clickable; clicking any row opens a **real-time log stream modal** (`docker logs -f`) with auto-scroll, clear, and manual stop controls.

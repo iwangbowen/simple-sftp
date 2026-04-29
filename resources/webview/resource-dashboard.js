@@ -2010,6 +2010,9 @@
   let currentCrontabEntries = [];
   let crontabSortColumn = 'source';
   let crontabSortDir = 'asc';
+  // Stores the pending user entries sent with the last write/delete request
+  // for immediate optimistic UI update before the server round-trip completes
+  let pendingCrontabUserEntries = null;
 
   function handleCrontabData(entries) {
     loadingState.style.display = 'none';
@@ -2176,6 +2179,7 @@
           i !== idx && e.source === 'user'
         );
         // Route through provider for VS Code confirmation dialog
+        pendingCrontabUserEntries = updatedUserEntries;
         vscode.postMessage({ type: 'crontabDeleteRequest', entries: updatedUserEntries, command: entry.command });
       }
     }
@@ -2233,6 +2237,7 @@
       }
 
       if (crontabModalSave) { crontabModalSave.disabled = true; }
+      pendingCrontabUserEntries = updatedUserEntries;
       vscode.postMessage({ type: 'crontabWrite', entries: updatedUserEntries });
       closeCrontabModal();
     });
@@ -2248,17 +2253,28 @@
   function handleCrontabWriteResult(result) {
     if (crontabModalSave) { crontabModalSave.disabled = false; }
     if (result.success) {
-      // Explicitly request fresh crontab data so the list always updates
+      // Immediately apply optimistic update so the list reflects changes without
+      // waiting for the SSH round-trip from requestTabData
+      if (pendingCrontabUserEntries !== null) {
+        const sysEntries = currentCrontabEntries.filter(e => e.source !== 'user');
+        currentCrontabEntries = [...sysEntries, ...pendingCrontabUserEntries];
+        renderCrontabTable();
+      }
+      pendingCrontabUserEntries = null;
+      // Also trigger server refresh to get authoritative data
       requestTabData('crontab');
-    } else if (result.error) {
-      // Show error banner above the table
-      const errBanner = document.createElement('div');
-      errBanner.className = 'crontab-write-error-banner';
-      errBanner.textContent = `\u274C Crontab write failed: ${result.error}`;
-      const section = document.querySelector('#crontabTab .section-content');
-      if (section) {
-        section.prepend(errBanner);
-        setTimeout(() => errBanner.remove(), 6000);
+    } else {
+      pendingCrontabUserEntries = null;
+      if (result.error) {
+        // Show error banner above the table
+        const errBanner = document.createElement('div');
+        errBanner.className = 'crontab-write-error-banner';
+        errBanner.textContent = `\u274C Crontab write failed: ${result.error}`;
+        const section = document.querySelector('#crontabTab .section-content');
+        if (section) {
+          section.prepend(errBanner);
+          setTimeout(() => errBanner.remove(), 6000);
+        }
       }
     }
   }
