@@ -14,6 +14,10 @@
   // Tab elements
   const tabButtons = document.querySelectorAll('.tab-button');
   const tabContents = document.querySelectorAll('.tab-content');
+  const tabNav = document.querySelector('.tab-nav');
+  const tabNavTabs = document.querySelector('.tab-nav-tabs');
+  const tabMoreBtn = document.getElementById('tabMoreBtn');
+  const tabMoreMenu = document.getElementById('tabMoreMenu');
 
   // Current active tab
   let activeTab = 'overview';
@@ -80,12 +84,115 @@
       }
     });
 
+    // Update more button active indicator
+    updateMoreBtnState();
+
     // Show loading state while fetching tab data
     showTabLoading(tabName);
 
     // Request data for the active tab
     requestTabData(tabName);
   }
+
+  // ── Tab overflow management ────────────────────────────────────────────────
+
+  function updateTabOverflow() {
+    if (!tabNavTabs || !tabMoreBtn) { return; }
+
+    // Reset all tabs to visible first so we can measure them
+    tabButtons.forEach(btn => btn.classList.remove('tab-hidden'));
+    tabMoreBtn.style.display = 'none';
+
+    // Measure available width and total tabs width
+    const navWidth = tabNavTabs.clientWidth;
+    let totalWidth = 0;
+    tabButtons.forEach(btn => { totalWidth += btn.offsetWidth; });
+
+    if (totalWidth <= navWidth) {
+      // All tabs fit — no overflow needed
+      renderMoreMenu([]);
+      return;
+    }
+
+    // Show more button and compute its width
+    tabMoreBtn.style.display = 'flex';
+    const moreBtnWidth = tabMoreBtn.offsetWidth;
+    const available = navWidth - moreBtnWidth;
+
+    // Walk through tabs left-to-right to find where overflow begins
+    let used = 0;
+    let overflowFrom = -1;
+    const widths = Array.from(tabButtons).map(btn => btn.offsetWidth);
+    for (let i = 0; i < tabButtons.length; i++) {
+      used += widths[i];
+      if (used > available) {
+        overflowFrom = i;
+        break;
+      }
+    }
+
+    const hidden = [];
+    if (overflowFrom >= 0) {
+      tabButtons.forEach((btn, i) => {
+        if (i >= overflowFrom) {
+          btn.classList.add('tab-hidden');
+          hidden.push(btn);
+        }
+      });
+    }
+
+    renderMoreMenu(hidden);
+    updateMoreBtnState();
+  }
+
+  function renderMoreMenu(hiddenTabs) {
+    if (!tabMoreMenu) { return; }
+    tabMoreMenu.innerHTML = '';
+    hiddenTabs.forEach(tab => {
+      const item = document.createElement('button');
+      item.className = 'tab-more-item' + (tab.dataset.tab === activeTab ? ' active' : '');
+      item.dataset.tab = tab.dataset.tab;
+      item.innerHTML = tab.innerHTML;
+      item.addEventListener('click', () => {
+        tabMoreMenu.classList.remove('open');
+        switchTab(tab.dataset.tab);
+      });
+      tabMoreMenu.appendChild(item);
+    });
+  }
+
+  function updateMoreBtnState() {
+    if (!tabMoreBtn || !tabMoreMenu) { return; }
+    const hiddenActive = Array.from(tabButtons).some(
+      btn => btn.classList.contains('tab-hidden') && btn.dataset.tab === activeTab
+    );
+    tabMoreBtn.classList.toggle('active', hiddenActive);
+    // Refresh active state in menu items
+    tabMoreMenu.querySelectorAll('.tab-more-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.tab === activeTab);
+    });
+  }
+
+  // Toggle more menu on button click
+  if (tabMoreBtn) {
+    tabMoreBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      tabMoreMenu.classList.toggle('open');
+    });
+  }
+
+  // Close menu when clicking outside
+  document.addEventListener('click', () => {
+    if (tabMoreMenu) { tabMoreMenu.classList.remove('open'); }
+  });
+
+  // Observe tab-nav resize
+  if (typeof ResizeObserver !== 'undefined' && tabNavTabs) {
+    new ResizeObserver(() => { updateTabOverflow(); }).observe(tabNavTabs);
+  }
+
+  // Initial overflow calculation
+  updateTabOverflow();
 
   function showTabLoading(tabName) {
     const loadingRow = `<tr class="tab-loading-row"><td colspan="99"><span class="tab-loading-spinner"></span>Loading...</td></tr>`;

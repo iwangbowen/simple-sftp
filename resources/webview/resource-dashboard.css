@@ -101,10 +101,19 @@ body {
 /* Tab Navigation */
 .tab-nav {
     display: flex;
-    gap: 0;
+    align-items: stretch;
     background-color: var(--vscode-editorGroupHeader-tabsBackground);
     border-bottom: 1px solid var(--vscode-panel-border);
     padding: 0;
+    position: relative;
+    overflow: visible;
+}
+
+.tab-nav-tabs {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .tab-button {
@@ -119,6 +128,8 @@ body {
     gap: 6px;
     border-bottom: 2px solid transparent;
     transition: all 0.1s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .tab-button i {
@@ -134,6 +145,89 @@ body {
     color: var(--vscode-tab-activeForeground);
     background-color: var(--vscode-tab-activeBackground);
     border-bottom-color: var(--vscode-tab-activeBorderTop, var(--vscode-focusBorder));
+}
+
+/* Hidden tabs (overflow) */
+.tab-button.tab-hidden {
+    display: none;
+}
+
+/* More button */
+.tab-more-btn {
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--vscode-panel-border);
+    color: var(--vscode-tab-inactiveForeground);
+    cursor: pointer;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background-color 0.1s ease;
+}
+
+.tab-more-btn:hover {
+    background-color: var(--vscode-tab-hoverBackground);
+    color: var(--vscode-tab-activeForeground);
+}
+
+.tab-more-btn.active {
+    color: var(--vscode-tab-activeForeground);
+    border-bottom: 2px solid var(--vscode-tab-activeBorderTop, var(--vscode-focusBorder));
+}
+
+.tab-more-btn i {
+    font-size: 16px;
+}
+
+/* More dropdown menu */
+.tab-more-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 100;
+    background-color: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+    border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    min-width: 160px;
+    flex-direction: column;
+    padding: 4px 0;
+}
+
+.tab-more-menu.open {
+    display: flex;
+}
+
+.tab-more-item {
+    background: transparent;
+    border: none;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-family: var(--vscode-font-family);
+    color: var(--vscode-menu-foreground, var(--vscode-foreground));
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    white-space: nowrap;
+    transition: background-color 0.1s ease;
+}
+
+.tab-more-item:hover {
+    background-color: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground));
+    color: var(--vscode-menu-selectionForeground, var(--vscode-foreground));
+}
+
+.tab-more-item.active {
+    color: var(--vscode-tab-activeForeground);
+    font-weight: 500;
+}
+
+.tab-more-item i {
+    font-size: 14px;
 }
 
 /* Tab Content */

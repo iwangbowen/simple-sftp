@@ -451,50 +451,56 @@ export class ResourceDashboardProvider {
 
         <!-- Tab Navigation -->
         <div class="tab-nav">
-            <button class="tab-button active" data-tab="overview">
-                <i class="codicon codicon-dashboard"></i>
-                Overview
+            <div class="tab-nav-tabs">
+                <button class="tab-button active" data-tab="overview">
+                    <i class="codicon codicon-dashboard"></i>
+                    Overview
+                </button>
+                <button class="tab-button" data-tab="memory">
+                    <i class="codicon codicon-server-process"></i>
+                    Memory
+                </button>
+                <button class="tab-button" data-tab="processes">
+                    <i class="codicon codicon-server-process"></i>
+                    Processes
+                </button>
+                <button class="tab-button" data-tab="network">
+                    <i class="codicon codicon-globe"></i>
+                    Network
+                </button>
+                <button class="tab-button" data-tab="io">
+                    <i class="codicon codicon-database"></i>
+                    I/O
+                </button>
+                <button class="tab-button" data-tab="disk">
+                    <i class="codicon codicon-disc"></i>
+                    Disk
+                </button>
+                <button class="tab-button" data-tab="logs">
+                    <i class="codicon codicon-output"></i>
+                    Logs
+                </button>
+                <button class="tab-button" data-tab="ports">
+                    <i class="codicon codicon-plug"></i>
+                    Ports
+                </button>
+                <button class="tab-button" data-tab="users">
+                    <i class="codicon codicon-account"></i>
+                    Users
+                </button>
+                <button class="tab-button" data-tab="services">
+                    <i class="codicon codicon-list-ordered"></i>
+                    Services
+                </button>
+                <button class="tab-button" data-tab="docker">
+                    <i class="codicon codicon-layers"></i>
+                    Docker
+                </button>
+            </div>
+            <button id="tabMoreBtn" class="tab-more-btn" style="display:none;" title="More tabs">
+                <i class="codicon codicon-ellipsis"></i>
             </button>
-            <button class="tab-button" data-tab="memory">
-              <i class="codicon codicon-server-process"></i>
-              Memory
-            </button>
-            <button class="tab-button" data-tab="processes">
-                <i class="codicon codicon-server-process"></i>
-                Processes
-            </button>
-            <button class="tab-button" data-tab="network">
-                <i class="codicon codicon-globe"></i>
-                Network
-            </button>
-            <button class="tab-button" data-tab="io">
-                <i class="codicon codicon-database"></i>
-                I/O
-            </button>
-            <button class="tab-button" data-tab="disk">
-                <i class="codicon codicon-disc"></i>
-                Disk
-            </button>
-            <button class="tab-button" data-tab="logs">
-                <i class="codicon codicon-output"></i>
-                Logs
-            </button>
-            <button class="tab-button" data-tab="ports">
-                <i class="codicon codicon-plug"></i>
-                Ports
-            </button>
-            <button class="tab-button" data-tab="users">
-                <i class="codicon codicon-account"></i>
-                Users
-            </button>
-            <button class="tab-button" data-tab="services">
-                <i class="codicon codicon-list-ordered"></i>
-                Services
-            </button>
-            <button class="tab-button" data-tab="docker">
-                <i class="codicon codicon-layers"></i>
-                Docker
-            </button>
+            <div id="tabMoreMenu" class="tab-more-menu"></div>
         </div>
 
         <div id="loadingState" class="loading-state">
