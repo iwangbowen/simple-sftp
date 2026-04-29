@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.21.0 - 2026-04-29
+
+- **Enhancement**: Resource Dashboard tab bar is now responsive — when the panel is too narrow, overflow tabs collapse into a **⋯ more** dropdown menu; the button highlights when the active tab is hidden.
+
 ## 6.20.0 - 2026-04-27
 
 - **Feature**: Resource Dashboard — added **Ports**, **Users**, **Services**, and **Docker** tabs.
