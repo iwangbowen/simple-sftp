@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.22.0 - 2026-04-29
+
+- **Feature**: Resource Dashboard — Docker tab containers are now clickable; clicking any row opens a **real-time log stream modal** (`docker logs -f`) with auto-scroll, clear, and manual stop controls.
+
 ## 6.21.0 - 2026-04-29
 
 - **Enhancement**: Resource Dashboard tab bar is now responsive — when the panel is too narrow, overflow tabs collapse into a **⋯ more** dropdown menu; the button highlights when the active tab is hidden.
