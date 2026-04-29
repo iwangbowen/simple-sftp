@@ -2,7 +2,7 @@
 
 ## 6.23.0 - 2026-04-29
 
-- **Fix**: Crontab tab — adding or deleting a cron job now immediately updates the list (optimistic local update), without waiting for the SSH read round-trip. The list is then reconciled with authoritative server data in the background.
+- **Feature**: Resource Dashboard added a dedicated **Crontab** tab.
 
 ## 6.22.0 - 2026-04-29
 
