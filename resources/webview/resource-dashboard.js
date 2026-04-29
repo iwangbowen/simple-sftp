@@ -400,6 +400,10 @@
         handleCrontabWriteResult(message);
         break;
 
+      case 'crontabDeleteConfirmed':
+        handleCrontabDeleteConfirmed();
+        break;
+
       case 'dockerLogChunk':
         handleDockerLogChunk(message.containerId, message.chunk);
         break;
@@ -2013,6 +2017,7 @@
   // Stores the pending user entries sent with the last write/delete request
   // for immediate optimistic UI update before the server round-trip completes
   let pendingCrontabUserEntries = null;
+  let pendingCrontabPreviousEntries = null;
 
   function handleCrontabData(entries) {
     loadingState.style.display = 'none';
@@ -2020,6 +2025,9 @@
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
     currentCrontabEntries = entries || [];
+    pendingCrontabUserEntries = null;
+    pendingCrontabPreviousEntries = null;
+    if (crontabModalSave) { crontabModalSave.disabled = false; }
     renderCrontabTable();
   }
 
@@ -2110,6 +2118,12 @@
   const crontabModalTitle = document.getElementById('crontabModalTitle');
   const crontabModalError = document.getElementById('crontabModalError');
 
+  function applyCrontabUserEntries(userEntries) {
+    const sysEntries = currentCrontabEntries.filter(e => e.source !== 'user');
+    currentCrontabEntries = [...sysEntries, ...userEntries];
+    renderCrontabTable();
+  }
+
   function openCrontabModal(entry, editIndex) {
     crontabEditIndex = editIndex != null ? editIndex : -1;
     if (crontabModalTitle) {
@@ -2129,6 +2143,7 @@
     if (schedInput) { schedInput.value = schedule; }
     if (cmdInput) { cmdInput.value = entry?.command || ''; }
     if (crontabModalError) { crontabModalError.style.display = 'none'; }
+    if (crontabModalSave) { crontabModalSave.disabled = false; }
     if (crontabModal) { crontabModal.style.display = 'flex'; }
     setTimeout(() => { if (schedInput) { schedInput.focus(); } }, 50);
   }
@@ -2179,6 +2194,7 @@
           i !== idx && e.source === 'user'
         );
         // Route through provider for VS Code confirmation dialog
+        pendingCrontabPreviousEntries = [...currentCrontabEntries];
         pendingCrontabUserEntries = updatedUserEntries;
         vscode.postMessage({ type: 'crontabDeleteRequest', entries: updatedUserEntries, command: entry.command });
       }
@@ -2237,7 +2253,9 @@
       }
 
       if (crontabModalSave) { crontabModalSave.disabled = true; }
+      pendingCrontabPreviousEntries = [...currentCrontabEntries];
       pendingCrontabUserEntries = updatedUserEntries;
+      applyCrontabUserEntries(updatedUserEntries);
       vscode.postMessage({ type: 'crontabWrite', entries: updatedUserEntries });
       closeCrontabModal();
     });
@@ -2253,18 +2271,23 @@
   function handleCrontabWriteResult(result) {
     if (crontabModalSave) { crontabModalSave.disabled = false; }
     if (result.success) {
-      // Immediately apply optimistic update so the list reflects changes without
-      // waiting for the SSH round-trip from requestTabData
-      if (pendingCrontabUserEntries !== null) {
-        const sysEntries = currentCrontabEntries.filter(e => e.source !== 'user');
-        currentCrontabEntries = [...sysEntries, ...pendingCrontabUserEntries];
+      if (Array.isArray(result.data)) {
+        currentCrontabEntries = result.data;
+        renderCrontabTable();
+      } else if (pendingCrontabUserEntries !== null) {
+        applyCrontabUserEntries(pendingCrontabUserEntries);
+        requestTabData('crontab');
+      }
+      pendingCrontabUserEntries = null;
+      pendingCrontabPreviousEntries = null;
+    } else {
+      if (pendingCrontabPreviousEntries !== null) {
+        currentCrontabEntries = pendingCrontabPreviousEntries;
         renderCrontabTable();
       }
       pendingCrontabUserEntries = null;
-      // Also trigger server refresh to get authoritative data
-      requestTabData('crontab');
-    } else {
-      pendingCrontabUserEntries = null;
+      pendingCrontabPreviousEntries = null;
+      if (result.cancelled) { return; }
       if (result.error) {
         // Show error banner above the table
         const errBanner = document.createElement('div');
@@ -2276,6 +2299,12 @@
           setTimeout(() => errBanner.remove(), 6000);
         }
       }
+    }
+  }
+
+  function handleCrontabDeleteConfirmed() {
+    if (pendingCrontabUserEntries !== null) {
+      applyCrontabUserEntries(pendingCrontabUserEntries);
     }
   }
 

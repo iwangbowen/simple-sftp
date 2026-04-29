@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { HostConfig, HostAuthConfig } from '../types';
-import { ResourceDashboardService } from '../services/resourceDashboardService';
+import { ResourceDashboardService, type CrontabEntry } from '../services/resourceDashboardService';
 import { SshConnectionManager } from '../sshConnectionManager';
 import { logger } from '../logger';
 
@@ -295,9 +295,10 @@ export class ResourceDashboardProvider {
     this.panel.webview.postMessage({ type: 'dockerData', data: containers });
   }
 
-  private async loadCrontabData(): Promise<void> {
+  private async loadCrontabData(): Promise<CrontabEntry[]> {
     const entries = await ResourceDashboardService.getCrontabList(this.hostConfig, this.authConfig);
-    this.panel.webview.postMessage({ type: 'crontabData', data: entries });
+    await this.panel.webview.postMessage({ type: 'crontabData', data: entries });
+    return entries;
   }
 
   /**
@@ -464,9 +465,19 @@ export class ResourceDashboardProvider {
             this.authConfig,
             entries
           );
-          this.panel.webview.postMessage({ type: 'crontabWriteResult', success: true });
+          let refreshedEntries: CrontabEntry[] | undefined;
+          try {
+            refreshedEntries = await this.loadCrontabData();
+          } catch (refreshErr) {
+            logger.warn(`Crontab write succeeded but refresh failed: ${(refreshErr as Error).message}`);
+          }
+          await this.panel.webview.postMessage({
+            type: 'crontabWriteResult',
+            success: true,
+            data: refreshedEntries
+          });
         } catch (err) {
-          this.panel.webview.postMessage({
+          await this.panel.webview.postMessage({
             type: 'crontabWriteResult',
             success: false,
             error: (err as Error).message
@@ -484,12 +495,30 @@ export class ResourceDashboardProvider {
           { modal: true },
           'Confirm'
         );
-        if (confirmed !== 'Confirm') { break; }
+        if (confirmed !== 'Confirm') {
+          await this.panel.webview.postMessage({
+            type: 'crontabWriteResult',
+            success: false,
+            cancelled: true
+          });
+          break;
+        }
         try {
+          await this.panel.webview.postMessage({ type: 'crontabDeleteConfirmed' });
           await ResourceDashboardService.writeUserCrontab(this.hostConfig, this.authConfig, entries);
-          this.panel.webview.postMessage({ type: 'crontabWriteResult', success: true });
+          let refreshedEntries: CrontabEntry[] | undefined;
+          try {
+            refreshedEntries = await this.loadCrontabData();
+          } catch (refreshErr) {
+            logger.warn(`Crontab delete succeeded but refresh failed: ${(refreshErr as Error).message}`);
+          }
+          await this.panel.webview.postMessage({
+            type: 'crontabWriteResult',
+            success: true,
+            data: refreshedEntries
+          });
         } catch (err) {
-          this.panel.webview.postMessage({
+          await this.panel.webview.postMessage({
             type: 'crontabWriteResult',
             success: false,
             error: (err as Error).message
