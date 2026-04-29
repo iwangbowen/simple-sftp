@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.24.0 - 2026-04-29
+
+- **Fix**: Added delete confirmation dialog for Crontab operations; improved data loading and refresh logic.
+
 ## 6.23.0 - 2026-04-29
 
 - **Feature**: Resource Dashboard added a dedicated **Crontab** tab.
