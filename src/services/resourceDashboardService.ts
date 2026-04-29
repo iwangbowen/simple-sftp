@@ -117,6 +117,32 @@ export interface ContainerInfo {
   ports?: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Crontab Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 单条 cron 任务信息 */
+export interface CrontabEntry {
+  /** 数据来源：'user' | '/etc/crontab' | '/etc/cron.d/<filename>' */
+  source: string;
+  /** 分钟字段 */
+  minute: string;
+  /** 小时字段 */
+  hour: string;
+  /** 日字段 */
+  dayOfMonth: string;
+  /** 月字段 */
+  month: string;
+  /** 星期字段 */
+  dayOfWeek: string;
+  /** 执行用户（仅系统 crontab 有） */
+  user?: string;
+  /** 执行命令 */
+  command: string;
+  /** 是否为环境变量设置行（如 MAILTO=） */
+  isEnvVar?: boolean;
+}
+
 /**
  * 进程信息接口
  */
@@ -1000,6 +1026,28 @@ export class ResourceDashboardService {
   }
 
   /**
+   * 执行远程命令，通过 stdin 输入内容（用于 crontab - 等需要 pipe 输入的场景）
+   */
+  private static executeCommandWithStdin(conn: Client, command: string, stdin: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      conn.exec(command, (err, stream) => {
+        if (err) { reject(err); return; }
+        let stderr = '';
+        stream.on('close', (code: number) => {
+          if (code !== 0) {
+            reject(new Error(`Command failed (code ${code}): ${stderr.trim()}`));
+          } else {
+            resolve();
+          }
+        });
+        stream.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
+        stream.write(stdin, 'utf8');
+        stream.end();
+      });
+    });
+  }
+
+  /**
    * 异步等待指定毫秒数
    */
   private static async delay(ms: number): Promise<void> {
@@ -1307,6 +1355,149 @@ export class ResourceDashboardService {
       await this.executeCommand(conn, `systemctl ${action} '${unit}'`).catch(err => {
         throw new Error(`systemctl ${action} ${unit} failed: ${(err as Error).message}`);
       });
+    });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Crontab
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 获取远端 cron 任务列表（user crontab + /etc/crontab + /etc/cron.d/*）
+   */
+  static async getCrontabList(
+    config: HostConfig,
+    authConfig: HostAuthConfig
+  ): Promise<CrontabEntry[]> {
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      const entries: CrontabEntry[] = [];
+
+      // 当前用户 crontab
+      const userRaw = await this.executeCommand(
+        conn, 'crontab -l 2>/dev/null || echo ""'
+      ).catch(() => '');
+      entries.push(...this.parseCrontabOutput(userRaw, 'user', false));
+
+      // 系统 /etc/crontab
+      const sysRaw = await this.executeCommand(
+        conn, 'cat /etc/crontab 2>/dev/null || echo ""'
+      ).catch(() => '');
+      entries.push(...this.parseCrontabOutput(sysRaw, '/etc/crontab', true));
+
+      // /etc/cron.d/* — 用分隔符区分文件
+      const cronDRaw = await this.executeCommand(
+        conn,
+        'for f in /etc/cron.d/*; do [ -f "$f" ] && printf "===FILE:%s===\\n" "$f" && cat "$f"; done 2>/dev/null || echo ""'
+      ).catch(() => '');
+      const cronDSections = cronDRaw.split(/\n?===FILE:([^=\n]+)===\n?/);
+      // cronDSections: ['', '/etc/cron.d/file1', content1, '/etc/cron.d/file2', content2, ...]
+      for (let i = 1; i < cronDSections.length; i += 2) {
+        const filePath = cronDSections[i].trim();
+        const content = cronDSections[i + 1] || '';
+        if (filePath) {
+          entries.push(...this.parseCrontabOutput(content, filePath, true));
+        }
+      }
+
+      return entries;
+    });
+  }
+
+  private static parseCrontabOutput(
+    raw: string,
+    source: string,
+    hasUser: boolean
+  ): CrontabEntry[] {
+    const entries: CrontabEntry[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) { continue; }
+      // 环境变量行（如 MAILTO="root"）
+      if (/^[A-Z_][A-Z0-9_]*\s*=/.test(trimmed)) {
+        entries.push({
+          source,
+          minute: '', hour: '', dayOfMonth: '', month: '', dayOfWeek: '',
+          command: trimmed,
+          isEnvVar: true,
+        });
+        continue;
+      }
+      // @special 语法 (如 @reboot, @hourly, @daily)
+      if (trimmed.startsWith('@')) {
+        const parts = trimmed.split(/\s+/);
+        if (hasUser && parts.length >= 3) {
+          entries.push({
+            source, minute: parts[0], hour: '', dayOfMonth: '', month: '', dayOfWeek: '',
+            user: parts[1], command: parts.slice(2).join(' '),
+          });
+        } else if (!hasUser && parts.length >= 2) {
+          entries.push({
+            source, minute: parts[0], hour: '', dayOfMonth: '', month: '', dayOfWeek: '',
+            command: parts.slice(1).join(' '),
+          });
+        }
+        continue;
+      }
+      const parts = trimmed.split(/\s+/);
+      const minFieldCount = hasUser ? 7 : 6;
+      if (parts.length < minFieldCount) { continue; }
+      const [minute, hour, dayOfMonth, month, dayOfWeek, ...rest] = parts;
+      let user: string | undefined;
+      let command: string;
+      if (hasUser) {
+        user = rest[0];
+        command = rest.slice(1).join(' ');
+      } else {
+        command = rest.join(' ');
+      }
+      if (!command.trim()) { continue; }
+      entries.push({ source, minute, hour, dayOfMonth, month, dayOfWeek, user, command });
+    }
+    return entries;
+  }
+
+  /**
+   * 将用户 crontab 条目写回远端（仅允许修改 source==='user' 的条目）
+   * 传入的 entries 不包含 system crontab，直接覆盖用户 crontab
+   */
+  static async writeUserCrontab(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    entries: Array<Pick<CrontabEntry, 'minute' | 'hour' | 'dayOfMonth' | 'month' | 'dayOfWeek' | 'command' | 'isEnvVar'>>
+  ): Promise<void> {
+    // Validate all entries server-side before writing
+    const cronFieldPattern = /^[\d*/,\-]+$/;
+    for (const entry of entries) {
+      if (entry.isEnvVar) {
+        if (!/^[A-Z_][A-Z0-9_]*\s*=/.test(entry.command)) {
+          throw new Error(`Invalid environment variable entry: ${entry.command}`);
+        }
+        continue;
+      }
+      const isSpecial = entry.minute.startsWith('@');
+      if (isSpecial) {
+        if (!/^@(reboot|hourly|daily|weekly|monthly|yearly|annually|midnight)$/.test(entry.minute)) {
+          throw new Error(`Invalid special schedule: ${entry.minute}`);
+        }
+      } else {
+        if (!cronFieldPattern.test(entry.minute)) { throw new Error(`Invalid minute field: ${entry.minute}`); }
+        if (!cronFieldPattern.test(entry.hour)) { throw new Error(`Invalid hour field: ${entry.hour}`); }
+        if (!cronFieldPattern.test(entry.dayOfMonth)) { throw new Error(`Invalid day field: ${entry.dayOfMonth}`); }
+        if (!cronFieldPattern.test(entry.month)) { throw new Error(`Invalid month field: ${entry.month}`); }
+        if (!cronFieldPattern.test(entry.dayOfWeek)) { throw new Error(`Invalid weekday field: ${entry.dayOfWeek}`); }
+      }
+      if (!entry.command.trim()) { throw new Error('Command cannot be empty'); }
+    }
+
+    const lines = entries.map(e => {
+      if (e.isEnvVar) { return e.command; }
+      if (e.minute.startsWith('@')) { return `${e.minute} ${e.command}`; }
+      return `${e.minute} ${e.hour} ${e.dayOfMonth} ${e.month} ${e.dayOfWeek} ${e.command}`;
+    });
+    const content = lines.join('\n') + (lines.length > 0 ? '\n' : '');
+
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      await this.executeCommandWithStdin(conn, 'crontab -', content);
     });
   }
 

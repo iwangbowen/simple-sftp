@@ -255,6 +255,11 @@
         if (dockerList) { dockerList.innerHTML = loadingRow; }
         break;
       }
+      case 'crontab': {
+        const crontabList = document.getElementById('crontabList');
+        if (crontabList) { crontabList.innerHTML = loadingRow; }
+        break;
+      }
     }
   }
 
@@ -385,6 +390,14 @@
 
       case 'dockerData':
         handleDockerData(message.data);
+        break;
+
+      case 'crontabData':
+        handleCrontabData(message.data);
+        break;
+
+      case 'crontabWriteResult':
+        handleCrontabWriteResult(message);
         break;
 
       case 'dockerLogChunk':
@@ -1992,4 +2005,262 @@
       renderDockerTable();
     });
   });
+
+  // ── Crontab Tab ──────────────────────────────────────────────────────────
+  let currentCrontabEntries = [];
+  let crontabSortColumn = 'source';
+  let crontabSortDir = 'asc';
+
+  function handleCrontabData(entries) {
+    loadingState.style.display = 'none';
+    errorState.style.display = 'none';
+    contentState.style.display = 'flex';
+    refreshBtn.disabled = false;
+    currentCrontabEntries = entries || [];
+    renderCrontabTable();
+  }
+
+  function renderCrontabTable() {
+    const tbody = document.getElementById('crontabList');
+    if (!tbody) { return; }
+
+    if (currentCrontabEntries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No cron jobs found</td></tr>';
+      return;
+    }
+
+    const sorted = [...currentCrontabEntries].map((e, i) => ({ ...e, _idx: i })).sort((a, b) => {
+      let aVal = String(a[crontabSortColumn] || '').toLowerCase();
+      let bVal = String(b[crontabSortColumn] || '').toLowerCase();
+      if (aVal < bVal) { return crontabSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return crontabSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+
+    document.querySelectorAll('.crontab-table th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === crontabSortColumn) {
+        th.classList.add(crontabSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+
+    tbody.innerHTML = '';
+    sorted.forEach(entry => {
+      const isUserEntry = entry.source === 'user' && !entry.isEnvVar;
+      const tr = document.createElement('tr');
+      tr.dataset.idx = String(entry._idx);
+      if (entry.isEnvVar) {
+        tr.innerHTML = `
+          <td><code style="font-size:11px;">${escapeHtml(entry.source)}</code></td>
+          <td><span class="crontab-env-badge">ENV</span></td>
+          <td><span class="empty-state-inline">—</span></td>
+          <td style="font-family: var(--vscode-editor-font-family); font-size:11px;">${escapeHtml(entry.command)}</td>
+          <td></td>
+        `;
+      } else {
+        const schedule = entry.minute.startsWith('@')
+          ? `<code class="crontab-schedule">${escapeHtml(entry.minute)}</code>`
+          : `<code class="crontab-schedule">${escapeHtml([entry.minute, entry.hour, entry.dayOfMonth, entry.month, entry.dayOfWeek].join(' '))}</code>`;
+        const actions = isUserEntry
+          ? `<div class="crontab-actions-cell">
+               <button class="crontab-action-btn crontab-edit-btn" title="Edit">
+                 <i class="codicon codicon-edit"></i>
+               </button>
+               <button class="crontab-action-btn crontab-delete-btn" title="Delete">
+                 <i class="codicon codicon-trash"></i>
+               </button>
+             </div>`
+          : '<span class="empty-state-inline" title="Read-only system entry">—</span>';
+        tr.innerHTML = `
+          <td><code style="font-size:11px;">${escapeHtml(entry.source)}</code></td>
+          <td>${schedule}</td>
+          <td>${entry.user ? escapeHtml(entry.user) : '<span class="empty-state-inline">—</span>'}</td>
+          <td style="font-family: var(--vscode-editor-font-family); font-size:11px;">${escapeHtml(entry.command)}</td>
+          <td>${actions}</td>
+        `;
+      }
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.querySelectorAll('.crontab-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (crontabSortColumn === col) {
+        crontabSortDir = crontabSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        crontabSortColumn = col;
+        crontabSortDir = 'asc';
+      }
+      renderCrontabTable();
+    });
+  });
+
+  // ── Crontab CRUD ───────────────────────────────────────────────────
+  let crontabEditIndex = -1; // -1 = new, >= 0 = index in currentCrontabEntries
+
+  const crontabModal = document.getElementById('crontabModal');
+  const crontabModalOverlay = document.getElementById('crontabModalOverlay');
+  const crontabModalClose = document.getElementById('crontabModalClose');
+  const crontabModalCancel = document.getElementById('crontabModalCancel');
+  const crontabModalSave = document.getElementById('crontabModalSave');
+  const crontabModalTitle = document.getElementById('crontabModalTitle');
+  const crontabModalError = document.getElementById('crontabModalError');
+
+  function openCrontabModal(entry, editIndex) {
+    crontabEditIndex = editIndex != null ? editIndex : -1;
+    if (crontabModalTitle) {
+      crontabModalTitle.textContent = crontabEditIndex >= 0 ? 'Edit Cron Job' : 'Add Cron Job';
+    }
+    // Build schedule string
+    let schedule = '* * * * *';
+    if (entry) {
+      if (entry.minute && entry.minute.startsWith('@')) {
+        schedule = entry.minute;
+      } else if (entry.minute) {
+        schedule = [entry.minute, entry.hour, entry.dayOfMonth, entry.month, entry.dayOfWeek].join(' ');
+      }
+    }
+    const schedInput = document.getElementById('crontabScheduleInput');
+    const cmdInput = document.getElementById('crontabCommandInput');
+    if (schedInput) { schedInput.value = schedule; }
+    if (cmdInput) { cmdInput.value = entry?.command || ''; }
+    if (crontabModalError) { crontabModalError.style.display = 'none'; }
+    if (crontabModal) { crontabModal.style.display = 'flex'; }
+    setTimeout(() => { if (schedInput) { schedInput.focus(); } }, 50);
+  }
+
+  function closeCrontabModal() {
+    if (crontabModal) { crontabModal.style.display = 'none'; }
+  }
+
+  if (crontabModalClose) { crontabModalClose.addEventListener('click', closeCrontabModal); }
+  if (crontabModalCancel) { crontabModalCancel.addEventListener('click', closeCrontabModal); }
+  if (crontabModalOverlay) { crontabModalOverlay.addEventListener('click', closeCrontabModal); }
+
+  const crontabAddBtn = document.getElementById('crontabAddBtn');
+  if (crontabAddBtn) {
+    crontabAddBtn.addEventListener('click', () => openCrontabModal(null, -1));
+  }
+
+  // Preset buttons click (delegated, inside modal)
+  document.addEventListener('click', e => {
+    const presetBtn = e.target.closest('.crontab-preset-btn');
+    if (presetBtn) {
+      const preset = presetBtn.dataset.preset;
+      const schedInput = document.getElementById('crontabScheduleInput');
+      if (schedInput) { schedInput.value = preset; schedInput.focus(); }
+      return;
+    }
+
+    // Edit button in crontab table row
+    const editBtn = e.target.closest('.crontab-edit-btn');
+    if (editBtn) {
+      const tr = editBtn.closest('tr');
+      const idx = tr ? parseInt(tr.dataset.idx, 10) : -1;
+      if (idx >= 0 && currentCrontabEntries[idx]) {
+        openCrontabModal(currentCrontabEntries[idx], idx);
+      }
+      return;
+    }
+
+    // Delete button in crontab table row
+    const deleteBtn = e.target.closest('.crontab-delete-btn');
+    if (deleteBtn) {
+      const tr = deleteBtn.closest('tr');
+      const idx = tr ? parseInt(tr.dataset.idx, 10) : -1;
+      if (idx >= 0 && currentCrontabEntries[idx]?.source === 'user') {
+        const entry = currentCrontabEntries[idx];
+        // Build updated user entries without the deleted one (sent along for provider to write)
+        const updatedUserEntries = currentCrontabEntries.filter((e, i) =>
+          i !== idx && e.source === 'user'
+        );
+        // Route through provider for VS Code confirmation dialog
+        vscode.postMessage({ type: 'crontabDeleteRequest', entries: updatedUserEntries, command: entry.command });
+      }
+    }
+  });
+
+  // Validate and save crontab
+  if (crontabModalSave) {
+    crontabModalSave.addEventListener('click', () => {
+      const schedInput = document.getElementById('crontabScheduleInput');
+      const cmdInput = document.getElementById('crontabCommandInput');
+      const schedStr = schedInput?.value.trim() || '';
+      const command = cmdInput?.value.trim() || '';
+
+      if (!schedStr) { showCrontabError('Schedule expression cannot be empty'); return; }
+      if (!command) { showCrontabError('Command cannot be empty'); return; }
+
+      const cronFieldPattern = /^[\d*/,\-]+$/;
+      let minute, hour, dayOfMonth, month, dayOfWeek;
+
+      if (schedStr.startsWith('@')) {
+        const allowed = /^@(reboot|hourly|daily|weekly|monthly|yearly|annually|midnight)$/;
+        if (!allowed.test(schedStr)) {
+          showCrontabError(`Unknown special expression: ${schedStr}`);
+          return;
+        }
+        minute = schedStr;
+        hour = dayOfMonth = month = dayOfWeek = '';
+      } else {
+        const parts = schedStr.split(/\s+/);
+        if (parts.length !== 5) { showCrontabError('Schedule must have 5 fields: min hour day month weekday'); return; }
+        [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+        if (!cronFieldPattern.test(minute)) { showCrontabError('Invalid minute field'); return; }
+        if (!cronFieldPattern.test(hour)) { showCrontabError('Invalid hour field'); return; }
+        if (!cronFieldPattern.test(dayOfMonth)) { showCrontabError('Invalid day field'); return; }
+        if (!cronFieldPattern.test(month)) { showCrontabError('Invalid month field'); return; }
+        if (!cronFieldPattern.test(dayOfWeek)) { showCrontabError('Invalid weekday field'); return; }
+      }
+
+      const newEntry = { source: 'user', minute, hour, dayOfMonth, month, dayOfWeek, command };
+
+      // Build updated user entries
+      const userEntries = currentCrontabEntries.filter(e => e.source === 'user');
+      let updatedUserEntries;
+      if (crontabEditIndex >= 0) {
+        // Replace the entry at the original index
+        let userCount = 0;
+        updatedUserEntries = userEntries.map(e => {
+          // Find user entry that corresponds to crontabEditIndex in full array
+          const fullIdx = currentCrontabEntries.indexOf(e);
+          if (fullIdx === crontabEditIndex) { return newEntry; }
+          return e;
+        });
+      } else {
+        updatedUserEntries = [...userEntries, newEntry];
+      }
+
+      if (crontabModalSave) { crontabModalSave.disabled = true; }
+      vscode.postMessage({ type: 'crontabWrite', entries: updatedUserEntries });
+      closeCrontabModal();
+    });
+  }
+
+  function showCrontabError(msg) {
+    if (crontabModalError) {
+      crontabModalError.textContent = msg;
+      crontabModalError.style.display = 'block';
+    }
+  }
+
+  function handleCrontabWriteResult(result) {
+    if (crontabModalSave) { crontabModalSave.disabled = false; }
+    if (result.success) {
+      // Explicitly request fresh crontab data so the list always updates
+      requestTabData('crontab');
+    } else if (result.error) {
+      // Show error banner above the table
+      const errBanner = document.createElement('div');
+      errBanner.className = 'crontab-write-error-banner';
+      errBanner.textContent = `\u274C Crontab write failed: ${result.error}`;
+      const section = document.querySelector('#crontabTab .section-content');
+      if (section) {
+        section.prepend(errBanner);
+        setTimeout(() => errBanner.remove(), 6000);
+      }
+    }
+  }
+
 })();

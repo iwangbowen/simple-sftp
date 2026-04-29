@@ -160,6 +160,9 @@ export class ResourceDashboardProvider {
         case 'docker':
           await this.loadDockerData();
           break;
+        case 'crontab':
+          await this.loadCrontabData();
+          break;
         default:
           await this.loadOverviewData();
       }
@@ -290,6 +293,11 @@ export class ResourceDashboardProvider {
   private async loadDockerData(): Promise<void> {
     const containers = await ResourceDashboardService.getContainerList(this.hostConfig, this.authConfig);
     this.panel.webview.postMessage({ type: 'dockerData', data: containers });
+  }
+
+  private async loadCrontabData(): Promise<void> {
+    const entries = await ResourceDashboardService.getCrontabList(this.hostConfig, this.authConfig);
+    this.panel.webview.postMessage({ type: 'crontabData', data: entries });
   }
 
   /**
@@ -447,6 +455,48 @@ export class ResourceDashboardProvider {
         }
         break;
       }
+
+      case 'crontabWrite': {
+        const entries = Array.isArray(message.entries) ? message.entries : [];
+        try {
+          await ResourceDashboardService.writeUserCrontab(
+            this.hostConfig,
+            this.authConfig,
+            entries
+          );
+          this.panel.webview.postMessage({ type: 'crontabWriteResult', success: true });
+        } catch (err) {
+          this.panel.webview.postMessage({
+            type: 'crontabWriteResult',
+            success: false,
+            error: (err as Error).message
+          });
+        }
+        break;
+      }
+
+      case 'crontabDeleteRequest': {
+        const entries = Array.isArray(message.entries) ? message.entries : [];
+        const command = typeof message.command === 'string' ? message.command : '(unknown)';
+        const truncated = command.length > 60 ? command.slice(0, 60) + '…' : command;
+        const confirmed = await vscode.window.showWarningMessage(
+          `Delete cron job "${truncated}" on ${this.hostConfig.name}?`,
+          { modal: true },
+          'Confirm'
+        );
+        if (confirmed !== 'Confirm') { break; }
+        try {
+          await ResourceDashboardService.writeUserCrontab(this.hostConfig, this.authConfig, entries);
+          this.panel.webview.postMessage({ type: 'crontabWriteResult', success: true });
+        } catch (err) {
+          this.panel.webview.postMessage({
+            type: 'crontabWriteResult',
+            success: false,
+            error: (err as Error).message
+          });
+        }
+        break;
+      }
     }
   }
 
@@ -549,6 +599,10 @@ export class ResourceDashboardProvider {
                 <button class="tab-button" data-tab="docker">
                     <i class="codicon codicon-layers"></i>
                     Docker
+                </button>
+                <button class="tab-button" data-tab="crontab">
+                    <i class="codicon codicon-calendar"></i>
+                    Crontab
                 </button>
             </div>
             <button id="tabMoreBtn" class="tab-more-btn" style="display:none;" title="More tabs">
@@ -1165,6 +1219,36 @@ export class ResourceDashboardProvider {
                     </div>
                 </div>
             </div>
+
+            <!-- Crontab Tab -->
+            <div id="crontabTab" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-calendar"></i>
+                        <span>Cron Jobs</span>
+                        <button id="crontabAddBtn" class="crontab-add-btn" title="Add new cron job">
+                            <i class="codicon codicon-add"></i>
+                            Add Job
+                        </button>
+                    </div>
+                    <div class="section-content">
+                        <table class="crontab-table">
+                            <thead>
+                                <tr>
+                                    <th data-sort="source">Source</th>
+                                    <th>Schedule</th>
+                                    <th data-sort="user">User</th>
+                                    <th data-sort="command">Command</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crontabList">
+                                <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1209,6 +1293,49 @@ export class ResourceDashboardProvider {
             </div>
             <pre id="dockerLogContent" class="docker-log-content"></pre>
             <div id="dockerLogStatus" class="docker-log-status">Connecting…</div>
+        </div>
+    </div>
+
+    <!-- Crontab Edit Modal -->
+    <div id="crontabModal" class="process-detail-modal" style="display:none;">
+        <div class="process-detail-overlay" id="crontabModalOverlay"></div>
+        <div class="process-detail-dialog crontab-modal-dialog">
+            <div class="process-detail-header">
+                <span class="process-detail-title">
+                    <i class="codicon codicon-calendar"></i>
+                    <span id="crontabModalTitle">Add Cron Job</span>
+                </span>
+                <button class="process-detail-close" id="crontabModalClose" title="Close">
+                    <i class="codicon codicon-close"></i>
+                </button>
+            </div>
+            <div class="crontab-modal-body">
+                <div class="crontab-presets">
+                    <span class="crontab-presets-label">Presets:</span>
+                    <button class="crontab-preset-btn" data-preset="* * * * *">Every min</button>
+                    <button class="crontab-preset-btn" data-preset="0 * * * *">Hourly</button>
+                    <button class="crontab-preset-btn" data-preset="0 0 * * *">Daily</button>
+                    <button class="crontab-preset-btn" data-preset="0 0 * * 0">Weekly</button>
+                    <button class="crontab-preset-btn" data-preset="0 0 1 * *">Monthly</button>
+                    <button class="crontab-preset-btn" data-preset="@reboot">@reboot</button>
+                </div>
+                <div class="crontab-modal-field">
+                    <label class="crontab-modal-label">Schedule Expression</label>
+                    <input class="crontab-modal-input" id="crontabScheduleInput"
+                        placeholder="* * * * *" spellcheck="false" autocomplete="off" />
+                    <span class="crontab-modal-hint">min&nbsp;hour&nbsp;day&nbsp;month&nbsp;weekday &mdash; or special like @reboot</span>
+                </div>
+                <div class="crontab-modal-field">
+                    <label class="crontab-modal-label">Command</label>
+                    <input class="crontab-modal-input" id="crontabCommandInput"
+                        placeholder="/path/to/script.sh" spellcheck="false" autocomplete="off" />
+                </div>
+                <div id="crontabModalError" class="crontab-modal-error" style="display:none;"></div>
+            </div>
+            <div class="crontab-modal-footer">
+                <button class="crontab-modal-btn crontab-modal-btn-cancel" id="crontabModalCancel">Cancel</button>
+                <button class="crontab-modal-btn crontab-modal-btn-save" id="crontabModalSave">Save</button>
+            </div>
         </div>
     </div>
 

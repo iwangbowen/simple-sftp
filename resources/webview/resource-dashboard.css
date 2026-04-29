@@ -1893,3 +1893,242 @@ tr:hover .service-action-btn:hover:not(:disabled) { opacity: 1; }
   border-top: 1px solid var(--vscode-widget-border, transparent);
   flex-shrink: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Crontab Tab
+   ═══════════════════════════════════════════════════════════════ */
+.crontab-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 600px;
+}
+
+.crontab-table thead {
+    background-color: var(--vscode-editorGroupHeader-tabsBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.crontab-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.crontab-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 22px;
+}
+
+.crontab-table th[data-sort]:hover {
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.crontab-table th[data-sort]::after { content: '⇅'; position: absolute; right: 6px; opacity: 0.35; font-size: 10px; }
+.crontab-table th[data-sort].sort-asc::after { content: '↑'; opacity: 1; color: var(--vscode-charts-blue); }
+.crontab-table th[data-sort].sort-desc::after { content: '↓'; opacity: 1; color: var(--vscode-charts-blue); }
+
+.crontab-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vscode-editorIndentGuide-background);
+    color: var(--vscode-foreground);
+}
+
+.crontab-table tbody tr:last-child td { border-bottom: none; }
+.crontab-table tbody tr:hover { background-color: var(--vscode-list-hoverBackground); }
+
+.crontab-schedule {
+    font-family: var(--vscode-editor-font-family, 'Menlo', 'Courier New', monospace);
+    font-size: 11px;
+    background-color: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    padding: 1px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.crontab-env-badge {
+    font-size: 10px;
+    font-weight: 600;
+    background-color: var(--vscode-charts-purple, #9b59b6);
+    color: #fff;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+/* Add button in section header */
+.crontab-add-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    padding: 3px 10px;
+    font-size: 11px;
+    background: none;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+.crontab-add-btn:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+/* Action buttons in table rows */
+.crontab-actions-cell {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.crontab-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.4;
+    transition: opacity 0.15s, background-color 0.15s;
+    padding: 0;
+}
+.crontab-action-btn:hover {
+    opacity: 1;
+    background-color: var(--vscode-toolbar-hoverBackground);
+    border-color: var(--vscode-panel-border);
+    color: var(--vscode-foreground);
+}
+.crontab-delete-btn:hover { color: var(--vscode-errorForeground); }
+tr:hover .crontab-action-btn { opacity: 0.7; }
+tr:hover .crontab-action-btn:hover { opacity: 1; }
+
+/* Crontab modal */
+.crontab-modal-dialog {
+    width: min(90vw, 540px);
+}
+.crontab-modal-body {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.crontab-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+.crontab-presets-label {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+.crontab-preset-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: none;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 3px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    transition: background-color 0.12s;
+}
+.crontab-preset-btn:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+.crontab-modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.crontab-modal-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.crontab-modal-input {
+    width: 100%;
+    padding: 5px 8px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 3px;
+    font-size: 13px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    box-sizing: border-box;
+    outline: none;
+}
+.crontab-modal-input:focus {
+    border-color: var(--vscode-focusBorder);
+}
+.crontab-modal-hint {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+.crontab-modal-error {
+    font-size: 12px;
+    color: var(--vscode-errorForeground);
+    padding: 4px 8px;
+    background-color: var(--vscode-inputValidation-errorBackground);
+    border: 1px solid var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+    border-radius: 3px;
+}
+.crontab-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--vscode-panel-border);
+}
+.crontab-modal-btn {
+    padding: 5px 16px;
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid var(--vscode-panel-border);
+    transition: background-color 0.12s;
+}
+.crontab-modal-btn-cancel {
+    background: none;
+    color: var(--vscode-foreground);
+}
+.crontab-modal-btn-cancel:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+.crontab-modal-btn-save {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-button-background);
+}
+.crontab-modal-btn-save:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+.crontab-modal-btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Write error banner */
+.crontab-write-error-banner {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background-color: var(--vscode-inputValidation-errorBackground);
+    color: var(--vscode-errorForeground);
+    border-radius: 3px;
+    font-size: 12px;
+}
