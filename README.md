@@ -266,6 +266,14 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
 - **simpleSftp.fileView.thumbnailMaxFileSize** (number, default: `10`, range: 1-100)
   Maximum file size (MB) for thumbnail generation. Files larger than this will use generic icons.
 
+#### Image Preview
+
+- **simpleSftp.imagePreview.backdropBlur** (number, default: `20`, range: 0-40)
+  Background blur intensity (px) when previewing images in the webview. Set to `0` to disable blur.
+
+- **simpleSftp.imagePreview.backdropOpacity** (number, default: `0.2`, range: 0-0.9)
+  Background overlay darkness when previewing images. `0` = fully transparent, `0.9` = nearly opaque.
+
 #### Transfer Queue
 
 - **simpleSftp.transferQueue.maxConcurrent** (number, default: `2`, range: 1-10)
@@ -368,6 +376,19 @@ Configure Simple SFTP in VS Code Settings (Ctrl/Cmd+,):
 
 - **simpleSftp.speedUnit** (enum: `auto`|`KB`|`MB`, default: `auto`)
   Download speed display unit
+
+- **simpleSftp.recentPaths.timeFormat** (enum: `absolute`|`relative`, default: `absolute`)
+  Time format for recent paths in the dropdown:
+  - `absolute`: Show exact timestamp (e.g. 2026-04-16 14:30)
+  - `relative`: Show relative time (e.g. 2h ago)
+
+#### Remote Watch
+
+- **simpleSftp.remoteWatch.enabled** (boolean, default: `true`)
+  Poll the active dual-panel remote directory for changes. When enabled, changed files prompt for reload or compare.
+
+- **simpleSftp.remoteWatch.pollInterval** (number, default: `15000`, minimum: 2000)
+  Polling interval in milliseconds for remote change detection. Lower values refresh faster but increase remote requests.
 
 ### Security Notes
 
@@ -709,6 +730,14 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 - **simpleSftp.fileView.thumbnailMaxFileSize** (数字,默认: `10`,范围: 1-100)
   缩略图生成的最大文件大小(MB)。大于此大小的文件将使用通用图标。
 
+#### 图片预览
+
+- **simpleSftp.imagePreview.backdropBlur** (数字,默认: `20`,范围: 0-40)
+  在 Webview 中预览图片时的背景虚化强度(px)。设为 `0` 可关闭虚化效果。
+
+- **simpleSftp.imagePreview.backdropOpacity** (数字,默认: `0.2`,范围: 0-0.9)
+  预览图片时背景遮罩的不透明度。`0` = 完全透明，`0.9` = 接近不透明。
+
 #### 传输队列
 
 - **simpleSftp.transferQueue.maxConcurrent** (数字,默认: `2`,范围: 1-10)
@@ -811,6 +840,18 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 - **simpleSftp.speedUnit** (枚举: `auto`|`KB`|`MB`,默认: `auto`)
   下载速度显示单位
+- **simpleSftp.recentPaths.timeFormat** (枚举: `absolute`|`relative`,默认: `absolute`)
+  最近访问路径下拉列表中的时间格式:
+  - `absolute`: 显示绝对时间(如 2026-04-16 14:30)
+  - `relative`: 显示相对时间(如 2小时前)
+
+#### 远程监控
+
+- **simpleSftp.remoteWatch.enabled** (布尔値,默认: `true`)
+  轮询双面板当前远程目录是否发生变化。开启后,文件变更时会提示重新加载或比对。
+
+- **simpleSftp.remoteWatch.pollInterval** (数字,默认: `15000`,最小: 2000)
+  远程变更检测的轮询间隔(毫秒)。数小则刷新较快,但会增加远程请求次数。
 
 ### 安全说明
 
