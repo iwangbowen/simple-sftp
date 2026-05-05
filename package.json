@@ -2082,6 +2082,20 @@
           "maximum": 100,
           "description": "Maximum file size (in MB) for thumbnail generation. Files larger than this will use generic icons. Default: 10 MB"
         },
+        "simpleSftp.imagePreview.backdropBlur": {
+          "type": "number",
+          "default": 20,
+          "minimum": 0,
+          "maximum": 40,
+          "description": "Background blur intensity (px) when previewing images. 0 = no blur. Default: 20"
+        },
+        "simpleSftp.imagePreview.backdropOpacity": {
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0,
+          "maximum": 0.9,
+          "description": "Background overlay opacity when previewing images. 0 = fully transparent, 0.9 = nearly opaque. Default: 0.2"
+        },
         "simpleSftp.portForwarding.browserType": {
           "type": "string",
           "enum": [

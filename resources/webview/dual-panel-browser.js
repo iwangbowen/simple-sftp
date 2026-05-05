@@ -5326,6 +5326,15 @@ case 'updateStatus':
                     }
                 }
                 break;
+
+            case 'setImagePreviewConfig':
+                if (message.data) {
+                    const blur = message.data.backdropBlur ?? 20;
+                    const opacity = message.data.backdropOpacity ?? 0.2;
+                    document.documentElement.style.setProperty('--preview-backdrop-blur', `${blur}px`);
+                    document.documentElement.style.setProperty('--preview-backdrop-opacity', String(opacity));
+                }
+                break;
         }
     });
 

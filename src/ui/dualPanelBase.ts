@@ -71,6 +71,13 @@ export abstract class DualPanelBase {
         });
 
         this.startRemoteDirectoryPolling();
+
+        // Re-send image preview config when settings change
+        vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration('simpleSftp.imagePreview')) {
+                this.sendImagePreviewConfig();
+            }
+        });
     }
 
     /**
@@ -159,6 +166,9 @@ export abstract class DualPanelBase {
                         thumbnailSize: uiConfig.get<number>('defaultIconSize', 96)
                     }
                 });
+
+                // Send image preview backdrop config
+                this.sendImagePreviewConfig();
 
                 if (this._currentHost && this._localRootPath && this._remoteRootPath) {
                     await this.loadLocalDirectory(this._localRootPath);
@@ -2953,6 +2963,17 @@ export abstract class DualPanelBase {
 
     private recentPathsKey(hostId: string): string {
         return `simpleSftp.recentPaths.${hostId}`;
+    }
+
+    protected sendImagePreviewConfig(): void {
+        const config = vscode.workspace.getConfiguration('simpleSftp.imagePreview');
+        this.postMessage({
+            command: 'setImagePreviewConfig',
+            data: {
+                backdropBlur: config.get<number>('backdropBlur', 20),
+                backdropOpacity: config.get<number>('backdropOpacity', 0.2)
+            }
+        });
     }
 
     protected sendRecentPathsToWebview(hostId: string): void {

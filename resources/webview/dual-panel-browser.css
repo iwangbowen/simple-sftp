@@ -3322,9 +3322,9 @@ body {
 .image-preview-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, var(--preview-backdrop-opacity, 0.2));
+    backdrop-filter: blur(var(--preview-backdrop-blur, 20px));
+    -webkit-backdrop-filter: blur(var(--preview-backdrop-blur, 20px));
 }
 
 .image-preview-content {
