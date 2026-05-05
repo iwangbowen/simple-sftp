@@ -1,5 +1,11 @@
 # Change Log
 
+## 6.25.0 - 2026-05-05
+
+- **Feature**: Image preview backdrop blur — background is now blurred when previewing images in the webview. Toolbar, nav arrows, and image shadow have been simplified for a cleaner look.
+- **Feature**: Added `simpleSftp.imagePreview.backdropBlur` (default: `20`) and `simpleSftp.imagePreview.backdropOpacity` (default: `0.2`) settings to customize the preview background effect. Changes apply in real time without reloading.
+- **Docs**: Added missing `simpleSftp.recentPaths.timeFormat`, `simpleSftp.remoteWatch.enabled`, and `simpleSftp.remoteWatch.pollInterval` entries to README configuration reference.
+
 ## 6.24.0 - 2026-04-29
 
 - **Fix**: Added delete confirmation dialog for Crontab operations; improved data loading and refresh logic.
