@@ -3322,7 +3322,9 @@ body {
 .image-preview-backdrop {
     position: absolute;
     inset: 0;
-    background: transparent;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .image-preview-content {
@@ -3372,10 +3374,8 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    border: none;
     border-radius: 6px;
     padding: 4px 10px;
 }
@@ -3385,10 +3385,8 @@ body {
     align-items: center;
     gap: 2px;
     justify-self: end;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    border: none;
     border-radius: 6px;
     padding: 3px 4px;
 }
@@ -3449,7 +3447,6 @@ body {
     will-change: transform;
     transition: transform 0.15s ease;
     border-radius: 4px;
-    filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.7));
 }
 
 .image-preview-nav-btn {
@@ -3464,16 +3461,14 @@ body {
     justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    background: transparent;
     color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
     transform: translateY(-50%);
 }
 
 .image-preview-nav-btn:hover {
-    background: rgba(0, 0, 0, 0.65);
+    background: rgba(255, 255, 255, 0.18);
     border-color: rgba(255, 255, 255, 0.4);
 }
 
