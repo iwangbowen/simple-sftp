@@ -1,5 +1,11 @@
 # Change Log
 
+## 6.26.0 - 2026-05-09
+
+- **Enhancement**: Resource Dashboard Logs tab — file selector is now a **custom searchable dropdown**: type to filter the file list in real time; use `↑`/`↓` arrow keys to navigate items and `Enter` to confirm selection.
+- **Fix**: Logs tab dropdown no longer stretches the page width or triggers a horizontal scrollbar when expanded (switched to `position: fixed` floating layer).
+- **Fix**: Log file selector trigger now correctly fills the available header width instead of rendering too narrow.
+
 ## 6.25.0 - 2026-05-05
 
 - **Feature**: Image preview backdrop blur — background is now blurred when previewing images in the webview. Toolbar, nav arrows, and image shadow have been simplified for a cleaner look.
