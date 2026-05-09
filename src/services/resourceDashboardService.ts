@@ -1236,6 +1236,39 @@ export class ResourceDashboardService {
     });
   }
 
+  private static normalizeLoginTime(raw: string): string {
+    if (!raw) { return raw; }
+    const now = new Date();
+
+    // "HH:MM" or "HH:MM:SS" — assume today
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(raw)) {
+      const [h, m, s = 0] = raw.split(':').map(Number);
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s);
+      if (!isNaN(d.getTime())) { return d.toISOString(); }
+    }
+
+    // "MmmDD" like "Jan05" or "Jan5" (w command, this year, not today)
+    const mmmddMatch = raw.match(/^([A-Za-z]{3})(\d{1,2})$/);
+    if (mmmddMatch) {
+      const d = new Date(`${mmmddMatch[1]} ${mmmddMatch[2]} ${now.getFullYear()}`);
+      if (!isNaN(d.getTime())) { return d.toISOString(); }
+    }
+
+    // "Mon Jan  5 10:25" or "Mon Jan  5 10:25:00" or with trailing year (last -F)
+    const lastMatch = raw.match(/^(?:\w{3}\s+)?(\w{3})\s+(\d{1,2})\s+(\d{1,2}:\d{2}(?::\d{2})?)(?:\s+(\d{4}))?$/);
+    if (lastMatch) {
+      const yr = lastMatch[4] ? parseInt(lastMatch[4]) : now.getFullYear();
+      const d = new Date(`${lastMatch[1]} ${parseInt(lastMatch[2])} ${yr} ${lastMatch[3]}`);
+      if (!isNaN(d.getTime())) { return d.toISOString(); }
+    }
+
+    // Try direct parse as fallback (handles "2026-01-12 10:25" etc.)
+    const direct = new Date(raw);
+    if (!isNaN(direct.getTime())) { return direct.toISOString(); }
+
+    return raw;
+  }
+
   private static parseWOutput(raw: string): UserSession[] {
     const sessions: UserSession[] = [];
     for (const line of raw.split('\n')) {
@@ -1249,7 +1282,7 @@ export class ResourceDashboardService {
         user: parts[0] || '',
         tty: parts[1] || '',
         from: parts[2] || '',
-        loginTime: parts[3] || '',
+        loginTime: this.normalizeLoginTime(parts[3] || ''),
         idle: parts[4] || '',
         what: parts.slice(7).join(' ') || '',
       });
@@ -1276,7 +1309,9 @@ export class ResourceDashboardService {
       // Extract logout time or status
       const dashIdx = rest.indexOf(' - ');
       const logoutTime = dashIdx >= 0 ? rest.slice(dashIdx + 3).replace(durationMatch?.[0] || '', '').trim() : 'still logged in';
-      const loginTime = dashIdx >= 0 ? rest.slice(0, dashIdx).trim() : rest.replace(durationMatch?.[0] || '', '').trim();
+      const loginTime = this.normalizeLoginTime(
+        dashIdx >= 0 ? rest.slice(0, dashIdx).trim() : rest.replace(durationMatch?.[0] || '', '').trim()
+      );
       history.push({ user, tty, from, loginTime, logoutTime, duration });
     }
     return history.slice(0, 30);

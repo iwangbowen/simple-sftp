@@ -1250,6 +1250,13 @@
     return Number(value || 0).toLocaleString();
   }
 
+  function formatLoginTime(raw) {
+    if (!raw) { return '—'; }
+    const d = new Date(raw);
+    // If the backend normalized it to ISO, format consistently; otherwise show raw
+    return Number.isNaN(d.getTime()) ? escapeHtml(raw) : formatTimestamp(raw);
+  }
+
   function formatTimestamp(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
@@ -1881,7 +1888,7 @@
         <td><strong>${escapeHtml(s.user)}</strong></td>
         <td><code>${escapeHtml(s.tty)}</code></td>
         <td>${escapeHtml(s.from || '—')}</td>
-        <td>${escapeHtml(s.loginTime || '—')}</td>
+        <td>${formatLoginTime(s.loginTime || '')}</td>
         <td>${escapeHtml(s.idle || '—')}</td>
         <td style="font-family: var(--vscode-editor-font-family);">${escapeHtml(s.what || '—')}</td>
       `;
@@ -1905,7 +1912,7 @@
         <td><strong>${escapeHtml(h.user)}</strong></td>
         <td><code>${escapeHtml(h.tty)}</code></td>
         <td>${escapeHtml(h.from || '—')}</td>
-        <td>${escapeHtml(h.loginTime || '—')}</td>
+        <td>${formatLoginTime(h.loginTime || '')}</td>
         <td><span class="${statusClass}">${escapeHtml(h.logoutTime || '—')}</span></td>
         <td>${escapeHtml(h.duration || '—')}</td>
       `;
