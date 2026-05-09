@@ -1631,7 +1631,7 @@
     logCurrentMatchIndex = (logCurrentMatchIndex + direction + logMatchElements.length) % logMatchElements.length;
     const active = logMatchElements[logCurrentMatchIndex];
     active.classList.add('log-match-active');
-    active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    active.scrollIntoView({ block: 'center', behavior: 'instant' });
     updateLogMatchBadge();
   }
 
