@@ -1360,6 +1360,94 @@
   let logFilterMode = 'highlight'; // 'highlight' | 'filter'
   let logAutoRefreshTimer = null;  // setInterval handle
   const LOG_AUTO_REFRESH_MS = 5000;
+  let allLogFiles = [];            // all available log file paths
+  let selectedLogFile = null;      // currently selected log file path
+
+  function setSelectedLogFile(filePath, fetchContent) {
+    selectedLogFile = filePath;
+    const label = document.getElementById('logFileSelectLabel');
+    if (label) {
+      if (filePath) {
+        label.textContent = filePath.split('/').pop() || filePath;
+        label.title = filePath;
+        label.classList.remove('placeholder');
+      } else {
+        label.textContent = allLogFiles.length === 0 ? 'No readable log files found in /var/log' : '-- Select a log file --';
+        label.title = '';
+        label.classList.add('placeholder');
+      }
+    }
+    const dlBtn = document.getElementById('logDownloadBtn');
+    if (dlBtn) { dlBtn.disabled = !filePath; }
+    if (fetchContent && filePath) { fetchLogContent(filePath); }
+  }
+
+  function renderLogFileList(filter) {
+    const list = document.getElementById('logFileSelectList');
+    if (!list) { return; }
+    list.innerHTML = '';
+    const f = (filter || '').toLowerCase().trim();
+    const filtered = f ? allLogFiles.filter(fp => fp.toLowerCase().includes(f)) : allLogFiles;
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'log-file-select-empty';
+      empty.textContent = f ? 'No matching files' : 'No readable log files found in /var/log';
+      list.appendChild(empty);
+      return;
+    }
+    filtered.forEach(fp => {
+      const item = document.createElement('div');
+      item.className = 'log-file-select-item' + (fp === selectedLogFile ? ' selected' : '');
+      item.textContent = fp;
+      item.title = fp;
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        closeLogFileDropdown();
+        if (fp !== selectedLogFile) {
+          setSelectedLogFile(fp, true);
+        }
+      });
+      list.appendChild(item);
+    });
+  }
+
+  function openLogFileDropdown() {
+    const dropdown = document.getElementById('logFileSelectDropdown');
+    const wrapper = document.getElementById('logFileSelectWrapper');
+    const searchInput = document.getElementById('logFileSelectSearch');
+    if (!dropdown || !wrapper) { return; }
+    // Position as fixed so it never affects document scroll width
+    const rect = wrapper.getBoundingClientRect();
+    const dropdownMinWidth = Math.max(rect.width, 320);
+    let dropdownLeft = rect.left;
+    // Flip to right-align when the panel would overflow the viewport right edge
+    if (dropdownLeft + dropdownMinWidth > window.innerWidth - 4) {
+      dropdownLeft = rect.right - dropdownMinWidth;
+      if (dropdownLeft < 4) { dropdownLeft = 4; }
+    }
+    dropdown.style.top = rect.bottom + 'px';
+    dropdown.style.left = dropdownLeft + 'px';
+    dropdown.style.minWidth = dropdownMinWidth + 'px';
+    dropdown.style.display = 'flex';
+    wrapper.classList.add('open');
+    if (searchInput) {
+      searchInput.value = '';
+      renderLogFileList('');
+      searchInput.focus();
+      setTimeout(() => {
+        const selected = dropdown.querySelector('.log-file-select-item.selected');
+        if (selected) { selected.scrollIntoView({ block: 'nearest' }); }
+      }, 0);
+    }
+  }
+
+  function closeLogFileDropdown() {
+    const dropdown = document.getElementById('logFileSelectDropdown');
+    const wrapper = document.getElementById('logFileSelectWrapper');
+    if (!dropdown || !wrapper) { return; }
+    dropdown.style.display = 'none';
+    wrapper.classList.remove('open');
+  }
 
   function handleLogsFiles(files) {
     loadingState.style.display = 'none';
@@ -1367,38 +1455,17 @@
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
 
-    const select = document.getElementById('logFileSelect');
-    if (!select) { return; }
+    const prevValue = selectedLogFile;
+    allLogFiles = files || [];
 
-    // Preserve current selection if still valid
-    const prevValue = select.value;
-    select.innerHTML = '<option value="">-- Select a log file --</option>';
-    if (files && files.length > 0) {
-      files.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f;
-        opt.textContent = f;
-        select.appendChild(opt);
-      });
+    if (allLogFiles.length > 0) {
+      if (prevValue && allLogFiles.includes(prevValue)) {
+        setSelectedLogFile(prevValue, false);
+      } else {
+        setSelectedLogFile(allLogFiles[0], true);
+      }
     } else {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = 'No readable log files found in /var/log';
-      opt.disabled = true;
-      select.appendChild(opt);
-    }
-
-    // Restore previous selection or pick first log
-    if (prevValue && files?.includes(prevValue)) {
-      select.value = prevValue;
-      const dlBtn = document.getElementById('logDownloadBtn');
-      if (dlBtn) { dlBtn.disabled = false; }
-    } else if (files && files.length > 0) {
-      // Auto-select the first file and load it
-      select.value = files[0];
-      fetchLogContent(files[0]);
-      const dlBtn = document.getElementById('logDownloadBtn');
-      if (dlBtn) { dlBtn.disabled = false; }
+      setSelectedLogFile(null, false);
     }
   }
 
@@ -1498,24 +1565,52 @@
     vscode.postMessage({ type: 'fetchLogs', filePath, lines });
   }
 
-  // Logs tab: file selector change
-  const logFileSelect = document.getElementById('logFileSelect');
-  const logDownloadBtn = document.getElementById('logDownloadBtn');
-  if (logFileSelect) {
-    logFileSelect.addEventListener('change', () => {
-      if (logFileSelect.value) {
-        fetchLogContent(logFileSelect.value);
-        if (logDownloadBtn) { logDownloadBtn.disabled = false; }
-      } else if (logDownloadBtn) {
-        logDownloadBtn.disabled = true;
+  // Logs tab: custom searchable file selector
+  const logFileSelectTrigger = document.getElementById('logFileSelectTrigger');
+  if (logFileSelectTrigger) {
+    logFileSelectTrigger.addEventListener('click', () => {
+      const dropdown = document.getElementById('logFileSelectDropdown');
+      if (dropdown && dropdown.style.display !== 'none') {
+        closeLogFileDropdown();
+      } else {
+        openLogFileDropdown();
+      }
+    });
+    logFileSelectTrigger.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openLogFileDropdown();
+      } else if (e.key === 'Escape') {
+        closeLogFileDropdown();
       }
     });
   }
 
+  const logFileSelectSearch = document.getElementById('logFileSelectSearch');
+  if (logFileSelectSearch) {
+    logFileSelectSearch.addEventListener('input', () => {
+      renderLogFileList(logFileSelectSearch.value);
+    });
+    logFileSelectSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeLogFileDropdown();
+        logFileSelectTrigger?.focus();
+      }
+    });
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('mousedown', (e) => {
+    const wrapper = document.getElementById('logFileSelectWrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+      closeLogFileDropdown();
+    }
+  });
+
+  const logDownloadBtn = document.getElementById('logDownloadBtn');
   if (logDownloadBtn) {
     logDownloadBtn.addEventListener('click', () => {
-      const filePath = logFileSelect?.value;
-      if (filePath) { vscode.postMessage({ type: 'downloadLog', filePath }); }
+      if (selectedLogFile) { vscode.postMessage({ type: 'downloadLog', filePath: selectedLogFile }); }
     });
   }
 
@@ -1523,7 +1618,7 @@
   const logLinesSelect = document.getElementById('logLinesSelect');
   if (logLinesSelect) {
     logLinesSelect.addEventListener('change', () => {
-      if (logFileSelect?.value) { fetchLogContent(logFileSelect.value); }
+      if (selectedLogFile) { fetchLogContent(selectedLogFile); }
     });
   }
 
@@ -1531,8 +1626,8 @@
   const logRefreshBtn = document.getElementById('logRefreshBtn');
   if (logRefreshBtn) {
     logRefreshBtn.addEventListener('click', () => {
-      if (logFileSelect?.value) {
-        fetchLogContent(logFileSelect.value);
+      if (selectedLogFile) {
+        fetchLogContent(selectedLogFile);
       } else {
         vscode.postMessage({ type: 'refresh', tab: 'logs' });
       }
@@ -1552,8 +1647,8 @@
         logAutoRefreshBtn.classList.add('active');
         logAutoRefreshBtn.title = 'Auto-refresh ON (every 5s) — click to stop';
         logAutoRefreshTimer = setInterval(() => {
-          if (logFileSelect?.value && activeTab === 'logs') {
-            fetchLogContent(logFileSelect.value);
+          if (selectedLogFile && activeTab === 'logs') {
+            fetchLogContent(selectedLogFile);
           }
         }, LOG_AUTO_REFRESH_MS);
       }

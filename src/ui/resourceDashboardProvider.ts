@@ -1076,9 +1076,19 @@ export class ResourceDashboardProvider {
                         <i class="codicon codicon-output"></i>
                         <span>System Logs</span>
                         <div class="logs-controls">
-                            <select id="logFileSelect" class="logs-file-select">
-                                <option value="">-- Select a log file --</option>
-                            </select>
+                            <div id="logFileSelectWrapper" class="log-file-select-wrapper">
+                                <div class="log-file-select-trigger" id="logFileSelectTrigger" tabindex="0" title="Select log file">
+                                    <span id="logFileSelectLabel" class="log-file-select-label placeholder">-- Select a log file --</span>
+                                    <i class="codicon codicon-chevron-down log-file-select-arrow"></i>
+                                </div>
+                                <div id="logFileSelectDropdown" class="log-file-select-dropdown" style="display:none">
+                                    <div class="log-file-select-search-row">
+                                        <i class="codicon codicon-search log-file-select-search-icon"></i>
+                                        <input id="logFileSelectSearch" type="text" class="log-file-select-search" placeholder="Search log files…" autocomplete="off" spellcheck="false" />
+                                    </div>
+                                    <div id="logFileSelectList" class="log-file-select-list"></div>
+                                </div>
+                            </div>
                             <select id="logLinesSelect" class="logs-lines-select">
                                 <option value="100">Last 100 lines</option>
                                 <option value="200" selected>Last 200 lines</option>

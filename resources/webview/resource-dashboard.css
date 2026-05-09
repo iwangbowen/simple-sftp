@@ -1281,18 +1281,141 @@ tr:hover .process-kill-btn:hover {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex: 1;
+    min-width: 0;
     margin-left: auto;
 }
 
-.logs-file-select {
-    flex: 1 1 260px;
-    max-width: 380px;
+/* ── Custom Searchable Log File Dropdown ────────── */
+.log-file-select-wrapper {
+    flex: 1 1 auto;
+    min-width: 160px;
+    max-width: 400px;
+    position: relative;
     font-size: 12px;
-    padding: 2px 4px;
+}
+
+.log-file-select-trigger {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
     background-color: var(--vscode-dropdown-background);
     color: var(--vscode-dropdown-foreground);
     border: 1px solid var(--vscode-dropdown-border);
     border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
+    min-height: 22px;
+    outline: none;
+}
+
+.log-file-select-trigger:focus {
+    border-color: var(--vscode-focusBorder);
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+.log-file-select-wrapper.open .log-file-select-trigger {
+    border-color: var(--vscode-focusBorder);
+}
+
+.log-file-select-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.log-file-select-label.placeholder {
+    color: var(--vscode-descriptionForeground);
+}
+
+.log-file-select-arrow {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    transition: transform 0.15s;
+}
+
+.log-file-select-wrapper.open .log-file-select-arrow {
+    transform: rotate(180deg);
+}
+
+.log-file-select-dropdown {
+    position: fixed;
+    z-index: 9999;
+    background-color: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-focusBorder);
+    border-radius: 0 0 3px 3px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    min-width: 320px;
+    max-width: 600px;
+    overflow: hidden;
+}
+
+.log-file-select-search-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    flex-shrink: 0;
+}
+
+.log-file-select-search-icon {
+    color: var(--vscode-descriptionForeground);
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.log-file-select-search {
+    flex: 1;
+    font-size: 12px;
+    background: transparent;
+    color: var(--vscode-input-foreground);
+    border: none;
+    outline: none;
+    min-width: 0;
+}
+
+.log-file-select-search::placeholder {
+    color: var(--vscode-descriptionForeground);
+}
+
+.log-file-select-list {
+    overflow-y: auto;
+    max-height: 200px;
+    padding: 2px 0;
+}
+
+.log-file-select-item {
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--vscode-dropdown-foreground);
+}
+
+.log-file-select-item:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.log-file-select-item.selected {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+}
+
+.log-file-select-empty {
+    padding: 6px 8px;
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
 }
 
 .logs-lines-select {
