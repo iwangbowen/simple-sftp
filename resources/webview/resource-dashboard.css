@@ -1411,6 +1411,12 @@ tr:hover .process-kill-btn:hover {
     color: var(--vscode-list-activeSelectionForeground);
 }
 
+.log-file-select-item.focused {
+    background-color: var(--vscode-list-focusBackground, var(--vscode-list-hoverBackground));
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
 .log-file-select-empty {
     padding: 6px 8px;
     font-size: 12px;

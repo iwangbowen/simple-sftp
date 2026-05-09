@@ -1362,6 +1362,7 @@
   const LOG_AUTO_REFRESH_MS = 5000;
   let allLogFiles = [];            // all available log file paths
   let selectedLogFile = null;      // currently selected log file path
+  let focusedItemIndex = -1;       // keyboard-navigated item index (-1 = none)
 
   function setSelectedLogFile(filePath, fetchContent) {
     selectedLogFile = filePath;
@@ -1382,10 +1383,22 @@
     if (fetchContent && filePath) { fetchLogContent(filePath); }
   }
 
+  function updateFocusedItem(newIndex) {
+    const list = document.getElementById('logFileSelectList');
+    if (!list) { return; }
+    const items = list.querySelectorAll('.log-file-select-item');
+    focusedItemIndex = Math.max(-1, Math.min(newIndex, items.length - 1));
+    items.forEach((item, i) => { item.classList.toggle('focused', i === focusedItemIndex); });
+    if (focusedItemIndex >= 0 && items[focusedItemIndex]) {
+      items[focusedItemIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
   function renderLogFileList(filter) {
     const list = document.getElementById('logFileSelectList');
     if (!list) { return; }
     list.innerHTML = '';
+    focusedItemIndex = -1;
     const f = (filter || '').toLowerCase().trim();
     const filtered = f ? allLogFiles.filter(fp => fp.toLowerCase().includes(f)) : allLogFiles;
     if (filtered.length === 0) {
@@ -1395,11 +1408,13 @@
       list.appendChild(empty);
       return;
     }
-    filtered.forEach(fp => {
+    filtered.forEach((fp, idx) => {
       const item = document.createElement('div');
       item.className = 'log-file-select-item' + (fp === selectedLogFile ? ' selected' : '');
       item.textContent = fp;
       item.title = fp;
+      item.dataset.fp = fp;
+      item.addEventListener('mousemove', () => { updateFocusedItem(idx); });
       item.addEventListener('mousedown', (e) => {
         e.preventDefault();
         closeLogFileDropdown();
@@ -1447,6 +1462,7 @@
     if (!dropdown || !wrapper) { return; }
     dropdown.style.display = 'none';
     wrapper.classList.remove('open');
+    focusedItemIndex = -1;
   }
 
   function handleLogsFiles(files) {
@@ -1595,6 +1611,24 @@
       if (e.key === 'Escape') {
         closeLogFileDropdown();
         logFileSelectTrigger?.focus();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        updateFocusedItem(focusedItemIndex + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        updateFocusedItem(focusedItemIndex - 1);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const list = document.getElementById('logFileSelectList');
+        if (list && focusedItemIndex >= 0) {
+          const items = list.querySelectorAll('.log-file-select-item');
+          const focused = items[focusedItemIndex];
+          if (focused && focused.dataset.fp) {
+            const fp = focused.dataset.fp;
+            closeLogFileDropdown();
+            if (fp !== selectedLogFile) { setSelectedLogFile(fp, true); }
+          }
+        }
       }
     });
   }
