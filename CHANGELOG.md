@@ -1,5 +1,11 @@
 # Change Log
 
+## 6.28.0 - 2026-05-09
+
+- **Feature**: Logs tab — added match navigation with keyboard controls to cycle through search results.
+- **Fix**: Match scroll behavior is now instant.
+- **Fix**: Opacity animation no longer triggers during client-side search/filter re-renders.
+
 ## 6.27.0 - 2026-05-09
 
 - **Feature**: Duplicate host now prompts whether to also copy its bookmarks.
