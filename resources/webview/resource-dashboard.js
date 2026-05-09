@@ -1531,7 +1531,9 @@
     const wasAtBottom = !silent ? false
       : (logOutput.scrollHeight - logOutput.scrollTop - logOutput.clientHeight) < 40;
 
-    if (!silent) { logOutput.style.opacity = '0.4'; }
+    // Only animate opacity for real data loads (scrollToBottom=true), not for client-side search/filter re-renders
+    const needsAnimation = !silent && scrollToBottom;
+    if (needsAnimation) { logOutput.style.opacity = '0.4'; }
     const doRender = () => {
       const frag = document.createDocumentFragment();
       let matchCount = 0;
@@ -1598,10 +1600,10 @@
         }
       }
 
-      if (!silent) { logOutput.style.opacity = '1'; }
+      if (!needsAnimation) { logOutput.style.opacity = '1'; }
     };
 
-    if (silent) {
+    if (silent || !needsAnimation) {
       doRender();
     } else {
       setTimeout(doRender, 80);
