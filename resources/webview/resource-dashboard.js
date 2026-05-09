@@ -1371,6 +1371,8 @@
   let allLogFiles = [];            // all available log file paths
   let selectedLogFile = null;      // currently selected log file path
   let focusedItemIndex = -1;       // keyboard-navigated item index (-1 = none)
+  let logMatchElements = [];       // all <mark> elements from last render
+  let logCurrentMatchIndex = -1;   // active match index (-1 = none)
 
   function setSelectedLogFile(filePath, fetchContent) {
     selectedLogFile = filePath;
@@ -1580,12 +1582,10 @@
       logOutput.innerHTML = '';
       logOutput.appendChild(frag);
 
-      // Update match count badge
-      const matchCountEl = document.getElementById('logMatchCount');
-      if (matchCountEl) {
-        const matchSuffix = matchCount === 1 ? '' : 'es';
-        matchCountEl.textContent = query ? `${matchCount} match${matchSuffix}` : '';
-      }
+      // Collect all match elements and reset active index
+      logMatchElements = Array.from(logOutput.querySelectorAll('mark.log-match'));
+      logCurrentMatchIndex = -1;
+      updateLogMatchBadge();
 
       if (scrollToBottom) {
         logOutput.scrollTop = logOutput.scrollHeight;
@@ -1608,6 +1608,31 @@
     } else {
       setTimeout(doRender, 80);
     }
+  }
+
+  function updateLogMatchBadge() {
+    const matchCountEl = document.getElementById('logMatchCount');
+    if (!matchCountEl) { return; }
+    if (!logSearchQuery.trim()) { matchCountEl.textContent = ''; return; }
+    const total = logMatchElements.length;
+    if (total === 0) { matchCountEl.textContent = 'No matches'; return; }
+    if (logCurrentMatchIndex >= 0) {
+      matchCountEl.textContent = `${logCurrentMatchIndex + 1}/${total}`;
+    } else {
+      matchCountEl.textContent = `${total} match${total === 1 ? '' : 'es'}`;
+    }
+  }
+
+  function navigateLogMatch(direction) {
+    if (logMatchElements.length === 0) { return; }
+    if (logCurrentMatchIndex >= 0) {
+      logMatchElements[logCurrentMatchIndex].classList.remove('log-match-active');
+    }
+    logCurrentMatchIndex = (logCurrentMatchIndex + direction + logMatchElements.length) % logMatchElements.length;
+    const active = logMatchElements[logCurrentMatchIndex];
+    active.classList.add('log-match-active');
+    active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    updateLogMatchBadge();
   }
 
   function getLogLineSeverity(line) {
@@ -1750,6 +1775,12 @@
       clearTimeout(logSearchDebounce);
       logSearchDebounce = setTimeout(() => renderLogOutput(false), 180);
     });
+    logSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        navigateLogMatch(e.shiftKey ? -1 : 1);
+      }
+    });
   }
 
   if (logClearSearchBtn) {
@@ -1757,8 +1788,9 @@
       logSearchQuery = '';
       if (logSearchInput) { logSearchInput.value = ''; }
       logClearSearchBtn.style.display = 'none';
-      const matchCountEl = document.getElementById('logMatchCount');
-      if (matchCountEl) { matchCountEl.textContent = ''; }
+      logMatchElements = [];
+      logCurrentMatchIndex = -1;
+      updateLogMatchBadge();
       renderLogOutput(false);
     });
   }

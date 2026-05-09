@@ -1643,6 +1643,14 @@ mark.log-match {
     padding: 0 1px;
 }
 
+mark.log-match-active {
+    background-color: var(--vscode-editor-findMatchBackground, rgba(255, 160, 0, 0.8));
+    outline: 1px solid var(--vscode-editor-findMatchBorder, rgba(255, 120, 0, 1));
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
 .log-output {
     flex: 1;
     overflow: auto;
