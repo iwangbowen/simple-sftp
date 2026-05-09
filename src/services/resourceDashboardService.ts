@@ -1227,7 +1227,7 @@ export class ResourceDashboardService {
     return this.executeWithConnection(config, authConfig, async (conn) => {
       const [whoRaw, lastRaw] = await Promise.all([
         this.executeCommand(conn, 'w -h 2>/dev/null || who 2>/dev/null || echo ""').catch(() => ''),
-        this.executeCommand(conn, 'last -n 30 2>/dev/null || echo ""').catch(() => ''),
+        this.executeCommand(conn, 'last -Fn 30 2>/dev/null || last -n 30 2>/dev/null || echo ""').catch(() => ''),
       ]);
       return {
         sessions: this.parseWOutput(whoRaw),
@@ -1292,26 +1292,54 @@ export class ResourceDashboardService {
 
   private static parseLastOutput(raw: string): LoginHistoryEntry[] {
     const history: LoginHistoryEntry[] = [];
+    // \w{3} matches weekday and month abbreviations — simpler than listing all 7+12 alternatives
+    const dateRe = /\w{3}\s+\w{3}\s+\d{1,2}\s+\d{2}:\d{2}(?::\d{2})?(?:\s+\d{4})?/g;
+    const durationRe = /\(([^)]+)\)/;
+    const hhmmRe = /\d{2}:\d{2}/;
+
     for (const line of raw.split('\n')) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('wtmp') || trimmed.startsWith('btmp')) { continue; }
       const parts = trimmed.split(/\s+/);
       if (parts.length < 5) { continue; }
+
       const user = parts[0];
       const tty = parts[1];
-      const from = parts[2] && parts[2].startsWith(':') ? '' : parts[2];
-      // The rest is date/time and duration
-      const rest = parts.slice(3).join(' ');
-      // Typical: Mon Jan  1 00:00   still logged in
-      //          Mon Jan  1 00:00 - 01:00  (01:00)
-      const durationMatch = rest.match(/\(([^)]+)\)/);
+      const from = parts[2]?.startsWith(':') ? '' : (parts[2] ?? '');
+
+      // Use regex to find date/time tokens anywhere in the line — immune to varying field positions
+      // (handles boot records with kernel version before the date, and status text after the time)
+      dateRe.lastIndex = 0;
+      const dateMatches: string[] = [];
+      let dm: RegExpExecArray | null;
+      while ((dm = dateRe.exec(trimmed)) !== null) {
+        dateMatches.push(dm[0]);
+      }
+
+      const loginTime = dateMatches[0] ? this.normalizeLoginTime(dateMatches[0]) : '';
+
+      const durationMatch = durationRe.exec(trimmed);
       const duration = durationMatch ? durationMatch[1] : '';
-      // Extract logout time or status
-      const dashIdx = rest.indexOf(' - ');
-      const logoutTime = dashIdx >= 0 ? rest.slice(dashIdx + 3).replace(durationMatch?.[0] || '', '').trim() : 'still logged in';
-      const loginTime = this.normalizeLoginTime(
-        dashIdx >= 0 ? rest.slice(0, dashIdx).trim() : rest.replace(durationMatch?.[0] || '', '').trim()
-      );
+
+      const lower = trimmed.toLowerCase();
+      let logoutTime: string;
+      if (lower.includes('still logged in')) {
+        logoutTime = 'still logged in';
+      } else if (lower.includes('still running')) {
+        logoutTime = 'still running';
+      } else if (lower.includes('crash')) {
+        logoutTime = 'crash';
+      } else if (dateMatches.length >= 2) {
+        // Second date match is the logout time — show only HH:MM for brevity
+        const hhmm = hhmmRe.exec(dateMatches[1]);
+        logoutTime = hhmm ? hhmm[0] : dateMatches[1];
+      } else {
+        const dashIdx = trimmed.indexOf(' - ');
+        logoutTime = dashIdx >= 0
+          ? trimmed.slice(dashIdx + 3).replace(durationMatch?.[0] ?? '', '').trim()
+          : '';
+      }
+
       history.push({ user, tty, from, loginTime, logoutTime, duration });
     }
     return history.slice(0, 30);
