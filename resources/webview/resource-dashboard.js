@@ -1359,6 +1359,7 @@
   let logSearchQuery = '';         // current search/filter term
   let logFilterMode = 'highlight'; // 'highlight' | 'filter'
   let logAutoRefreshTimer = null;  // setInterval handle
+  let logSilentRefresh = false;    // true when auto-refresh should not flicker
   const LOG_AUTO_REFRESH_MS = 5000;
   let allLogFiles = [];            // all available log file paths
   let selectedLogFile = null;      // currently selected log file path
@@ -1491,11 +1492,19 @@
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
 
-    currentLogLines = (data.content || '').split('\n');
-    renderLogOutput(true);
+    const newLines = (data.content || '').split('\n');
+    // Silent refresh: skip full re-render if content is identical
+    if (logSilentRefresh && newLines.join('\n') === currentLogLines.join('\n')) {
+      logSilentRefresh = false;
+      return;
+    }
+    const wasSilent = logSilentRefresh;
+    logSilentRefresh = false;
+    currentLogLines = newLines;
+    renderLogOutput(!wasSilent, wasSilent);
   }
 
-  function renderLogOutput(scrollToBottom) {
+  function renderLogOutput(scrollToBottom, silent = false) {
     const logOutput = document.getElementById('logOutput');
     if (!logOutput) { return; }
 
@@ -1509,9 +1518,15 @@
       }
     }
 
-    logOutput.style.opacity = '0.4';
-    setTimeout(() => {
-      logOutput.innerHTML = '';
+    // Preserve scroll position for silent (auto-)refresh
+    const prevScrollTop = silent ? logOutput.scrollTop : null;
+    const prevScrollHeight = silent ? logOutput.scrollHeight : null;
+    const wasAtBottom = !silent ? false
+      : (logOutput.scrollHeight - logOutput.scrollTop - logOutput.clientHeight) < 40;
+
+    if (!silent) { logOutput.style.opacity = '0.4'; }
+    const doRender = () => {
+      const frag = document.createDocumentFragment();
       let matchCount = 0;
 
       currentLogLines.forEach((line, idx) => {
@@ -1549,9 +1564,12 @@
           span.textContent = `${lineNum}  ${line}`;
         }
 
-        logOutput.appendChild(span);
-        logOutput.appendChild(document.createTextNode('\n'));
+        frag.appendChild(span);
+        frag.appendChild(document.createTextNode('\n'));
       });
+
+      logOutput.innerHTML = '';
+      logOutput.appendChild(frag);
 
       // Update match count badge
       const matchCountEl = document.getElementById('logMatchCount');
@@ -1560,9 +1578,27 @@
         matchCountEl.textContent = query ? `${matchCount} match${matchSuffix}` : '';
       }
 
-      if (scrollToBottom) { logOutput.scrollTop = logOutput.scrollHeight; }
-      logOutput.style.opacity = '1';
-    }, 80);
+      if (scrollToBottom) {
+        logOutput.scrollTop = logOutput.scrollHeight;
+      } else if (silent) {
+        if (wasAtBottom) {
+          // Was at bottom → follow new content
+          logOutput.scrollTop = logOutput.scrollHeight;
+        } else {
+          // Preserve relative scroll position
+          const newScrollHeight = logOutput.scrollHeight;
+          logOutput.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+        }
+      }
+
+      if (!silent) { logOutput.style.opacity = '1'; }
+    };
+
+    if (silent) {
+      doRender();
+    } else {
+      setTimeout(doRender, 80);
+    }
   }
 
   function getLogLineSeverity(line) {
@@ -1573,11 +1609,14 @@
     return '';
   }
 
-  function fetchLogContent(filePath) {
+  function fetchLogContent(filePath, silent = false) {
     const linesSelect = document.getElementById('logLinesSelect');
     const lines = linesSelect ? Number.parseInt(linesSelect.value, 10) : 200;
-    const logOutput = document.getElementById('logOutput');
-    if (logOutput) { logOutput.innerHTML = '<span class="log-loading">Loading…</span>'; }
+    logSilentRefresh = silent;
+    if (!silent) {
+      const logOutput = document.getElementById('logOutput');
+      if (logOutput) { logOutput.innerHTML = '<span class="log-loading">Loading…</span>'; }
+    }
     vscode.postMessage({ type: 'fetchLogs', filePath, lines });
   }
 
@@ -1682,7 +1721,7 @@
         logAutoRefreshBtn.title = 'Auto-refresh ON (every 5s) — click to stop';
         logAutoRefreshTimer = setInterval(() => {
           if (selectedLogFile && activeTab === 'logs') {
-            fetchLogContent(selectedLogFile);
+            fetchLogContent(selectedLogFile, true /* silent */);
           }
         }, LOG_AUTO_REFRESH_MS);
       }
