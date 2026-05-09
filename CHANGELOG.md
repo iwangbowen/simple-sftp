@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.26.1 - 2026-05-09
+
+- **Fix**: Resource Dashboard Logs tab — auto-refresh no longer causes content flicker; silent refresh skips the "Loading…" clear, skips re-render when content is unchanged, and preserves scroll position (follows bottom if user was at bottom, otherwise keeps relative position).
+
 ## 6.26.0 - 2026-05-09
 
 - **Enhancement**: Resource Dashboard Logs tab — file selector is now a **custom searchable dropdown**: type to filter the file list in real time; use `↑`/`↓` arrow keys to navigate items and `Enter` to confirm selection.
