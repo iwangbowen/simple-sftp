@@ -1,5 +1,11 @@
 # Change Log
 
+## 6.27.0 - 2026-05-09
+
+- **Feature**: Duplicate host now prompts whether to also copy its bookmarks.
+- **Fix**: Users tab — loginTime parsing now correctly handles kernel version prefixes and various `last` output formats (uses `last -Fn30` with a date regex).
+- **Fix**: Users tab — loginTime is normalized to `YYYY-MM-DD HH:mm:ss` for consistent display.
+
 ## 6.26.1 - 2026-05-09
 
 - **Fix**: Resource Dashboard Logs tab — auto-refresh no longer causes content flicker; silent refresh skips the "Loading…" clear, skips re-render when content is unchanged, and preserves scroll position (follows bottom if user was at bottom, otherwise keeps relative position).
