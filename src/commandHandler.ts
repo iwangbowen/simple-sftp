@@ -612,6 +612,21 @@ export class CommandHandler {
       return;
     }
 
+    // Ask whether to copy bookmarks (default: yes)
+    const sourceBookmarks = sourceConfig.bookmarks || [];
+    let shouldCopyBookmarks = false;
+    if (sourceBookmarks.length > 0) {
+      const bookmarkChoices = [
+        { label: '$(check) Yes, copy bookmarks', id: 'yes', description: `${sourceBookmarks.length} bookmark(s) will be copied` },
+        { label: '$(close) No, skip bookmarks', id: 'no' }
+      ];
+      const bookmarkChoice = await vscode.window.showQuickPick(bookmarkChoices, {
+        title: 'Copy Bookmarks?',
+        placeHolder: 'Do you want to copy bookmarks to the duplicated host?'
+      });
+      shouldCopyBookmarks = bookmarkChoice?.id === 'yes';
+    }
+
     try {
       // Create new host with same configuration (except name and id)
       const newHost = await this.hostManager.addHost({
@@ -623,8 +638,22 @@ export class CommandHandler {
         group: sourceConfig.group,
         color: sourceConfig.color,
         starred: sourceConfig.starred,
-        // Note: bookmarks and recentPaths are not copied
+        // Note: recentPaths are not copied
       });
+
+      // Copy bookmarks if requested
+      if (shouldCopyBookmarks && sourceBookmarks.length > 0) {
+        for (const bookmark of sourceBookmarks) {
+          try {
+            await this.hostManager.addBookmark(newHost.id, bookmark.name, bookmark.path, bookmark.description);
+            if (bookmark.color) {
+              await this.hostManager.updateBookmarkColor(newHost.id, bookmark.name, bookmark.color);
+            }
+          } catch (bookmarkError) {
+            logger.warn(`Failed to copy bookmark '${bookmark.name}': ${bookmarkError}`);
+          }
+        }
+      }
 
       // Check if source host has authentication configured
       const sourceAuth = await this.authManager.getAuth(sourceConfig.id);
