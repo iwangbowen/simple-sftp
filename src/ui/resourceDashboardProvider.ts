@@ -1271,6 +1271,14 @@ export class ResourceDashboardProvider {
                         </button>
                     </div>
                     <div class="section-content">
+                        <div class="process-search-bar">
+                            <i class="codicon codicon-search process-search-icon"></i>
+                            <input id="crontabSearchInput" class="process-search-input" type="text" placeholder="Filter by source, schedule, user, command…" autocomplete="off" spellcheck="false" />
+                            <span id="crontabMatchCount" class="process-match-count"></span>
+                            <button id="crontabClearSearch" class="process-clear-search-btn" title="Clear filter" style="display:none;">
+                                <i class="codicon codicon-close"></i>
+                            </button>
+                        </div>
                         <table class="crontab-table">
                             <thead>
                                 <tr>

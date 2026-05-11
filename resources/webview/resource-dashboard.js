@@ -2223,6 +2223,7 @@
   let currentCrontabEntries = [];
   let crontabSortColumn = 'source';
   let crontabSortDir = 'asc';
+  let crontabFilterQuery = '';
   // Stores the pending user entries sent with the last write/delete request
   // for immediate optimistic UI update before the server round-trip completes
   let pendingCrontabUserEntries = null;
@@ -2244,12 +2245,46 @@
     const tbody = document.getElementById('crontabList');
     if (!tbody) { return; }
 
+    const matchCountEl = document.getElementById('crontabMatchCount');
+    const clearBtn = document.getElementById('crontabClearSearch');
+
     if (currentCrontabEntries.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No cron jobs found</td></tr>';
+      if (matchCountEl) { matchCountEl.textContent = ''; }
+      if (clearBtn) { clearBtn.style.display = 'none'; }
       return;
     }
 
-    const sorted = [...currentCrontabEntries].map((e, i) => ({ ...e, _idx: i })).sort((a, b) => {
+    // Filter
+    const query = crontabFilterQuery.trim().toLowerCase();
+    const allIndexed = currentCrontabEntries.map((e, i) => ({ ...e, _idx: i }));
+    const filtered = query
+      ? allIndexed.filter(e => {
+          const schedule = e.minute
+            ? (e.minute.startsWith('@') ? e.minute : [e.minute, e.hour, e.dayOfMonth, e.month, e.dayOfWeek].join(' '))
+            : '';
+          return (
+            (e.source || '').toLowerCase().includes(query) ||
+            schedule.toLowerCase().includes(query) ||
+            (e.user || '').toLowerCase().includes(query) ||
+            (e.command || '').toLowerCase().includes(query)
+          );
+        })
+      : allIndexed;
+
+    if (matchCountEl) {
+      matchCountEl.textContent = query ? `${filtered.length} / ${currentCrontabEntries.length}` : '';
+    }
+    if (clearBtn) {
+      clearBtn.style.display = query ? '' : 'none';
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No matching cron jobs</td></tr>';
+      return;
+    }
+
+    const sorted = [...filtered].sort((a, b) => {
       let aVal = String(a[crontabSortColumn] || '').toLowerCase();
       let bVal = String(b[crontabSortColumn] || '').toLowerCase();
       if (aVal < bVal) { return crontabSortDir === 'asc' ? -1 : 1; }
@@ -2315,6 +2350,31 @@
       renderCrontabTable();
     });
   });
+
+  // Crontab search/filter input
+  const crontabSearchInput = document.getElementById('crontabSearchInput');
+  const crontabClearSearchBtn = document.getElementById('crontabClearSearch');
+  if (crontabSearchInput) {
+    crontabSearchInput.addEventListener('input', () => {
+      crontabFilterQuery = crontabSearchInput.value;
+      renderCrontabTable();
+    });
+    crontabSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        crontabFilterQuery = '';
+        crontabSearchInput.value = '';
+        renderCrontabTable();
+      }
+    });
+  }
+  if (crontabClearSearchBtn) {
+    crontabClearSearchBtn.addEventListener('click', () => {
+      crontabFilterQuery = '';
+      if (crontabSearchInput) { crontabSearchInput.value = ''; }
+      renderCrontabTable();
+      crontabSearchInput?.focus();
+    });
+  }
 
   // ── Crontab CRUD ───────────────────────────────────────────────────
   let crontabEditIndex = -1; // -1 = new, >= 0 = index in currentCrontabEntries
