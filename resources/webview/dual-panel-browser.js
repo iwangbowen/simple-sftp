@@ -1173,6 +1173,16 @@
         permissions.textContent = '';
         item.appendChild(permissions);
 
+        const owner = document.createElement('span');
+        owner.className = 'tree-item-owner';
+        owner.textContent = '';
+        item.appendChild(owner);
+
+        const group = document.createElement('span');
+        group.className = 'tree-item-group';
+        group.textContent = '';
+        item.appendChild(group);
+
         const size = document.createElement('span');
         size.className = 'tree-item-size';
         size.textContent = '';
@@ -1333,6 +1343,18 @@
             permissions.title = `Mode: ${node.mode ? node.mode.toString(8) : 'N/A'}`;
         }
         item.appendChild(permissions);
+
+        // Owner (UID) - 始终添加,保持列对齐
+        const ownerSpan = document.createElement('span');
+        ownerSpan.className = 'tree-item-owner';
+        ownerSpan.textContent = node.ownerName || (node.owner !== undefined ? String(node.owner) : '');
+        item.appendChild(ownerSpan);
+
+        // Group (GID) - 始终添加,保持列对齐
+        const groupSpan = document.createElement('span');
+        groupSpan.className = 'tree-item-group';
+        groupSpan.textContent = node.groupName || (node.group !== undefined ? String(node.group) : '');
+        item.appendChild(groupSpan);
 
         // Size (for files) or placeholder (for folders)
         const size = document.createElement('span');

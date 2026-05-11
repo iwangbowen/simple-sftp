@@ -24,7 +24,9 @@ export interface FileNode {
     mode?: number;
     permissions?: string;
     owner?: number;
+    ownerName?: string;
     group?: number;
+    groupName?: string;
     expanded?: boolean;
     children?: FileNode[];
 }
@@ -46,6 +48,12 @@ export abstract class DualPanelBase {
     private remoteDirectoryFingerprint?: string;
     private remoteWatchPollHandle?: NodeJS.Timeout;
     private remoteWatchPollInFlight = false;
+
+    // UID/GID resolution caches
+    private _remoteUserCache: Map<string, Map<number, string>> = new Map();
+    private _remoteGroupCache: Map<string, Map<number, string>> = new Map();
+    private _localUserCache: Map<number, string> | null = null;
+    private _localGroupCache: Map<number, string> | null = null;
 
     constructor(
         protected readonly _extensionUri: vscode.Uri,
@@ -466,6 +474,11 @@ export abstract class DualPanelBase {
         const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
         const nodes: FileNode[] = [];
 
+        // Resolve UID/GID to names on Unix systems
+        const [userMap, groupMap] = process.platform !== 'win32'
+            ? await Promise.all([this.getLocalUserMap(), this.getLocalGroupMap()])
+            : [new Map<number, string>(), new Map<number, string>()];
+
         for (const entry of entries) {
             if (entry.name.startsWith('.') && !this.shouldShowDotFiles()) {
                 continue;
@@ -488,6 +501,10 @@ export abstract class DualPanelBase {
                     modifiedTime: stats.mtime,
                     mode: mode,
                     permissions: permissions,
+                    owner: stats.uid,
+                    ownerName: userMap.get(stats.uid),
+                    group: stats.gid,
+                    groupName: groupMap.get(stats.gid),
                     expanded: false,
                     children: entry.isDirectory() ? [] : undefined
                 });
@@ -575,7 +592,11 @@ export abstract class DualPanelBase {
         authConfig: any,
         dirPath: string
     ): Promise<FileNode[]> {
-        const items = await SshConnectionManager.listRemoteFiles(host, authConfig, dirPath);
+        const [items, userMap, groupMap] = await Promise.all([
+            SshConnectionManager.listRemoteFiles(host, authConfig, dirPath),
+            this.getRemoteUserMap(host, authConfig),
+            this.getRemoteGroupMap(host, authConfig)
+        ]);
 
         const nodes: FileNode[] = items.map((item) => ({
             name: item.name,
@@ -586,7 +607,9 @@ export abstract class DualPanelBase {
             mode: item.mode,
             permissions: item.permissions,
             owner: item.owner,
+            ownerName: item.owner !== undefined ? userMap.get(item.owner) : undefined,
             group: item.group,
+            groupName: item.group !== undefined ? groupMap.get(item.group) : undefined,
             expanded: false,
             children: item.type === 'directory' ? [] : undefined
         }));
@@ -2648,6 +2671,71 @@ export abstract class DualPanelBase {
             (mode & 0o002) ? 'w' : '-',
             (mode & 0o001) ? 'x' : '-'
         ].join('');
+    }
+
+    private parseIdMapFile(content: string): Map<number, string> {
+        const map = new Map<number, string>();
+        for (const line of content.split('\n')) {
+            const parts = line.split(':');
+            if (parts.length >= 3) {
+                const id = parseInt(parts[2], 10);
+                const name = parts[0];
+                if (!isNaN(id) && name) {
+                    map.set(id, name);
+                }
+            }
+        }
+        return map;
+    }
+
+    private async getLocalUserMap(): Promise<Map<number, string>> {
+        if (!this._localUserCache) {
+            try {
+                const content = await fs.promises.readFile('/etc/passwd', 'utf-8');
+                this._localUserCache = this.parseIdMapFile(content);
+            } catch {
+                this._localUserCache = new Map();
+            }
+        }
+        return this._localUserCache;
+    }
+
+    private async getLocalGroupMap(): Promise<Map<number, string>> {
+        if (!this._localGroupCache) {
+            try {
+                const content = await fs.promises.readFile('/etc/group', 'utf-8');
+                this._localGroupCache = this.parseIdMapFile(content);
+            } catch {
+                this._localGroupCache = new Map();
+            }
+        }
+        return this._localGroupCache;
+    }
+
+    private async getRemoteUserMap(host: HostConfig, authConfig: any): Promise<Map<number, string>> {
+        const hostId = host.id;
+        if (!this._remoteUserCache.has(hostId)) {
+            try {
+                const buf = await SshConnectionManager.readRemoteFile(host, authConfig, '/etc/passwd');
+                this._remoteUserCache.set(hostId, this.parseIdMapFile(buf.toString('utf-8')));
+            } catch {
+                this._remoteUserCache.set(hostId, new Map());
+            }
+        }
+        return this._remoteUserCache.get(hostId)!;
+    }
+
+    private async getRemoteGroupMap(host: HostConfig, authConfig: any): Promise<Map<number, string>> {
+        const hostId = host.id;
+        if (!this._remoteGroupCache.has(hostId)) {
+            try {
+                const buf = await SshConnectionManager.readRemoteFile(host, authConfig, '/etc/group');
+                this._remoteGroupCache.set(hostId, this.parseIdMapFile(buf.toString('utf-8')));
+            } catch {
+                this._remoteGroupCache.set(hostId, new Map());
+            }
+        }
+        return this._remoteGroupCache.get(hostId)!;
     }
 
     private parsePermissionsToMode(perms: string): number {

@@ -5,11 +5,13 @@
     --column-name-min: 120px;
     --column-time-width: 140px;
     --column-permissions-width: 90px;
+    --column-owner-width: 60px;
+    --column-group-width: 60px;
     --column-size-width: 80px;
     --icon-space: 32px;
     --item-padding: 16px;
     /* 计算tree-item的最小宽度 = 所有列宽度之和 */
-    --tree-item-min-width: calc(var(--column-name-min) + var(--column-time-width) + var(--column-permissions-width) + var(--column-size-width) + var(--icon-space) + var(--item-padding));
+    --tree-item-min-width: calc(var(--column-name-min) + var(--column-time-width) + var(--column-permissions-width) + var(--column-owner-width) + var(--column-group-width) + var(--column-size-width) + var(--icon-space) + var(--item-padding));
 }
 
 /* ===== 全局样式 ===== */
@@ -894,6 +896,16 @@ body {
     flex-shrink: 0;
 }
 
+.column-owner {
+    width: var(--column-owner-width);
+    flex-shrink: 0;
+}
+
+.column-group {
+    width: var(--column-group-width);
+    flex-shrink: 0;
+}
+
 .column-size {
     width: var(--column-size-width);
     flex-shrink: 0;
@@ -1052,6 +1064,22 @@ body {
     width: var(--column-permissions-width);
     text-align: left;
     font-family: 'Courier New', Courier, monospace;
+}
+
+.tree-item-owner {
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+    flex-shrink: 0;
+    width: var(--column-owner-width);
+    text-align: left;
+}
+
+.tree-item-group {
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+    flex-shrink: 0;
+    width: var(--column-group-width);
+    text-align: left;
 }
 
 .tree-item-size {
@@ -3133,6 +3161,8 @@ body {
 /* Hide columns in grid view */
 .file-tree.grid-view .tree-item-time,
 .file-tree.grid-view .tree-item-permissions,
+.file-tree.grid-view .tree-item-owner,
+.file-tree.grid-view .tree-item-group,
 .file-tree.grid-view .tree-item-size {
     display: none;
 }
