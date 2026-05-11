@@ -388,6 +388,10 @@
         handleServicesData(message.data);
         break;
 
+      case 'serviceStatusData':
+        handleServiceStatusData(message);
+        break;
+
       case 'dockerData':
         handleDockerData(message.data);
         break;
@@ -2015,6 +2019,9 @@
         <td>${escapeHtml(svc.load)}</td>
         <td style="color: var(--vscode-descriptionForeground);">${escapeHtml(svc.description || '')}</td>
         <td class="service-actions-cell">
+          <button class="service-action-btn service-status-btn" data-unit="${escapeHtml(svc.unit)}" title="View Status">
+            <i class="codicon codicon-info"></i>
+          </button>
           <button class="service-action-btn" data-unit="${escapeHtml(svc.unit)}" data-action="start" title="Start" ${isRunning ? 'disabled' : ''}>
             <i class="codicon codicon-play"></i>
           </button>
@@ -2043,7 +2050,48 @@
     });
   });
 
+  // Service Status Modal
+  const serviceStatusModal = document.getElementById('serviceStatusModal');
+  const serviceStatusOverlay = document.getElementById('serviceStatusOverlay');
+  const serviceStatusClose = document.getElementById('serviceStatusClose');
+  const serviceStatusTitle = document.getElementById('serviceStatusTitle');
+  const serviceStatusContent = document.getElementById('serviceStatusContent');
+
+  function openServiceStatusModal(unit) {
+    if (serviceStatusTitle) { serviceStatusTitle.textContent = unit; }
+    if (serviceStatusContent) { serviceStatusContent.textContent = 'Loading…'; }
+    if (serviceStatusModal) { serviceStatusModal.style.display = 'flex'; }
+    vscode.postMessage({ type: 'serviceStatus', unit });
+  }
+
+  function closeServiceStatusModal() {
+    if (serviceStatusModal) { serviceStatusModal.style.display = 'none'; }
+  }
+
+  function handleServiceStatusData(msg) {
+    if (!serviceStatusContent) { return; }
+    if (msg.error) {
+      serviceStatusContent.textContent = `Error: ${msg.error}`;
+    } else {
+      serviceStatusContent.textContent = msg.status || '(no output)';
+    }
+  }
+
+  if (serviceStatusClose) { serviceStatusClose.addEventListener('click', closeServiceStatusModal); }
+  if (serviceStatusOverlay) { serviceStatusOverlay.addEventListener('click', closeServiceStatusModal); }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && serviceStatusModal && serviceStatusModal.style.display !== 'none') {
+      closeServiceStatusModal();
+    }
+  });
+
   document.addEventListener('click', (e) => {
+    const statusBtn = e.target.closest('.service-status-btn');
+    if (statusBtn) {
+      const unit = statusBtn.dataset.unit;
+      if (unit) { openServiceStatusModal(unit); }
+      return;
+    }
     const btn = e.target.closest('.service-action-btn');
     if (!btn || btn.disabled) { return; }
     const unit = btn.dataset.unit;

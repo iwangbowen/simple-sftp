@@ -1985,6 +1985,19 @@ tr:hover .service-action-btn:hover:not(:disabled) { opacity: 1; }
   flex-direction: column;
 }
 
+.service-status-dialog {
+  width: min(90vw, 800px);
+  height: min(80vh, 600px);
+  display: flex;
+  flex-direction: column;
+}
+
+.service-status-content {
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+
 .process-detail-header-actions {
   display: flex;
   align-items: center;

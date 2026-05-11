@@ -1421,6 +1421,23 @@ export class ResourceDashboardService {
     });
   }
 
+  /**
+   * 获取服务状态详情（systemctl status）
+   */
+  static async getServiceStatus(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    unit: string
+  ): Promise<string> {
+    if (!/^[a-zA-Z0-9\-_.@]+\.service$/.test(unit)) {
+      throw new Error(`Invalid service unit name: ${unit}`);
+    }
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      // systemctl status returns non-zero for stopped/failed services; append || true
+      return this.executeCommand(conn, `systemctl status '${unit}' 2>&1 || true`);
+    });
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   // Crontab
   // ───────────────────────────────────────────────────────────────────────────

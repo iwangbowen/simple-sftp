@@ -404,6 +404,18 @@ export class ResourceDashboardProvider {
         break;
       }
 
+      case 'serviceStatus': {
+        const unit = typeof message.unit === 'string' ? message.unit : '';
+        if (!unit || !/^[a-zA-Z0-9\-_.@]+\.service$/.test(unit)) { break; }
+        try {
+          const status = await ResourceDashboardService.getServiceStatus(this.hostConfig, this.authConfig, unit);
+          await this.panel.webview.postMessage({ type: 'serviceStatusData', unit, status });
+        } catch (err) {
+          await this.panel.webview.postMessage({ type: 'serviceStatusData', unit, status: '', error: (err as Error).message });
+        }
+        break;
+      }
+
       case 'showLogs':
         logger.show();
         break;
@@ -1340,6 +1352,23 @@ export class ResourceDashboardProvider {
             </div>
             <pre id="dockerLogContent" class="docker-log-content"></pre>
             <div id="dockerLogStatus" class="docker-log-status">Connecting…</div>
+        </div>
+    </div>
+
+    <!-- Service Status Modal -->
+    <div id="serviceStatusModal" class="process-detail-modal" style="display:none;">
+        <div class="process-detail-overlay" id="serviceStatusOverlay"></div>
+        <div class="process-detail-dialog service-status-dialog">
+            <div class="process-detail-header">
+                <span class="process-detail-title">
+                    <i class="codicon codicon-list-ordered"></i>
+                    <span id="serviceStatusTitle">Service Status</span>
+                </span>
+                <button class="process-detail-close" id="serviceStatusClose" title="Close">
+                    <i class="codicon codicon-close"></i>
+                </button>
+            </div>
+            <pre id="serviceStatusContent" class="docker-log-content service-status-content">Loading…</pre>
         </div>
     </div>
 
