@@ -1,5 +1,12 @@
 # Change Log
 
+## 6.29.0 - 2026-05-11
+
+- **Feature**: File browser — added **Owner** and **Group** columns showing UID/GID names for remote files.
+- **Feature**: Resource Dashboard Services tab — added streaming log view with auto-scroll and clear button.
+- **Feature**: Resource Dashboard Services tab — added service status modal accessible via a button.
+- **Feature**: Crontab tab — added search/filter input to filter entries by source, schedule, user, and command.
+
 ## 6.28.0 - 2026-05-09
 
 - **Feature**: Logs tab — added match navigation with keyboard controls to cycle through search results.
