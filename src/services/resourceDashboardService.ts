@@ -1422,6 +1422,103 @@ export class ResourceDashboardService {
   }
 
   /**
+   * 流式读取 systemd 服务的 journald 日志（journalctl -u <unit> -f）
+   */
+  static async streamServiceLogs(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    unit: string,
+    onChunk: (chunk: string) => void,
+    onEnd: (error?: Error) => void,
+    tailLines = 200
+  ): Promise<{ stop: () => void }> {
+    if (!/^[a-zA-Z0-9\-_.@]+\.service$/.test(unit)) {
+      throw new Error(`Invalid service unit name: ${unit}`);
+    }
+
+    let jumpConns: Client[] | null = null;
+    const conn = new Client();
+    let stopped = false;
+    let activeStream: any = null;
+
+    const stop = () => {
+      if (stopped) { return; }
+      stopped = true;
+      try { activeStream?.close(); } catch { /* ignore */ }
+      try { conn.end(); } catch { /* ignore */ }
+      if (jumpConns) {
+        jumpConns.forEach(jc => { try { jc.end(); } catch { /* ignore */ } });
+      }
+    };
+
+    try {
+      const connectConfig: any = {
+        host: config.host,
+        port: config.port,
+        username: config.username,
+        readyTimeout: 30000,
+        keepaliveInterval: 10000,
+        keepaliveCountMax: 3,
+      };
+      addAuthToConnectConfig(connectConfig, authConfig);
+
+      if (config.jumpHosts && config.jumpHosts.length > 0) {
+        const jumpResult = await establishMultiHopConnection(
+          config.jumpHosts,
+          config.host,
+          config.port
+        );
+        jumpConns = jumpResult.jumpConns;
+        connectConfig.sock = jumpResult.stream;
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        conn
+          .on('ready', () => resolve())
+          .on('error', (err) => reject(err))
+          .connect(connectConfig);
+      });
+
+      const safeTail = Math.max(1, Math.min(tailLines, 5000));
+      const command = `journalctl -u '${unit}' -f --no-pager -n ${safeTail} 2>&1`;
+
+      await new Promise<void>((resolve, reject) => {
+        conn.exec(command, (err, stream) => {
+          if (err) { reject(err); return; }
+          activeStream = stream;
+          stream.on('data', (data: Buffer) => {
+            if (!stopped) { onChunk(data.toString()); }
+          });
+          stream.stderr.on('data', (data: Buffer) => {
+            if (!stopped) { onChunk(data.toString()); }
+          });
+          stream.on('close', () => {
+            if (!stopped) {
+              stopped = true;
+              try { conn.end(); } catch { /* ignore */ }
+              onEnd();
+            }
+            resolve();
+          });
+          stream.on('error', (err: Error) => {
+            if (!stopped) {
+              stopped = true;
+              try { conn.end(); } catch { /* ignore */ }
+              onEnd(err);
+            }
+            reject(err);
+          });
+        });
+      });
+    } catch (err) {
+      stop();
+      throw err;
+    }
+
+    return { stop };
+  }
+
+  /**
    * 获取服务状态详情（systemctl status）
    */
   static async getServiceStatus(

@@ -404,6 +404,40 @@ export class ResourceDashboardProvider {
         break;
       }
 
+      case 'serviceLog': {
+        const unit = typeof message.unit === 'string' ? message.unit : '';
+        if (!unit || !/^[a-zA-Z0-9\-_.@]+\.service$/.test(unit)) { break; }
+        const svcKey = `svc:${unit}`;
+        const existingSvc = this.activeLogStreams.get(svcKey);
+        if (existingSvc) { try { existingSvc.stop(); } catch { /* ignore */ } this.activeLogStreams.delete(svcKey); }
+        try {
+          const handle = await ResourceDashboardService.streamServiceLogs(
+            this.hostConfig,
+            this.authConfig,
+            unit,
+            (chunk: string) => {
+              this.panel.webview.postMessage({ type: 'serviceLogChunk', unit, chunk });
+            },
+            (error?: Error) => {
+              this.activeLogStreams.delete(svcKey);
+              this.panel.webview.postMessage({ type: 'serviceLogEnd', unit, error: error?.message });
+            }
+          );
+          this.activeLogStreams.set(svcKey, handle);
+        } catch (err) {
+          this.panel.webview.postMessage({ type: 'serviceLogEnd', unit, error: (err as Error).message });
+        }
+        break;
+      }
+
+      case 'stopServiceLog': {
+        const unit = typeof message.unit === 'string' ? message.unit : '';
+        const svcKey = `svc:${unit}`;
+        const handle = this.activeLogStreams.get(svcKey);
+        if (handle) { try { handle.stop(); } catch { /* ignore */ } this.activeLogStreams.delete(svcKey); }
+        break;
+      }
+
       case 'serviceStatus': {
         const unit = typeof message.unit === 'string' ? message.unit : '';
         if (!unit || !/^[a-zA-Z0-9\-_.@]+\.service$/.test(unit)) { break; }
@@ -1325,6 +1359,33 @@ export class ResourceDashboardProvider {
                 </button>
             </div>
             <div class="process-detail-body" id="processDetailBody"></div>
+        </div>
+    </div>
+
+    <!-- Service Journal Log Modal -->
+    <div id="serviceLogModal" class="process-detail-modal" style="display:none;">
+        <div class="process-detail-overlay" id="serviceLogOverlay"></div>
+        <div class="process-detail-dialog docker-log-dialog">
+            <div class="process-detail-header">
+                <span class="process-detail-title">
+                    <i class="codicon codicon-output"></i>
+                    <span id="serviceLogTitle">Service Logs</span>
+                </span>
+                <div class="process-detail-header-actions">
+                    <label class="docker-log-autoscroll-label" title="Auto-scroll to latest">
+                        <input type="checkbox" id="serviceLogAutoScroll" checked />
+                        <span>Auto-scroll</span>
+                    </label>
+                    <button class="icon-button" id="serviceLogClear" title="Clear log display">
+                        <i class="codicon codicon-clear-all"></i>
+                    </button>
+                    <button class="process-detail-close" id="serviceLogClose" title="Close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </div>
+            </div>
+            <pre id="serviceLogContent" class="docker-log-content"></pre>
+            <div id="serviceLogStatus" class="docker-log-status">Connecting…</div>
         </div>
     </div>
 

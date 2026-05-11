@@ -392,6 +392,14 @@
         handleServiceStatusData(message);
         break;
 
+      case 'serviceLogChunk':
+        handleServiceLogChunk(message.unit, message.chunk);
+        break;
+
+      case 'serviceLogEnd':
+        handleServiceLogEnd(message.unit, message.error);
+        break;
+
       case 'dockerData':
         handleDockerData(message.data);
         break;
@@ -2022,6 +2030,9 @@
           <button class="service-action-btn service-status-btn" data-unit="${escapeHtml(svc.unit)}" title="View Status">
             <i class="codicon codicon-info"></i>
           </button>
+          <button class="service-action-btn service-log-btn" data-unit="${escapeHtml(svc.unit)}" title="View Logs (journalctl)">
+            <i class="codicon codicon-output"></i>
+          </button>
           <button class="service-action-btn" data-unit="${escapeHtml(svc.unit)}" data-action="start" title="Start" ${isRunning ? 'disabled' : ''}>
             <i class="codicon codicon-play"></i>
           </button>
@@ -2085,11 +2096,71 @@
     }
   });
 
+  // Service Journal Log Modal
+  let activeLogServiceUnit = null;
+  const serviceLogModal = document.getElementById('serviceLogModal');
+  const serviceLogOverlay = document.getElementById('serviceLogOverlay');
+  const serviceLogClose = document.getElementById('serviceLogClose');
+  const serviceLogClear = document.getElementById('serviceLogClear');
+  const serviceLogContent = document.getElementById('serviceLogContent');
+  const serviceLogTitle = document.getElementById('serviceLogTitle');
+  const serviceLogStatus = document.getElementById('serviceLogStatus');
+  const serviceLogAutoScroll = document.getElementById('serviceLogAutoScroll');
+
+  function openServiceLogModal(unit) {
+    if (activeLogServiceUnit) {
+      vscode.postMessage({ type: 'stopServiceLog', unit: activeLogServiceUnit });
+    }
+    activeLogServiceUnit = unit;
+    if (serviceLogTitle) { serviceLogTitle.textContent = `Logs — ${unit}`; }
+    if (serviceLogContent) { serviceLogContent.textContent = ''; }
+    if (serviceLogStatus) { serviceLogStatus.textContent = 'Connecting…'; }
+    if (serviceLogModal) { serviceLogModal.style.display = 'flex'; }
+    vscode.postMessage({ type: 'serviceLog', unit });
+  }
+
+  function closeServiceLogModal() {
+    if (activeLogServiceUnit) {
+      vscode.postMessage({ type: 'stopServiceLog', unit: activeLogServiceUnit });
+      activeLogServiceUnit = null;
+    }
+    if (serviceLogModal) { serviceLogModal.style.display = 'none'; }
+    if (serviceLogContent) { serviceLogContent.textContent = ''; }
+    if (serviceLogStatus) { serviceLogStatus.textContent = ''; }
+  }
+
+  function handleServiceLogChunk(unit, chunk) {
+    if (unit !== activeLogServiceUnit) { return; }
+    if (!serviceLogContent) { return; }
+    if (serviceLogStatus) { serviceLogStatus.textContent = 'Streaming…'; }
+    serviceLogContent.appendChild(document.createTextNode(chunk));
+    if (serviceLogAutoScroll && serviceLogAutoScroll.checked) {
+      serviceLogContent.scrollTop = serviceLogContent.scrollHeight;
+    }
+  }
+
+  function handleServiceLogEnd(unit, error) {
+    if (unit !== activeLogServiceUnit) { return; }
+    if (serviceLogStatus) {
+      serviceLogStatus.textContent = error ? `Error: ${error}` : 'Stream ended.';
+    }
+  }
+
+  if (serviceLogClose) { serviceLogClose.addEventListener('click', closeServiceLogModal); }
+  if (serviceLogOverlay) { serviceLogOverlay.addEventListener('click', closeServiceLogModal); }
+  if (serviceLogClear) { serviceLogClear.addEventListener('click', () => { if (serviceLogContent) { serviceLogContent.textContent = ''; } }); }
+
   document.addEventListener('click', (e) => {
     const statusBtn = e.target.closest('.service-status-btn');
     if (statusBtn) {
       const unit = statusBtn.dataset.unit;
       if (unit) { openServiceStatusModal(unit); }
+      return;
+    }
+    const logBtn = e.target.closest('.service-log-btn');
+    if (logBtn) {
+      const unit = logBtn.dataset.unit;
+      if (unit) { openServiceLogModal(unit); }
       return;
     }
     const btn = e.target.closest('.service-action-btn');
