@@ -1,5 +1,10 @@
 # Change Log
 
+## 6.30.0 - 2026-05-12
+
+- **Feature**: File browser webview — added **Resource Dashboard** button (`pulse` icon) in the remote panel header to open the resource dashboard for the current host.
+- **Feature**: Resource Dashboard — added **Open File Browser** button (`folder-opened` icon) in the header to switch to the dual-panel file browser for the current host.
+
 ## 6.29.0 - 2026-05-11
 
 - **Feature**: File browser — added **Owner** and **Group** columns showing UID/GID names for remote files.
