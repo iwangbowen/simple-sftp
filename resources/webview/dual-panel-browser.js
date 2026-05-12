@@ -170,6 +170,11 @@
         document.getElementById('maximize-local')?.addEventListener('click', () => togglePanelMaximize('local'));
         document.getElementById('maximize-remote')?.addEventListener('click', () => togglePanelMaximize('remote'));
 
+        // Resource Dashboard button
+        document.getElementById('open-resource-dashboard')?.addEventListener('click', () => {
+            vscode.postMessage({ command: 'openResourceDashboard' });
+        });
+
         // More buttons - trigger context menu on click
         document.getElementById('local-more-toggle')?.addEventListener('click', (e) => {
             e.preventDefault();

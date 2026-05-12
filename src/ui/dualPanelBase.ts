@@ -4,6 +4,7 @@ import * as fs from 'node:fs';
 import { exec as execCallback } from 'node:child_process';
 import { promisify } from 'node:util';
 import { HostConfig } from '../types';
+import { ResourceDashboardProvider } from './resourceDashboardProvider';
 import { SshConnectionManager } from '../sshConnectionManager';
 import { TransferQueueService } from '../services/transferQueueService';
 import { AuthManager } from '../authManager';
@@ -434,6 +435,18 @@ export abstract class DualPanelBase {
             case 'decompressLocal':
                 await this.handleDecompressLocal(message.data);
                 break;
+
+            case 'openResourceDashboard': {
+                if (!this._currentHost || !this._currentAuthConfig) {
+                    break;
+                }
+                ResourceDashboardProvider.createOrShow(
+                    this._extensionUri,
+                    this._currentHost,
+                    this._currentAuthConfig
+                );
+                break;
+            }
         }
     }
 
