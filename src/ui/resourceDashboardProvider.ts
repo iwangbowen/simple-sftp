@@ -313,6 +313,13 @@ export class ResourceDashboardProvider {
         break;
       }
 
+      case 'openFileBrowser': {
+        await vscode.commands.executeCommand('simpleSftp.openDualPanelBrowser', {
+          data: this.hostConfig
+        });
+        break;
+      }
+
       case 'killProcess': {
         const pid = Number(message.pid);
         const signal = message.signal as 'SIGTERM' | 'SIGKILL' | 'SIGHUP' | 'SIGINT';
@@ -622,6 +629,9 @@ export class ResourceDashboardProvider {
                     <option value="60">1min</option>
                     <option value="300">5min</option>
                 </select>
+                <button id="openFileBrowserBtn" class="icon-button" title="Open File Browser">
+                    <i class="codicon codicon-folder-opened"></i>
+                </button>
                 <button id="refreshBtn" class="icon-button" title="Refresh">
                     <i class="codicon codicon-refresh"></i>
                 </button>

@@ -275,6 +275,12 @@
     requestTabData(activeTab);
   });
 
+  const openFileBrowserBtn = document.getElementById('openFileBrowserBtn');
+  openFileBrowserBtn?.addEventListener('click', () => {
+    vscode.postMessage({ type: 'openFileBrowser' });
+  });
+
+
   viewLogsBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'showLogs' });
   });
