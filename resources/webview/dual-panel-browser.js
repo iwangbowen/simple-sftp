@@ -3982,9 +3982,9 @@
 
             // 检查每个部分
             for (const part of parts) {
-                // 不能以点开头或结尾
-                if (part.startsWith('.') || part.endsWith('.')) {
-                    return String.raw`Folder name "${part}" cannot start or end with a period`;
+                // 不能以点结尾（允许以点开头，如 .env、.gitignore 等隐藏目录）
+                if (part.endsWith('.')) {
+                    return String.raw`Folder name "${part}" cannot end with a period`;
                 }
 
                 // 不能只包含点和空格
@@ -4163,9 +4163,9 @@
                 return String.raw`File name cannot contain path separators (/ or \)`;
             }
 
-            // 不能以点开头或结尾
-            if (trimmedName.startsWith('.') || trimmedName.endsWith('.')) {
-                return 'File name cannot start or end with a period';
+            // 不能以点结尾（允许以点开头，如 .env、.gitignore 等隐藏文件）
+            if (trimmedName.endsWith('.')) {
+                return 'File name cannot end with a period';
             }
 
             // 不能只包含点和空格
