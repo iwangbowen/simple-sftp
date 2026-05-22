@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.30.1 - 2026-05-22
+
+- **Fix**: File browser — allow creating files and folders with names starting with a period (e.g., `.env`, `.gitignore`); only names ending with a period remain disallowed.
+
 ## 6.30.0 - 2026-05-12
 
 - **Feature**: File browser webview — added **Resource Dashboard** button (`pulse` icon) in the remote panel header to open the resource dashboard for the current host.
