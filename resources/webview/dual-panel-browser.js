@@ -5391,6 +5391,11 @@ case 'updateStatus':
 
         clearSelection();
 
+        // Host selection uses a vertical list layout; ensure grid-view mode
+        // (set when browsing files) is cleared so host rows span full width.
+        localTree.classList.remove('grid-view');
+        remoteTree.classList.remove('grid-view');
+
         // 隐藏文件树,显示主机选择
         const selectionHTML = `
             <div class="host-selection-container">
