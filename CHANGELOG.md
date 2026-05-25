@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.30.2 - 2026-05-25
+
+- **Fix**: Dual-panel file browser — when returning to host selection from a panel that was in grid view, the host list rows could collapse to ~85px wide and hide host names. Grid-view styling is now cleared before rendering the host list.
+
 ## 6.30.1 - 2026-05-22
 
 - **Fix**: File browser — allow creating files and folders with names starting with a period (e.g., `.env`, `.gitignore`); only names ending with a period remain disallowed.
