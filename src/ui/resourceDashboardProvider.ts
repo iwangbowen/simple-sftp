@@ -1422,137 +1422,136 @@ export class ResourceDashboardProvider {
 
             <!-- Docker Tab -->
             <div id="dockerTab" class="tab-content">
+                <!-- Containers Section -->
                 <div class="section">
                     <div class="section-header">
-                        <i class="codicon codicon-layers"></i>
-                        <span>Docker</span>
+                        <i class="codicon codicon-vm-running"></i>
+                        <span>Containers</span>
+                        <span id="dockerContainerCount" class="docker-section-count"></span>
                     </div>
-                    <div class="section-content" style="padding:0; overflow:hidden;">
-                        <!-- Docker sub-tab navigation -->
-                        <div class="docker-subtab-nav">
-                            <button class="docker-subtab-btn active" data-subtab="containers">
-                                <i class="codicon codicon-vm-running"></i>
-                                <span>Containers</span>
-                                <span id="dockerContainerCount" class="docker-subtab-count"></span>
-                            </button>
-                            <button class="docker-subtab-btn" data-subtab="images">
-                                <i class="codicon codicon-package"></i>
-                                <span>Images</span>
-                                <span id="dockerImageCount" class="docker-subtab-count"></span>
-                            </button>
-                            <button class="docker-subtab-btn" data-subtab="volumes">
-                                <i class="codicon codicon-database"></i>
-                                <span>Volumes</span>
-                                <span id="dockerVolumeCount" class="docker-subtab-count"></span>
-                            </button>
-                            <button class="docker-subtab-btn" data-subtab="networks">
-                                <i class="codicon codicon-globe"></i>
-                                <span>Networks</span>
-                                <span id="dockerNetworkCount" class="docker-subtab-count"></span>
-                            </button>
-                            <button class="docker-subtab-btn" data-subtab="compose">
-                                <i class="codicon codicon-symbol-class"></i>
-                                <span>Compose</span>
-                                <span id="dockerComposeCount" class="docker-subtab-count"></span>
-                            </button>
+                    <div class="section-content">
+                        <div id="dockerUnavailable" style="display:none;" class="docker-unavailable">
+                            <i class="codicon codicon-info"></i>
+                            Docker is not installed or not running on this host.
                         </div>
-                        <!-- Containers panel -->
-                        <div id="dockerContainersPanel" class="docker-subpanel">
-                            <div id="dockerUnavailable" style="display:none;" class="docker-unavailable">
-                                <i class="codicon codicon-info"></i>
-                                Docker is not installed or not running on this host.
-                            </div>
-                            <table class="docker-table" id="dockerTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th data-sort="name">Name</th>
-                                        <th data-sort="image">Image</th>
-                                        <th data-sort="state">State</th>
-                                        <th>Status</th>
-                                        <th data-sort="cpuPercent">CPU%</th>
-                                        <th data-sort="memPercent">Mem%</th>
-                                        <th>Net I/O</th>
-                                        <th>Ports</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dockerList">
-                                    <tr><td colspan="10" class="empty-state">Loading…</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Images panel -->
-                        <div id="dockerImagesPanel" class="docker-subpanel" style="display:none;">
-                            <table class="docker-table" id="dockerImagesTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th data-sort="repository">Repository</th>
-                                        <th data-sort="tag">Tag</th>
-                                        <th data-sort="size">Size</th>
-                                        <th>Created</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dockerImagesList">
-                                    <tr><td colspan="6" class="empty-state">Loading…</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Volumes panel -->
-                        <div id="dockerVolumesPanel" class="docker-subpanel" style="display:none;">
-                            <table class="docker-table" id="dockerVolumesTable">
-                                <thead>
-                                    <tr>
-                                        <th data-sort="name">Name</th>
-                                        <th data-sort="driver">Driver</th>
-                                        <th>Mountpoint</th>
-                                        <th data-sort="scope">Scope</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dockerVolumesList">
-                                    <tr><td colspan="5" class="empty-state">Loading…</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Networks panel -->
-                        <div id="dockerNetworksPanel" class="docker-subpanel" style="display:none;">
-                            <table class="docker-table" id="dockerNetworksTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th data-sort="name">Name</th>
-                                        <th data-sort="driver">Driver</th>
-                                        <th>Scope</th>
-                                        <th>Internal</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dockerNetworksList">
-                                    <tr><td colspan="6" class="empty-state">Loading…</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Compose panel -->
-                        <div id="dockerComposePanel" class="docker-subpanel" style="display:none;">
-                            <table class="docker-table" id="dockerComposeTable">
-                                <thead>
-                                    <tr>
-                                        <th class="compose-expand-col"></th>
-                                        <th data-sort="name">Project</th>
-                                        <th>Services</th>
-                                        <th data-sort="status">Status</th>
-                                        <th>Config File</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dockerComposeList">
-                                    <tr><td colspan="6" class="empty-state">Loading…</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <table class="docker-table" id="dockerTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th data-sort="name">Name</th>
+                                    <th data-sort="image">Image</th>
+                                    <th data-sort="state">State</th>
+                                    <th>Status</th>
+                                    <th data-sort="cpuPercent">CPU%</th>
+                                    <th data-sort="memPercent">Mem%</th>
+                                    <th>Net I/O</th>
+                                    <th>Ports</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dockerList">
+                                <tr><td colspan="10" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Images Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-package"></i>
+                        <span>Images</span>
+                        <span id="dockerImageCount" class="docker-section-count"></span>
+                    </div>
+                    <div class="section-content">
+                        <table class="docker-table" id="dockerImagesTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th data-sort="repository">Repository</th>
+                                    <th data-sort="tag">Tag</th>
+                                    <th data-sort="size">Size</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dockerImagesList">
+                                <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Volumes Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-database"></i>
+                        <span>Volumes</span>
+                        <span id="dockerVolumeCount" class="docker-section-count"></span>
+                    </div>
+                    <div class="section-content">
+                        <table class="docker-table" id="dockerVolumesTable">
+                            <thead>
+                                <tr>
+                                    <th data-sort="name">Name</th>
+                                    <th data-sort="driver">Driver</th>
+                                    <th>Mountpoint</th>
+                                    <th data-sort="scope">Scope</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dockerVolumesList">
+                                <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Networks Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-globe"></i>
+                        <span>Networks</span>
+                        <span id="dockerNetworkCount" class="docker-section-count"></span>
+                    </div>
+                    <div class="section-content">
+                        <table class="docker-table" id="dockerNetworksTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th data-sort="name">Name</th>
+                                    <th data-sort="driver">Driver</th>
+                                    <th>Scope</th>
+                                    <th>Internal</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dockerNetworksList">
+                                <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Compose Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <i class="codicon codicon-symbol-class"></i>
+                        <span>Compose Projects</span>
+                        <span id="dockerComposeCount" class="docker-section-count"></span>
+                    </div>
+                    <div class="section-content">
+                        <table class="docker-table" id="dockerComposeTable">
+                            <thead>
+                                <tr>
+                                    <th class="compose-expand-col"></th>
+                                    <th data-sort="name">Project</th>
+                                    <th>Services</th>
+                                    <th data-sort="status">Status</th>
+                                    <th>Config File</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dockerComposeList">
+                                <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

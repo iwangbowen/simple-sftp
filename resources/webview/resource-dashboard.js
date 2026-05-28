@@ -2209,7 +2209,6 @@
   let currentDockerNetworks = [];
   let currentDockerCompose = [];
   const expandedComposeProjects = new Set();
-  let dockerSubTab = 'containers';
   let dockerSortColumn = 'state';
   let dockerSortDir = 'asc';
   let dockerImageSortColumn = 'repository';
@@ -2220,29 +2219,6 @@
   let dockerNetworkSortDir = 'asc';
   let dockerComposeSortColumn = 'name';
   let dockerComposeSortDir = 'asc';
-
-  // Docker sub-tab switching
-  document.querySelectorAll('.docker-subtab-btn').forEach(btn => {
-    btn.addEventListener('click', () => { switchDockerSubTab(btn.dataset.subtab); });
-  });
-
-  function switchDockerSubTab(subtab) {
-    dockerSubTab = subtab;
-    document.querySelectorAll('.docker-subtab-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.subtab === subtab);
-    });
-    const panels = {
-      containers: 'dockerContainersPanel',
-      images: 'dockerImagesPanel',
-      volumes: 'dockerVolumesPanel',
-      networks: 'dockerNetworksPanel',
-      compose: 'dockerComposePanel',
-    };
-    Object.entries(panels).forEach(([key, id]) => {
-      const el = document.getElementById(id);
-      if (el) { el.style.display = key === subtab ? '' : 'none'; }
-    });
-  }
 
   function handleDockerData(data) {
     loadingState.style.display = 'none';

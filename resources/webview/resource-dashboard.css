@@ -1976,6 +1976,24 @@ tr:hover .service-action-btn:hover:not(:disabled) { opacity: 1; }
 .docker-table tbody tr:last-child td { border-bottom: none; }
 .docker-table tbody tr:hover { background-color: var(--vscode-list-hoverBackground); }
 
+/* Docker section count badge in section headers */
+.docker-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 16px;
+    padding: 0 5px;
+    border-radius: 8px;
+    background-color: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.docker-section-count:empty { display: none; }
+
 /* ── Docker Sub-tabs ──────────────────────────────────────────────────────── */
 .docker-subtab-nav {
     display: flex;
