@@ -2610,6 +2610,7 @@
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+  }
 
   // ── Docker table sort & action event delegation ──────────────────────────
   document.addEventListener('click', (e) => {
