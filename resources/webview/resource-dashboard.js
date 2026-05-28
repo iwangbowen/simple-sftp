@@ -252,7 +252,13 @@
       }
       case 'docker': {
         const dockerList = document.getElementById('dockerList');
+        const dockerImagesList = document.getElementById('dockerImagesList');
+        const dockerVolumesList = document.getElementById('dockerVolumesList');
+        const dockerNetworksList = document.getElementById('dockerNetworksList');
         if (dockerList) { dockerList.innerHTML = loadingRow; }
+        if (dockerImagesList) { dockerImagesList.innerHTML = loadingRow; }
+        if (dockerVolumesList) { dockerVolumesList.innerHTML = loadingRow; }
+        if (dockerNetworksList) { dockerNetworksList.innerHTML = loadingRow; }
         break;
       }
       case 'crontab': {
@@ -428,6 +434,10 @@
 
       case 'dockerLogEnd':
         handleDockerLogEnd(message.containerId, message.error);
+        break;
+
+      case 'dockerInspectData':
+        handleDockerInspectData(message);
         break;
 
       case 'error':
@@ -2188,34 +2198,82 @@
 
   // ── Docker Tab ───────────────────────────────────────────────
   let currentContainers = [];
+  let currentDockerImages = [];
+  let currentDockerVolumes = [];
+  let currentDockerNetworks = [];
+  let dockerSubTab = 'containers';
   let dockerSortColumn = 'state';
   let dockerSortDir = 'asc';
+  let dockerImageSortColumn = 'repository';
+  let dockerImageSortDir = 'asc';
+  let dockerVolumeSortColumn = 'name';
+  let dockerVolumeSortDir = 'asc';
+  let dockerNetworkSortColumn = 'name';
+  let dockerNetworkSortDir = 'asc';
 
-  function handleDockerData(containers) {
+  // Docker sub-tab switching
+  document.querySelectorAll('.docker-subtab-btn').forEach(btn => {
+    btn.addEventListener('click', () => { switchDockerSubTab(btn.dataset.subtab); });
+  });
+
+  function switchDockerSubTab(subtab) {
+    dockerSubTab = subtab;
+    document.querySelectorAll('.docker-subtab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.subtab === subtab);
+    });
+    const panels = {
+      containers: 'dockerContainersPanel',
+      images: 'dockerImagesPanel',
+      volumes: 'dockerVolumesPanel',
+      networks: 'dockerNetworksPanel',
+    };
+    Object.entries(panels).forEach(([key, id]) => {
+      const el = document.getElementById(id);
+      if (el) { el.style.display = key === subtab ? '' : 'none'; }
+    });
+  }
+
+  function handleDockerData(data) {
     loadingState.style.display = 'none';
     errorState.style.display = 'none';
     contentState.style.display = 'flex';
     refreshBtn.disabled = false;
-    currentContainers = containers || [];
 
-    const unavailableEl = document.getElementById('dockerUnavailable');
-    const tableEl = document.getElementById('dockerTable');
-    if (unavailableEl && tableEl) {
-      const isUnavailable = currentContainers.length === 0;
-      // Cannot distinguish "unavailable" from "no containers" without a flag from backend
-      // The backend returns [] for both cases; show a helpful empty state
-      unavailableEl.style.display = 'none';
-      tableEl.style.display = '';
+    // Support both old format (array) and new format (object with containers/images/volumes/networks)
+    if (Array.isArray(data)) {
+      currentContainers = data;
+      currentDockerImages = [];
+      currentDockerVolumes = [];
+      currentDockerNetworks = [];
+    } else {
+      currentContainers = (data && data.containers) || [];
+      currentDockerImages = (data && data.images) || [];
+      currentDockerVolumes = (data && data.volumes) || [];
+      currentDockerNetworks = (data && data.networks) || [];
     }
-    renderDockerTable();
+
+    // Update sub-tab count badges
+    const containerCountEl = document.getElementById('dockerContainerCount');
+    const imageCountEl = document.getElementById('dockerImageCount');
+    const volumeCountEl = document.getElementById('dockerVolumeCount');
+    const networkCountEl = document.getElementById('dockerNetworkCount');
+    if (containerCountEl) { containerCountEl.textContent = currentContainers.length ? String(currentContainers.length) : ''; }
+    if (imageCountEl) { imageCountEl.textContent = currentDockerImages.length ? String(currentDockerImages.length) : ''; }
+    if (volumeCountEl) { volumeCountEl.textContent = currentDockerVolumes.length ? String(currentDockerVolumes.length) : ''; }
+    if (networkCountEl) { networkCountEl.textContent = currentDockerNetworks.length ? String(currentDockerNetworks.length) : ''; }
+
+    renderDockerContainersTable();
+    renderDockerImagesTable();
+    renderDockerVolumesTable();
+    renderDockerNetworksTable();
   }
 
-  function renderDockerTable() {
+  function renderDockerContainersTable() {
     const tbody = document.getElementById('dockerList');
     if (!tbody) { return; }
 
     if (currentContainers.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No containers found or Docker is not available</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No containers found or Docker is not available</td></tr>';
       return;
     }
 
@@ -2235,7 +2293,7 @@
       return 0;
     });
 
-    document.querySelectorAll('.docker-table th[data-sort]').forEach(th => {
+    document.querySelectorAll('#dockerTable th[data-sort]').forEach(th => {
       th.classList.remove('sort-asc', 'sort-desc');
       if (th.dataset.sort === dockerSortColumn) {
         th.classList.add(dockerSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
@@ -2253,8 +2311,6 @@
         : '—';
       const tr = document.createElement('tr');
       tr.dataset.containerId = c.id;
-      tr.style.cursor = 'pointer';
-      tr.title = 'Click to view live logs';
       tr.innerHTML = `
         <td><code style="font-size:11px">${escapeHtml(c.id.slice(0, 12))}</code></td>
         <td><strong>${escapeHtml(c.name)}</strong></td>
@@ -2265,11 +2321,236 @@
         <td>${memStr}</td>
         <td style="font-size:11px;">${netStr}</td>
         <td style="font-size:11px; color: var(--vscode-descriptionForeground);">${escapeHtml(c.ports || '—')}</td>
+        <td class="docker-actions-cell">
+          <button class="docker-action-btn docker-container-log-btn"
+            data-container-id="${escapeHtml(c.id)}" data-container-name="${escapeHtml(c.name)}"
+            title="View Logs"><i class="codicon codicon-output"></i></button>
+          <button class="docker-action-btn docker-container-action-btn"
+            data-container-id="${escapeHtml(c.id)}" data-action="start"
+            title="Start" ${isRunning ? 'disabled' : ''}><i class="codicon codicon-play"></i></button>
+          <button class="docker-action-btn docker-container-action-btn"
+            data-container-id="${escapeHtml(c.id)}" data-action="stop"
+            title="Stop" ${!isRunning ? 'disabled' : ''}><i class="codicon codicon-debug-stop"></i></button>
+          <button class="docker-action-btn docker-container-action-btn"
+            data-container-id="${escapeHtml(c.id)}" data-action="restart"
+            title="Restart"><i class="codicon codicon-debug-restart"></i></button>
+          <button class="docker-action-btn docker-inspect-btn"
+            data-type="container" data-id="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}"
+            title="Inspect"><i class="codicon codicon-json"></i></button>
+          <button class="docker-action-btn docker-remove-btn"
+            data-type="container" data-id="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}"
+            title="Remove"><i class="codicon codicon-trash"></i></button>
+        </td>
       `;
-      tr.addEventListener('click', () => openDockerLogModal(c));
       tbody.appendChild(tr);
     });
   }
+
+  function renderDockerImagesTable() {
+    const tbody = document.getElementById('dockerImagesList');
+    if (!tbody) { return; }
+    if (currentDockerImages.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No images found</td></tr>';
+      return;
+    }
+    const sorted = [...currentDockerImages].sort((a, b) => {
+      const aVal = dockerImageSortColumn === 'size' ? (Number(a.size) || 0) : String(a[dockerImageSortColumn] || '').toLowerCase();
+      const bVal = dockerImageSortColumn === 'size' ? (Number(b.size) || 0) : String(b[dockerImageSortColumn] || '').toLowerCase();
+      if (aVal < bVal) { return dockerImageSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return dockerImageSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+    document.querySelectorAll('#dockerImagesTable th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === dockerImageSortColumn) {
+        th.classList.add(dockerImageSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+    tbody.innerHTML = '';
+    sorted.forEach(img => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><code style="font-size:11px">${escapeHtml(img.id)}</code></td>
+        <td>${escapeHtml(img.repository)}</td>
+        <td><span style="font-family: var(--vscode-editor-font-family); font-size:11px;">${escapeHtml(img.tag)}</span></td>
+        <td>${formatBytesSize(img.size)}</td>
+        <td style="color: var(--vscode-descriptionForeground); font-size:11px;">${escapeHtml(img.createdAt)}</td>
+        <td class="docker-actions-cell">
+          <button class="docker-action-btn docker-inspect-btn"
+            data-type="image" data-id="${escapeHtml(img.id)}"
+            data-name="${escapeHtml(img.repository + ':' + img.tag)}"
+            title="Inspect"><i class="codicon codicon-json"></i></button>
+          <button class="docker-action-btn docker-remove-btn"
+            data-type="image" data-id="${escapeHtml(img.id)}"
+            data-name="${escapeHtml(img.repository + ':' + img.tag)}"
+            title="Remove Image"><i class="codicon codicon-trash"></i></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderDockerVolumesTable() {
+    const tbody = document.getElementById('dockerVolumesList');
+    if (!tbody) { return; }
+    if (currentDockerVolumes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No volumes found</td></tr>';
+      return;
+    }
+    const sorted = [...currentDockerVolumes].sort((a, b) => {
+      const aVal = String(a[dockerVolumeSortColumn] || '').toLowerCase();
+      const bVal = String(b[dockerVolumeSortColumn] || '').toLowerCase();
+      if (aVal < bVal) { return dockerVolumeSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return dockerVolumeSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+    document.querySelectorAll('#dockerVolumesTable th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === dockerVolumeSortColumn) {
+        th.classList.add(dockerVolumeSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+    tbody.innerHTML = '';
+    sorted.forEach(vol => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family: var(--vscode-editor-font-family); font-size:11px; max-width:200px; overflow:hidden; text-overflow:ellipsis;"
+          title="${escapeHtml(vol.name)}">${escapeHtml(vol.name)}</td>
+        <td>${escapeHtml(vol.driver || '—')}</td>
+        <td style="font-size:11px; color: var(--vscode-descriptionForeground); max-width:250px; overflow:hidden; text-overflow:ellipsis;"
+          title="${escapeHtml(vol.mountpoint || '')}">${escapeHtml(vol.mountpoint || '—')}</td>
+        <td>${escapeHtml(vol.scope || '—')}</td>
+        <td class="docker-actions-cell">
+          <button class="docker-action-btn docker-inspect-btn"
+            data-type="volume" data-id="${escapeHtml(vol.name)}" data-name="${escapeHtml(vol.name)}"
+            title="Inspect"><i class="codicon codicon-json"></i></button>
+          <button class="docker-action-btn docker-remove-btn"
+            data-type="volume" data-id="${escapeHtml(vol.name)}" data-name="${escapeHtml(vol.name)}"
+            title="Remove Volume"><i class="codicon codicon-trash"></i></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderDockerNetworksTable() {
+    const tbody = document.getElementById('dockerNetworksList');
+    if (!tbody) { return; }
+    if (currentDockerNetworks.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No networks found</td></tr>';
+      return;
+    }
+    const sorted = [...currentDockerNetworks].sort((a, b) => {
+      const aVal = String(a[dockerNetworkSortColumn] || '').toLowerCase();
+      const bVal = String(b[dockerNetworkSortColumn] || '').toLowerCase();
+      if (aVal < bVal) { return dockerNetworkSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return dockerNetworkSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+    document.querySelectorAll('#dockerNetworksTable th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === dockerNetworkSortColumn) {
+        th.classList.add(dockerNetworkSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+    tbody.innerHTML = '';
+    sorted.forEach(net => {
+      const builtIn = ['bridge', 'host', 'none'].includes(net.name);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><code style="font-size:11px">${escapeHtml(net.id)}</code></td>
+        <td>${escapeHtml(net.name)}</td>
+        <td>${escapeHtml(net.driver || '—')}</td>
+        <td>${escapeHtml(net.scope || '—')}</td>
+        <td>${net.internal ? '<span class="status-pill state-unknown">internal</span>' : '—'}</td>
+        <td class="docker-actions-cell">
+          <button class="docker-action-btn docker-inspect-btn"
+            data-type="network" data-id="${escapeHtml(net.id)}" data-name="${escapeHtml(net.name)}"
+            title="Inspect"><i class="codicon codicon-json"></i></button>
+          <button class="docker-action-btn docker-remove-btn"
+            data-type="network" data-id="${escapeHtml(net.id)}" data-name="${escapeHtml(net.name)}"
+            title="Remove Network" ${builtIn ? 'disabled' : ''}><i class="codicon codicon-trash"></i></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Docker table sort & action event delegation ──────────────────────────
+  document.addEventListener('click', (e) => {
+    // Container table sort
+    const containerTh = e.target.closest('#dockerTable th[data-sort]');
+    if (containerTh) {
+      const col = containerTh.dataset.sort;
+      if (dockerSortColumn === col) { dockerSortDir = dockerSortDir === 'asc' ? 'desc' : 'asc'; }
+      else { dockerSortColumn = col; dockerSortDir = (col === 'cpuPercent' || col === 'memPercent') ? 'desc' : 'asc'; }
+      renderDockerContainersTable();
+      return;
+    }
+    // Images table sort
+    const imgTh = e.target.closest('#dockerImagesTable th[data-sort]');
+    if (imgTh) {
+      const col = imgTh.dataset.sort;
+      if (dockerImageSortColumn === col) { dockerImageSortDir = dockerImageSortDir === 'asc' ? 'desc' : 'asc'; }
+      else { dockerImageSortColumn = col; dockerImageSortDir = col === 'size' ? 'desc' : 'asc'; }
+      renderDockerImagesTable();
+      return;
+    }
+    // Volumes table sort
+    const volTh = e.target.closest('#dockerVolumesTable th[data-sort]');
+    if (volTh) {
+      const col = volTh.dataset.sort;
+      if (dockerVolumeSortColumn === col) { dockerVolumeSortDir = dockerVolumeSortDir === 'asc' ? 'desc' : 'asc'; }
+      else { dockerVolumeSortColumn = col; dockerVolumeSortDir = 'asc'; }
+      renderDockerVolumesTable();
+      return;
+    }
+    // Networks table sort
+    const netTh = e.target.closest('#dockerNetworksTable th[data-sort]');
+    if (netTh) {
+      const col = netTh.dataset.sort;
+      if (dockerNetworkSortColumn === col) { dockerNetworkSortDir = dockerNetworkSortDir === 'asc' ? 'desc' : 'asc'; }
+      else { dockerNetworkSortColumn = col; dockerNetworkSortDir = 'asc'; }
+      renderDockerNetworksTable();
+      return;
+    }
+    // Container log button
+    const logBtn = e.target.closest('.docker-container-log-btn');
+    if (logBtn) {
+      const id = logBtn.dataset.containerId;
+      const name = logBtn.dataset.containerName;
+      if (id) { openDockerLogModal({ id, name: name || id }); }
+      return;
+    }
+    // Container action (start/stop/restart)
+    const containerActionBtn = e.target.closest('.docker-container-action-btn');
+    if (containerActionBtn && !containerActionBtn.disabled) {
+      const id = containerActionBtn.dataset.containerId;
+      const action = containerActionBtn.dataset.action;
+      if (id && action) { vscode.postMessage({ type: 'dockerContainerAction', containerId: id, action }); }
+      return;
+    }
+    // Inspect button
+    const inspectBtn = e.target.closest('.docker-inspect-btn');
+    if (inspectBtn) {
+      const type = inspectBtn.dataset.type;
+      const id = inspectBtn.dataset.id;
+      const name = inspectBtn.dataset.name;
+      if (type && id) { openDockerInspectModal(type, id, name || id); }
+      return;
+    }
+    // Remove button
+    const removeBtn = e.target.closest('.docker-remove-btn');
+    if (removeBtn && !removeBtn.disabled) {
+      const type = removeBtn.dataset.type;
+      const id = removeBtn.dataset.id;
+      if (type === 'container') { vscode.postMessage({ type: 'dockerContainerAction', containerId: id, action: 'remove' }); }
+      else if (type === 'image') { vscode.postMessage({ type: 'dockerImageAction', imageId: id, action: 'remove' }); }
+      else if (type === 'volume') { vscode.postMessage({ type: 'dockerVolumeAction', volumeName: id, action: 'remove' }); }
+      else if (type === 'network') { vscode.postMessage({ type: 'dockerNetworkAction', networkId: id, action: 'remove' }); }
+      return;
+    }
+  });
 
   // ── Docker Log Modal ─────────────────────────────────────────────────────
 
@@ -2285,7 +2566,6 @@
   const dockerLogAutoScroll = document.getElementById('dockerLogAutoScroll');
 
   function openDockerLogModal(container) {
-    // Stop any existing stream first
     if (activeLogContainerId) {
       vscode.postMessage({ type: 'stopDockerLogs', containerId: activeLogContainerId });
     }
@@ -2311,14 +2591,11 @@
   if (dockerLogOverlay) { dockerLogOverlay.addEventListener('click', closeDockerLogModal); }
   if (dockerLogClear) { dockerLogClear.addEventListener('click', () => { if (dockerLogContent) { dockerLogContent.textContent = ''; } }); }
 
-  // Handle incoming Docker log messages (registered below in message listener)
   function handleDockerLogChunk(containerId, chunk) {
     if (containerId !== activeLogContainerId) { return; }
     if (!dockerLogContent) { return; }
     if (dockerLogStatus) { dockerLogStatus.textContent = 'Streaming…'; }
-    // Append chunk text (already includes timestamps from `docker logs --timestamps`)
     dockerLogContent.appendChild(document.createTextNode(chunk));
-    // Auto-scroll to bottom
     if (dockerLogAutoScroll && dockerLogAutoScroll.checked) {
       dockerLogContent.scrollTop = dockerLogContent.scrollHeight;
     }
@@ -2331,17 +2608,47 @@
     }
   }
 
-  document.querySelectorAll('.docker-table th[data-sort]').forEach(th => {
-    th.addEventListener('click', () => {
-      const col = th.dataset.sort;
-      if (dockerSortColumn === col) {
-        dockerSortDir = dockerSortDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        dockerSortColumn = col;
-        dockerSortDir = col === 'cpuPercent' || col === 'memPercent' ? 'desc' : 'asc';
+  // ── Docker Inspect Modal ──────────────────────────────────────────────────
+
+  const dockerInspectModal = document.getElementById('dockerInspectModal');
+  const dockerInspectOverlay = document.getElementById('dockerInspectOverlay');
+  const dockerInspectClose = document.getElementById('dockerInspectClose');
+  const dockerInspectTitle = document.getElementById('dockerInspectTitle');
+  const dockerInspectContent = document.getElementById('dockerInspectContent');
+
+  function openDockerInspectModal(type, id, name) {
+    if (dockerInspectTitle) { dockerInspectTitle.textContent = `Inspect (${type}) — ${name}`; }
+    if (dockerInspectContent) { dockerInspectContent.textContent = 'Loading…'; }
+    if (dockerInspectModal) { dockerInspectModal.style.display = ''; }
+    vscode.postMessage({ type: 'dockerInspect', inspectType: type, id, name });
+  }
+
+  function closeDockerInspectModal() {
+    if (dockerInspectModal) { dockerInspectModal.style.display = 'none'; }
+    if (dockerInspectContent) { dockerInspectContent.textContent = ''; }
+  }
+
+  function handleDockerInspectData(msg) {
+    if (!dockerInspectContent) { return; }
+    if (msg.error) {
+      dockerInspectContent.textContent = `Error: ${msg.error}`;
+    } else {
+      try {
+        const parsed = JSON.parse(msg.data);
+        dockerInspectContent.textContent = JSON.stringify(parsed, null, 2);
+      } catch {
+        dockerInspectContent.textContent = msg.data || '(no output)';
       }
-      renderDockerTable();
-    });
+    }
+  }
+
+  if (dockerInspectClose) { dockerInspectClose.addEventListener('click', closeDockerInspectModal); }
+  if (dockerInspectOverlay) { dockerInspectOverlay.addEventListener('click', closeDockerInspectModal); }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (dockerInspectModal && dockerInspectModal.style.display !== 'none') { closeDockerInspectModal(); }
+      if (dockerLogModal && dockerLogModal.style.display !== 'none') { closeDockerLogModal(); }
+    }
   });
 
   // ── Crontab Tab ──────────────────────────────────────────────────────────

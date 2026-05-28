@@ -117,6 +117,54 @@ export interface ContainerInfo {
   ports?: string;
 }
 
+/** Docker 镜像信息 */
+export interface DockerImageInfo {
+  /** 镜像 ID（短，12 位十六进制） */
+  id: string;
+  /** 仓库名称 */
+  repository: string;
+  /** 标签 */
+  tag: string;
+  /** 镜像大小（字节） */
+  size: number;
+  /** 创建时间 */
+  createdAt: string;
+}
+
+/** Docker 存储卷信息 */
+export interface DockerVolumeInfo {
+  /** 卷名称 */
+  name: string;
+  /** 驱动 */
+  driver: string;
+  /** 挂载点 */
+  mountpoint: string;
+  /** 范围：local | global */
+  scope: string;
+}
+
+/** Docker 网络信息 */
+export interface DockerNetworkInfo {
+  /** 网络 ID（短） */
+  id: string;
+  /** 网络名称 */
+  name: string;
+  /** 驱动 */
+  driver: string;
+  /** 范围 */
+  scope: string;
+  /** 是否为内部网络 */
+  internal: boolean;
+}
+
+/** Docker 全量数据（供仪表盘展示） */
+export interface DockerData {
+  containers: ContainerInfo[];
+  images: DockerImageInfo[];
+  volumes: DockerVolumeInfo[];
+  networks: DockerNetworkInfo[];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Crontab Tab
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1890,6 +1938,235 @@ export class ResourceDashboardService {
     }
 
     return { stop };
+  }
+
+  /**
+   * 获取 Docker 全量数据（容器 + 镜像 + 存储卷 + 网络）
+   */
+  static async getDockerData(
+    config: HostConfig,
+    authConfig: HostAuthConfig
+  ): Promise<DockerData> {
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      const dockerCheck = await this.executeCommand(conn, 'command -v docker 2>/dev/null || echo ""').catch(() => '');
+      if (!dockerCheck.trim()) {
+        return { containers: [], images: [], volumes: [], networks: [] };
+      }
+
+      const [psRaw, imagesRaw, volumesRaw, networksRaw] = await Promise.all([
+        this.executeCommand(conn,
+          'docker ps -a --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.CreatedAt}}|{{.Ports}}" 2>/dev/null || echo ""'
+        ).catch(() => ''),
+        this.executeCommand(conn,
+          'docker images --format "{{.ID}}|{{.Repository}}|{{.Tag}}|{{.Size}}|{{.CreatedAt}}" 2>/dev/null || echo ""'
+        ).catch(() => ''),
+        this.executeCommand(conn,
+          'docker volume ls --format "{{.Name}}|{{.Driver}}|{{.Scope}}|{{.Mountpoint}}" 2>/dev/null || echo ""'
+        ).catch(() => ''),
+        this.executeCommand(conn,
+          'docker network ls --format "{{.ID}}|{{.Name}}|{{.Driver}}|{{.Scope}}" 2>/dev/null || echo ""'
+        ).catch(() => ''),
+      ]);
+
+      const containers = this.parseDockerPsOutput(psRaw);
+      const runningIds = containers.filter(c => c.state === 'running').map(c => c.id);
+      let statsMap = new Map<string, { cpuPercent: number; memUsage: number; memLimit: number; memPercent: number; netIn: number; netOut: number }>();
+      if (runningIds.length > 0) {
+        const statsRaw = await this.executeCommand(
+          conn,
+          'docker stats --no-stream --format "{{.ID}}|{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.NetIO}}" 2>/dev/null || echo ""'
+        ).catch(() => '');
+        statsMap = this.parseDockerStatsOutput(statsRaw);
+      }
+
+      return {
+        containers: containers.map(c => {
+          const stats = statsMap.get(c.id);
+          return stats ? { ...c, ...stats } : c;
+        }),
+        images: this.parseDockerImagesOutput(imagesRaw),
+        volumes: this.parseDockerVolumesOutput(volumesRaw),
+        networks: this.parseDockerNetworksOutput(networksRaw),
+      };
+    });
+  }
+
+  /**
+   * 对 Docker 容器执行操作（start/stop/restart/remove）
+   */
+  static async dockerContainerAction(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    containerId: string,
+    action: 'start' | 'stop' | 'restart' | 'remove'
+  ): Promise<void> {
+    if (!/^[a-f0-9]{12,64}$/.test(containerId)) {
+      throw new Error(`Invalid container ID: ${containerId}`);
+    }
+    const allowedActions = ['start', 'stop', 'restart', 'remove'] as const;
+    if (!allowedActions.includes(action)) {
+      throw new Error(`Invalid action: ${action}`);
+    }
+    const cmdMap: Record<string, string> = {
+      start: 'docker start',
+      stop: 'docker stop',
+      restart: 'docker restart',
+      remove: 'docker rm -f',
+    };
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      await this.executeCommand(conn, `${cmdMap[action]} ${containerId} 2>&1`).catch(err => {
+        throw new Error(`Docker container ${action} failed: ${(err as Error).message}`);
+      });
+    });
+  }
+
+  /**
+   * 对 Docker 镜像执行操作（remove）
+   */
+  static async dockerImageAction(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    imageId: string,
+    action: 'remove'
+  ): Promise<void> {
+    if (!/^[a-f0-9]{12,64}$/.test(imageId)) {
+      throw new Error(`Invalid image ID: ${imageId}`);
+    }
+    if (action !== 'remove') { throw new Error(`Invalid action: ${action}`); }
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      await this.executeCommand(conn, `docker rmi ${imageId} 2>&1`).catch(err => {
+        throw new Error(`Docker image remove failed: ${(err as Error).message}`);
+      });
+    });
+  }
+
+  /**
+   * 对 Docker 存储卷执行操作（remove）
+   */
+  static async dockerVolumeAction(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    volumeName: string,
+    action: 'remove'
+  ): Promise<void> {
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,254}$/.test(volumeName)) {
+      throw new Error(`Invalid volume name: ${volumeName}`);
+    }
+    if (action !== 'remove') { throw new Error(`Invalid action: ${action}`); }
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      await this.executeCommand(conn, `docker volume rm '${volumeName}' 2>&1`).catch(err => {
+        throw new Error(`Docker volume remove failed: ${(err as Error).message}`);
+      });
+    });
+  }
+
+  /**
+   * 对 Docker 网络执行操作（remove）
+   */
+  static async dockerNetworkAction(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    networkId: string,
+    action: 'remove'
+  ): Promise<void> {
+    if (!/^[a-f0-9]{12,64}$/.test(networkId)) {
+      throw new Error(`Invalid network ID: ${networkId}`);
+    }
+    if (action !== 'remove') { throw new Error(`Invalid action: ${action}`); }
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      await this.executeCommand(conn, `docker network rm ${networkId} 2>&1`).catch(err => {
+        throw new Error(`Docker network remove failed: ${(err as Error).message}`);
+      });
+    });
+  }
+
+  /**
+   * 对 Docker 对象执行 inspect，返回原始 JSON 字符串
+   */
+  static async dockerInspect(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    type: 'container' | 'image' | 'volume' | 'network',
+    id: string
+  ): Promise<string> {
+    if (type === 'volume') {
+      if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,254}$/.test(id)) {
+        throw new Error(`Invalid volume name: ${id}`);
+      }
+      return this.executeWithConnection(config, authConfig, async (conn) => {
+        return this.executeCommand(conn, `docker volume inspect '${id}' 2>&1`).catch(err => {
+          throw new Error(`Docker volume inspect failed: ${(err as Error).message}`);
+        });
+      });
+    }
+    if (!/^[a-f0-9]{12,64}$/.test(id)) {
+      throw new Error(`Invalid Docker object ID: ${id}`);
+    }
+    const cmdMap: Record<string, string> = {
+      container: 'docker inspect',
+      image: 'docker image inspect',
+      network: 'docker network inspect',
+    };
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      return this.executeCommand(conn, `${cmdMap[type]} ${id} 2>&1`).catch(err => {
+        throw new Error(`Docker inspect failed: ${(err as Error).message}`);
+      });
+    });
+  }
+
+  private static parseDockerImagesOutput(raw: string): DockerImageInfo[] {
+    const images: DockerImageInfo[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) { continue; }
+      const parts = trimmed.split('|');
+      if (parts.length < 5) { continue; }
+      images.push({
+        id: (parts[0] || '').slice(0, 12),
+        repository: parts[1] || '<none>',
+        tag: parts[2] || '<none>',
+        size: this.parseDockerBytes(parts[3] || ''),
+        createdAt: parts[4] || '',
+      });
+    }
+    return images;
+  }
+
+  private static parseDockerVolumesOutput(raw: string): DockerVolumeInfo[] {
+    const volumes: DockerVolumeInfo[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) { continue; }
+      const parts = trimmed.split('|');
+      if (parts.length < 3) { continue; }
+      volumes.push({
+        name: parts[0] || '',
+        driver: parts[1] || '',
+        scope: parts[2] || '',
+        mountpoint: parts[3] || '',
+      });
+    }
+    return volumes;
+  }
+
+  private static parseDockerNetworksOutput(raw: string): DockerNetworkInfo[] {
+    const networks: DockerNetworkInfo[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) { continue; }
+      const parts = trimmed.split('|');
+      if (parts.length < 4) { continue; }
+      const id = parts[0] || '';
+      if (!id || id.startsWith('NETWORK')) { continue; }
+      networks.push({
+        id: id.slice(0, 12),
+        name: parts[1] || '',
+        driver: parts[2] || '',
+        scope: parts[3] || '',
+        internal: (parts[4] || '').toLowerCase() === 'true',
+      });
+    }
+    return networks;
   }
 
   /**

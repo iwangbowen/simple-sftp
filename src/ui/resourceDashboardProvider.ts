@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { HostConfig, HostAuthConfig } from '../types';
-import { ResourceDashboardService, type CrontabEntry } from '../services/resourceDashboardService';
+import { ResourceDashboardService, type CrontabEntry, type DockerData } from '../services/resourceDashboardService';
 import { SshConnectionManager } from '../sshConnectionManager';
 import { logger } from '../logger';
 
@@ -291,8 +291,8 @@ export class ResourceDashboardProvider {
   }
 
   private async loadDockerData(): Promise<void> {
-    const containers = await ResourceDashboardService.getContainerList(this.hostConfig, this.authConfig);
-    this.panel.webview.postMessage({ type: 'dockerData', data: containers });
+    const data: DockerData = await ResourceDashboardService.getDockerData(this.hostConfig, this.authConfig);
+    this.panel.webview.postMessage({ type: 'dockerData', data });
   }
 
   private async loadCrontabData(): Promise<CrontabEntry[]> {
@@ -506,6 +506,103 @@ export class ResourceDashboardProvider {
         if (handle) {
           try { handle.stop(); } catch { /* ignore */ }
           this.activeLogStreams.delete(containerId);
+        }
+        break;
+      }
+
+      case 'dockerContainerAction': {
+        const containerId = typeof message.containerId === 'string' ? message.containerId : '';
+        const action = message.action as string;
+        const allowedActions = ['start', 'stop', 'restart', 'remove'];
+        if (!/^[a-f0-9]{12,64}$/.test(containerId) || !allowedActions.includes(action)) { break; }
+        if (action === 'remove') {
+          const confirmed = await vscode.window.showWarningMessage(
+            `Remove container ${containerId.slice(0, 12)} on ${this.hostConfig.name}?`,
+            { modal: true }, 'Confirm'
+          );
+          if (confirmed !== 'Confirm') { break; }
+        }
+        try {
+          await ResourceDashboardService.dockerContainerAction(
+            this.hostConfig, this.authConfig, containerId,
+            action as 'start' | 'stop' | 'restart' | 'remove'
+          );
+          vscode.window.showInformationMessage(`Container ${action} succeeded.`);
+          await this.loadDockerData();
+        } catch (err) {
+          vscode.window.showErrorMessage(`Container ${action} failed: ${(err as Error).message}`);
+        }
+        break;
+      }
+
+      case 'dockerImageAction': {
+        const imageId = typeof message.imageId === 'string' ? message.imageId : '';
+        if (!/^[a-f0-9]{12,64}$/.test(imageId) || message.action !== 'remove') { break; }
+        const confirmed = await vscode.window.showWarningMessage(
+          `Remove image ${imageId.slice(0, 12)} on ${this.hostConfig.name}? This may fail if containers are using it.`,
+          { modal: true }, 'Confirm'
+        );
+        if (confirmed !== 'Confirm') { break; }
+        try {
+          await ResourceDashboardService.dockerImageAction(this.hostConfig, this.authConfig, imageId, 'remove');
+          vscode.window.showInformationMessage('Image removed.');
+          await this.loadDockerData();
+        } catch (err) {
+          vscode.window.showErrorMessage(`Image remove failed: ${(err as Error).message}`);
+        }
+        break;
+      }
+
+      case 'dockerVolumeAction': {
+        const volumeName = typeof message.volumeName === 'string' ? message.volumeName : '';
+        if (!volumeName || message.action !== 'remove') { break; }
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,254}$/.test(volumeName)) { break; }
+        const confirmed = await vscode.window.showWarningMessage(
+          `Remove volume "${volumeName}" on ${this.hostConfig.name}? All data will be lost.`,
+          { modal: true }, 'Confirm'
+        );
+        if (confirmed !== 'Confirm') { break; }
+        try {
+          await ResourceDashboardService.dockerVolumeAction(this.hostConfig, this.authConfig, volumeName, 'remove');
+          vscode.window.showInformationMessage(`Volume "${volumeName}" removed.`);
+          await this.loadDockerData();
+        } catch (err) {
+          vscode.window.showErrorMessage(`Volume remove failed: ${(err as Error).message}`);
+        }
+        break;
+      }
+
+      case 'dockerNetworkAction': {
+        const networkId = typeof message.networkId === 'string' ? message.networkId : '';
+        if (!/^[a-f0-9]{12,64}$/.test(networkId) || message.action !== 'remove') { break; }
+        const confirmed = await vscode.window.showWarningMessage(
+          `Remove network ${networkId.slice(0, 12)} on ${this.hostConfig.name}?`,
+          { modal: true }, 'Confirm'
+        );
+        if (confirmed !== 'Confirm') { break; }
+        try {
+          await ResourceDashboardService.dockerNetworkAction(this.hostConfig, this.authConfig, networkId, 'remove');
+          vscode.window.showInformationMessage('Network removed.');
+          await this.loadDockerData();
+        } catch (err) {
+          vscode.window.showErrorMessage(`Network remove failed: ${(err as Error).message}`);
+        }
+        break;
+      }
+
+      case 'dockerInspect': {
+        const inspectType = message.inspectType as 'container' | 'image' | 'volume' | 'network';
+        const id = typeof message.id === 'string' ? message.id : '';
+        const name = typeof message.name === 'string' ? message.name : id;
+        const allowedTypes = ['container', 'image', 'volume', 'network'];
+        if (!id || !inspectType || !allowedTypes.includes(inspectType)) { break; }
+        try {
+          const result = await ResourceDashboardService.dockerInspect(
+            this.hostConfig, this.authConfig, inspectType, id
+          );
+          this.panel.webview.postMessage({ type: 'dockerInspectData', inspectType, id, name, data: result });
+        } catch (err) {
+          this.panel.webview.postMessage({ type: 'dockerInspectData', inspectType, id, name, error: (err as Error).message });
         }
         break;
       }
@@ -1286,31 +1383,111 @@ export class ResourceDashboardProvider {
                 <div class="section">
                     <div class="section-header">
                         <i class="codicon codicon-layers"></i>
-                        <span>Docker Containers</span>
+                        <span>Docker</span>
                     </div>
-                    <div class="section-content">
-                        <div id="dockerUnavailable" style="display:none;" class="docker-unavailable">
-                            <i class="codicon codicon-info"></i>
-                            Docker is not installed or not running on this host.
+                    <div class="section-content" style="padding:0; overflow:hidden;">
+                        <!-- Docker sub-tab navigation -->
+                        <div class="docker-subtab-nav">
+                            <button class="docker-subtab-btn active" data-subtab="containers">
+                                <i class="codicon codicon-vm-running"></i>
+                                <span>Containers</span>
+                                <span id="dockerContainerCount" class="docker-subtab-count"></span>
+                            </button>
+                            <button class="docker-subtab-btn" data-subtab="images">
+                                <i class="codicon codicon-package"></i>
+                                <span>Images</span>
+                                <span id="dockerImageCount" class="docker-subtab-count"></span>
+                            </button>
+                            <button class="docker-subtab-btn" data-subtab="volumes">
+                                <i class="codicon codicon-database"></i>
+                                <span>Volumes</span>
+                                <span id="dockerVolumeCount" class="docker-subtab-count"></span>
+                            </button>
+                            <button class="docker-subtab-btn" data-subtab="networks">
+                                <i class="codicon codicon-globe"></i>
+                                <span>Networks</span>
+                                <span id="dockerNetworkCount" class="docker-subtab-count"></span>
+                            </button>
                         </div>
-                        <table class="docker-table" id="dockerTable">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th data-sort="name">Name</th>
-                                    <th data-sort="image">Image</th>
-                                    <th data-sort="state">State</th>
-                                    <th>Status</th>
-                                    <th data-sort="cpuPercent">CPU%</th>
-                                    <th data-sort="memPercent">Mem%</th>
-                                    <th>Net I/O</th>
-                                    <th>Ports</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dockerList">
-                                <tr><td colspan="9" class="empty-state">Loading…</td></tr>
-                            </tbody>
-                        </table>
+                        <!-- Containers panel -->
+                        <div id="dockerContainersPanel" class="docker-subpanel">
+                            <div id="dockerUnavailable" style="display:none;" class="docker-unavailable">
+                                <i class="codicon codicon-info"></i>
+                                Docker is not installed or not running on this host.
+                            </div>
+                            <table class="docker-table" id="dockerTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th data-sort="name">Name</th>
+                                        <th data-sort="image">Image</th>
+                                        <th data-sort="state">State</th>
+                                        <th>Status</th>
+                                        <th data-sort="cpuPercent">CPU%</th>
+                                        <th data-sort="memPercent">Mem%</th>
+                                        <th>Net I/O</th>
+                                        <th>Ports</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dockerList">
+                                    <tr><td colspan="10" class="empty-state">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Images panel -->
+                        <div id="dockerImagesPanel" class="docker-subpanel" style="display:none;">
+                            <table class="docker-table" id="dockerImagesTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th data-sort="repository">Repository</th>
+                                        <th data-sort="tag">Tag</th>
+                                        <th data-sort="size">Size</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dockerImagesList">
+                                    <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Volumes panel -->
+                        <div id="dockerVolumesPanel" class="docker-subpanel" style="display:none;">
+                            <table class="docker-table" id="dockerVolumesTable">
+                                <thead>
+                                    <tr>
+                                        <th data-sort="name">Name</th>
+                                        <th data-sort="driver">Driver</th>
+                                        <th>Mountpoint</th>
+                                        <th data-sort="scope">Scope</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dockerVolumesList">
+                                    <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Networks panel -->
+                        <div id="dockerNetworksPanel" class="docker-subpanel" style="display:none;">
+                            <table class="docker-table" id="dockerNetworksTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th data-sort="name">Name</th>
+                                        <th data-sort="driver">Driver</th>
+                                        <th>Scope</th>
+                                        <th>Internal</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dockerNetworksList">
+                                    <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1423,6 +1600,23 @@ export class ResourceDashboardProvider {
             </div>
             <pre id="dockerLogContent" class="docker-log-content"></pre>
             <div id="dockerLogStatus" class="docker-log-status">Connecting…</div>
+        </div>
+    </div>
+
+    <!-- Docker Inspect Modal -->
+    <div id="dockerInspectModal" class="process-detail-modal" style="display:none;">
+        <div class="process-detail-overlay" id="dockerInspectOverlay"></div>
+        <div class="process-detail-dialog docker-log-dialog">
+            <div class="process-detail-header">
+                <span class="process-detail-title">
+                    <i class="codicon codicon-json"></i>
+                    <span id="dockerInspectTitle">Inspect</span>
+                </span>
+                <button class="process-detail-close" id="dockerInspectClose" title="Close">
+                    <i class="codicon codicon-close"></i>
+                </button>
+            </div>
+            <pre id="dockerInspectContent" class="docker-log-content docker-inspect-content">Loading…</pre>
         </div>
     </div>
 
