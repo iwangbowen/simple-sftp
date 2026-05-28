@@ -1,6 +1,11 @@
 # Change Log
 
-## 6.30.2 - 2026-05-25
+## 6.31.0 - 2026-05-28
+
+- **Feature**: Resource Dashboard Docker tab — Docker sub-tab navigation replaced with vertical stacked sections layout (Containers, Images, Volumes, Networks, Compose Projects), matching the layout style of other tabs.
+- **Feature**: Resource Dashboard Docker tab — added **Compose Projects** section with project listing (running/total service count, config file path), per-project expand/collapse to view individual services, and start/stop/restart/down actions at both project and service level.
+- **Feature**: Resource Dashboard Docker tab — added Docker Compose data collection via `docker compose ls --format json`; service details via `docker compose -p <project> ps --format json`.
+- **Feature**: Resource Dashboard Docker tab — added Images, Volumes, and Networks sections with inspect and remove actions; Containers section extended with start/stop/restart/remove actions and log streaming.
 
 - **Fix**: Dual-panel file browser — when returning to host selection from a panel that was in grid view, the host list rows could collapse to ~85px wide and hide host names. Grid-view styling is now cleared before rendering the host list.
 
