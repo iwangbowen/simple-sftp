@@ -255,10 +255,12 @@
         const dockerImagesList = document.getElementById('dockerImagesList');
         const dockerVolumesList = document.getElementById('dockerVolumesList');
         const dockerNetworksList = document.getElementById('dockerNetworksList');
+        const dockerComposeList = document.getElementById('dockerComposeList');
         if (dockerList) { dockerList.innerHTML = loadingRow; }
         if (dockerImagesList) { dockerImagesList.innerHTML = loadingRow; }
         if (dockerVolumesList) { dockerVolumesList.innerHTML = loadingRow; }
         if (dockerNetworksList) { dockerNetworksList.innerHTML = loadingRow; }
+        if (dockerComposeList) { dockerComposeList.innerHTML = loadingRow; }
         break;
       }
       case 'crontab': {
@@ -438,6 +440,10 @@
 
       case 'dockerInspectData':
         handleDockerInspectData(message);
+        break;
+
+      case 'dockerComposeServicesData':
+        handleDockerComposeServicesData(message);
         break;
 
       case 'error':
@@ -2201,6 +2207,8 @@
   let currentDockerImages = [];
   let currentDockerVolumes = [];
   let currentDockerNetworks = [];
+  let currentDockerCompose = [];
+  const expandedComposeProjects = new Set();
   let dockerSubTab = 'containers';
   let dockerSortColumn = 'state';
   let dockerSortDir = 'asc';
@@ -2210,6 +2218,8 @@
   let dockerVolumeSortDir = 'asc';
   let dockerNetworkSortColumn = 'name';
   let dockerNetworkSortDir = 'asc';
+  let dockerComposeSortColumn = 'name';
+  let dockerComposeSortDir = 'asc';
 
   // Docker sub-tab switching
   document.querySelectorAll('.docker-subtab-btn').forEach(btn => {
@@ -2226,6 +2236,7 @@
       images: 'dockerImagesPanel',
       volumes: 'dockerVolumesPanel',
       networks: 'dockerNetworksPanel',
+      compose: 'dockerComposePanel',
     };
     Object.entries(panels).forEach(([key, id]) => {
       const el = document.getElementById(id);
@@ -2250,6 +2261,7 @@
       currentDockerImages = (data && data.images) || [];
       currentDockerVolumes = (data && data.volumes) || [];
       currentDockerNetworks = (data && data.networks) || [];
+      currentDockerCompose = (data && data.compose) || [];
     }
 
     // Update sub-tab count badges
@@ -2257,15 +2269,18 @@
     const imageCountEl = document.getElementById('dockerImageCount');
     const volumeCountEl = document.getElementById('dockerVolumeCount');
     const networkCountEl = document.getElementById('dockerNetworkCount');
+    const composeCountEl = document.getElementById('dockerComposeCount');
     if (containerCountEl) { containerCountEl.textContent = currentContainers.length ? String(currentContainers.length) : ''; }
     if (imageCountEl) { imageCountEl.textContent = currentDockerImages.length ? String(currentDockerImages.length) : ''; }
     if (volumeCountEl) { volumeCountEl.textContent = currentDockerVolumes.length ? String(currentDockerVolumes.length) : ''; }
     if (networkCountEl) { networkCountEl.textContent = currentDockerNetworks.length ? String(currentDockerNetworks.length) : ''; }
+    if (composeCountEl) { composeCountEl.textContent = currentDockerCompose.length ? String(currentDockerCompose.length) : ''; }
 
     renderDockerContainersTable();
     renderDockerImagesTable();
     renderDockerVolumesTable();
     renderDockerNetworksTable();
+    renderDockerComposeTable();
   }
 
   function renderDockerContainersTable() {
@@ -2476,6 +2491,126 @@
     });
   }
 
+  function renderDockerComposeTable() {
+    const tbody = document.getElementById('dockerComposeList');
+    if (!tbody) { return; }
+    if (currentDockerCompose.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No Compose projects found. Requires Docker Compose V2 (<code>docker compose</code>).</td></tr>';
+      return;
+    }
+    const sorted = [...currentDockerCompose].sort((a, b) => {
+      const aVal = String(a[dockerComposeSortColumn] || '').toLowerCase();
+      const bVal = String(b[dockerComposeSortColumn] || '').toLowerCase();
+      if (aVal < bVal) { return dockerComposeSortDir === 'asc' ? -1 : 1; }
+      if (aVal > bVal) { return dockerComposeSortDir === 'asc' ? 1 : -1; }
+      return 0;
+    });
+    document.querySelectorAll('#dockerComposeTable th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === dockerComposeSortColumn) {
+        th.classList.add(dockerComposeSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+    tbody.innerHTML = '';
+    sorted.forEach(proj => {
+      const hasRunning = proj.runningCount > 0;
+      const allStopped = proj.runningCount === 0;
+      const statusClass = hasRunning ? (proj.runningCount === proj.totalCount ? 'state-up' : 'state-unknown') : 'state-error';
+      const isExpanded = expandedComposeProjects.has(proj.name);
+      // Project row
+      const tr = document.createElement('tr');
+      tr.className = 'compose-project-row';
+      tr.dataset.projectName = proj.name;
+      tr.innerHTML = `
+        <td class="compose-expand-cell">
+          <button class="compose-expand-btn" data-project="${escapeHtml(proj.name)}" title="${isExpanded ? 'Collapse' : 'Show services'}">
+            <i class="codicon codicon-chevron-${isExpanded ? 'down' : 'right'}"></i>
+          </button>
+        </td>
+        <td><strong>${escapeHtml(proj.name)}</strong></td>
+        <td>
+          <span class="status-pill ${statusClass}">
+            ${escapeHtml(String(proj.runningCount))}/${escapeHtml(String(proj.totalCount))} running
+          </span>
+        </td>
+        <td style="font-size:11px; color: var(--vscode-descriptionForeground);">${escapeHtml(proj.status)}</td>
+        <td style="font-size:11px; color: var(--vscode-descriptionForeground); max-width:220px; overflow:hidden; text-overflow:ellipsis;"
+          title="${escapeHtml(proj.configFiles)}">${escapeHtml(proj.configFiles)}</td>
+        <td class="docker-actions-cell">
+          <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(proj.name)}" data-action="start" title="Start All"
+            ${!allStopped ? 'disabled' : ''}><i class="codicon codicon-play"></i></button>
+          <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(proj.name)}" data-action="stop" title="Stop All"
+            ${allStopped ? 'disabled' : ''}><i class="codicon codicon-debug-stop"></i></button>
+          <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(proj.name)}" data-action="restart" title="Restart All">
+            <i class="codicon codicon-debug-restart"></i></button>
+          <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(proj.name)}" data-action="down" title="Down (remove containers)">
+            <i class="codicon codicon-trash"></i></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+      // Services detail row (shown when expanded)
+      if (isExpanded) {
+        const detailTr = document.createElement('tr');
+        detailTr.className = 'compose-detail-row';
+        detailTr.dataset.projectName = proj.name;
+        detailTr.innerHTML = `
+          <td class="compose-expand-cell"></td>
+          <td colspan="5" style="padding: 0 0 8px 12px;">
+            <div class="compose-services-container" id="composeServices_${escapeHtml(proj.name)}">
+              <span style="color: var(--vscode-descriptionForeground); font-size:12px;">
+                <i class="codicon codicon-loading codicon-modifier-spin"></i> Loading services…
+              </span>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(detailTr);
+      }
+    });
+  }
+
+  function handleDockerComposeServicesData(msg) {
+    const { projectName, services, error } = msg;
+    const container = document.getElementById(`composeServices_${projectName}`);
+    if (!container) { return; }
+    if (error) {
+      container.innerHTML = `<span style="color: var(--vscode-errorForeground); font-size:12px;">Error: ${escapeHtml(error)}</span>`;
+      return;
+    }
+    if (!services || services.length === 0) {
+      container.innerHTML = '<span style="color: var(--vscode-descriptionForeground); font-size:12px;">No services found.</span>';
+      return;
+    }
+    const rows = services.map(svc => {
+      const isRunning = svc.state === 'running';
+      const stateClass = isRunning ? 'state-up' : svc.state === 'exited' ? 'state-error' : 'state-unknown';
+      const healthBadge = svc.health
+        ? ` <span class="status-pill ${svc.health === 'healthy' ? 'state-up' : 'state-error'}" style="font-size:10px;">${escapeHtml(svc.health)}</span>`
+        : '';
+      return `<tr>
+        <td style="font-size:12px; font-weight:500;">${escapeHtml(svc.service)}</td>
+        <td style="font-size:11px; color: var(--vscode-descriptionForeground);">${escapeHtml(svc.name)}</td>
+        <td><span class="status-pill ${stateClass}">${escapeHtml(svc.state)}</span>${healthBadge}</td>
+        <td style="font-size:11px; color: var(--vscode-descriptionForeground);">${escapeHtml(svc.ports || '—')}</td>
+        <td class="docker-actions-cell">
+          <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(projectName)}"
+            data-service="${escapeHtml(svc.service)}" data-action="start"
+            title="Start service" ${isRunning ? 'disabled' : ''}><i class="codicon codicon-play"></i></button>
+          <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(projectName)}"
+            data-service="${escapeHtml(svc.service)}" data-action="stop"
+            title="Stop service" ${!isRunning ? 'disabled' : ''}><i class="codicon codicon-debug-stop"></i></button>
+          <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(projectName)}"
+            data-service="${escapeHtml(svc.service)}" data-action="restart"
+            title="Restart service"><i class="codicon codicon-debug-restart"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+    container.innerHTML = `<table class="docker-table compose-services-table" style="margin:4px 0 4px 0;">
+      <thead><tr>
+        <th>Service</th><th>Container</th><th>State</th><th>Ports</th><th>Actions</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
   // ── Docker table sort & action event delegation ──────────────────────────
   document.addEventListener('click', (e) => {
     // Container table sort
@@ -2512,6 +2647,41 @@
       if (dockerNetworkSortColumn === col) { dockerNetworkSortDir = dockerNetworkSortDir === 'asc' ? 'desc' : 'asc'; }
       else { dockerNetworkSortColumn = col; dockerNetworkSortDir = 'asc'; }
       renderDockerNetworksTable();
+      return;
+    }
+    // Compose table sort
+    const composeTh = e.target.closest('#dockerComposeTable th[data-sort]');
+    if (composeTh) {
+      const col = composeTh.dataset.sort;
+      if (dockerComposeSortColumn === col) { dockerComposeSortDir = dockerComposeSortDir === 'asc' ? 'desc' : 'asc'; }
+      else { dockerComposeSortColumn = col; dockerComposeSortDir = 'asc'; }
+      renderDockerComposeTable();
+      return;
+    }
+    // Compose expand/collapse
+    const expandBtn = e.target.closest('.compose-expand-btn');
+    if (expandBtn) {
+      const projectName = expandBtn.dataset.project;
+      if (!projectName) { return; }
+      if (expandedComposeProjects.has(projectName)) {
+        expandedComposeProjects.delete(projectName);
+        renderDockerComposeTable();
+      } else {
+        expandedComposeProjects.add(projectName);
+        renderDockerComposeTable();
+        vscode.postMessage({ type: 'dockerComposeServices', projectName });
+      }
+      return;
+    }
+    // Compose action button (project or service level)
+    const composeActionBtn = e.target.closest('.compose-action-btn');
+    if (composeActionBtn && !composeActionBtn.disabled) {
+      const projectName = composeActionBtn.dataset.project;
+      const action = composeActionBtn.dataset.action;
+      const serviceName = composeActionBtn.dataset.service || undefined;
+      if (projectName && action) {
+        vscode.postMessage({ type: 'dockerComposeAction', projectName, action, serviceName });
+      }
       return;
     }
     // Container log button

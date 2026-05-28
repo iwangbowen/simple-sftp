@@ -163,6 +163,40 @@ export interface DockerData {
   images: DockerImageInfo[];
   volumes: DockerVolumeInfo[];
   networks: DockerNetworkInfo[];
+  /** Docker Compose 项目列表（V2 功能，不可用时为空数组） */
+  compose: DockerComposeProject[];
+}
+
+/** Docker Compose 项目信息 */
+export interface DockerComposeProject {
+  /** 项目名称 */
+  name: string;
+  /** 状态字符串，如 "running(2)" 或 "exited(1)" */
+  status: string;
+  /** Compose 文件路径 */
+  configFiles: string;
+  /** 运行中服务数 */
+  runningCount: number;
+  /** 总服务数 */
+  totalCount: number;
+}
+
+/** Docker Compose 服务信息 */
+export interface DockerComposeService {
+  /** 容器短 ID */
+  id: string;
+  /** 容器名称 */
+  name: string;
+  /** compose 服务名 */
+  service: string;
+  /** 状态：running / exited / paused 等 */
+  state: string;
+  /** 健康检查状态 */
+  health: string;
+  /** 退出码 */
+  exitCode: number;
+  /** 端口映射 */
+  ports: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1950,10 +1984,10 @@ export class ResourceDashboardService {
     return this.executeWithConnection(config, authConfig, async (conn) => {
       const dockerCheck = await this.executeCommand(conn, 'command -v docker 2>/dev/null || echo ""').catch(() => '');
       if (!dockerCheck.trim()) {
-        return { containers: [], images: [], volumes: [], networks: [] };
+        return { containers: [], images: [], volumes: [], networks: [], compose: [] };
       }
 
-      const [psRaw, imagesRaw, volumesRaw, networksRaw] = await Promise.all([
+      const [psRaw, imagesRaw, volumesRaw, networksRaw, composeRaw] = await Promise.all([
         this.executeCommand(conn,
           'docker ps -a --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.CreatedAt}}|{{.Ports}}" 2>/dev/null || echo ""'
         ).catch(() => ''),
@@ -1966,6 +2000,9 @@ export class ResourceDashboardService {
         this.executeCommand(conn,
           'docker network ls --format "{{.ID}}|{{.Name}}|{{.Driver}}|{{.Scope}}" 2>/dev/null || echo ""'
         ).catch(() => ''),
+        this.executeCommand(conn,
+          'docker compose ls --format json 2>/dev/null || echo "[]"'
+        ).catch(() => '[]'),
       ]);
 
       const containers = this.parseDockerPsOutput(psRaw);
@@ -1987,6 +2024,7 @@ export class ResourceDashboardService {
         images: this.parseDockerImagesOutput(imagesRaw),
         volumes: this.parseDockerVolumesOutput(volumesRaw),
         networks: this.parseDockerNetworksOutput(networksRaw),
+        compose: this.parseDockerComposeOutput(composeRaw),
       };
     });
   }
@@ -2167,6 +2205,108 @@ export class ResourceDashboardService {
       });
     }
     return networks;
+  }
+
+  private static parseDockerComposeOutput(raw: string): DockerComposeProject[] {
+    try {
+      const trimmed = raw.trim();
+      if (!trimmed || trimmed === '[]') { return []; }
+      const parsed = JSON.parse(trimmed) as Array<{ Name?: string; Status?: string; ConfigFiles?: string }>;
+      if (!Array.isArray(parsed)) { return []; }
+      return parsed
+        .filter(p => p.Name)
+        .map(p => {
+          const status = p.Status || '';
+          // status format: "running(2)", "exited(1)", "running(1), exited(1)" etc.
+          let runningCount = 0;
+          let totalCount = 0;
+          const matches = status.matchAll(/(\w+)\((\d+)\)/g);
+          for (const m of matches) {
+            const count = Number.parseInt(m[2], 10);
+            totalCount += count;
+            if (m[1].toLowerCase() === 'running') { runningCount = count; }
+          }
+          return {
+            name: p.Name ?? '',
+            status,
+            configFiles: p.ConfigFiles ?? '',
+            runningCount,
+            totalCount,
+          };
+        });
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * 获取 Docker Compose 项目的服务列表
+   */
+  static async getDockerComposeServices(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    projectName: string
+  ): Promise<DockerComposeService[]> {
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,253}$/.test(projectName)) {
+      throw new Error(`Invalid project name: ${projectName}`);
+    }
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      const raw = await this.executeCommand(
+        conn,
+        `docker compose -p '${projectName}' ps --format json 2>/dev/null || echo "[]"`
+      ).catch(() => '[]');
+      try {
+        const trimmed = raw.trim();
+        if (!trimmed || trimmed === '[]') { return []; }
+        const parsed = JSON.parse(trimmed) as Array<{
+          ID?: string; Name?: string; Service?: string;
+          State?: string; Health?: string; ExitCode?: number; Ports?: string;
+        }>;
+        if (!Array.isArray(parsed)) { return []; }
+        return parsed.map(s => ({
+          id: (s.ID || '').slice(0, 12),
+          name: s.Name || '',
+          service: s.Service || '',
+          state: (s.State || '').toLowerCase(),
+          health: s.Health || '',
+          exitCode: s.ExitCode || 0,
+          ports: s.Ports || '',
+        }));
+      } catch {
+        return [];
+      }
+    });
+  }
+
+  /**
+   * 对 Docker Compose 项目或服务执行操作
+   * 使用 -p 标志识别项目，无需知道 compose 文件路径
+   */
+  static async dockerComposeAction(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    projectName: string,
+    action: 'start' | 'stop' | 'restart' | 'down',
+    serviceName?: string
+  ): Promise<void> {
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,253}$/.test(projectName)) {
+      throw new Error(`Invalid project name: ${projectName}`);
+    }
+    const allowedActions = ['start', 'stop', 'restart', 'down'] as const;
+    if (!allowedActions.includes(action)) { throw new Error(`Invalid action: ${action}`); }
+    if (serviceName && !/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,63}$/.test(serviceName)) {
+      throw new Error(`Invalid service name: ${serviceName}`);
+    }
+    // 'down' does not support per-service granularity
+    const serviceArg = (serviceName && action !== 'down') ? ` '${serviceName}'` : '';
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      await this.executeCommand(
+        conn,
+        `docker compose -p '${projectName}' ${action}${serviceArg} 2>&1`
+      ).catch(err => {
+        throw new Error(`Docker compose ${action} failed: ${(err as Error).message}`);
+      });
+    });
   }
 
   /**

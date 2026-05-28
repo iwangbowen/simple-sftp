@@ -607,6 +607,48 @@ export class ResourceDashboardProvider {
         break;
       }
 
+      case 'dockerComposeServices': {
+        const projectName = typeof message.projectName === 'string' ? message.projectName : '';
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,253}$/.test(projectName)) { break; }
+        try {
+          const services = await ResourceDashboardService.getDockerComposeServices(
+            this.hostConfig, this.authConfig, projectName
+          );
+          this.panel.webview.postMessage({ type: 'dockerComposeServicesData', projectName, services });
+        } catch (err) {
+          this.panel.webview.postMessage({ type: 'dockerComposeServicesData', projectName, error: (err as Error).message });
+        }
+        break;
+      }
+
+      case 'dockerComposeAction': {
+        const projectName = typeof message.projectName === 'string' ? message.projectName : '';
+        const action = message.action as string;
+        const serviceName = typeof message.serviceName === 'string' ? message.serviceName : undefined;
+        const allowedActions = ['start', 'stop', 'restart', 'down'];
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,253}$/.test(projectName) || !allowedActions.includes(action)) { break; }
+        if (serviceName && !/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,63}$/.test(serviceName)) { break; }
+        if (action === 'down' && !serviceName) {
+          const confirmed = await vscode.window.showWarningMessage(
+            `Stop and remove all containers in project "${projectName}" on ${this.hostConfig.name}?`,
+            { modal: true }, 'Confirm'
+          );
+          if (confirmed !== 'Confirm') { break; }
+        }
+        try {
+          await ResourceDashboardService.dockerComposeAction(
+            this.hostConfig, this.authConfig, projectName,
+            action as 'start' | 'stop' | 'restart' | 'down',
+            serviceName
+          );
+          vscode.window.showInformationMessage(`Compose ${action} succeeded.`);
+          await this.loadDockerData();
+        } catch (err) {
+          vscode.window.showErrorMessage(`Compose ${action} failed: ${(err as Error).message}`);
+        }
+        break;
+      }
+
       case 'crontabWrite': {
         const entries = Array.isArray(message.entries) ? message.entries : [];
         try {
@@ -1408,6 +1450,11 @@ export class ResourceDashboardProvider {
                                 <span>Networks</span>
                                 <span id="dockerNetworkCount" class="docker-subtab-count"></span>
                             </button>
+                            <button class="docker-subtab-btn" data-subtab="compose">
+                                <i class="codicon codicon-symbol-class"></i>
+                                <span>Compose</span>
+                                <span id="dockerComposeCount" class="docker-subtab-count"></span>
+                            </button>
                         </div>
                         <!-- Containers panel -->
                         <div id="dockerContainersPanel" class="docker-subpanel">
@@ -1484,6 +1531,24 @@ export class ResourceDashboardProvider {
                                     </tr>
                                 </thead>
                                 <tbody id="dockerNetworksList">
+                                    <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Compose panel -->
+                        <div id="dockerComposePanel" class="docker-subpanel" style="display:none;">
+                            <table class="docker-table" id="dockerComposeTable">
+                                <thead>
+                                    <tr>
+                                        <th class="compose-expand-col"></th>
+                                        <th data-sort="name">Project</th>
+                                        <th>Services</th>
+                                        <th data-sort="status">Status</th>
+                                        <th>Config File</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dockerComposeList">
                                     <tr><td colspan="6" class="empty-state">Loading…</td></tr>
                                 </tbody>
                             </table>
