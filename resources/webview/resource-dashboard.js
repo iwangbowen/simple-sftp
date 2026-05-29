@@ -2209,6 +2209,7 @@
   let currentDockerNetworks = [];
   let currentDockerCompose = [];
   const expandedComposeProjects = new Set();
+  const composeServicesCache = {}; // projectName -> { services, error }
   let dockerSortColumn = 'state';
   let dockerSortDir = 'asc';
   let dockerImageSortColumn = 'repository';
@@ -2540,14 +2541,22 @@
           </td>
         `;
         tbody.appendChild(detailTr);
+        // If cached, render immediately; otherwise request
+        if (composeServicesCache[proj.name]) {
+          renderComposeServicesFromCache(proj.name);
+        } else {
+          vscode.postMessage({ type: 'dockerComposeServices', projectName: proj.name });
+        }
       }
     });
   }
 
-  function handleDockerComposeServicesData(msg) {
-    const { projectName, services, error } = msg;
+  function renderComposeServicesFromCache(projectName) {
     const container = document.getElementById(`composeServices_${projectName}`);
     if (!container) { return; }
+    const cached = composeServicesCache[projectName];
+    if (!cached) { return; }
+    const { services, error } = cached;
     if (error) {
       container.innerHTML = `<span style="color: var(--vscode-errorForeground); font-size:12px;">Error: ${escapeHtml(error)}</span>`;
       return;
@@ -2586,6 +2595,13 @@
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+  }
+
+  function handleDockerComposeServicesData(msg) {
+    const { projectName, services, error } = msg;
+    // Save to cache
+    composeServicesCache[projectName] = { services, error };
+    renderComposeServicesFromCache(projectName);
   }
 
   // ── Docker table sort & action event delegation ──────────────────────────
@@ -2645,8 +2661,9 @@
         renderDockerComposeTable();
       } else {
         expandedComposeProjects.add(projectName);
+        // Clear stale cache so re-expand fetches fresh data
+        delete composeServicesCache[projectName];
         renderDockerComposeTable();
-        vscode.postMessage({ type: 'dockerComposeServices', projectName });
       }
       return;
     }

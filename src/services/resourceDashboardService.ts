@@ -2258,12 +2258,9 @@ export class ResourceDashboardService {
       try {
         const trimmed = raw.trim();
         if (!trimmed || trimmed === '[]') { return []; }
-        const parsed = JSON.parse(trimmed) as Array<{
-          ID?: string; Name?: string; Service?: string;
-          State?: string; Health?: string; ExitCode?: number; Ports?: string;
-        }>;
-        if (!Array.isArray(parsed)) { return []; }
-        return parsed.map(s => ({
+
+        type RawService = { ID?: string; Name?: string; Service?: string; State?: string; Health?: string; ExitCode?: number; Ports?: string };
+        const toService = (s: RawService): DockerComposeService => ({
           id: (s.ID || '').slice(0, 12),
           name: s.Name || '',
           service: s.Service || '',
@@ -2271,7 +2268,24 @@ export class ResourceDashboardService {
           health: s.Health || '',
           exitCode: s.ExitCode || 0,
           ports: s.Ports || '',
-        }));
+        });
+
+        // Docker Compose V2 may output NDJSON (one JSON object per line) or a JSON array
+        if (trimmed.startsWith('[')) {
+          // JSON array format (older compose or --format json on some versions)
+          const parsed = JSON.parse(trimmed) as RawService[];
+          if (!Array.isArray(parsed)) { return []; }
+          return parsed.map(toService);
+        }
+        // NDJSON format: one JSON object per line
+        return trimmed.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.startsWith('{'))
+          .map(line => {
+            try { return toService(JSON.parse(line) as RawService); }
+            catch { return null; }
+          })
+          .filter((s): s is DockerComposeService => s !== null);
       } catch {
         return [];
       }
