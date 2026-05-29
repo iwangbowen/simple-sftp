@@ -411,6 +411,70 @@ export interface SystemResourceInfo {
 export class ResourceDashboardService {
   private static readonly NETWORK_RATE_SAMPLE_INTERVAL_MS = 1000;
 
+  /** 每台主机的 compose 命令类型缓存，带 TTL（10 分钟）避免 Docker 升级后残留旧值 */
+  private static readonly composeCommandCache = new Map<string, { cmd: string; ts: number }>();
+  private static readonly COMPOSE_CMD_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+  /**
+   * 检测主机支持的 compose 命令，结果按 hostId 缓存（10 分钟 TTL）
+   * - 缓存过期或首次访问时重新检测，避免用户升级 Docker 后缓存过期
+   */
+  private static async resolveComposeCommand(
+    conn: Client,
+    hostId: string
+  ): Promise<string> {
+    const cached = this.composeCommandCache.get(hostId);
+    if (cached && (Date.now() - cached.ts) < this.COMPOSE_CMD_CACHE_TTL_MS) {
+      return cached.cmd;
+    }
+    const set = (cmd: string): string => {
+      this.composeCommandCache.set(hostId, { cmd, ts: Date.now() });
+      return cmd;
+    };
+    try {
+      // Use 2>&1 to capture both stdout and stderr (some wrapper scripts output to stderr)
+      const out = await this.executeCommand(conn, 'docker compose version 2>&1').catch(() => '');
+      if (out.toLowerCase().includes('version')) { return set('docker compose'); }
+    } catch { /* fall through */ }
+    try {
+      // V1 uses --version flag; capture both streams
+      const out = await this.executeCommand(conn, 'docker-compose --version 2>&1').catch(() => '');
+      if (out.toLowerCase().includes('version') || out.toLowerCase().includes('docker-compose')) {
+        return set('docker-compose');
+      }
+    } catch { /* fall through */ }
+    // Neither found — default to V2 syntax
+    return set('docker compose');
+  }
+
+  /**
+   * 从容器 Labels 中提取 compose 项目列表（V1 兼容）
+   */
+  private static parseComposeProjectsFromLabels(raw: string): DockerComposeProject[] {
+    if (!raw.trim()) { return []; }
+    const projectMap = new Map<string, { configs: Set<string>; running: number; total: number }>();
+    for (const line of raw.trim().split('\n')) {
+      const parts = line.trim().split('|');
+      if (parts.length < 3) { continue; }
+      const [name, configFiles, state] = parts;
+      if (!name) { continue; }
+      if (!projectMap.has(name)) {
+        projectMap.set(name, { configs: new Set(), running: 0, total: 0 });
+      }
+      const entry = projectMap.get(name)!;
+      if (configFiles) { entry.configs.add(configFiles); }
+      entry.total++;
+      if (state === 'running') { entry.running++; }
+    }
+    return Array.from(projectMap.entries()).map(([name, data]) => ({
+      name,
+      status: `running(${data.running}), exited(${data.total - data.running})`.replace(/, exited\(0\)/, '').replace(/running\(0\), /, ''),
+      configFiles: Array.from(data.configs).filter(Boolean).join(', '),
+      runningCount: data.running,
+      totalCount: data.total,
+    }));
+  }
+
   /**
    * 获取远程服务器的系统资源信息
    */
@@ -1987,7 +2051,30 @@ export class ResourceDashboardService {
         return { containers: [], images: [], volumes: [], networks: [], compose: [] };
       }
 
-      const [psRaw, imagesRaw, volumesRaw, networksRaw, composeRaw] = await Promise.all([
+      // Detect compose command once; used for project listing
+      const composeCmd = await this.resolveComposeCommand(conn, config.id);
+
+      // Fetch compose projects: V2 supports `ls --format json`; V1 doesn't — fall back to container labels
+      const fetchCompose = async (): Promise<DockerComposeProject[]> => {
+        if (composeCmd === 'docker compose') {
+          const raw = await this.executeCommand(conn,
+            'docker compose ls --format json 2>/dev/null || echo "[]"'
+          ).catch(() => '[]');
+          const projects = this.parseDockerComposeOutput(raw);
+          if (projects.length > 0) { return projects; }
+          // fall through to label-based extraction
+        }
+        // V1 or V2 with no projects found: extract from container labels
+        // Use single-quoted format to avoid shell-escaping issues with double quotes
+        const labelRaw = await this.executeCommand(conn,
+          `docker ps -a --filter 'label=com.docker.compose.project'` +
+          ` --format '{{.Label "com.docker.compose.project"}}|{{.Label "com.docker.compose.project.config_files"}}|{{.State}}'` +
+          ` 2>/dev/null || echo ""`
+        ).catch(() => '');
+        return this.parseComposeProjectsFromLabels(labelRaw);
+      };
+
+      const [psRaw, imagesRaw, volumesRaw, networksRaw, composeProjects] = await Promise.all([
         this.executeCommand(conn,
           'docker ps -a --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.CreatedAt}}|{{.Ports}}" 2>/dev/null || echo ""'
         ).catch(() => ''),
@@ -2000,9 +2087,7 @@ export class ResourceDashboardService {
         this.executeCommand(conn,
           'docker network ls --format "{{.ID}}|{{.Name}}|{{.Driver}}|{{.Scope}}" 2>/dev/null || echo ""'
         ).catch(() => ''),
-        this.executeCommand(conn,
-          'docker compose ls --format json 2>/dev/null || echo "[]"'
-        ).catch(() => '[]'),
+        fetchCompose(),
       ]);
 
       const containers = this.parseDockerPsOutput(psRaw);
@@ -2024,7 +2109,7 @@ export class ResourceDashboardService {
         images: this.parseDockerImagesOutput(imagesRaw),
         volumes: this.parseDockerVolumesOutput(volumesRaw),
         networks: this.parseDockerNetworksOutput(networksRaw),
-        compose: this.parseDockerComposeOutput(composeRaw),
+        compose: composeProjects,
       };
     });
   }
@@ -2251,44 +2336,30 @@ export class ResourceDashboardService {
       throw new Error(`Invalid project name: ${projectName}`);
     }
     return this.executeWithConnection(config, authConfig, async (conn) => {
+      // Use docker ps with compose labels — works for both V1 and V2
+      // Falls back gracefully if compose CLI is not available
       const raw = await this.executeCommand(
         conn,
-        `docker compose -p '${projectName}' ps --format json 2>/dev/null || echo "[]"`
-      ).catch(() => '[]');
-      try {
-        const trimmed = raw.trim();
-        if (!trimmed || trimmed === '[]') { return []; }
+        `docker ps -a ` +
+        `--filter "label=com.docker.compose.project=${projectName}" ` +
+        `--format "{{.ID}}|{{.Label \"com.docker.compose.service\"}}|{{.Names}}|{{.State}}|{{.Status}}|{{.Ports}}" ` +
+        `2>/dev/null || echo ""`
+      ).catch(() => '');
 
-        type RawService = { ID?: string; Name?: string; Service?: string; State?: string; Health?: string; ExitCode?: number; Ports?: string };
-        const toService = (s: RawService): DockerComposeService => ({
-          id: (s.ID || '').slice(0, 12),
-          name: s.Name || '',
-          service: s.Service || '',
-          state: (s.State || '').toLowerCase(),
-          health: s.Health || '',
-          exitCode: s.ExitCode || 0,
-          ports: s.Ports || '',
+      if (!raw.trim()) { return []; }
+
+      return raw.trim().split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+          const parts = line.split('|');
+          const id = parts[0] || '';
+          const service = parts[1] || '';
+          const name = parts[2] || '';
+          const state = (parts[3] || '').toLowerCase();
+          const ports = parts[5] || '';
+          return { id: id.slice(0, 12), name, service, state, health: '', exitCode: 0, ports };
         });
-
-        // Docker Compose V2 may output NDJSON (one JSON object per line) or a JSON array
-        if (trimmed.startsWith('[')) {
-          // JSON array format (older compose or --format json on some versions)
-          const parsed = JSON.parse(trimmed) as RawService[];
-          if (!Array.isArray(parsed)) { return []; }
-          return parsed.map(toService);
-        }
-        // NDJSON format: one JSON object per line
-        return trimmed.split('\n')
-          .map(line => line.trim())
-          .filter(line => line.startsWith('{'))
-          .map(line => {
-            try { return toService(JSON.parse(line) as RawService); }
-            catch { return null; }
-          })
-          .filter((s): s is DockerComposeService => s !== null);
-      } catch {
-        return [];
-      }
     });
   }
 
@@ -2314,9 +2385,10 @@ export class ResourceDashboardService {
     // 'down' does not support per-service granularity
     const serviceArg = (serviceName && action !== 'down') ? ` '${serviceName}'` : '';
     return this.executeWithConnection(config, authConfig, async (conn) => {
+      const composeCmd = await this.resolveComposeCommand(conn, config.id);
       await this.executeCommand(
         conn,
-        `docker compose -p '${projectName}' ${action}${serviceArg} 2>&1`
+        `${composeCmd} -p '${projectName}' ${action}${serviceArg} 2>&1`
       ).catch(err => {
         throw new Error(`Docker compose ${action} failed: ${(err as Error).message}`);
       });

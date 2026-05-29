@@ -2472,7 +2472,7 @@
     const tbody = document.getElementById('dockerComposeList');
     if (!tbody) { return; }
     if (currentDockerCompose.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No Compose projects found. Requires Docker Compose V2 (<code>docker compose</code>).</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No Compose projects found. Make sure containers are running with Docker Compose.</td></tr>';
       return;
     }
     const sorted = [...currentDockerCompose].sort((a, b) => {
