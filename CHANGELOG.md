@@ -1,5 +1,12 @@
 # Change Log
 
+## 6.32.0 - 2026-05-29
+
+- **Feature**: Resource Dashboard Docker tab — Compose Projects section now supports **Inspect Config** button (uses `docker compose config`), showing the resolved YAML for the selected project.
+- **Feature**: Resource Dashboard Docker tab — compose config inspection falls back gracefully: first uses config file path (`-f`), then project name (`-p`), then `docker inspect` on all project containers — ensuring compatibility even when compose project metadata is unavailable.
+- **Fix**: Resource Dashboard Docker tab — fixed inspect button icon in Compose Projects section to use consistent `codicon-json` style matching other sections.
+- **Fix**: Resource Dashboard Docker tab — fixed `dockerComposeConfigInspect` method signature mismatch (provider was passing 4 args to a 3-param method).
+
 ## 6.31.0 - 2026-05-28
 
 - **Feature**: Resource Dashboard Docker tab — Docker sub-tab navigation replaced with vertical stacked sections layout (Containers, Images, Volumes, Networks, Compose Projects), matching the layout style of other tabs.
