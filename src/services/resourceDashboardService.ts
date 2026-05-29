@@ -2204,6 +2204,29 @@ export class ResourceDashboardService {
   }
 
   /**
+   * 获取 Docker Compose 项目配置（docker compose config）
+   * 自动检测 V1/V2 命令，结果为 YAML 字符串
+   */
+  static async dockerComposeConfigInspect(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    projectName: string
+  ): Promise<string> {
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,253}$/.test(projectName)) {
+      throw new Error(`Invalid project name: ${projectName}`);
+    }
+    return this.executeWithConnection(config, authConfig, async (conn) => {
+      const composeCmd = await this.resolveComposeCommand(conn, config.id);
+      return this.executeCommand(
+        conn,
+        `${composeCmd} -p '${projectName}' config 2>&1`
+      ).catch(err => {
+        throw new Error(`Docker compose config failed: ${(err as Error).message}`);
+      });
+    });
+  }
+
+  /**
    * 对 Docker 对象执行 inspect，返回原始 JSON 字符串
    */
   static async dockerInspect(

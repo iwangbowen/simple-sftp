@@ -2520,6 +2520,8 @@
             ${allStopped ? 'disabled' : ''}><i class="codicon codicon-debug-stop"></i></button>
           <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(proj.name)}" data-action="restart" title="Restart All">
             <i class="codicon codicon-debug-restart"></i></button>
+          <button class="docker-action-btn compose-project-inspect-btn" data-project="${escapeHtml(proj.name)}" title="Inspect Config (docker compose config)">
+            <i class="codicon codicon-info"></i></button>
           <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(proj.name)}" data-action="down" title="Down (remove containers)">
             <i class="codicon codicon-trash"></i></button>
         </td>
@@ -2586,6 +2588,8 @@
           <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(projectName)}"
             data-service="${escapeHtml(svc.service)}" data-action="restart"
             title="Restart service"><i class="codicon codicon-debug-restart"></i></button>
+          <button class="docker-action-btn docker-inspect-btn" data-type="container" data-id="${escapeHtml(svc.id)}"
+            data-name="${escapeHtml(svc.name)}" title="Inspect container"><i class="codicon codicon-info"></i></button>
         </td>
       </tr>`;
     }).join('');
@@ -2694,13 +2698,25 @@
       if (id && action) { vscode.postMessage({ type: 'dockerContainerAction', containerId: id, action }); }
       return;
     }
-    // Inspect button
+    // Inspect button (containers, images, volumes, networks)
     const inspectBtn = e.target.closest('.docker-inspect-btn');
     if (inspectBtn) {
       const type = inspectBtn.dataset.type;
       const id = inspectBtn.dataset.id;
       const name = inspectBtn.dataset.name;
       if (type && id) { openDockerInspectModal(type, id, name || id); }
+      return;
+    }
+    // Compose project inspect button (shows docker compose config)
+    const composeInspectBtn = e.target.closest('.compose-project-inspect-btn');
+    if (composeInspectBtn) {
+      const projectName = composeInspectBtn.dataset.project;
+      if (projectName) {
+        if (dockerInspectTitle) { dockerInspectTitle.textContent = `Compose Config — ${projectName}`; }
+        if (dockerInspectContent) { dockerInspectContent.textContent = 'Loading…'; }
+        if (dockerInspectModal) { dockerInspectModal.style.display = ''; }
+        vscode.postMessage({ type: 'dockerComposeInspect', projectName });
+      }
       return;
     }
     // Remove button

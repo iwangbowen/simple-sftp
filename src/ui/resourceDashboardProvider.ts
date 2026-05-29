@@ -621,6 +621,20 @@ export class ResourceDashboardProvider {
         break;
       }
 
+      case 'dockerComposeInspect': {
+        const projectName = typeof message.projectName === 'string' ? message.projectName : '';
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,253}$/.test(projectName)) { break; }
+        try {
+          const data = await ResourceDashboardService.dockerComposeConfigInspect(
+            this.hostConfig, this.authConfig, projectName
+          );
+          this.panel.webview.postMessage({ type: 'dockerInspectData', inspectType: 'compose', id: projectName, name: projectName, data });
+        } catch (err) {
+          this.panel.webview.postMessage({ type: 'dockerInspectData', inspectType: 'compose', id: projectName, name: projectName, error: (err as Error).message });
+        }
+        break;
+      }
+
       case 'dockerComposeAction': {
         const projectName = typeof message.projectName === 'string' ? message.projectName : '';
         const action = message.action as string;
