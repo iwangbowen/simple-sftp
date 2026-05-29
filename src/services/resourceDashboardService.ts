@@ -2205,24 +2205,48 @@ export class ResourceDashboardService {
 
   /**
    * 获取 Docker Compose 项目配置（docker compose config）
-   * 自动检测 V1/V2 命令，结果为 YAML 字符串
+   * 优先使用 configFiles 路径（-f），否则用 -p，最后 fallback 到 container inspect
    */
   static async dockerComposeConfigInspect(
     config: HostConfig,
     authConfig: HostAuthConfig,
-    projectName: string
+    projectName: string,
+    configFiles = ''
   ): Promise<string> {
     if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,253}$/.test(projectName)) {
       throw new Error(`Invalid project name: ${projectName}`);
     }
     return this.executeWithConnection(config, authConfig, async (conn) => {
       const composeCmd = await this.resolveComposeCommand(conn, config.id);
-      return this.executeCommand(
+
+      // Strategy 1: Use config file path if available (-f is more reliable than -p)
+      if (configFiles) {
+        // configFiles may be comma-separated; take the first valid path
+        const firstFile = configFiles.split(',').map(f => f.trim()).find(f => f.startsWith('/'));
+        if (firstFile && /^[a-zA-Z0-9/._\-]+$/.test(firstFile)) {
+          const result = await this.executeCommand(
+            conn, `${composeCmd} -f '${firstFile}' config 2>&1`
+          ).catch(() => null);
+          if (result && !result.includes('no such file') && !result.toLowerCase().startsWith('error')) {
+            return result;
+          }
+        }
+      }
+
+      // Strategy 2: Use project name flag (-p)
+      const result2 = await this.executeCommand(
+        conn, `${composeCmd} -p '${projectName}' config 2>&1`
+      ).catch(() => null);
+      if (result2 && !result2.toLowerCase().startsWith('error') && result2.trim().length > 0) {
+        return result2;
+      }
+
+      // Strategy 3: Fallback — inspect all containers in the project
+      const inspectRaw = await this.executeCommand(
         conn,
-        `${composeCmd} -p '${projectName}' config 2>&1`
-      ).catch(err => {
-        throw new Error(`Docker compose config failed: ${(err as Error).message}`);
-      });
+        `docker inspect $(docker ps -aq --filter 'label=com.docker.compose.project=${projectName}') 2>&1`
+      ).catch(() => '[]');
+      return inspectRaw || '(no output)';
     });
   }
 

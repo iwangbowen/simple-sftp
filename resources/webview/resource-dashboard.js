@@ -2520,8 +2520,8 @@
             ${allStopped ? 'disabled' : ''}><i class="codicon codicon-debug-stop"></i></button>
           <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(proj.name)}" data-action="restart" title="Restart All">
             <i class="codicon codicon-debug-restart"></i></button>
-          <button class="docker-action-btn compose-project-inspect-btn" data-project="${escapeHtml(proj.name)}" title="Inspect Config (docker compose config)">
-            <i class="codicon codicon-info"></i></button>
+          <button class="docker-action-btn compose-project-inspect-btn" data-project="${escapeHtml(proj.name)}" data-config-files="${escapeHtml(proj.configFiles || '')}" title="Inspect Config (docker compose config)">
+            <i class="codicon codicon-json"></i></button>
           <button class="docker-action-btn compose-action-btn" data-project="${escapeHtml(proj.name)}" data-action="down" title="Down (remove containers)">
             <i class="codicon codicon-trash"></i></button>
         </td>
@@ -2589,7 +2589,7 @@
             data-service="${escapeHtml(svc.service)}" data-action="restart"
             title="Restart service"><i class="codicon codicon-debug-restart"></i></button>
           <button class="docker-action-btn docker-inspect-btn" data-type="container" data-id="${escapeHtml(svc.id)}"
-            data-name="${escapeHtml(svc.name)}" title="Inspect container"><i class="codicon codicon-info"></i></button>
+            data-name="${escapeHtml(svc.name)}" title="Inspect container"><i class="codicon codicon-json"></i></button>
         </td>
       </tr>`;
     }).join('');
@@ -2711,11 +2711,12 @@
     const composeInspectBtn = e.target.closest('.compose-project-inspect-btn');
     if (composeInspectBtn) {
       const projectName = composeInspectBtn.dataset.project;
+      const configFiles = composeInspectBtn.dataset.configFiles || '';
       if (projectName) {
         if (dockerInspectTitle) { dockerInspectTitle.textContent = `Compose Config — ${projectName}`; }
         if (dockerInspectContent) { dockerInspectContent.textContent = 'Loading…'; }
         if (dockerInspectModal) { dockerInspectModal.style.display = ''; }
-        vscode.postMessage({ type: 'dockerComposeInspect', projectName });
+        vscode.postMessage({ type: 'dockerComposeInspect', projectName, configFiles });
       }
       return;
     }

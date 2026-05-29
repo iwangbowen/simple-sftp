@@ -623,10 +623,11 @@ export class ResourceDashboardProvider {
 
       case 'dockerComposeInspect': {
         const projectName = typeof message.projectName === 'string' ? message.projectName : '';
+        const configFiles = typeof message.configFiles === 'string' ? message.configFiles : '';
         if (!/^[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,253}$/.test(projectName)) { break; }
         try {
           const data = await ResourceDashboardService.dockerComposeConfigInspect(
-            this.hostConfig, this.authConfig, projectName
+            this.hostConfig, this.authConfig, projectName, configFiles
           );
           this.panel.webview.postMessage({ type: 'dockerInspectData', inspectType: 'compose', id: projectName, name: projectName, data });
         } catch (err) {
