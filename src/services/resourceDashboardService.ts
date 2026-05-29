@@ -2337,12 +2337,12 @@ export class ResourceDashboardService {
     }
     return this.executeWithConnection(config, authConfig, async (conn) => {
       // Use docker ps with compose labels — works for both V1 and V2
-      // Falls back gracefully if compose CLI is not available
+      // Use single-quoted format strings to avoid shell escaping issues
       const raw = await this.executeCommand(
         conn,
         `docker ps -a ` +
-        `--filter "label=com.docker.compose.project=${projectName}" ` +
-        `--format "{{.ID}}|{{.Label \"com.docker.compose.service\"}}|{{.Names}}|{{.State}}|{{.Status}}|{{.Ports}}" ` +
+        `--filter 'label=com.docker.compose.project=${projectName}' ` +
+        `--format '{{.ID}}|{{.Label "com.docker.compose.service"}}|{{.Names}}|{{.State}}|{{.Status}}|{{.Ports}}' ` +
         `2>/dev/null || echo ""`
       ).catch(() => '');
 
