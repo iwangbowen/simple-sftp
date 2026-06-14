@@ -1544,31 +1544,6 @@ export class ResourceDashboardProvider {
                         </table>
                     </div>
                 </div>
-                <!-- Compose Section -->
-                <div class="section">
-                    <div class="section-header">
-                        <i class="codicon codicon-symbol-class"></i>
-                        <span>Compose Projects</span>
-                        <span id="dockerComposeCount" class="docker-section-count"></span>
-                    </div>
-                    <div class="section-content">
-                        <table class="docker-table" id="dockerComposeTable">
-                            <thead>
-                                <tr>
-                                    <th class="compose-expand-col"></th>
-                                    <th data-sort="name">Project</th>
-                                    <th>Services</th>
-                                    <th data-sort="status">Status</th>
-                                    <th>Config File</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dockerComposeList">
-                                <tr><td colspan="6" class="empty-state">Loading…</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
 
             <!-- Crontab Tab -->

@@ -115,6 +115,10 @@ export interface ContainerInfo {
   createdAt?: string;
   /** 端口映射 */
   ports?: string;
+  /** 所属 Compose 项目名称（standalone 容器为空字符串） */
+  composeProject?: string;
+  /** Compose 服务名称（standalone 容器为空字符串） */
+  composeService?: string;
 }
 
 /** Docker 镜像信息 */
@@ -1880,6 +1884,8 @@ export class ResourceDashboardService {
       if (!trimmed) { continue; }
       const parts = trimmed.split('|');
       if (parts.length < 5) { continue; }
+      const composeProject = parts[7] ? parts[7].trim() : undefined;
+      const composeService = parts[8] ? parts[8].trim() : undefined;
       containers.push({
         id: parts[0] || '',
         name: parts[1] || '',
@@ -1888,6 +1894,7 @@ export class ResourceDashboardService {
         state: parts[4] || '',
         createdAt: parts[5] || '',
         ports: parts[6] || '',
+        ...(composeProject ? { composeProject, composeService } : {}),
       });
     }
     return containers;
@@ -2076,7 +2083,8 @@ export class ResourceDashboardService {
 
       const [psRaw, imagesRaw, volumesRaw, networksRaw, composeProjects] = await Promise.all([
         this.executeCommand(conn,
-          'docker ps -a --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.CreatedAt}}|{{.Ports}}" 2>/dev/null || echo ""'
+          // format: ID|Name|Image|Status|State|CreatedAt|Ports|ComposeProject|ComposeService
+          `docker ps -a --format '{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.CreatedAt}}|{{.Ports}}|{{.Label "com.docker.compose.project"}}|{{.Label "com.docker.compose.service"}}' 2>/dev/null || echo ""`
         ).catch(() => ''),
         this.executeCommand(conn,
           'docker images --format "{{.ID}}|{{.Repository}}|{{.Tag}}|{{.Size}}|{{.CreatedAt}}" 2>/dev/null || echo ""'

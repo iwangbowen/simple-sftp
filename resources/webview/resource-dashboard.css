@@ -2157,6 +2157,76 @@ tr:hover .compose-expand-btn { opacity: 1; }
     background-color: var(--vscode-editorGroupHeader-tabsBackground);
 }
 
+/* ── Unified Containers + Compose Groups ─────────────────────────────────── */
+.compose-group-header > td {
+    background-color: var(--vscode-sideBarSectionHeader-background, var(--vscode-editorGroupHeader-tabsBackground));
+    border-top: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    padding: 5px 10px;
+}
+
+.compose-group-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+}
+
+.compose-group-icon {
+    color: var(--vscode-symbolIcon-classForeground, #e8a838);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.compose-group-name {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.compose-group-config {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+    max-width: 300px;
+}
+
+.compose-group-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* Show group actions on hover */
+.compose-group-header .docker-action-btn { opacity: 0; }
+.compose-group-header:hover .docker-action-btn:not(:disabled) { opacity: 0.7; }
+.compose-group-header:hover .docker-action-btn:hover:not(:disabled) { opacity: 1 !important; }
+
+/* Child container rows — subtle left border to indicate grouping */
+.compose-child-row > td:first-child {
+    border-left: 2px solid var(--vscode-focusBorder, var(--vscode-charts-blue));
+    padding-left: 12px;
+}
+
+/* Service name tag shown next to container name */
+.compose-service-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background-color: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    margin-left: 4px;
+    vertical-align: middle;
+    font-weight: 500;
+}
+
 /* ── Docker Log Modal ──────────────────────────────────────────────────────── */
 .docker-log-dialog {
   width: min(90vw, 1000px);
