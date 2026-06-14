@@ -1,5 +1,10 @@
 # Change Log
 
+## 6.33.0 - 2026-06-14
+
+- **Feature**: Resource Dashboard Docker tab — **unified Containers view**: Compose Projects and Containers sections are merged into a single **Containers** table. Compose projects appear as collapsible group headers (with project icon, running/total badge, config file path, and start/stop/restart/down/inspect-config actions); their containers are listed inline as child rows with a service-name badge. Standalone containers are grouped under a **Standalone** separator. All compose groups are auto-expanded on first load.
+- **Feature**: Resource Dashboard Docker tab — `docker ps` now fetches `com.docker.compose.project` and `com.docker.compose.service` labels so each container row shows its Compose service name directly (no separate lazy-load needed).
+
 ## 6.32.0 - 2026-05-29
 
 - **Feature**: Resource Dashboard Docker tab — Compose Projects section now supports **Inspect Config** button (uses `docker compose config`), showing the resolved YAML for the selected project.
