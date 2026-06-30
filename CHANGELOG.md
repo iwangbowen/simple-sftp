@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.34.0 - 2026-06-30
+
+- **Feature**: Host Configuration — "Test Connection" now shows a step-by-step chain visualization when jump hosts are configured. Each hop (Jump Host 1 → Jump Host 2 → … → Target) is tested sequentially with real-time status icons: spinning loader while connecting, green check + elapsed ms on success, red X + error message on failure. The connector line before a failed hop turns red to pinpoint exactly where the chain breaks.
+
 ## 6.33.0 - 2026-06-14
 
 - **Feature**: Resource Dashboard Docker tab — **unified Containers view**: Compose Projects and Containers sections are merged into a single **Containers** table. Compose projects appear as collapsible group headers (with project icon, running/total badge, config file path, and start/stop/restart/down/inspect-config actions); their containers are listed inline as child rows with a service-name badge. Standalone containers are grouped under a **Standalone** separator. All compose groups are auto-expanded on first load.
