@@ -11,7 +11,7 @@ import { PARALLEL_TRANSFER, getDeltaSyncConfig, getParallelTransferConfig } from
 import { FileIntegrityChecker } from './services/fileIntegrityChecker';
 import { DeltaSyncManager, SyncOptions, SyncPreview, SyncStats } from './services/deltaSyncManager';
 import { AttributePreservingTransfer } from './attributePreservingTransfer';
-import { establishMultiHopConnection, addAuthToConnectConfig } from './utils/jumpHostHelper';
+import { establishMultiHopConnection, addAuthToConnectConfig, ConnectionTestStep, testMultiHopWithProgress } from './utils/jumpHostHelper';
 
 /**
  * Download file options
@@ -117,6 +117,25 @@ export class SshConnectionManager {
       }
       throw error;
     }
+  }
+
+  /**
+   * 逐跳测试连接（仅用于多级跳板机场景）
+   * 依次连接每个跳板，通过 onStep 回调实时报告每跳结果
+   */
+  static async testConnectionWithProgress(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    onStep: (step: ConnectionTestStep) => void
+  ): Promise<void> {
+    const targetConnectConfig = this.buildConnectConfig(config, authConfig);
+    await testMultiHopWithProgress(
+      config.jumpHosts!,
+      config.host,
+      config.port,
+      targetConnectConfig,
+      onStep
+    );
   }
 
   /**

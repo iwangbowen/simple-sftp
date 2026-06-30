@@ -251,3 +251,101 @@ function createForwardStream(
     );
   });
 }
+
+/**
+ * Per-hop progress report for a connection test
+ */
+export interface ConnectionTestStep {
+  /** 0-based index of this hop */
+  index: number;
+  /** Total number of hops (jumpHosts.length + 1) */
+  total: number;
+  type: 'jumpHost' | 'target';
+  /** e.g. "Jump Host 1" or "Target" */
+  label: string;
+  host: string;
+  port: number;
+  status: 'testing' | 'success' | 'error';
+  error?: string;
+  durationMs?: number;
+}
+
+/**
+ * Test a multi-hop SSH connection one hop at a time, reporting each result via onStep.
+ * The targetConnectConfig should NOT have a sock set; this function sets it internally.
+ */
+export async function testMultiHopWithProgress(
+  jumpHosts: JumpHostConfig[],
+  targetHost: string,
+  targetPort: number,
+  targetConnectConfig: ConnectConfig,
+  onStep: (step: ConnectionTestStep) => void
+): Promise<void> {
+  const totalSteps = jumpHosts.length + 1;
+  const jumpConns: Client[] = [];
+
+  try {
+    let sock: any = undefined;
+
+    for (let i = 0; i < jumpHosts.length; i++) {
+      const jumpHost = jumpHosts[i];
+      const isLastJump = i === jumpHosts.length - 1;
+      const nextHost = isLastJump ? targetHost : jumpHosts[i + 1].host;
+      const nextPort = isLastJump ? targetPort : jumpHosts[i + 1].port;
+
+      onStep({ index: i, total: totalSteps, type: 'jumpHost', label: `Jump Host ${i + 1}`, host: jumpHost.host, port: jumpHost.port, status: 'testing' });
+
+      const start = Date.now();
+      try {
+        const jumpConn = await connectThroughSock(jumpHost, sock);
+        jumpConns.push(jumpConn);
+
+        const stream = await createForwardStream(jumpConn, nextHost, nextPort);
+        sock = stream;
+
+        // Report success only after forwarding stream is confirmed working
+        onStep({ index: i, total: totalSteps, type: 'jumpHost', label: `Jump Host ${i + 1}`, host: jumpHost.host, port: jumpHost.port, status: 'success', durationMs: Date.now() - start });
+      } catch (err) {
+        onStep({ index: i, total: totalSteps, type: 'jumpHost', label: `Jump Host ${i + 1}`, host: jumpHost.host, port: jumpHost.port, status: 'error', error: (err as Error).message, durationMs: Date.now() - start });
+        throw err;
+      }
+    }
+
+    // Test the final target connection
+    onStep({ index: jumpHosts.length, total: totalSteps, type: 'target', label: 'Target', host: targetHost, port: targetPort, status: 'testing' });
+
+    const start = Date.now();
+    const conn = new Client();
+    if (sock) {
+      targetConnectConfig.sock = sock;
+    }
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          conn.end();
+          reject(new Error('Connection timeout'));
+        }, 30000);
+
+        conn
+          .on('ready', () => {
+            clearTimeout(timer);
+            conn.end();
+            resolve();
+          })
+          .on('error', (err) => {
+            clearTimeout(timer);
+            reject(err);
+          })
+          .connect(targetConnectConfig);
+      });
+
+      onStep({ index: jumpHosts.length, total: totalSteps, type: 'target', label: 'Target', host: targetHost, port: targetPort, status: 'success', durationMs: Date.now() - start });
+    } catch (err) {
+      onStep({ index: jumpHosts.length, total: totalSteps, type: 'target', label: 'Target', host: targetHost, port: targetPort, status: 'error', error: (err as Error).message, durationMs: Date.now() - start });
+      throw err;
+    }
+  } finally {
+    jumpConns.forEach(c => { try { c.end(); } catch { /* ignore cleanup errors */ } });
+  }
+}

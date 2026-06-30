@@ -27,9 +27,15 @@
                 break;
             case 'testResult':
             case 'testConnectionResult':
-                if (!message.success) {
-                    vscode.postMessage({ type: 'error', message: message.message });
+                // Reset test button state
+                {
+                    const btnIcon = testConnectionBtn.querySelector('i');
+                    if (btnIcon) { btnIcon.className = 'codicon codicon-debug-disconnect'; }
+                    testConnectionBtn.disabled = false;
                 }
+                break;
+            case 'testConnectionStep':
+                handleConnectionTestStep(message.step);
                 break;
             case 'singleJumpHostTestResult':
                 // Handle single jump host test result
@@ -102,6 +108,19 @@
 
         console.log('[WebView] Validation passed, collecting form data');
         const config = collectFormData();
+
+        // Show loading state on button
+        const btnIcon = testConnectionBtn.querySelector('i');
+        if (btnIcon) { btnIcon.className = 'codicon codicon-loading codicon-modifier-spin'; }
+        testConnectionBtn.disabled = true;
+
+        // If jump hosts are configured, show the connection chain visualization
+        if (config.jumpHosts && config.jumpHosts.length > 0) {
+            initConnectionTestChain(config);
+        } else {
+            document.getElementById('connectionTestChain').style.display = 'none';
+        }
+
         console.log('[WebView] Sending test connection request with config:', config);
         vscode.postMessage({ type: 'testConnection', config });
     });
@@ -513,6 +532,105 @@
         }
 
         return true;
+    }
+
+    /**
+     * Initialize the connection test chain visualization.
+     * Called immediately when "Test Connection" is clicked (before any step results).
+     * @param {any} config - collected form data with jumpHosts and target host/port
+     */
+    function initConnectionTestChain(config) {
+        const chain = document.getElementById('connectionTestChain');
+        chain.style.display = 'block';
+        chain.innerHTML = '';
+
+        // Build the ordered list of hops: jump hosts first, then target
+        const steps = (config.jumpHosts || []).map((jh, i) => ({
+            index: i,
+            type: 'jumpHost',
+            label: `Jump Host ${i + 1}`,
+            host: jh.host,
+            port: jh.port,
+            username: jh.username || ''
+        }));
+
+        steps.push({
+            index: steps.length,
+            type: 'target',
+            label: 'Target',
+            host: config.host,
+            port: config.port,
+            username: config.username || ''
+        });
+
+        steps.forEach((step, i) => {
+            if (i > 0) {
+                const connector = document.createElement('div');
+                connector.className = 'ct-connector';
+                connector.id = `ct-connector-${i}`;
+                connector.innerHTML = '<div class="ct-connector-line"></div>';
+                chain.appendChild(connector);
+            }
+
+            const icon = step.type === 'target'
+                ? 'codicon-server-environment'
+                : 'codicon-remote';
+
+            const el = document.createElement('div');
+            el.className = 'ct-step';
+            el.id = `ct-step-${step.index}`;
+            el.innerHTML = `
+                <div class="ct-step-icon">
+                    <i class="codicon ${icon} ct-icon-pending" id="ct-icon-${step.index}"></i>
+                </div>
+                <div class="ct-step-body">
+                    <span class="ct-step-label">${step.label}</span>
+                    <span class="ct-step-host">${step.username ? step.username + '@' : ''}${step.host}:${step.port}</span>
+                    <span class="ct-step-meta" id="ct-meta-${step.index}"></span>
+                </div>`;
+            chain.appendChild(el);
+        });
+    }
+
+    /**
+     * Update one hop in the chain when a testConnectionStep message arrives.
+     * @param {Object} step - ConnectionTestStep from the extension backend
+     */
+    function handleConnectionTestStep(step) {
+        const icon = document.getElementById(`ct-icon-${step.index}`);
+        const meta = document.getElementById(`ct-meta-${step.index}`);
+        if (!icon || !meta) { return; }
+
+        // Strip all status classes from icon
+        icon.classList.remove('ct-icon-pending', 'ct-icon-testing', 'ct-icon-success', 'ct-icon-error',
+            'codicon-loading', 'codicon-modifier-spin', 'codicon-pass', 'codicon-error',
+            'codicon-remote', 'codicon-server-environment');
+
+        switch (step.status) {
+            case 'testing':
+                icon.classList.add('codicon-loading', 'codicon-modifier-spin', 'ct-icon-testing');
+                meta.textContent = 'Connecting…';
+                meta.className = 'ct-step-meta';
+                break;
+            case 'success':
+                icon.classList.add('codicon-pass', 'ct-icon-success');
+                meta.textContent = step.durationMs === undefined ? '' : `${step.durationMs} ms`;
+                meta.className = 'ct-step-meta';
+                break;
+            case 'error':
+                icon.classList.add('codicon-error', 'ct-icon-error');
+                meta.textContent = step.error || 'Connection failed';
+                meta.className = 'ct-step-meta ct-meta-error';
+                // Mark the incoming connector red to signal where the chain broke
+                {
+                    const connector = document.getElementById(`ct-connector-${step.index}`);
+                    if (connector) {
+                        const line = connector.querySelector('.ct-connector-line');
+                        if (line) { line.style.backgroundColor = 'var(--vscode-testing-iconFailed)'; }
+                    }
+                }
+                break;
+        }
     }
 
     // Initialize auth fields

@@ -4,6 +4,7 @@ import { HostConfig, JumpHostConfig } from '../types';
 import { HostManager } from '../hostManager';
 import { AuthManager } from '../authManager';
 import { SshConnectionManager } from '../sshConnectionManager';
+import { ConnectionTestStep } from '../utils/jumpHostHelper';
 import { logger } from '../logger';
 
 /**
@@ -382,10 +383,21 @@ export class HostConfigProvider {
                 jumpHosts: config.jumpHosts // Direct use of jumpHosts array
             };
 
-            await SshConnectionManager.testConnection(
-                testConfig,
-                authConfig
-            );
+            if (testConfig.jumpHosts && testConfig.jumpHosts.length > 0) {
+                // Progressive per-hop test: sends testConnectionStep for each hop
+                await SshConnectionManager.testConnectionWithProgress(
+                    testConfig,
+                    authConfig,
+                    (step: ConnectionTestStep) => {
+                        this.panel.webview.postMessage({
+                            command: 'testConnectionStep',
+                            step
+                        });
+                    }
+                );
+            } else {
+                await SshConnectionManager.testConnection(testConfig, authConfig);
+            }
 
             // Show success message
             vscode.window.showInformationMessage('Connection test successful!');
