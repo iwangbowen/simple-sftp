@@ -2845,10 +2845,27 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       return;
     }
 
+    // Merge jump host passwords from authManager (they are stored separately and not in HostConfig)
+    let fullConfig = config;
+    if (config.jumpHosts && config.jumpHosts.length > 0) {
+      const jumpHostsWithAuth = await Promise.all(
+        config.jumpHosts.map(async (jh, index) => {
+          const jumpAuth = await this.authManager.getAuth(`${config.id}_jump_${index}`);
+          return {
+            ...jh,
+            password: jumpAuth?.password,
+            privateKeyPath: jumpAuth?.privateKeyPath,
+            passphrase: jumpAuth?.passphrase
+          };
+        })
+      );
+      fullConfig = { ...config, jumpHosts: jumpHostsWithAuth };
+    }
+
     // Create or show resource dashboard webview
     ResourceDashboardProvider.createOrShow(
       this.extensionContext.extensionUri,
-      config,
+      fullConfig,
       authConfig
     );
   }
