@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.35.0 - 2026-06-30
+
+- **Fix**: Resource Dashboard — fixed connection failure when using jump hosts: jump host passwords were not loaded from `SecretStorage` before opening the dashboard, causing `hasPassword=false`. Now the auth for each jump host is merged into the config before the dashboard is created.
+
 ## 6.34.0 - 2026-06-30
 
 - **Feature**: Host Configuration — "Test Connection" now shows a step-by-step chain visualization when jump hosts are configured. Each hop (Jump Host 1 → Jump Host 2 → … → Target) is tested sequentially with real-time status icons: spinning loader while connecting, green check + elapsed ms on success, red X + error message on failure. The connector line before a failed hop turns red to pinpoint exactly where the chain breaks.
