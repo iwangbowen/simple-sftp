@@ -5,6 +5,7 @@ import { logger } from '../logger';
 import { SshConnectionManager } from '../sshConnectionManager';
 import { DeployProfile, HostAuthConfig, HostConfig, SavedRemoteTask } from '../types';
 import { DeployProfileService } from './deployProfileService';
+import { buildProxyJumpArgs } from '../utils/jumpHostHelper';
 
 type TaskScope =
   | { type: 'host'; host: HostConfig; defaultWorkingDirectory?: string; title: string }
@@ -304,6 +305,10 @@ export class RemoteTaskService {
     remoteCommand: string
   ): void {
     const args: string[] = ['-t'];
+
+    // Route through jump host(s) if configured
+    args.push(...buildProxyJumpArgs(host.jumpHosts));
+
     if (host.port && host.port !== 22) {
       args.push('-p', host.port.toString());
     }

@@ -5,6 +5,24 @@ import { logger } from '../logger';
 import { HostAuthConfig, JumpHostConfig } from '../types';
 
 /**
+ * Build `ssh` CLI arguments that route the connection through one or more jump hosts
+ * using OpenSSH's `-J` (ProxyJump) flag. Returns an empty array when no jump hosts are
+ * configured.
+ *
+ * Note: per `ssh(1)`, options supplied on the command line (e.g. `-i`) apply to the
+ * destination host only, not to jump hosts. Jump hosts authenticate using the default
+ * identity files / ssh-agent, or interactively prompt for a password when needed.
+ */
+export function buildProxyJumpArgs(jumpHosts?: JumpHostConfig[]): string[] {
+  if (!jumpHosts || jumpHosts.length === 0) {
+    return [];
+  }
+
+  const destinations = jumpHosts.map(jh => `${jh.username}@${jh.host}:${jh.port}`).join(',');
+  return ['-J', destinations];
+}
+
+/**
  * Add authentication configuration to ConnectConfig
  */
 export function addAuthToConnectConfig(connectConfig: ConnectConfig, authConfig: HostAuthConfig): void {

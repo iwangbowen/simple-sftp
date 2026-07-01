@@ -15,6 +15,7 @@ import { PortForwardService } from '../services/portForwardService';
 import { RemoteBrowserService } from '../services/remoteBrowserService';
 import { PortForwardConfig, RemoteForwardConfig, DynamicForwardConfig } from '../types/portForward.types';
 import { TimeUtils } from '../timeUtils';
+import { buildProxyJumpArgs } from '../utils/jumpHostHelper';
 
 export interface FileNode {
     name: string;
@@ -3028,6 +3029,9 @@ export abstract class DualPanelBase {
 
             // Build the SSH command arguments
             const args: string[] = [];
+
+            // Route through jump host(s) if configured
+            args.push(...buildProxyJumpArgs(config.jumpHosts));
 
             // Add port if not default
             if (config.port && config.port !== 22) {

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
-import { addAuthToConnectConfig } from './jumpHostHelper';
-import { HostAuthConfig } from '../types';
+import { addAuthToConnectConfig, buildProxyJumpArgs } from './jumpHostHelper';
+import { HostAuthConfig, JumpHostConfig } from '../types';
 
 vi.mock('node:fs');
 vi.mock('node:os');
@@ -240,6 +240,33 @@ describe('jumpHostHelper', () => {
         const keyPath = `~/.ssh/${keyName}`;
         expect(keyPath).toContain(keyName);
       }
+    });
+  });
+
+  describe('buildProxyJumpArgs', () => {
+    it('should return an empty array when no jump hosts are configured', () => {
+      expect(buildProxyJumpArgs(undefined)).toEqual([]);
+      expect(buildProxyJumpArgs([])).toEqual([]);
+    });
+
+    it('should build a single -J destination for one jump host', () => {
+      const jumpHosts: JumpHostConfig[] = [
+        { host: '192.168.44.46', port: 22, username: 'root', authType: 'password' }
+      ];
+
+      expect(buildProxyJumpArgs(jumpHosts)).toEqual(['-J', 'root@192.168.44.46:22']);
+    });
+
+    it('should chain multiple jump hosts separated by commas', () => {
+      const jumpHosts: JumpHostConfig[] = [
+        { host: 'jump1.example.com', port: 22, username: 'alice', authType: 'password' },
+        { host: 'jump2.example.com', port: 2222, username: 'bob', authType: 'privateKey' }
+      ];
+
+      expect(buildProxyJumpArgs(jumpHosts)).toEqual([
+        '-J',
+        'alice@jump1.example.com:22,bob@jump2.example.com:2222'
+      ]);
     });
   });
 });

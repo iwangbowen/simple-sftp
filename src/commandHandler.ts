@@ -10,6 +10,7 @@ import { HostConfig, HostAuthConfig, GroupConfig, PathBookmark } from './types';
 import { logger } from './logger';
 import { SshConnectionPool } from './sshConnectionPool';
 import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/formatUtils';
+import { buildProxyJumpArgs } from './utils/jumpHostHelper';
 import { BookmarkService } from './services/bookmarkService';
 import { RemoteBrowserService } from './services/remoteBrowserService';
 import { TransferQueueService } from './services/transferQueueService';
@@ -1786,6 +1787,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     // Build the SSH command arguments
     const args: string[] = [];
 
+    // Route through jump host(s) if configured
+    args.push(...buildProxyJumpArgs(config.jumpHosts));
+
     // Add port if not default
     if (config.port && config.port !== 22) {
       args.push('-p', config.port.toString());
@@ -1840,6 +1844,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     // Force TTY allocation so interactive shell works with a remote command
     args.push('-t');
+
+    // Route through jump host(s) if configured
+    args.push(...buildProxyJumpArgs(config.jumpHosts));
 
     // Add port if not default
     if (config.port && config.port !== 22) {
