@@ -1,5 +1,9 @@
 # Change Log
 
+## 6.36.0 - 2026-07-01
+
+- **Fix**: SSH Terminal features now respect configured jump hosts. "Open SSH Terminal", "Open SSH Terminal Here" (bookmarks), the dual-panel file browser's "Open in Terminal", and Remote Tasks' "Run in SSH Terminal" previously connected directly to the target host, ignoring jump host configuration entirely and failing with exit code 255 whenever the target was only reachable via a jump host. These now route through the configured jump host chain using OpenSSH's `-J` (ProxyJump).
+
 ## 6.35.0 - 2026-06-30
 
 - **Fix**: Resource Dashboard — fixed connection failure when using jump hosts: jump host passwords were not loaded from `SecretStorage` before opening the dashboard, causing `hasPassword=false`. Now the auth for each jump host is merged into the config before the dashboard is created.
