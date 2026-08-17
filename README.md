@@ -20,6 +20,10 @@ If you find this extension helpful, consider buying me a coffee!
 
 <img src="resources/wechat-pay.jpg" alt="WeChat Pay" width="200"/>
 
+### Author's Other Projects
+
+Also check out my other project — **[Zenith Admin](https://github.com/iwangbowen/zenith-admin)**: a full-stack admin management system built with Hono v4 + React 19 + Semi Design v2 + Drizzle ORM, covering auth & permissions, workflow engine, AI assistant, BI reporting, payments, and more.
+
 ### Features
 
 #### File Management
@@ -477,6 +481,10 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 如果你觉得这个扩展有帮助，可以请我喝杯咖啡！
 
 <img src="resources/wechat-pay.jpg" alt="微信支付" width="200"/>
+
+### 作者的其他项目
+
+欢迎查看我的另一个项目 —— **[Zenith Admin](https://github.com/iwangbowen/zenith-admin)**：基于 Hono v4 + React 19 + Semi Design v2 + Drizzle ORM 的全栈后台管理系统，涵盖认证授权、工作流引擎、AI 助手、BI 报表、支付中心等完整业务场景。
 
 ### 功能特性
 
